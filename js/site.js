@@ -1,5 +1,5 @@
 import { initializeAnalytics } from "./analytics.js";
-import { mountSharedChrome } from "./components.js?v=20260521";
+import { mountSharedChrome } from "./components.js?v=20260522";
 import { renderCatalogue } from "./catalog.js";
 
 initializeAnalytics();

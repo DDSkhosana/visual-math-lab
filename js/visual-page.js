@@ -1,5 +1,5 @@
 import { initializeAnalytics, trackEvent } from "./analytics.js";
-import { mountSharedChrome } from "./components.js?v=20260521";
+import { mountSharedChrome } from "./components.js?v=20260522";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -25,7 +25,7 @@ async function getVisual(slug) {
 
 function renderVideo(visual) {
   const target = document.querySelector("[data-video]");
-  if (!target || !isValidYouTubeId(visual.youtubeId)) {
+  if (!target || visual.video?.enabled !== true || !isValidYouTubeId(visual.youtubeId)) {
     return;
   }
 

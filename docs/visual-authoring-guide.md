@@ -6,7 +6,30 @@
 4. Set `published` to `true` only once the page is ready to show publicly.
 5. Run `node scripts/validate-site.mjs` and `node scripts/generate-sitemap.mjs`.
 
-Every published metadata entry must provide `slug`, `title`, `category`, `description`, `thumbnail`, `youtubeId`, and `published`. An empty `youtubeId` means no video section is rendered.
+Every metadata entry must provide `slug`, `title`, `category`, `description`, `thumbnail`, `published`, `youtubeId`, and `video`:
+
+```json
+{
+  "slug": "perpendicular-chord-bisector",
+  "title": "Perpendicular Chord Bisector",
+  "category": "Geometry",
+  "description": "...",
+  "thumbnail": "assets/images/perpendicular-chord-bisector-thumbnail.svg",
+  "published": true,
+  "youtubeId": "",
+  "video": {
+    "enabled": false,
+    "version": 1,
+    "script": "",
+    "thumbnailText": ""
+  }
+}
+```
+
+- `video.enabled`: the "Watch the demonstration" section renders only when this is `true` and `youtubeId` is a valid 11-character YouTube ID. Validation fails if `enabled` is `true` with an empty `youtubeId`.
+- `video.version`: positive integer; bump it when the video is re-recorded.
+- `video.script`: narration script or a path to it (planning only, never rendered publicly).
+- `video.thumbnailText`: overlay text for the YouTube thumbnail (planning only).
 
 ## Interactive implementation
 
