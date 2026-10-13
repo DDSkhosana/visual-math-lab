@@ -14,8 +14,7 @@ const SITE_CONFIG = {
   },
 
   buyMeACoffee: {
-    profileUrl: "https://buymeacoffee.com/ddskhosana",
-    membershipUrl: "https://buymeacoffee.com/ddskhosana/membership"
+    profileUrl: "https://buymeacoffee.com/ddskhosana"
   },
 
   youtube: {
@@ -26,7 +25,7 @@ const SITE_CONFIG = {
 
   analytics: {
     // Google Analytics 4 measurement ID, e.g. "G-ABC123XYZ9". Leave empty to disable analytics.
-    measurementId: ""
+    measurementId: "G-E1W7GYR7Q0"
   }
 };
 
