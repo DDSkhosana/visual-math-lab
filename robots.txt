@@ -1,4 +1,19 @@
 User-agent: *
 Allow: /
 
+Disallow: /assets/
+Disallow: /config/
+Disallow: /css/
+Disallow: /data/
+Disallow: /docs/
+Disallow: /js/
+Disallow: /scripts/
+Disallow: /tests/
+Disallow: /node_modules/
+Disallow: /css/
+Disallow: /visuals/
+Disallow: .gitignore
+Disallow: /*.md
+Disallow: package.json
+
 Sitemap: sitemap.xml
