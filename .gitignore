@@ -1,92 +1,70 @@
-# OS
+# Operating System
+
 .DS_Store
-._*
-.Spotlight-V100
-.Trashes
 Thumbs.db
-ehthumbs.db
 desktop.ini
-$RECYCLE.BIN/
 
 # Editors
+
 .vscode/
 .idea/
-.history/
-*.swp
-*.swo
-*~
-*.sublime-workspace
 
 # Logs
+
 *.log
 logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# Environment and secrets
-.env
-.env.*
-!.env.example
-*.pem
-*.key
+# Node
 
-# Build folders
+node_modules/
+
+# Build Outputs
+
 dist/
 build/
 out/
 
-# Dependencies
-node_modules/
-.npm/
-.pnpm-store/
-.yarn/
+# Temporary Files
 
-# Generated caches
-.cache/
-.temp/
-temp/
 tmp/
-*.tmp
-.eslintcache
-.stylelintcache
-*.tsbuildinfo
-.parcel-cache/
+temp/
 
-# Coverage
+# Environment Variables
+
+.env
+.env.*
+!.env.example
+
+# Testing
+
 coverage/
-.nyc_output/
+playwright-report/
+test-results/
 
-# Python tooling (local http.server)
+# Python
+
 __pycache__/
 *.pyc
+
 venv/
 .venv/
 
-# Generated sitemap backups
-*.bak
+# AI Workspace
 
-# Merge and patch leftovers
-*.orig
-*.rej
-
-# Draft content
-drafts/
-scratch/
-
-# Agent working files
 .ai-workspace/
 .agent-cache/
 
-# Deployment tool state
-.vercel/
-.netlify/
-.firebase/
+# Draft Content
 
-# Local testing
-playwright-report/
-test-results/
-blob-report/
-playwright/.cache/
-.lighthouseci/
+drafts/
+scratch/
+experiments/
+
+# Generated Files
+
+generated/
+
+# Backup Files
+
+*.bak
+*.orig
