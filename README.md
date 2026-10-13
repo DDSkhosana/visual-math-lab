@@ -37,3 +37,10 @@ Follow [the visual authoring guide](docs/visual-authoring-guide.md). The catalog
 ## Deployment
 
 The GitHub Actions workflows validate the site, generate `sitemap.xml`, and deploy the repository to GitHub Pages. Configure Pages to use **GitHub Actions** as its build source.
+
+## Licence
+
+This project uses a dual licence:
+
+- **Source code** (HTML, CSS, JavaScript, and scripts) is licensed under the [Apache License 2.0](LICENSE).
+- **Content** (visualisations as presented works, educational text, thumbnails, videos, and media assets) is copyright © 2026 Dianah Skhosana, all rights reserved. Reuse requires permission; see [CONTENT_LICENSE.md](CONTENT_LICENSE.md).
