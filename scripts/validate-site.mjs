@@ -47,7 +47,6 @@ if (existsSync(configPath)) {
     report(typeof config?.creator?.name === "string" && config.creator.name !== "", "config: creator.name is required.");
     for (const [key, value] of [
       ["buyMeACoffee.profileUrl", config?.buyMeACoffee?.profileUrl],
-      ["buyMeACoffee.membershipUrl", config?.buyMeACoffee?.membershipUrl],
       ["youtube.channelUrl", config?.youtube?.channelUrl]
     ]) {
       report(isHttpsOrEmpty(value), `config: ${key} must be empty or an https URL.`);
