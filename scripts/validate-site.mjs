@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, relative, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const requiredFields = ["slug", "title", "category", "description", "thumbnail", "published", "youtubeId", "video"];
@@ -34,6 +35,31 @@ const configPath = resolve(root, "config", "site-config.js");
 const visualsPath = resolve(root, "data", "visuals.json");
 report(existsSync(configPath), "Missing config/site-config.js.");
 report(existsSync(visualsPath), "Missing data/visuals.json.");
+
+if (existsSync(configPath)) {
+  try {
+    const { default: config, hasMeasurementId } = await import(pathToFileURL(configPath).href);
+    const isHttpsOrEmpty = (value) => value === "" || (typeof value === "string" && /^https:\/\/\S+$/.test(value));
+    const hasPlaceholder = (value) => typeof value === "string" && /YOUR_|X{6,}/i.test(value);
+    report(config && typeof config === "object", "config/site-config.js must have a default export object.");
+    report(typeof config?.site?.name === "string" && config.site.name !== "", "config: site.name is required.");
+    report(isHttpsOrEmpty(config?.site?.url) && !config?.site?.url?.endsWith("/"), "config: site.url must be empty or an https URL without a trailing slash.");
+    report(typeof config?.creator?.name === "string" && config.creator.name !== "", "config: creator.name is required.");
+    for (const [key, value] of [
+      ["buyMeACoffee.profileUrl", config?.buyMeACoffee?.profileUrl],
+      ["buyMeACoffee.membershipUrl", config?.buyMeACoffee?.membershipUrl],
+      ["youtube.channelUrl", config?.youtube?.channelUrl]
+    ]) {
+      report(isHttpsOrEmpty(value), `config: ${key} must be empty or an https URL.`);
+      report(!hasPlaceholder(value), `config: ${key} still contains a placeholder value.`);
+    }
+    report(!hasPlaceholder(config?.youtube?.handle), "config: youtube.handle still contains a placeholder value.");
+    const measurementId = config?.analytics?.measurementId;
+    report(measurementId === "" || hasMeasurementId(measurementId), "config: analytics.measurementId must be empty or a real GA4 ID (not G-XXXXXXXXXX).");
+  } catch (error) {
+    errors.push(`Could not load config/site-config.js: ${error.message}`);
+  }
+}
 
 const visuals = existsSync(visualsPath) ? readJson(visualsPath) : [];
 report(Array.isArray(visuals), "data/visuals.json must contain an array.");

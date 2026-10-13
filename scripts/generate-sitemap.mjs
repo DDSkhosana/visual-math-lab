@@ -1,14 +1,14 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
-const configText = readFileSync(resolve(root, "config", "site-config.js"), "utf8");
-const urlMatch = configText.match(/siteUrl:\s*"([^"]*)"/);
-const siteUrl = urlMatch?.[1].replace(/\/$/, "");
+const { default: SITE_CONFIG } = await import(pathToFileURL(resolve(root, "config", "site-config.js")).href);
+const siteUrl = (SITE_CONFIG.site?.url || "").replace(/\/$/, "");
 const visuals = JSON.parse(readFileSync(resolve(root, "data", "visuals.json"), "utf8"));
 
 if (!siteUrl) {
-  console.log("Skipping sitemap generation until config/site-config.js has a siteUrl.");
+  console.log("Skipping sitemap generation until config/site-config.js has a site.url.");
   process.exit(0);
 }
 

@@ -1,5 +1,5 @@
-import { initializeAnalytics, trackEvent } from "./analytics.js";
-import { mountSharedChrome } from "./components.js?v=20260522";
+import { initializeAnalytics, trackEvent } from "./analytics.js?v=20260523";
+import { mountSharedChrome } from "./components.js?v=20260523";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");

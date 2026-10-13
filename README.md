@@ -23,10 +23,17 @@ node scripts/generate-sitemap.mjs
 
 Update public site settings in `config/site-config.js` before release:
 
-- `siteUrl`
-- `buyMeACoffeeUrl`
-- `analyticsId`
-- `youtubeChannelUrl`
+| Setting | Purpose |
+|---|---|
+| `site.name` | Site name shown in the header and footer |
+| `site.url` | Public URL without a trailing slash; required for sitemap generation |
+| `creator.name` | Content owner name |
+| `buyMeACoffee.profileUrl` | Support panel and footer link |
+| `buyMeACoffee.membershipUrl` | Membership page URL |
+| `youtube.channelUrl`, `youtube.handle`, `youtube.channelId` | YouTube channel details |
+| `analytics.measurementId` | Google Analytics 4 ID (`G-…`); leave empty to disable analytics |
+
+`npm run validate` rejects placeholder values such as `G-XXXXXXXXXX` or `YOUR_CHANNEL`.
 
 Do not place private credentials in this repository.
 
