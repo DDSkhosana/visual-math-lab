@@ -6,7 +6,7 @@ const SITE_CONFIG = {
     name: "Visual Mathematics Lab",
     // Full public URL without a trailing slash, e.g. "https://ddskhosana.github.io/visual-math-lab".
     // Leave empty to skip sitemap generation.
-    url: "https://ddskhosana.github.io/visual-math-lab/"
+    url: "https://ddskhosana.github.io/visual-math-lab"
   },
 
   creator: {
