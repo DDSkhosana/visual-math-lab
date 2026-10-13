@@ -1,8 +1,8 @@
 # Content Licence
 
-Copyright © 2026 Dianah Skhosana. All rights reserved.
+Copyright © 2026 The Copyright Holder. All rights reserved.
 
-All educational content, visualisations, diagrams, thumbnails, images, videos and media assets contained within this repository remain the intellectual property of Dianah Skhosana.
+All educational content, visualisations, diagrams, thumbnails, images, videos and media assets contained within this repository remain the intellectual property of the author.
 
 The source code is licensed separately under the Apache License 2.0. See [LICENSE](./LICENSE).
 
@@ -30,7 +30,7 @@ Without requesting permission, you may:
 
 ## 3. Restricted use
 
-Without express written permission from Dianah Skhosana, you may not:
+Without express written permission from the copyright holder, you may not:
 
 - reproduce, copy or republish any covered content, in whole or in substantial part;
 - repackage covered content into other products, courses, worksheets, slide decks, videos or platforms;
