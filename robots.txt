@@ -16,4 +16,4 @@ Disallow: .gitignore
 Disallow: /*.md
 Disallow: package.json
 
-Sitemap: sitemap.xml
+Sitemap: https://ddskhosana.github.io/visual-math-lab/sitemap.xml
