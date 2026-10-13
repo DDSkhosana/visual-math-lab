@@ -1,24 +1,55 @@
-# Operating system and editor files
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Editors
 .vscode/
 .idea/
 
-# Dependencies and generated output
-node_modules/
-coverage/
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# Build folders
 dist/
 build/
+out/
+
+# Dependencies
+node_modules/
+
+# Generated caches
+.cache/
+.temp/
+tmp/
+
+# Coverage
+coverage/
+
+# Python tooling
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Generated sitemap backups
+*.bak
+
+# Draft content
+drafts/
+scratch/
+
+# Agent working files
+.ai-workspace/
+.agent-cache/
+
+# Local testing
 playwright-report/
 test-results/
-
-# Environment and temporary files
-.env
-.env.*
-!.env.example
-*.log
-*.tmp
-*.bak
-tmp/
-temp/
