@@ -1,0 +1,9 @@
+{
+  "name": "visual-mathematics-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "validate": "node scripts/validate-site.mjs"
+  }
+}

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Perpendicular Chord Bisector Theorem illustration</title>
+  <desc id="desc">A line from the centre perpendicular to a chord bisects the chord.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+  <circle cx="600" cy="380" r="250" fill="none" stroke="#111111" stroke-width="16"/>
+  <!-- Center O -->
+  <circle cx="600" cy="380" r="14" fill="#111111"/>
+  <text x="615" y="360" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">O</text>
+  <!-- Chord AB: A=(380, 520), B=(820, 520) -->
+  <line x1="380" y1="520" x2="820" y2="520" stroke="#ef4444" stroke-width="14"/>
+  <circle cx="380" cy="520" r="14" fill="#ef4444"/>
+  <text x="330" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
+  <circle cx="820" cy="520" r="14" fill="#ef4444"/>
+  <text x="845" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">B</text>
+  <!-- Midpoint M at (600, 520) -->
+  <circle cx="600" cy="520" r="12" fill="#10b981"/>
+  <text x="615" y="560" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#10b981">M</text>
+  <!-- Perpendicular line OM -->
+  <line x1="600" y1="380" x2="600" y2="520" stroke="#3b82f6" stroke-width="12"/>
+  <!-- Right angle box at M -->
+  <path d="M575 520 L575 495 L600 495" fill="none" stroke="#14b8a6" stroke-width="8"/>
+  <text x="540" y="485" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#14b8a6">90°</text>
+  <!-- Congruence tick marks on AM and MB -->
+  <line x1="485" y1="505" x2="495" y2="535" stroke="#ef4444" stroke-width="6"/>
+  <line x1="705" y1="505" x2="715" y2="535" stroke="#ef4444" stroke-width="6"/>
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">PERPENDICULAR CHORD BISECTOR</text>
+</svg>

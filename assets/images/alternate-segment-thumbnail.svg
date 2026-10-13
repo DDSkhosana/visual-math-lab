@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Alternate Segment Theorem illustration</title>
+  <desc id="desc">The angle between a tangent and chord equals the angle in the alternate segment.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+  <circle cx="600" cy="380" r="240" fill="none" stroke="#111111" stroke-width="16"/>
+  <!-- Tangent at T(600, 620) -->
+  <line x1="240" y1="620" x2="960" y2="620" stroke="#10b981" stroke-width="14"/>
+  <!-- Triangle TAB: T=(600, 620), A=(390, 245), B=(795, 275) -->
+  <polygon points="600,620 390,245 795,275" fill="rgba(59, 130, 246, 0.12)" stroke="#111111" stroke-width="12"/>
+  <circle cx="600" cy="620" r="14" fill="#ef4444"/>
+  <text x="615" y="665" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">T</text>
+  <circle cx="390" cy="245" r="14" fill="#3b82f6"/>
+  <text x="350" y="235" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#3b82f6">A</text>
+  <circle cx="795" cy="275" r="14" fill="#f97316"/>
+  <text x="820" y="275" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#f97316">B</text>
+  <!-- Alternate angles marked with alpha -->
+  <text x="470" y="590" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#eab308">α</text>
+  <text x="760" y="340" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#eab308">α</text>
+  <!-- Title -->
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">ALTERNATE SEGMENT THEOREM</text>
+</svg>

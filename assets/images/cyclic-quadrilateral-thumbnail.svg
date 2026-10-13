@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Cyclic Quadrilateral Theorem illustration</title>
+  <desc id="desc">Opposite angles of an inscribed quadrilateral sum to 180 degrees.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+  <circle cx="600" cy="400" r="260" fill="none" stroke="#111111" stroke-width="16"/>
+  <!-- Quadrilateral vertices: A=(420, 215), B=(780, 215), C=(830, 520), D=(370, 520) -->
+  <polygon points="420,215 780,215 830,520 370,520" fill="rgba(99, 102, 241, 0.12)" stroke="#111111" stroke-width="12"/>
+  <!-- Diagonals or angle arcs -->
+  <!-- A: purple, C: amber (sum = 180) -->
+  <!-- B: cyan, D: rose (sum = 180) -->
+  <circle cx="420" cy="215" r="14" fill="#a855f7"/>
+  <text x="385" y="195" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#a855f7">A</text>
+  <circle cx="780" cy="215" r="14" fill="#06b6d4"/>
+  <text x="800" y="195" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#06b6d4">B</text>
+  <circle cx="830" cy="520" r="14" fill="#fbbf24"/>
+  <text x="855" y="555" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#fbbf24">C</text>
+  <circle cx="370" cy="520" r="14" fill="#f43f5e"/>
+  <text x="325" y="555" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#f43f5e">D</text>
+  <!-- Labels showing A + C = 180° -->
+  <text x="600" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#111111">∠A + ∠C = 180°</text>
+  <text x="600" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#111111">∠B + ∠D = 180°</text>
+  <!-- Title -->
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">CYCLIC QUADRILATERAL THEOREM</text>
+</svg>

@@ -1,0 +1,24 @@
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Dependencies and generated output
+node_modules/
+coverage/
+dist/
+build/
+playwright-report/
+test-results/
+
+# Environment and temporary files
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+tmp/
+temp/

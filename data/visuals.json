@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "thales-theorem",
+    "title": "Thales' Theorem",
+    "category": "Geometry",
+    "description": "Explore why an angle subtended by a diameter is always a right angle.",
+    "thumbnail": "assets/images/thales-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "angle-at-centre",
+    "title": "Angle at the Centre Theorem",
+    "category": "Geometry",
+    "description": "Demonstrate that the angle subtended by an arc at the centre is twice the angle subtended at the circumference.",
+    "thumbnail": "assets/images/angle-at-centre-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "angles-in-same-segment",
+    "title": "Angles in the Same Segment",
+    "category": "Geometry",
+    "description": "Explore how angles subtended by the same chord or arc in the same segment of a circle are equal.",
+    "thumbnail": "assets/images/angles-in-same-segment-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "cyclic-quadrilateral",
+    "title": "Cyclic Quadrilateral Theorem",
+    "category": "Geometry",
+    "description": "Verify that opposite angles of an inscribed cyclic quadrilateral sum to exactly 180 degrees.",
+    "thumbnail": "assets/images/cyclic-quadrilateral-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "tangent-radius",
+    "title": "Tangent-Radius Perpendicularity",
+    "category": "Geometry",
+    "description": "Investigate why a tangent to a circle is perpendicular to the radius at the point of contact.",
+    "thumbnail": "assets/images/tangent-radius-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "alternate-segment",
+    "title": "Alternate Segment Theorem",
+    "category": "Geometry",
+    "description": "Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment.",
+    "thumbnail": "assets/images/alternate-segment-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "tangents-from-external-point",
+    "title": "Tangents from an External Point",
+    "category": "Geometry",
+    "description": "Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre.",
+    "thumbnail": "assets/images/tangents-from-external-point-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  },
+  {
+    "slug": "perpendicular-chord-bisector",
+    "title": "Perpendicular Chord Bisector",
+    "category": "Geometry",
+    "description": "Demonstrate that the perpendicular line from the centre of a circle to a chord bisects the chord.",
+    "thumbnail": "assets/images/perpendicular-chord-bisector-thumbnail.svg",
+    "youtubeId": "",
+    "published": true
+  }
+]

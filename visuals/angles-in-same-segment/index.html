@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore why angles subtended by the same arc in the same segment of a circle are equal.">
+  <title>Angles in the Same Segment Theorem | Visual Mathematics Lab</title>
+  <link rel="stylesheet" href="../../css/site.css?v=20260521">
+  <link rel="stylesheet" href="../../css/visual.css?v=20260521">
+  <link rel="stylesheet" href="styles/explorer.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script type="module" src="../../js/visual-page.js?v=20260521"></script>
+  <script type="module" src="src/main.js"></script>
+</head>
+<body data-root="../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
+
+  <!-- Overlay Info Modal -->
+  <div class="visual-info-overlay" id="visual-info-modal" role="dialog" aria-modal="true" aria-labelledby="modal-visual-title" hidden>
+    <div class="visual-info-card">
+      <div class="visual-info-header">
+        <span class="eyebrow" data-visual-category>Geometry</span>
+        <button type="button" class="visual-info-close" id="visual-info-close" aria-label="Close information">✕</button>
+      </div>
+      <h2 id="modal-visual-title" class="visual-info-title" data-visual-title>Angles in the Same Segment Theorem</h2>
+      <p class="visual-info-desc" data-visual-description>Loading visual information.</p>
+      <div class="visual-info-actions">
+        <a href="#about-visual" class="button button--primary" id="visual-info-scroll">Read full theory &darr;</a>
+        <button type="button" class="button button--secondary" id="visual-info-dismiss">Back to visual</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Angles in the Same Segment Theorem visualisation">
+      <!-- Floating Header Toolbar -->
+      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Viewport options">
+        <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
+          <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
+        </div>
+        <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+          <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+          <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+          <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+        </div>
+        <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+        <span class="toolbar-divider"></span>
+        <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep Points P1 &amp; P2 continuously">
+          <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span class="playback-label">Play</span>
+        </button>
+        <span class="toolbar-divider"></span>
+        <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+      </div>
+
+      <!-- View Container (Split 2D / 3D) -->
+      <div class="view-container layout-split horizontal-split" id="main-view">
+        <div id="canvas-2d-container">
+          <canvas id="main-canvas"></canvas>
+          <div class="view-title">2D: Angles in Same Segment (<span class="color-blue">∠AP₁B</span> = <span class="color-emerald">∠AP₂B</span>)</div>
+
+          <!-- Telemetry Stats Panel (2D) -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">2D Telemetry</span>
+              <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false">+</button>
+            </div>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span>Angle at P₁ (<span class="color-blue">∠AP₁B</span>):</span><strong class="color-blue" id="tel-p1-angle">60.0°</strong></div>
+              <div class="stat-line"><span>Angle at P₂ (<span class="color-emerald">∠AP₂B</span>):</span><strong class="color-emerald" id="tel-p2-angle">60.0°</strong></div>
+              <div class="stat-line"><span>Difference |P₁ − P₂|:</span><strong class="color-teal" id="tel-diff">0.000°</strong></div>
+              <div class="stat-line"><span>Central Angle (<span class="color-yellow">∠AOB</span>):</span><span class="color-yellow" id="tel-central-angle">120.0°</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="viewport-resizer" id="viewport-resizer"></div>
+
+        <div id="canvas-3d-container">
+          <div class="view-title">3D: Spherical Subtended Triangles</div>
+          <div class="camera-presets-bar">
+            <button type="button" data-preset="top">Top</button>
+            <button type="button" data-preset="front">Front</button>
+            <button type="button" data-preset="side">Side</button>
+            <button type="button" data-preset="iso" class="active">Iso</button>
+          </div>
+          <div id="labels-3d-container" class="labels-3d-container"></div>
+
+          <!-- Telemetry Stats Panel (3D) -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">3D Telemetry</span>
+              <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false">+</button>
+            </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span>P₁ (x, z):</span><span class="color-blue" id="val-3d-p1">0.00, 0.00</span></div>
+              <div class="stat-line"><span>P₂ (x, z):</span><span class="color-emerald" id="val-3d-p2">0.00, 0.00</span></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                <span>3D ∠AP₁B:</span><strong class="color-blue" id="val-3d-ang1">60.0°</strong>
+              </div>
+              <div class="stat-line"><span>3D ∠AP₂B:</span><strong class="color-emerald" id="val-3d-ang2">60.0°</strong></div>
+              <div class="stat-line"><span>Δ |P₁ − P₂|:</span><strong class="color-teal" id="val-3d-diff">0.000°</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui-panel" id="controls-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="controls-header">
+            <h1 class="color-sky">Interactive Controls</h1>
+            <div>
+              <button type="button" id="toggle-controls-min" class="btn text-xs px-1.5 py-0.5 bg-slate-800 mr-2" aria-expanded="false" title="Minimize Panel">+</button>
+              <button type="button" id="toggle-controls-expand" class="text-xs text-slate-400 hover:text-white font-bold" title="Expand All">Expand All</button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Circle Radius</span><span class="icon">▼</span></div>
+              <div class="collapsible-content">
+                <div class="slider-container">
+                  <label for="slider-radius"><span>Radius:</span><span id="label-radius">180px</span></label>
+                  <input type="range" id="slider-radius" min="100" max="260" value="180">
+                </div>
+              </div>
+            </div>
+
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Visual Overlays</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="toggle-shading" checked><span class="checkmark"></span><span class="color-blue">Segment &amp; Triangle Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-center" checked><span class="checkmark"></span><span class="color-indigo">Radii to Center (O)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-angles" checked><span class="checkmark"></span><span class="color-emerald">Angle Arcs &amp; Labels</span></label>
+              </div>
+            </div>
+
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
+                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="resize-handle"></div>
+      </div>
+
+      <div class="ui-panel" id="derivations-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="deriv-header">
+            <h1 class="color-indigo">Live Math Derivations</h1>
+            <div>
+              <button type="button" id="toggle-deriv-min" class="btn text-xs px-1.5 py-0.5 bg-slate-800 mr-2" aria-expanded="false" title="Minimize Panel">+</button>
+              <button type="button" id="toggle-deriv-expand" class="text-xs text-slate-400 hover:text-white font-bold" title="Expand All">Expand All</button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div id="live-derivations-content"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2D Controls & Toggles (Bottom Left) -->
+      <div class="ui-panel" id="toolbar-2d-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="toolbar-2d-header">
+            <h1 class="color-sky" style="font-size: 0.95rem; font-weight: 700; margin: 0;">2D Controls &amp; Toggles</h1>
+            <div>
+              <button type="button" id="toggle-toolbar-2d-minimize" class="btn text-xs px-1.5 py-0.5 bg-slate-800 mr-2" aria-expanded="false" title="Minimize Panel">+</button>
+              <button type="button" id="toggle-toolbar-2d-btn" class="text-xs text-slate-400 hover:text-white font-bold" title="Expand All">Expand All</button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>2D Grids</span><span class="icon">▼</span></div>
+              <div class="collapsible-content">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>2D Overlays</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span>Point Markers</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Point Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Chord &amp; Arc Lengths</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-yellow">Subtended Angles (α, β)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-emerald">Segment &amp; Triangle Shading</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
+                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="resize-handle" id="toolbar-2d-resize"></div>
+      </div>
+
+      <!-- 3D Controls & Toggles (Bottom Right) -->
+      <div class="ui-panel" id="toolbar-3d-panel">
+        <div class="resize-handle-left" id="toolbar-3d-resize"></div>
+        <div class="panel-content">
+          <div class="panel-header" id="toolbar-3d-header">
+            <h1 class="color-sky" style="font-size: 0.95rem; font-weight: 700; margin: 0;">3D Controls &amp; Toggles</h1>
+            <div>
+              <button type="button" id="toggle-toolbar-3d-minimize" class="btn text-xs px-1.5 py-0.5 bg-slate-800 mr-2" aria-expanded="false" title="Minimize Panel">+</button>
+              <button type="button" id="toggle-toolbar-3d-btn" class="text-xs text-slate-400 hover:text-white font-bold" title="Expand All">Expand All</button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>3D Guides</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid" checked><span class="checkmark"></span>XZ Plane Grid &amp; Axes</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span>Sphere Mesh (4πr²)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-wire" checked><span class="checkmark"></span>Great Circle Wire</label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>3D Overlays</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-steel">z</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-yellow">3D Angle Wedges &amp; Markers</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-emerald">3D Area Meshes</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button type="button" class="btn active" data-preset="iso">Isometric</button>
+                <button type="button" class="btn" data-preset="top">Top (+Y)</button>
+                <button type="button" data-preset="front">Front (+Z)</button>
+                <button type="button" data-preset="side">Side (+X)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="visual-page__content">
+      <article class="visual-page__intro" id="about-visual">
+        <p class="eyebrow" data-visual-category>Geometry</p>
+        <h1 data-visual-title>Angles in the Same Segment Theorem</h1>
+        <p class="lede" data-visual-description>Loading visual information.</p>
+        <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
+      </article>
+
+      <div data-video></div>
+      <div data-support-container></div>
+    </div>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thales's Theorem: 2D & 3D Cognitive Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        
+        .view-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; transition: all 0.5s ease-in-out; z-index: 1; }
+        #canvas-2d-container, #canvas-3d-container { width: 50%; height: 100%; position: relative; }
+        
+        .layout-split #canvas-2d-container, .layout-split #canvas-3d-container { width: 50%; display: block; }
+        .layout-2d #canvas-2d-container { width: 100%; display: block; }
+        .layout-2d #canvas-3d-container { display: none; }
+        .layout-3d #canvas-2d-container { display: none; }
+        .layout-3d #canvas-3d-container { width: 100%; display: block; }
+
+        canvas { display: block; width: 100%; height: 100%; }
+        #canvas2d { background-color: #1e293b; cursor: grab; }
+        #canvas2d:active { cursor: grabbing; }
+
+        /* Cognitive Affordance UI Panels */
+        .ui-panel {
+            position: absolute; z-index: 20; width: 380px; min-width: 250px; max-width: 750px; max-height: 90vh;
+            display: flex; flex-direction: row; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px);
+            border-radius: 0.875rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(51, 65, 85, 0.8); overflow-x: auto;
+        }
+
+        #ui-panel-container { top: 20px; left: 20px; }
+        #live-derivation-panel { top: 20px; right: 20px; flex-direction: row-reverse; border-color: rgba(99, 102, 241, 0.4); }
+        #toolbar-2d-panel { top: 60%; left: 20px; width: 320px; }
+        #toolbar-3d-panel { top: 60%; right: 20px; width: 320px; flex-direction: row-reverse; }
+
+        .panel-content { flex-grow: 1; display: flex; flex-direction: column; overflow-x: auto; overflow-y: hidden; }
+        .panel-header {
+            padding: 0.75rem 1rem; background: rgba(30, 41, 59, 0.85); border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+            cursor: move; display: flex; justify-content: space-between; align-items: center; user-select: none;
+        }
+        .panel-header:first-child { border-top-left-radius: 0.875rem; border-top-right-radius: 0.875rem; }
+
+        .panel-body { padding: 0; overflow-y: auto; overflow-x: auto; display: flex; flex-direction: column; max-height: calc(90vh - 55px); transition: max-height 0.3s ease; }
+        .panel-body.hidden { max-height: 0; overflow: hidden; }
+        .panel-body::-webkit-scrollbar { width: 6px; height: 6px; }
+        .panel-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .panel-body::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.8); border-radius: 3px; }
+
+        .resize-handle, .resize-handle-left {
+            width: 10px; cursor: ew-resize; background: rgba(51, 65, 85, 0.3); display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .resize-handle { border-top-right-radius: 0.875rem; border-bottom-right-radius: 0.875rem; border-left: 1px solid rgba(51,65,85,0.5); }
+        .resize-handle-left { border-top-left-radius: 0.875rem; border-bottom-left-radius: 0.875rem; border-right: 1px solid rgba(51,65,85,0.5); }
+        .resize-handle:hover, .resize-handle.active, .resize-handle-left:hover, .resize-handle-left.active { background: rgba(99, 102, 241, 0.6); }
+        .resize-handle::after, .resize-handle-left::after { content: "⋮"; color: #94a3b8; font-size: 14px; }
+
+        .collapsible-section { border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+        .collapsible-header {
+            padding: 0.75rem 1rem; background: rgba(30, 41, 59, 0.4); cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; font-weight: 600; font-size: 0.875rem; user-select: none; transition: background 0.2s;
+        }
+        .collapsible-header:hover { background: rgba(30, 41, 59, 0.8); }
+        .collapsible-header .icon { transition: transform 0.3s ease; }
+        .collapsible-header.open .icon { transform: rotate(180deg); }
+        .collapsible-content { padding: 1rem; display: none; background: rgba(15, 23, 42, 0.5); font-size: 0.875rem; }
+        .collapsible-content.open { display: block; }
+
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+        .btn {
+            background-color: #4f46e5; color: white; padding: 0.4rem 0.6rem; border-radius: 0.5rem; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s; border: none; text-align: center;
+        }
+        .btn:hover { background-color: #4338ca; }
+        .btn:active { transform: scale(0.97); }
+        .btn.active { background-color: #3730a3; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.3); }
+        
+        .slider-container { margin-bottom: 0.75rem; }
+        .slider-container label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem; color: #cbd5e1; }
+        input[type=range] { width: 100%; accent-color: #6366f1; }
+        .info-text { line-height: 1.5; color: #cbd5e1; }
+        
+        .derivation-step { margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(51, 65, 85, 0.3); position: relative; }
+        .derivation-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .step-math { font-family: monospace; font-weight: bold; cursor: help; display: inline-block; padding: 4px 6px; border-radius: 4px; background: rgba(0,0,0,0.2); color: #38bdf8; }
+        
+        .live-math-line { font-family: monospace; margin-bottom: 0.5rem; font-size: 0.8rem; display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(51, 65, 85, 0.4); padding-bottom: 3px; }
+        .live-math-line .val { font-weight: bold; }
+        .live-math-line.highlight { background: rgba(234, 179, 8, 0.12); padding: 4px; border-radius: 4px; border-bottom: none; }
+
+        .checkbox-container { display: flex; align-items: center; cursor: pointer; font-size: 0.75rem; color: #94a3b8; user-select: none; margin-bottom: 0.5rem;}
+        .checkbox-container input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
+        .checkmark { height: 15px; width: 15px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid #475569; border-radius: 4px; margin-right: 6px; display: inline-block; position: relative; }
+        .checkbox-container:hover input ~ .checkmark { background-color: rgba(51, 65, 85, 0.9); }
+        .checkbox-container input:checked ~ .checkmark { background-color: #4f46e5; border-color: #4f46e5; }
+        .checkmark:after { content: ""; position: absolute; display: none; left: 4px; top: 1px; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+        .checkbox-container input:checked ~ .checkmark:after { display: block; }
+
+        .stats-overlay { position: absolute; bottom: 20px; left: 1rem; background: rgba(15, 23, 42, 0.9); padding: 0.875rem 1rem; border-radius: 0.75rem; pointer-events: none; border: 1px solid #334155; backdrop-filter: blur(6px); z-index: 10; min-width: 280px; }
+        .stat-line { display: flex; justify-content: space-between; gap: 1.5rem; font-family: monospace; font-size: 0.8125rem; margin-bottom: 0.3rem; }
+        .stat-value { font-weight: bold; }
+        .view-title { position: absolute; top: 1rem; left: 1rem; background: rgba(15, 23, 42, 0.8); padding: 0.35rem 0.8rem; border-radius: 1rem; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+
+        .layout-split { display: flex; flex-direction: row; width: 100%; height: 100%; }
+        .layout-split #canvas-2d-container, .layout-split #canvas-3d-container { flex-grow: 1; flex-shrink: 1; position: relative; }
+        .viewport-resizer { background-color: #334155; z-index: 10; display: none; position: relative; }
+        .layout-split.horizontal-split .viewport-resizer { display: block; width: 8px; cursor: col-resize; }
+
+        #fullscreen-btn { position: absolute; top: 20px; right: 26rem; z-index: 50; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(51, 65, 85, 0.8); color: #cbd5e1; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        #fullscreen-btn:hover { background: rgba(30, 41, 59, 0.95); color: white; }
+        #fullscreen-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        #labels-3d-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10; }
+        .label-3d { position: absolute; transform: translate(-50%, -50%); background: transparent; border: none; font-size: 13px; font-weight: bold; font-family: monospace; white-space: nowrap; opacity: 0; transition: opacity 0.2s; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 2px 4px rgba(0,0,0,0.9); }
+        .label-3d.visible { opacity: 1; }
+
+        /* Strict ROYGBIV Spectrum Grammar */
+        .color-red { color: #ef4444 !important; font-weight: bold; }          /* Diameter d / X-Axis / Point a */
+        .color-orange { color: #f97316 !important; font-weight: bold; }       /* Side t / Y-Axis / Point b */
+        .color-yellow { color: #eab308 !important; font-weight: bold; }       /* Polar Angle θ */
+        .color-magenta { color: #d946ef !important; font-weight: bold; }      /* Azimuth Angle φ */
+        .color-green { color: #22c55e !important; font-weight: bold; }        /* Area Shading (s · t) */
+        .color-blue { color: #3b82f6 !important; font-weight: bold; }         /* Side s / Z-Axis */
+        .color-indigo { color: #6366f1 !important; font-weight: bold; }       /* Radius r / Circumference */
+        .color-violet { color: #a855f7 !important; font-weight: bold; }       /* Point P / Volume */
+        .color-teal { color: #14b8a6 !important; font-weight: bold; }         /* 90° Right Angle */
+        .color-rose { color: #f43f5e !important; font-weight: bold; }         /* Sum of Squares s² + t² */
+        .color-cyan { color: #06b6d4 !important; font-weight: bold; }         /* Diameter Squared |d|² */
+    </style>
+</head>
+<body>
+    <button id="fullscreen-btn" title="Toggle Fullscreen">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+
+    <div class="view-container layout-split horizontal-split" id="main-view">
+        <div id="canvas-2d-container">
+            <canvas id="canvas2d"></canvas>
+            <div class="view-title">2D: Thales's Theorem</div>
+            <div class="stats-overlay" id="stats-2d">
+                <div class="stat-line"><span>Radius (<span class="color-indigo">r</span>):</span> <span class="stat-value color-indigo" id="val-2d-r">0.00</span></div>
+                <div class="stat-line"><span>Diameter (<span class="color-red">|d|</span>):</span> <span class="stat-value color-red" id="val-2d-d">0.00</span></div>
+                <div class="stat-line"><span>Circumf. (<span class="color-indigo">2πr</span>):</span> <span class="stat-value color-indigo" id="val-2d-circ">0.00</span></div>
+                <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                    <span>Side s (<span class="color-blue">Blue</span>):</span> <span class="stat-value color-blue" id="val-s">0.00</span>
+                </div>
+                <div class="stat-line"><span>Side t (<span class="color-orange">Orange</span>):</span> <span class="stat-value color-orange" id="val-t">0.00</span></div>
+                <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                    <span>s² + t² (<span class="color-rose">Rose</span>):</span> <span class="stat-value color-rose" id="val-sum-sq">0.00</span>
+                </div>
+                <div class="stat-line"><span>|d|² (<span class="color-cyan">Cyan</span>):</span> <span class="stat-value color-cyan" id="val-d-sq">0.00</span></div>
+                <div class="stat-line" style="margin-top: 4px;">
+                    <span>Area (<span class="color-green">Green</span>):</span> <span class="stat-value color-green" id="val-area">0.00</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="viewport-resizer" id="viewport-resizer"></div>
+
+        <div id="canvas-3d-container">
+            <div id="labels-3d-container"></div>
+            <div class="view-title">3D: Spherical Extension</div>
+            <div class="stats-overlay" id="stats-3d">
+                 <div class="stat-line"><span>Radius (<span class="color-indigo">r</span>):</span> <span class="stat-value color-indigo" id="val-3d-r">0.00</span></div>
+                 <div class="stat-line"><span>Diameter (<span class="color-red">|d|</span>):</span> <span class="stat-value color-red" id="val-3d-d">0.00</span></div>
+                 <div class="stat-line"><span>Circumf. (<span class="color-indigo">2πr</span>):</span> <span class="stat-value color-indigo" id="val-3d-circ">0.00</span></div>
+                 <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                     <span>X comp (<span class="color-red">Red</span>):</span> <span class="stat-value color-red" id="val-3d-x">0.00</span>
+                 </div>
+                 <div class="stat-line"><span>Y comp (<span class="color-orange">Orange</span>):</span> <span class="stat-value color-orange" id="val-3d-y">0.00</span></div>
+                 <div class="stat-line"><span>Z comp (<span class="color-blue">Blue</span>):</span> <span class="stat-value color-blue" id="val-3d-z">0.00</span></div>
+                 <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                    <span>x² + y² + z² (<span class="color-rose">Rose</span>):</span> <span class="stat-value color-rose" id="val-3d-sum-sq">0.00</span>
+                </div>
+                <div class="stat-line"><span>Radius² (<span class="color-indigo">r²</span>):</span> <span class="stat-value color-indigo" id="val-3d-d-sq">0.00</span></div>
+                <div class="stat-line" style="margin-top: 4px;">
+                    <span>Surface Area (<span class="color-green">4πr²</span>):</span> <span class="stat-value color-green" id="val-surf">0.00</span>
+                </div>
+                <div class="stat-line" style="margin-top: 4px;">
+                    <span>Volume (<span class="color-violet">Violet</span>):</span> <span class="stat-value color-violet" id="val-volume">0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draggable 2D Toggles Panel -->
+    <div class="ui-panel" id="toolbar-2d-panel">
+        <div class="resize-handle" id="toolbar-2d-resize-handle"></div>
+        <div class="panel-content">
+            <div class="panel-header" id="toolbar-2d-header">
+                <h1 class="text-base font-bold m-0 text-cyan-400">2D Toggles</h1>
+                <div>
+                    <button id="toggle-toolbar-2d-minimize" class="text-xs text-slate-400 hover:text-white font-bold px-1.5 py-0.5 bg-slate-800 rounded">−</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="p-3">
+                    <p class="text-xs font-semibold mb-2 text-slate-300 border-b border-slate-700 pb-1">2D Grids</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid-x" checked><span class="checkmark"></span>X Grid</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid-y" checked><span class="checkmark"></span>Y Grid</label>
+                    </div>
+                    <p class="text-xs font-semibold mt-3 mb-2 text-slate-300 border-b border-slate-700 pb-1">2D Overlays</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span>Point Labels</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Length Labels</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span>Area Shading</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span>Angles & 90°</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draggable 3D Toggles Panel -->
+    <div class="ui-panel" id="toolbar-3d-panel">
+        <div class="resize-handle-left" id="toolbar-3d-resize-handle"></div>
+        <div class="panel-content">
+            <div class="panel-header" id="toolbar-3d-header">
+                <h1 class="text-base font-bold m-0 text-cyan-400">3D Toggles</h1>
+                <div>
+                    <button id="toggle-toolbar-3d-minimize" class="text-xs text-slate-400 hover:text-white font-bold px-1.5 py-0.5 bg-slate-800 rounded">−</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="p-3">
+                    <p class="text-xs font-semibold mb-2 text-slate-300 border-b border-slate-700 pb-1">3D Grids</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-xz" checked><span class="checkmark"></span>XZ Plane</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-xy"><span class="checkmark"></span>XY Plane</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-yz"><span class="checkmark"></span>YZ Plane</label>
+                    </div>
+                    <p class="text-xs font-semibold mt-3 mb-2 text-slate-300 border-b border-slate-700 pb-1">3D Overlays</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span>Sphere Shading</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates</label>
+                        <label class="checkbox-container"><input type="checkbox" id="vis-3d-volume" checked><span class="checkmark"></span>Volume Box</label>
+                        <label class="checkbox-container"><input type="checkbox" id="toggle-3d-area" checked><span class="checkmark"></span>Area Triangle</label>
+                        <label class="checkbox-container"><input type="checkbox" id="toggle-3d-angles" checked><span class="checkmark"></span>Angles & 90°</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Thales Controls -->
+    <div class="ui-panel" id="ui-panel-container">
+        <div class="panel-content">
+            <div class="panel-header" id="panel-header">
+                <h1 class="text-base font-bold m-0 text-slate-100">Thales Controls</h1>
+                <div>
+                    <button id="toggle-thales-minimize" class="text-xs text-slate-400 hover:text-white mr-2 font-bold px-1.5 py-0.5 bg-slate-800 rounded">−</button>
+                    <button id="toggle-thales-btn" class="text-xs text-slate-400 hover:text-white mr-3 font-bold" title="Toggle Sections">Collapse All</button>
+                </div>
+            </div>
+            
+            <div class="panel-body">
+                <div class="collapsible-section">
+                    <div class="collapsible-header open" onclick="toggleSection(this)">
+                        <span>1. Interactive Controls</span><span class="icon">▼</span>
+                    </div>
+                    <div class="collapsible-content open">
+                        <div class="controls-grid" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn active" id="btn-split">Split</button>
+                            <button class="btn" id="btn-2d">2D</button>
+                            <button class="btn" id="btn-3d">3D</button>
+                            <button id="split-dir-btn" style="display: block;">Flip Split</button>
+                        </div>
+                        <div class="slider-container mt-4">
+                            <label><span>Point P (<span class="color-yellow">Angle θ</span>)</span><span id="angle-val-label">45°</span></label>
+                            <input type="range" id="angle-slider" min="0" max="180" value="45">
+                        </div>
+                        <div class="slider-container">
+                            <label><span>Radius (<span class="color-indigo">r</span>)</span><span id="radius-val-label">10</span></label>
+                            <input type="range" id="radius-slider" min="5" max="15" value="10" step="0.5">
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-700">
+                            <p class="text-xs font-semibold mb-2 text-slate-300">3D Spherical Coordinates</p>
+                            <div class="slider-container">
+                                <label><span>Latitude (<span class="color-yellow">θ</span>)</span><span id="lat-val-label">45°</span></label>
+                                <input type="range" id="lat-slider" min="0" max="180" value="45">
+                            </div>
+                            <div class="slider-container">
+                                <label><span>Longitude (<span class="color-magenta">φ</span>)</span><span id="lon-val-label">-45°</span></label>
+                                <input type="range" id="lon-slider" min="-180" max="180" value="-45">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="resize-handle" id="panel-resize-handle"></div>
+    </div>
+
+    <!-- Live Math Derivations Panel -->
+    <div class="ui-panel" id="live-derivation-panel">
+        <div class="resize-handle-left" id="derivation-resize-handle"></div>
+        <div class="panel-content">
+            <div class="panel-header" id="derivation-header">
+                <h1 class="text-base font-bold m-0 text-indigo-400">Live Math Derivations</h1>
+                <div>
+                    <button id="toggle-deriv-minimize" class="text-xs text-slate-400 hover:text-white mr-2 font-bold px-1.5 py-0.5 bg-slate-800 rounded">−</button>
+                    <button id="toggle-deriv-btn" class="text-xs text-slate-400 hover:text-white mr-3 font-bold" title="Toggle Sections">Collapse All</button>
+                </div>
+            </div>
+            
+            <div class="panel-body">
+                <div class="collapsible-section">
+                    <div class="collapsible-header open" onclick="toggleSection(this)">
+                        <span>2D Pythagorean Theorem</span><span class="icon">▼</span>
+                    </div>
+                    <div class="collapsible-content open" id="live-math-2d"></div>
+                </div>
+                <div class="collapsible-section">
+                    <div class="collapsible-header open" onclick="toggleSection(this)">
+                        <span>3D Sphere & Volume</span><span class="icon">▼</span>
+                    </div>
+                    <div class="collapsible-content open" id="live-math-3d"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            radius: 10,       
+            angle2D: Math.PI / 4, 
+            lat3D: Math.PI / 4,   
+            lon3D: -Math.PI / 4,
+            diameter: 20,
+            viewMode: 'split',
+            panX: 0, panY: 0,
+            vis2d: { points: true, lengths: true, coords: false, area: true, angles: true, gridX: true, gridY: true },
+            vis3d: { labels: true, coords: false, volume: true, sphere: true, gridXZ: true, gridXY: false, gridYZ: false }
+        };
+
+        const ui = {
+            panelContainer: document.getElementById('ui-panel-container'),
+            panelHeader: document.getElementById('panel-header'),
+            resizeHandle: document.getElementById('panel-resize-handle'),
+            
+            mainView: document.getElementById('main-view'),
+            btnSplit: document.getElementById('btn-split'),
+            btn2d: document.getElementById('btn-2d'),
+            btn3d: document.getElementById('btn-3d'),
+            
+            angleSlider: document.getElementById('angle-slider'),
+            angleLabel: document.getElementById('angle-val-label'),
+            radiusSlider: document.getElementById('radius-slider'),
+            radiusLabel: document.getElementById('radius-val-label'),
+            
+            latSlider: document.getElementById('lat-slider'),
+            latLabel: document.getElementById('lat-val-label'),
+            lonSlider: document.getElementById('lon-slider'),
+            lonLabel: document.getElementById('lon-val-label'),
+            
+            val2dR: document.getElementById('val-2d-r'),
+            val2dD: document.getElementById('val-2d-d'),
+            val2dCirc: document.getElementById('val-2d-circ'),
+            valS: document.getElementById('val-s'), valT: document.getElementById('val-t'),
+            valSumSq: document.getElementById('val-sum-sq'), valDSq: document.getElementById('val-d-sq'),
+            valArea: document.getElementById('val-area'),
+            
+            val3dR: document.getElementById('val-3d-r'),
+            val3dD: document.getElementById('val-3d-d'),
+            val3dCirc: document.getElementById('val-3d-circ'),
+            val3dX: document.getElementById('val-3d-x'), val3dY: document.getElementById('val-3d-y'),
+            val3dZ: document.getElementById('val-3d-z'), val3dSumSq: document.getElementById('val-3d-sum-sq'),
+            val3dDSq: document.getElementById('val-3d-d-sq'), valSurf: document.getElementById('val-surf'), valVolume: document.getElementById('val-volume'),
+
+            vis2dPoints: document.getElementById('vis-2d-points'),
+            vis2dLengths: document.getElementById('vis-2d-lengths'),
+            vis2dCoords: document.getElementById('vis-2d-coords'),
+            vis2dArea: document.getElementById('vis-2d-area'),
+            vis2dAngles: document.getElementById('vis-2d-angles'),
+            vis2dGridX: document.getElementById('vis-2d-grid-x'),
+            vis2dGridY: document.getElementById('vis-2d-grid-y'),
+            
+            vis3dLabels: document.getElementById('vis-3d-labels'),
+            vis3dCoords: document.getElementById('vis-3d-coords'),
+            vis3dVolume: document.getElementById('vis-3d-volume'),
+            vis3dSphere: document.getElementById('vis-3d-sphere'),
+            vis3dGridXZ: document.getElementById('vis-3d-grid-xz'),
+            vis3dGridXY: document.getElementById('vis-3d-grid-xy'),
+            vis3dGridYZ: document.getElementById('vis-3d-grid-yz'),
+            toggle3dAngles: document.getElementById('toggle-3d-angles'),
+            toggle3dArea: document.getElementById('toggle-3d-area'),
+
+            liveMath2d: document.getElementById('live-math-2d'), liveMath3d: document.getElementById('live-math-3d'),
+            fullscreenBtn: document.getElementById('fullscreen-btn'),
+            viewportResizer: document.getElementById('viewport-resizer'), splitDirBtn: document.getElementById('split-dir-btn')
+        };
+
+        const derivPanel = document.getElementById('live-derivation-panel');
+        const derivHeader = document.getElementById('derivation-header');
+        const derivResizeHandle = document.getElementById('derivation-resize-handle');
+        
+        const toolbar2dPanel = document.getElementById('toolbar-2d-panel');
+        const toolbar2dHeader = document.getElementById('toolbar-2d-header');
+        const toolbar2dResizeHandle = document.getElementById('toolbar-2d-resize-handle');
+
+        const toolbar3dPanel = document.getElementById('toolbar-3d-panel');
+        const toolbar3dHeader = document.getElementById('toolbar-3d-header');
+        const toolbar3dResizeHandle = document.getElementById('toolbar-3d-resize-handle');
+
+        let activeDragPanel = null, dragOffsetX = 0, dragOffsetY = 0;
+        let activeResizePanel = null, initialPanelWidth = 0, initialMouseX = 0, isResizeLeft = false;
+
+        function makeDraggable(header, panel) {
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.tagName.toLowerCase() === 'button') return;
+                activeDragPanel = panel;
+                const rect = panel.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left; dragOffsetY = e.clientY - rect.top;
+                document.body.style.userSelect = 'none';
+            });
+        }
+        makeDraggable(ui.panelHeader, ui.panelContainer);
+        makeDraggable(derivHeader, derivPanel);
+        makeDraggable(toolbar2dHeader, toolbar2dPanel);
+        makeDraggable(toolbar3dHeader, toolbar3dPanel);
+
+        function setupResizer(handle, panel, isLeft) {
+            handle.addEventListener('mousedown', (e) => {
+                activeResizePanel = panel; isResizeLeft = isLeft;
+                handle.classList.add('active');
+                initialPanelWidth = panel.offsetWidth; initialMouseX = e.clientX;
+                document.body.style.userSelect = 'none';
+            });
+        }
+        setupResizer(ui.resizeHandle, ui.panelContainer, false);
+        setupResizer(derivResizeHandle, derivPanel, true);
+        setupResizer(toolbar2dResizeHandle, toolbar2dPanel, false);
+        setupResizer(toolbar3dResizeHandle, toolbar3dPanel, true);
+
+        window.addEventListener('mousemove', (e) => {
+            if (activeDragPanel) {
+                let newX = Math.max(0, Math.min(e.clientX - dragOffsetX, window.innerWidth - activeDragPanel.offsetWidth));
+                let newY = Math.max(0, Math.min(e.clientY - dragOffsetY, window.innerHeight - activeDragPanel.offsetHeight));
+                activeDragPanel.style.left = `${newX}px`; activeDragPanel.style.top = `${newY}px`;
+                activeDragPanel.style.bottom = 'auto'; activeDragPanel.style.right = 'auto';
+            }
+            if (activeResizePanel) {
+                let newW = Math.max(250, Math.min(initialPanelWidth + (isResizeLeft ? (initialMouseX - e.clientX) : (e.clientX - initialMouseX)), 750));
+                activeResizePanel.style.width = `${newW}px`;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            activeDragPanel = null;
+            if (activeResizePanel) {
+                document.querySelectorAll('.resize-handle, .resize-handle-left').forEach(el => el.classList.remove('active'));
+                activeResizePanel = null;
+            }
+            document.body.style.userSelect = 'auto';
+        });
+
+        function toggleSection(header) {
+            header.classList.toggle('open');
+            if (header.nextElementSibling) header.nextElementSibling.classList.toggle('open');
+        }
+
+        function bindCollapse(btnId, bodyId) {
+            const btn = document.getElementById(btnId);
+            const body = document.getElementById(bodyId);
+            if (!btn || !body) return;
+            btn.addEventListener('click', () => {
+                body.classList.toggle('hidden');
+                btn.textContent = body.classList.contains('hidden') ? '+' : '−';
+            });
+        }
+        bindCollapse('toggle-thales-minimize', 'ui-panel-container'); // handled in body
+        bindCollapse('toggle-deriv-minimize', 'live-derivation-panel');
+        bindCollapse('toggle-toolbar-2d-minimize', 'toolbar-2d-panel');
+        bindCollapse('toggle-toolbar-3d-minimize', 'toolbar-3d-panel');
+
+        function bindExpandAll(btnId, panelEl) {
+            const btn = document.getElementById(btnId);
+            const body = panelEl.querySelector('.panel-body');
+            if(!btn || !body) return;
+            btn.addEventListener('click', () => {
+                const sections = body.querySelectorAll('.collapsible-header');
+                const isOpen = sections.length > 0 && sections[0].classList.contains('open');
+                sections.forEach(h => {
+                    const c = h.nextElementSibling;
+                    if (isOpen) { h.classList.remove('open'); if(c) c.classList.remove('open'); }
+                    else { h.classList.add('open'); if(c) c.classList.add('open'); }
+                });
+                btn.textContent = isOpen ? "Expand All" : "Collapse All";
+            });
+        }
+        bindExpandAll('toggle-thales-btn', ui.panelContainer);
+        bindExpandAll('toggle-deriv-btn', derivPanel);
+
+        ui.fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else document.exitFullscreen();
+        });
+
+        function setViewMode(mode) {
+            state.viewMode = mode;
+            ui.mainView.classList.remove('layout-split', 'layout-2d', 'layout-3d');
+            ui.mainView.classList.add(`layout-${mode}`);
+            [ui.btnSplit, ui.btn2d, ui.btn3d].forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${mode}`).classList.add('active');
+            ui.splitDirBtn.style.display = (mode === 'split') ? 'block' : 'none';
+            setTimeout(() => { resize2D(); resize3D(); }, 50);
+        }
+        ui.btnSplit.addEventListener('click', () => setViewMode('split'));
+        ui.btn2d.addEventListener('click', () => setViewMode('2d'));
+        ui.btn3d.addEventListener('click', () => setViewMode('3d'));
+
+        let isHorizontalSplit = true;
+        ui.splitDirBtn.addEventListener('click', () => {
+            isHorizontalSplit = !isHorizontalSplit;
+            ui.mainView.classList.replace(isHorizontalSplit ? 'vertical-split' : 'horizontal-split', isHorizontalSplit ? 'horizontal-split' : 'vertical-split');
+            document.getElementById('canvas-2d-container').style.flexBasis = '50%';
+            document.getElementById('canvas-3d-container').style.flexBasis = '50%';
+            setTimeout(() => { resize2D(); resize3D(); }, 50);
+        });
+
+        let isResizingViewport = false;
+        ui.viewportResizer.addEventListener('mousedown', () => { isResizingViewport = true; ui.viewportResizer.classList.add('active'); document.body.style.userSelect = 'none'; });
+        window.addEventListener('mousemove', (e) => {
+            if (isResizingViewport) {
+                const rect = ui.mainView.getBoundingClientRect();
+                let pct = Math.max(10, Math.min(((isHorizontalSplit ? e.clientX - rect.left : e.clientY - rect.top) / (isHorizontalSplit ? rect.width : rect.height)) * 100, 90));
+                document.getElementById('canvas-2d-container').style.flexBasis = `${pct}%`;
+                document.getElementById('canvas-3d-container').style.flexBasis = `${100 - pct}%`;
+                resize2D(); resize3D();
+            }
+        });
+        window.addEventListener('mouseup', () => { if(isResizingViewport) { isResizingViewport = false; ui.viewportResizer.classList.remove('active'); } });
+
+        function bindToggle(id, stateObj, key, callback) {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', (e) => { stateObj[key] = e.target.checked; callback(); });
+        }
+        bindToggle('vis-2d-points', state.vis2d, 'points', draw2D);
+        bindToggle('vis-2d-lengths', state.vis2d, 'lengths', draw2D);
+        bindToggle('vis-2d-coords', state.vis2d, 'coords', draw2D);
+        bindToggle('vis-2d-area', state.vis2d, 'area', draw2D);
+        bindToggle('vis-2d-angles', state.vis2d, 'angles', draw2D);
+        bindToggle('vis-2d-grid-x', state.vis2d, 'gridX', draw2D);
+        bindToggle('vis-2d-grid-y', state.vis2d, 'gridY', draw2D);
+        
+        bindToggle('vis-3d-labels', state.vis3d, 'labels', update3DGeometry);
+        bindToggle('vis-3d-coords', state.vis3d, 'coords', update3DGeometry);
+        bindToggle('vis-3d-volume', state.vis3d, 'volume', update3DGeometry);
+        bindToggle('vis-3d-sphere', state.vis3d, 'sphere', update3DGeometry);
+        bindToggle('vis-3d-grid-xz', state.vis3d, 'gridXZ', update3DGeometry);
+        bindToggle('vis-3d-grid-xy', state.vis3d, 'gridXY', update3DGeometry);
+        bindToggle('vis-3d-grid-yz', state.vis3d, 'gridYZ', update3DGeometry);
+        ui.toggle3dArea.addEventListener('change', update3DGeometry);
+        ui.toggle3dAngles.addEventListener('change', update3DGeometry);
+
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx2d = canvas2d.getContext('2d');
+        let canvas2dWidth = 0, canvas2dHeight = 0, scale2D = 18;
+        let isDraggingPointP2D = false, isPanning2D = false, hoverP2D = false, panStartX = 0, panStartY = 0;
+
+        function getCx() { return canvas2dWidth / 2 + state.panX; }
+        function getCy() { return canvas2dHeight / 2 + state.panY; }
+
+        function resize2D() {
+            const container = document.getElementById('canvas-2d-container');
+            if (!container || container.clientWidth === 0) return;
+            canvas2dWidth = container.clientWidth; canvas2dHeight = container.clientHeight;
+            canvas2d.width = canvas2dWidth; canvas2d.height = canvas2dHeight;
+            draw2D();
+        }
+
+        canvas2d.addEventListener('mousedown', (e) => {
+            const rect = canvas2d.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+            const cx = getCx(), cy = getCy(), r = state.radius * scale2D;
+            const px = cx + r * Math.cos(state.angle2D), py = cy - r * Math.sin(state.angle2D);
+            if (Math.hypot(mouseX - px, mouseY - py) < 22) {
+                isDraggingPointP2D = true;
+            } else {
+                isPanning2D = true; panStartX = e.clientX - state.panX; panStartY = e.clientY - state.panY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas2d.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+            const cx = getCx(), cy = getCy(), r = state.radius * scale2D;
+            const px = cx + r * Math.cos(state.angle2D), py = cy - r * Math.sin(state.angle2D);
+            hoverP2D = Math.hypot(mouseX - px, mouseY - py) < 25;
+            
+            if (isDraggingPointP2D) {
+                let newAngle = Math.atan2(cy - mouseY, mouseX - cx);
+                if (newAngle < 0) newAngle += Math.PI * 2;
+                if (newAngle > Math.PI) newAngle = Math.PI;
+                state.angle2D = newAngle; updateFrom2DAngle(newAngle);
+            } else if (isPanning2D) {
+                state.panX = e.clientX - panStartX; state.panY = e.clientY - panStartY;
+                draw2D();
+            } else {
+                canvas2d.style.cursor = hoverP2D ? 'pointer' : 'grab';
+                draw2D();
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isDraggingPointP2D = false; isPanning2D = false; });
+        canvas2d.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            state.radius *= (e.deltaY > 0 ? 0.9 : 1.1); 
+            state.radius = Math.max(5, Math.min(state.radius, 15));
+            state.diameter = state.radius * 2;
+            ui.radiusSlider.value = state.radius; ui.radiusLabel.textContent = state.diameter.toFixed(1);
+            draw2D(); update3DGeometry();
+        }, {passive: false});
+
+        function draw2D() {
+            if (!ctx2d) return;
+            ctx2d.clearRect(0, 0, canvas2dWidth, canvas2dHeight);
+            
+            const cx = getCx(), cy = getCy(), r = state.radius * scale2D;
+            const ax = cx - r, ay = cy, bx = cx + r, by = cy;
+            const px = cx + r * Math.cos(state.angle2D), py = cy - r * Math.sin(state.angle2D);
+
+            const lenPA = Math.hypot(ax - px, ay - py);
+            const lenPB = Math.hypot(bx - px, by - py);
+
+            // Grids
+            ctx2d.strokeStyle = 'rgba(51, 65, 85, 0.4)'; ctx2d.lineWidth = 1;
+            const gridSize = 5 * scale2D;
+            const startX = (state.panX % gridSize) - gridSize, startY = (state.panY % gridSize) - gridSize;
+            ctx2d.beginPath();
+            if (state.vis2d.gridX) { for(let x = startX; x < canvas2dWidth; x += gridSize) { ctx2d.moveTo(x, 0); ctx2d.lineTo(x, canvas2dHeight); } }
+            if (state.vis2d.gridY) { for(let y = startY; y < canvas2dHeight; y += gridSize) { ctx2d.moveTo(0, y); ctx2d.lineTo(canvas2dWidth, y); } }
+            ctx2d.stroke();
+
+            // Axes
+            ctx2d.strokeStyle = 'rgba(100, 116, 139, 0.7)'; ctx2d.lineWidth = 1.5;
+            ctx2d.beginPath(); ctx2d.moveTo(0, cy); ctx2d.lineTo(canvas2dWidth, cy); ctx2d.moveTo(cx, canvas2dHeight); ctx2d.lineTo(cx, 0); ctx2d.stroke();
+
+            // Shaded Area (Green)
+            if (state.vis2d.area) {
+                ctx2d.beginPath(); ctx2d.moveTo(ax, ay); ctx2d.lineTo(px, py); ctx2d.lineTo(bx, by); ctx2d.closePath();
+                ctx2d.fillStyle = 'rgba(34, 197, 94, 0.18)'; ctx2d.fill();
+            }
+
+            // Circle Surface (Indigo)
+            ctx2d.beginPath(); ctx2d.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx2d.strokeStyle = '#6366f1'; ctx2d.lineWidth = 2; ctx2d.stroke();
+
+            // Radius projection from Center to P (Indigo)
+            ctx2d.beginPath(); ctx2d.moveTo(cx, cy); ctx2d.lineTo(px, py);
+            ctx2d.strokeStyle = '#6366f1'; ctx2d.lineWidth = 1.5; ctx2d.setLineDash([4, 4]); ctx2d.stroke(); ctx2d.setLineDash([]);
+
+            // Diameter (Red)
+            ctx2d.beginPath(); ctx2d.moveTo(ax, ay); ctx2d.lineTo(bx, by);
+            ctx2d.strokeStyle = '#ef4444'; ctx2d.lineWidth = 3; ctx2d.stroke();
+
+            // Vectors
+            const drawArrow = (fromX, fromY, toX, toY, color, width) => {
+                const headlen = 10, angle = Math.atan2(toY - fromY, toX - fromX);
+                ctx2d.beginPath(); ctx2d.moveTo(fromX, fromY); ctx2d.lineTo(toX, toY);
+                ctx2d.lineTo(toX - headlen * Math.cos(angle - Math.PI/6), toY - headlen * Math.sin(angle - Math.PI/6));
+                ctx2d.moveTo(toX, toY); ctx2d.lineTo(toX - headlen * Math.cos(angle + Math.PI/6), toY - headlen * Math.sin(angle + Math.PI/6));
+                ctx2d.strokeStyle = color; ctx2d.lineWidth = width; ctx2d.stroke();
+            };
+            drawArrow(px, py, ax, ay, '#3b82f6', 3); // s Blue
+            drawArrow(px, py, bx, by, '#f97316', 3); // t Orange
+
+            // Angles
+            if (state.vis2d.angles) {
+                const vPAx = (ax - px)/lenPA, vPAy = (ay - py)/lenPA;
+                const vPBx = (bx - px)/lenPB, vPBy = (by - py)/lenPB;
+                const sz = 16;
+                ctx2d.beginPath();
+                ctx2d.moveTo(px + vPAx * sz, py + vPAy * sz);
+                ctx2d.lineTo(px + vPAx * sz + vPBx * sz, py + vPAy * sz + vPBy * sz);
+                ctx2d.lineTo(px + vPBx * sz, py + vPBy * sz);
+                ctx2d.strokeStyle = '#14b8a6'; ctx2d.lineWidth = 1.5; ctx2d.stroke();
+                ctx2d.fillStyle = 'rgba(20, 184, 166, 0.25)'; ctx2d.fill();
+
+                ctx2d.beginPath(); ctx2d.moveTo(cx, cy); ctx2d.arc(cx, cy, 26, 0, -state.angle2D, true); ctx2d.closePath();
+                ctx2d.fillStyle = 'rgba(234, 179, 8, 0.25)'; ctx2d.fill();
+                ctx2d.strokeStyle = 'rgba(234, 179, 8, 0.8)'; ctx2d.stroke();
+
+                ctx2d.fillStyle = '#eab308'; ctx2d.font = 'italic 13px sans-serif';
+                ctx2d.fillText('θ', cx + 33 * Math.cos(-state.angle2D/2) - 4, cy + 33 * Math.sin(-state.angle2D/2) + 4);
+                
+                ctx2d.fillStyle = '#14b8a6'; ctx2d.font = 'bold 12px sans-serif';
+                ctx2d.fillText('90°', px - 25, py - 15);
+            }
+
+            if (hoverP2D) {
+                ctx2d.beginPath(); ctx2d.arc(px, py, 14, 0, Math.PI*2);
+                ctx2d.fillStyle = 'rgba(168, 85, 247, 0.35)'; ctx2d.fill();
+            }
+
+            const drawPoint = (x, y, color, label, offsetX=10, offsetY=10) => {
+                ctx2d.beginPath(); ctx2d.arc(x, y, 5, 0, Math.PI*2);
+                ctx2d.fillStyle = color; ctx2d.fill(); ctx2d.strokeStyle = '#fff'; ctx2d.lineWidth = 1; ctx2d.stroke();
+                
+                ctx2d.fillStyle = color; ctx2d.font = 'bold 13px monospace';
+                ctx2d.shadowColor = "rgba(0,0,0,0.9)"; ctx2d.shadowBlur = 4;
+                ctx2d.fillText(label, x + offsetX, y + offsetY);
+                ctx2d.shadowBlur = 0;
+            };
+
+            const getCoordStr = (xv, yv) => `(${xv.toFixed(1)}, ${(-yv).toFixed(1)})`;
+            if (state.vis2d.points) {
+                let lblA = 'a', lblB = 'b', lblP = 'P', lblC = 'C';
+                if (state.vis2d.coords) {
+                    lblA += ` ${getCoordStr(-state.radius, 0)}`;
+                    lblB += ` ${getCoordStr(state.radius, 0)}`;
+                    lblP += ` ${getCoordStr((px-cx)/scale2D, (py-cy)/scale2D)}`;
+                    lblC += ` ${getCoordStr(0, 0)}`;
+                }
+                drawPoint(ax, ay, '#ef4444', lblA, -25, 5);
+                drawPoint(bx, by, '#f97316', lblB, 15, 5);
+                drawPoint(px, py, '#a855f7', lblP, -5, -15);
+                drawPoint(cx, cy, '#6366f1', lblC, -20, 20);
+            }
+
+            if (state.vis2d.lengths) {
+                ctx2d.shadowColor = "rgba(0,0,0,0.9)"; ctx2d.shadowBlur = 4;
+                ctx2d.fillStyle = '#3b82f6'; ctx2d.fillText('s', px + (ax - px)/2 - 12, py + (ay - py)/2 - 10);
+                ctx2d.fillStyle = '#f97316'; ctx2d.fillText('t', px + (bx - px)/2 + 8, py + (by - by)/2 - 10);
+                ctx2d.fillStyle = '#ef4444'; ctx2d.fillText('|d| = 2r', cx, cy - 10);
+                ctx2d.fillStyle = '#6366f1'; ctx2d.fillText('r', cx + (px-cx)/2 + 6, cy + (py-cy)/2 - 6);
+                ctx2d.shadowBlur = 0;
+            }
+
+            const sLen = lenPA / scale2D;
+            const tLen = lenPB / scale2D;
+            update2DStats(sLen, tLen);
+            updateLiveDerivations2D((px-cx)/scale2D, -(py-cy)/scale2D, sLen, tLen);
+        }
+
+        function update2DStats(s, t) {
+            ui.val2dR.textContent = state.radius.toFixed(2);
+            ui.val2dD.textContent = state.diameter.toFixed(2);
+            ui.val2dCirc.textContent = (2 * Math.PI * state.radius).toFixed(2);
+            ui.valS.textContent = s.toFixed(2);
+            ui.valT.textContent = t.toFixed(2);
+            ui.valSumSq.textContent = (s*s + t*t).toFixed(2);
+            ui.valDSq.textContent = (state.diameter * state.diameter).toFixed(2);
+            ui.valArea.textContent = (0.5 * s * t).toFixed(2);
+        }
+
+        function updateLiveDerivations2D(px, py, s, t) {
+            const r = state.radius, d = state.diameter;
+            ui.liveMath2d.innerHTML = `
+                <div class="derivation-step mb-3 pb-2 border-b border-slate-700">
+                    <div class="step-math mb-1">Thales's Theorem Rule: s² + t² = |d|²</div>
+                    <div class="text-xs text-slate-300">Right triangle inscribed in semicircle has hypotenuse equal to diameter.</div>
+                </div>
+                <div class="live-math-line"><span>Point P (<span class="color-violet">x, y</span>):</span> <span class="val color-violet">(${px.toFixed(2)}, ${py.toFixed(2)})</span></div>
+                <div class="live-math-line"><span>Radius (<span class="color-indigo">r</span>):</span> <span class="val color-indigo">${r.toFixed(2)}</span></div>
+                <div class="live-math-line mt-2"><span>Leg s² (<span class="color-blue">${s.toFixed(2)}²</span>):</span> <span class="val color-blue">${(s*s).toFixed(2)}</span></div>
+                <div class="live-math-line"><span>Leg t² (<span class="color-orange">${t.toFixed(2)}²</span>):</span> <span class="val color-orange">${(t*t).toFixed(2)}</span></div>
+                <div class="live-math-line highlight mt-2"><span>s² + t² (<span class="color-rose">Sum</span>)</span> <span class="val color-rose">${(s*s + t*t).toFixed(2)}</span></div>
+                <div class="live-math-line highlight"><span>Diameter d² (<span class="color-cyan">|d|²</span>)</span> <span class="val color-cyan">${(d*d).toFixed(2)}</span></div>
+                <div class="live-math-line mt-2"><span>Area (0.5 · s · t):</span> <span class="val color-green">${(0.5 * s * t).toFixed(2)}</span></div>
+            `;
+        }
+
+        function updateFrom2DAngle(angle) {
+            const deg = Math.round((angle / Math.PI) * 180);
+            ui.angleSlider.value = deg; ui.angleLabel.textContent = `${deg}°`;
+            state.lon3D = (deg - 90) * (Math.PI / 180);
+            ui.lonSlider.value = Math.round(deg - 90); ui.lonLabel.textContent = `${Math.round(deg - 90)}°`;
+            draw2D(); update3DGeometry();
+        }
+
+        function updateFrom3DLon(lonRad) {
+            const deg = Math.round(lonRad * (180/Math.PI));
+            ui.lonSlider.value = deg; ui.lonLabel.textContent = `${deg}°`;
+            let deg2d = deg + 90;
+            if (deg2d < 0) deg2d += 360;
+            if (deg2d > 180) deg2d = 180 - (deg2d - 180);
+            state.angle2D = deg2d * (Math.PI / 180);
+            ui.angleSlider.value = Math.round(deg2d); ui.angleLabel.textContent = `${Math.round(deg2d)}°`;
+            draw2D(); update3DGeometry();
+        }
+
+        const container3d = document.getElementById('canvas-3d-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1e293b);
+
+        const gridXZ = new THREE.GridHelper(60, 60, 0x475569, 0x334155); gridXZ.position.y = -0.01; scene.add(gridXZ);
+        const gridXY = new THREE.GridHelper(60, 60, 0x475569, 0x334155); gridXY.rotation.x = Math.PI / 2; gridXY.position.z = -0.01; scene.add(gridXY);
+        const gridYZ = new THREE.GridHelper(60, 60, 0x475569, 0x334155); gridYZ.rotation.z = Math.PI / 2; gridYZ.position.x = -0.01; scene.add(gridYZ);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse3D = new THREE.Vector2();
+        let isDragging3D = false, hoverP3D = false;
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(30, 20, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container3d.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(20, 30, 20); scene.add(dirLight);
+
+        const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
+        const sphereMat = new THREE.MeshPhysicalMaterial({ color: 0x6366f1, transparent: true, opacity: 0.15, roughness: 0.2, side: THREE.DoubleSide, depthWrite: false });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat); scene.add(sphere);
+
+        // Axes (Red=X, Orange=Y, Blue=Z)
+        const addAx = (dir, col) => { const h = new THREE.ArrowHelper(dir, new THREE.Vector3(0,0,0), 15, col, 0.5, 0.3); scene.add(h); return h; };
+        addAx(new THREE.Vector3(1,0,0), 0xef4444);
+        addAx(new THREE.Vector3(0,1,0), 0xf97316);
+        addAx(new THREE.Vector3(0,0,1), 0x3b82f6);
+
+        const diamLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 }));
+        scene.add(diamLine);
+
+        const ptGeo = new THREE.SphereGeometry(0.35, 16, 16);
+        const hiddenMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+        const hoverMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.9, depthWrite: false });
+        const ptA = new THREE.Mesh(ptGeo, hiddenMat), ptB = new THREE.Mesh(ptGeo, hiddenMat), ptP = new THREE.Mesh(ptGeo, hoverMat);
+        scene.add(ptA); scene.add(ptB); scene.add(ptP);
+
+        const arrowPA = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0x3b82f6, 1, 0.5); scene.add(arrowPA);
+        const arrowPB = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, 0xf97316, 1, 0.5); scene.add(arrowPB);
+
+        const volumeBox = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.18, depthWrite: false })); scene.add(volumeBox);
+        const boxWire = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1,1,1)), new THREE.LineBasicMaterial({ color: 0xd8b4fe, transparent: true, opacity: 0.8 })); scene.add(boxWire);
+
+        const areaMesh3d = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false })); scene.add(areaMesh3d);
+        const radiusLine3d = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x6366f1, dashSize: 0.5, gapSize: 0.3 })); scene.add(radiusLine3d);
+
+        const thetaSector = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0xeab308, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })); scene.add(thetaSector);
+        const phiSector = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0xd946ef, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })); scene.add(phiSector);
+
+        const rightAngle3dGeo = new THREE.BufferGeometry();
+        const rightAngle3dMat = new THREE.MeshBasicMaterial({ color: 0x14b8a6, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
+        const rightAngle3dMesh = new THREE.Mesh(rightAngle3dGeo, rightAngle3dMat);
+        scene.add(rightAngle3dMesh);
+
+        function createSector(geo, center, v1, v2, radius) {
+            const seg = 24, pts = [center];
+            if(v1.lengthSq()===0 || v2.lengthSq()===0) return;
+            const norm = new THREE.Vector3().crossVectors(v1, v2).normalize();
+            if(norm.lengthSq() < 0.001) norm.set(0,1,0);
+            const ang = v1.angleTo(v2);
+            for(let i=0; i<=seg; i++) pts.push(v1.clone().applyAxisAngle(norm, ang*(i/seg)).multiplyScalar(radius).add(center));
+            const verts = [];
+            for(let i=1; i<=seg; i++) verts.push(center.x,center.y,center.z, pts[i].x,pts[i].y,pts[i].z, pts[i+1].x,pts[i+1].y,pts[i+1].z);
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+            geo.computeVertexNormals();
+        }
+
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse3D.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse3D.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse3D, camera);
+            if (raycaster.intersectObject(ptP).length > 0) {
+                isDragging3D = true; controls.enabled = false; e.stopPropagation();
+            }
+        }, { capture: true });
+
+        renderer.domElement.addEventListener('pointermove', (e) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse3D.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse3D.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse3D, camera);
+            hoverP3D = raycaster.intersectObject(ptP).length > 0;
+            ptP.material = (hoverP3D || isDragging3D) ? hoverMat : hiddenMat;
+
+            if (isDragging3D) {
+                const hits = raycaster.intersectObject(sphere);
+                if (hits.length > 0) {
+                    const hit = hits[0].point, r = state.radius;
+                    state.lat3D = Math.acos(Math.max(-1, Math.min(1, hit.y / r)));
+                    state.lon3D = Math.atan2(hit.x, hit.z);
+                    ui.latSlider.value = Math.round((state.lat3D * 180) / Math.PI);
+                    ui.latLabel.textContent = `${ui.latSlider.value}°`;
+                    updateFrom3DLon(state.lon3D);
+                }
+                e.stopPropagation();
+            }
+        }, { capture: true });
+
+        window.addEventListener('pointerup', () => {
+            if (isDragging3D) { isDragging3D = false; controls.enabled = true; }
+        });
+
+        function update3DGeometry() {
+            const r = state.radius;
+            gridXZ.visible = state.vis3d.gridXZ; gridXY.visible = state.vis3d.gridXY; gridYZ.visible = state.vis3d.gridYZ;
+            sphere.visible = state.vis3d.sphere; sphere.scale.set(r,r,r);
+
+            const px = r * Math.sin(state.lat3D) * Math.cos(state.lon3D);
+            const py = r * Math.cos(state.lat3D);
+            const pz = r * Math.sin(state.lat3D) * Math.sin(state.lon3D);
+
+            ptP.position.set(px, py, pz); ptA.position.set(-r, 0, 0); ptB.position.set(r, 0, 0);
+
+            diamLine.geometry.setFromPoints([ptA.position, ptB.position]);
+            
+            const vPA = new THREE.Vector3().subVectors(ptA.position, ptP.position);
+            const vPB = new THREE.Vector3().subVectors(ptB.position, ptP.position);
+            arrowPA.position.copy(ptP.position); arrowPA.setDirection(vPA.clone().normalize()); arrowPA.setLength(vPA.length(), 0.8, 0.4);
+            arrowPB.position.copy(ptP.position); arrowPB.setDirection(vPB.clone().normalize()); arrowPB.setLength(vPB.length(), 0.8, 0.4);
+
+            radiusLine3d.geometry.setFromPoints([new THREE.Vector3(0,0,0), ptP.position]); radiusLine3d.computeLineDistances();
+
+            areaMesh3d.visible = ui.toggle3dArea.checked;
+            if (areaMesh3d.visible) {
+                areaMesh3d.geometry.setAttribute('position', new THREE.Float32BufferAttribute([-r,0,0, r,0,0, px,py,pz], 3));
+                areaMesh3d.geometry.computeVertexNormals();
+            }
+
+            const showAng = ui.toggle3dAngles.checked;
+            thetaSector.visible = showAng; phiSector.visible = showAng; rightAngle3dMesh.visible = showAng;
+            if (showAng) {
+                createSector(thetaSector.geometry, new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0), ptP.position, r*0.4);
+                createSector(phiSector.geometry, new THREE.Vector3(0,0,0), new THREE.Vector3(1,0,0), new THREE.Vector3(px,0,pz), r*0.5);
+                
+                const da = vPA.clone().normalize(), db = vPB.clone().normalize(), sz = 1.2;
+                const c1 = ptP.position.clone().add(da.clone().multiplyScalar(sz));
+                const c2 = ptP.position.clone().add(da.clone().multiplyScalar(sz)).add(db.clone().multiplyScalar(sz));
+                const c3 = ptP.position.clone().add(db.clone().multiplyScalar(sz));
+                const raVerts = [ptP.position.x,ptP.position.y,ptP.position.z, c1.x,c1.y,c1.z, c2.x,c2.y,c2.z, ptP.position.x,ptP.position.y,ptP.position.z, c2.x,c2.y,c2.z, c3.x,c3.y,c3.z];
+                rightAngle3dGeo.setAttribute('position', new THREE.Float32BufferAttribute(raVerts, 3));
+                rightAngle3dGeo.computeVertexNormals();
+            }
+
+            volBox.visible = state.vis3d.volume; boxWire.visible = state.vis3d.volume;
+            if(state.vis3d.volume) {
+                volBox.scale.set(Math.max(Math.abs(px), 0.01), Math.max(Math.abs(py), 0.01), Math.max(Math.abs(pz), 0.01));
+                volBox.position.set(px/2, py/2, pz/2);
+                boxWire.scale.copy(volBox.scale); boxWire.position.copy(volBox.position);
+            }
+
+            update3DStats(px, py, pz);
+            updateLiveDerivations3D(px, py, pz);
+        }
+
+        function updateLiveDerivations3D(x, y, z) {
+            const r = state.radius;
+            const surf = 4 * Math.PI * r * r;
+            const vol = Math.abs(x * y * z);
+            ui.liveMath3d.innerHTML = `
+                <div class="derivation-step mb-3 pb-2 border-b border-slate-700">
+                    <div class="step-math mb-1">Sphere Equation: x² + y² + z² = r²</div>
+                    <div class="text-xs text-slate-300">Surface point P maintains constant distance r from origin.</div>
+                </div>
+                <div class="live-math-line"><span>Point P (<span class="color-violet">x, y, z</span>):</span> <span class="val color-violet">(${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})</span></div>
+                <div class="live-math-line mt-2"><span>X comp² (<span class="color-red">${x.toFixed(1)}²</span>):</span> <span class="val color-red">${(x*x).toFixed(1)}</span></div>
+                <div class="live-math-line"><span>Y comp² (<span class="color-orange">${y.toFixed(1)}²</span>):</span> <span class="val color-orange">${(y*y).toFixed(1)}</span></div>
+                <div class="live-math-line"><span>Z comp² (<span class="color-blue">${z.toFixed(1)}²</span>):</span> <span class="val color-blue">${(z*z).toFixed(1)}</span></div>
+                <div class="live-math-line highlight mt-2"><span>x²+y²+z² (<span class="color-rose">Sum</span>)</span> <span class="val color-rose">${(x*x + y*y + z*z).toFixed(1)}</span></div>
+                <div class="live-math-line highlight"><span>Radius r² (<span class="color-indigo">r²</span>)</span> <span class="val color-indigo">${(r*r).toFixed(1)}</span></div>
+                <div class="live-math-line mt-2"><span>Surface Area:</span> <span class="val color-green">${surf.toFixed(1)}</span></div>
+                <div class="live-math-line"><span>Volume (|x|·|y|·|z|):</span> <span class="val color-violet">${vol.toFixed(1)}</span></div>
+            `;
+        }
+
+        function update3DStats(x, y, z) {
+            ui.val3dR.textContent = state.radius.toFixed(2);
+            ui.val3dD.textContent = state.diameter.toFixed(2);
+            ui.val3dCirc.textContent = (2 * Math.PI * state.radius).toFixed(2);
+            ui.val3dX.textContent = Math.abs(x).toFixed(2);
+            ui.val3dY.textContent = Math.abs(y).toFixed(2);
+            ui.val3dZ.textContent = Math.abs(z).toFixed(2);
+            ui.val3dSumSq.textContent = (x*x + y*y + z*z).toFixed(2);
+            ui.val3dDSq.textContent = (state.radius * state.radius).toFixed(2);
+            ui.valSurf.textContent = (4 * Math.PI * state.radius * state.radius).toFixed(2);
+            ui.valVolume.textContent = (Math.abs(x * y * z)).toFixed(2);
+        }
+
+        function resize3D() {
+            const container = document.getElementById('canvas-3d-container');
+            if (container.offsetWidth === 0) return;
+            camera.aspect = container.offsetWidth / container.offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+        }
+
+        ui.angleSlider.addEventListener('input', (e) => { state.angle2D = (parseInt(e.target.value) * Math.PI) / 180; updateFrom2DAngle(state.angle2D); });
+        ui.radiusSlider.addEventListener('input', (e) => {
+            state.radius = parseFloat(e.target.value); state.diameter = state.radius * 2;
+            ui.radiusLabel.textContent = state.diameter; draw2D(); update3DGeometry();
+        });
+        ui.latSlider.addEventListener('input', (e) => { state.lat3D = (parseInt(e.target.value) * Math.PI) / 180; ui.latLabel.textContent = `${e.target.value}°`; update3DGeometry(); });
+        ui.lonSlider.addEventListener('input', (e) => { state.lon3D = (parseInt(e.target.value) * Math.PI) / 180; updateFrom3DLon(state.lon3D); });
+
+        function updateHTML3DLabels() {
+            const container = document.getElementById('canvas-3d-container');
+            if (container.offsetWidth === 0) return;
+            const w = container.offsetWidth, h = container.offsetHeight;
+
+            const getLbl = (id) => {
+                let el = document.getElementById(id);
+                if (!el) { el = document.createElement('div'); el.id = id; el.className = 'label-3d'; document.getElementById('labels-3d-container').appendChild(el); }
+                return el;
+            };
+
+            const setPos = (pos3D, el, text, show, colorClass) => {
+                if (!el) return;
+                const showAngles = ui.toggle3dAngles.checked;
+                if (!show || (!state.vis3d.labels && !showAngles)) { el.classList.remove('visible'); return; }
+                const p = pos3D.clone().project(camera);
+                if (p.z > 1) { el.classList.remove('visible'); return; }
+                el.style.left = `${(p.x * 0.5 + 0.5) * w}px`;
+                el.style.top = `${(p.y * -0.5 + 0.5) * h}px`;
+                el.textContent = text;
+                el.className = `label-3d visible ${colorClass}`;
+            };
+
+            const r = state.radius;
+            let txtP = 'P'; if (state.vis3d.coords) txtP += ` (${ptP.position.x.toFixed(1)}, ${ptP.position.y.toFixed(1)}, ${ptP.position.z.toFixed(1)})`;
+            setPos(ptP.position, getLbl('l3d-p'), txtP, state.vis3d.labels, 'color-violet');
+
+            let txtA = 'a'; if (state.vis3d.coords) txtA += ` (${-r},0,0)`;
+            setPos(ptA.position, getLbl('l3d-a'), txtA, state.vis3d.labels, 'color-red');
+
+            let txtB = 'b'; if (state.vis3d.coords) txtB += ` (${r},0,0)`;
+            setPos(ptB.position, getLbl('l3d-b'), txtB, state.vis3d.labels, 'color-orange');
+
+            setPos(ptA.position.clone().lerp(ptP.position, 0.5), getLbl('l3d-s'), 's', ui.toggle3dArea.checked && state.vis3d.labels, 'color-blue');
+            setPos(ptB.position.clone().lerp(ptP.position, 0.5), getLbl('l3d-t'), 't', ui.toggle3dArea.checked && state.vis3d.labels, 'color-orange');
+
+            const latDeg = Math.round((state.lat3D * 180) / Math.PI);
+            const thetaMid = new THREE.Vector3(0, r*0.2, 0).lerp(ptP.position.clone().normalize().multiplyScalar(r*0.2), 0.5);
+            setPos(thetaMid, getLbl('l3d-theta'), `θ = ${latDeg}°`, ui.toggle3dAngles.checked, 'color-yellow');
+
+            const lonDeg = Math.round((state.lon3D * 180) / Math.PI);
+            const px = ptP.position.x, pz = ptP.position.z;
+            const phiMid = new THREE.Vector3(r*0.25, 0, 0).lerp(new THREE.Vector3(px, 0, pz).normalize().multiplyScalar(r*0.25), 0.5);
+            setPos(phiMid, getLbl('l3d-phi'), `φ = ${lonDeg}°`, ui.toggle3dAngles.checked, 'color-magenta');
+
+            const raPos = ptP.position.clone().add(new THREE.Vector3(0, 1, 0));
+            setPos(raPos, getLbl('l3d-90'), '90°', ui.toggle3dAngles.checked, 'color-teal');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            updateHTML3DLabels();
+        }
+
+        window.onload = () => {
+            setViewMode('split');
+            update3DGeometry();
+            setTimeout(() => { resize2D(); resize3D(); draw2D(); }, 100);
+            animate();
+            if (window.MathJax) MathJax.typesetPromise();
+        };
+    </script>
+</body>
+</html>

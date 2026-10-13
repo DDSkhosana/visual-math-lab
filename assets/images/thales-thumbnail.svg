@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Thales' Theorem illustration</title>
+  <desc id="desc">A semicircle, its diameter, and a right-angled triangle.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+  <path d="M180 580 A420 420 0 0 1 1020 580" fill="none" stroke="#111111" stroke-width="18"/>
+  <line x1="180" y1="580" x2="1020" y2="580" stroke="#111111" stroke-width="18"/>
+  <line x1="180" y1="580" x2="625" y2="194" stroke="#d75a34" stroke-width="14"/>
+  <line x1="625" y1="194" x2="1020" y2="580" stroke="#2d5f86" stroke-width="14"/>
+  <path d="M602 218 L624 239 L646 218" fill="none" stroke="#111111" stroke-width="10"/>
+  <circle cx="180" cy="580" r="15" fill="#111111"/>
+  <circle cx="1020" cy="580" r="15" fill="#111111"/>
+  <circle cx="625" cy="194" r="15" fill="#111111"/>
+  <text x="140" y="650" font-family="Arial, sans-serif" font-size="48" fill="#111111">A</text>
+  <text x="1030" y="650" font-family="Arial, sans-serif" font-size="48" fill="#111111">B</text>
+  <text x="645" y="175" font-family="Arial, sans-serif" font-size="48" fill="#111111">P</text>
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">THALES' THEOREM</text>
+</svg>

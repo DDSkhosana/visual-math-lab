@@ -1,0 +1,75 @@
+.thales-explorer {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 3rem);
+    height: calc(100dvh - 3rem);
+    min-height: 24rem;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a; /* Slate 900 */
+    color: #f8fafc; /* Slate 50 */
+    transition: height 0.25s ease;
+}
+
+body.header-collapsed .thales-explorer {
+    height: 100vh;
+    height: 100dvh;
+}
+
+.view-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    transition: all 0.5s ease-in-out;
+    z-index: 1;
+}
+
+#canvas-2d-container, #canvas-3d-container {
+    width: 50%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+}
+
+.layout-split #canvas-2d-container, .layout-split #canvas-3d-container { width: 50%; display: block; }
+.layout-2d #canvas-2d-container { width: 100%; display: block; }
+.layout-2d #canvas-3d-container { display: none; }
+.layout-3d #canvas-2d-container { display: none; }
+.layout-3d #canvas-3d-container { width: 100%; display: block; }
+
+.thales-explorer canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#canvas2d {
+    background-color: #1e293b; /* Slate 800 */
+    cursor: grab;
+}
+#canvas2d:active {
+    cursor: grabbing;
+}
+
+.layout-split { display: flex; flex-direction: row; width: 100%; height: 100%; }
+.layout-split #canvas-2d-container, .layout-split #canvas-3d-container { flex-grow: 1; flex-shrink: 1; position: relative; }
+.layout-split #canvas-2d-container { flex-basis: 50%; }
+.layout-split #canvas-3d-container { flex-basis: 50%; }
+
+.viewport-resizer { background-color: #334155; z-index: 10; display: none; position: relative; }
+.layout-split.horizontal-split { flex-direction: row; }
+.layout-split.horizontal-split .viewport-resizer { display: block; width: 8px; cursor: col-resize; }
+.layout-split.vertical-split { flex-direction: column; }
+.layout-split.vertical-split .viewport-resizer { display: block; height: 8px; cursor: row-resize; }
+
+.layout-2d #canvas-2d-container { width: 100%; height: 100%; display: block; flex: none; }
+.layout-2d #canvas-3d-container, .layout-2d .viewport-resizer { display: none; }
+.layout-3d #canvas-2d-container, .layout-3d .viewport-resizer { display: none; }
+.layout-3d #canvas-3d-container { width: 100%; height: 100%; display: block; flex: none; }

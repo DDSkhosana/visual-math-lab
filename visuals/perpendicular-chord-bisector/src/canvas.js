@@ -1,0 +1,184 @@
+import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawSubtendedSegment, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { computeGeometry, generateSVG } from './model.js';
+
+export class CanvasView {
+  constructor(canvas, container) {
+    this.canvas = canvas;
+    this.container = container;
+    this.ctx = canvas.getContext('2d');
+    this.state = null;
+
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(container);
+    this.resize();
+  }
+
+  resize() {
+    const rect = this.container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    this.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.width = rect.width;
+    this.height = rect.height;
+    if (this.state) this.render(this.state);
+  }
+
+  render(state) {
+    this.state = state;
+    const { ctx, width, height } = this;
+    if (!width || !height) return;
+
+    ctx.clearRect(0, 0, width, height);
+    const g = computeGeometry(state, width, height);
+
+    // Grid lines
+    if (state.vis2d?.grid !== false) {
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
+      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
+      ctx.stroke();
+    }
+
+    // Shaded areas (circular segment, congruent triangles, and angle wedges)
+    const center = { x: g.cx, y: g.cy };
+    const showArea = (state.vis2d?.area !== false) && (state.showArea !== false);
+    const showAngles = (state.vis2d?.angles !== false);
+
+    if (showArea) {
+      // Minor circular segment cut off by chord AB
+      drawSubtendedSegment(ctx, center, g.r, g.A, g.B, 'rgba(56, 189, 248, 0.10)', null, true);
+
+      // Congruence triangles fill
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.M.x, g.M.y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.M.x, g.M.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    if (showAngles) {
+      // Equal central angle wedges at O: angle(A, O, M) = angle(B, O, M)
+      const angA = Math.atan2(g.A.y - g.cy, g.A.x - g.cx);
+      const angB = Math.atan2(g.B.y - g.cy, g.B.x - g.cx);
+      const angM = Math.atan2(g.M.y - g.cy, g.M.x - g.cx);
+
+      const sweepWedge = (vertex, a1, a2, fill, stroke) => {
+        let diff = (a2 - a1) % (Math.PI * 2);
+        if (diff < 0) diff += Math.PI * 2;
+        const anticlockwise = diff > Math.PI;
+        drawAngleWedge(ctx, vertex, a1, a2, 28, fill, stroke, anticlockwise);
+      };
+      sweepWedge(center, angM, angA, 'rgba(59, 130, 246, 0.28)', PALETTE.blue);
+      sweepWedge(center, angM, angB, 'rgba(245, 158, 11, 0.28)', PALETTE.orange);
+    }
+
+    // Circle
+    ctx.strokeStyle = PALETTE.sky;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, g.r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Extended bisector line
+    if (state.showExtendedBisector) {
+      ctx.strokeStyle = PALETTE.lavender;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(g.bisectorP1.x, g.bisectorP1.y);
+      ctx.lineTo(g.bisectorP2.x, g.bisectorP2.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Radii OA, OB
+    if (state.showRadii) {
+      ctx.strokeStyle = PALETTE.amber;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.A.x, g.A.y);
+      ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.B.x, g.B.y);
+      ctx.stroke();
+    }
+
+    // Chord AB
+    ctx.strokeStyle = PALETTE.blue;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.B.x, g.B.y);
+    ctx.stroke();
+
+    // Perpendicular OM
+    ctx.strokeStyle = PALETTE.emerald;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.M.x, g.M.y);
+    ctx.stroke();
+
+    // Right-angle marker at M (between MA and MO)
+    if (showAngles) {
+      const raFill = 'rgba(20, 184, 166, 0.25)';
+      drawRightAngle(ctx, g.M, g.A, center, 14, PALETTE.teal, raFill);
+    }
+
+    // Points and Labels adhering to Euclidean standards with outward radial clearance
+    const uOMx = g.distOM > 0.001 ? (g.M.x - g.cx) / g.distOM : 0;
+    const uOMy = g.distOM > 0.001 ? (g.M.y - g.cy) / g.distOM : 1;
+    if (state.vis2d?.points !== false) {
+      const vis = state.vis2d || {};
+      drawLabelledPoint(ctx, center, PALETTE.sky, getPointLabel('O', 0, 0, vis), -16, 18);
+      drawRadialLabelledPoint(ctx, g.A, center, PALETTE.blue, getPointLabel('A', g.A.x - g.cx, -(g.A.y - g.cy), vis), 20);
+      drawRadialLabelledPoint(ctx, g.B, center, PALETTE.orange, getPointLabel('B', g.B.x - g.cx, -(g.B.y - g.cy), vis), 20);
+      drawLabelledPoint(ctx, g.M, PALETTE.emerald, getPointLabel('M', g.M.x - g.cx, -(g.M.y - g.cy), vis), 16 * uOMx, 16 * uOMy);
+    }
+
+    // Length text on chord halves with protective badge pills offset perpendicular to chord
+    if (state.vis2d?.lengths !== false) {
+      const dABx = g.B.x - g.A.x, dABy = g.B.y - g.A.y;
+      const lenAB = Math.hypot(dABx, dABy);
+      let nABx = lenAB > 0.001 ? -dABy / lenAB : 0, nABy = lenAB > 0.001 ? dABx / lenAB : -1;
+      if (nABx * uOMx + nABy * uOMy < 0) { nABx = -nABx; nABy = -nABy; }
+
+      const midAM = { x: (g.A.x + g.M.x) / 2, y: (g.A.y + g.M.y) / 2 };
+      const midMB = { x: (g.B.x + g.M.x) / 2, y: (g.B.y + g.M.y) / 2 };
+      drawTextBadge(ctx, `|AM| = ${g.lenAM.toFixed(1)}px`, midAM.x + 16 * nABx, midAM.y + 16 * nABy, PALETTE.blue);
+      drawTextBadge(ctx, `|MB| = ${g.lenMB.toFixed(1)}px`, midMB.x + 16 * nABx, midMB.y + 16 * nABy, PALETTE.orange);
+    }
+  }
+
+  exportPNG() {
+    const off = document.createElement('canvas');
+    off.width = this.width * 2; off.height = this.height * 2;
+    const offCtx = off.getContext('2d');
+    offCtx.scale(2, 2);
+    offCtx.fillStyle = '#0f172a';
+    offCtx.fillRect(0, 0, this.width, this.height);
+    const prevCtx = this.ctx; this.ctx = offCtx;
+    this.render(this.state);
+    this.ctx = prevCtx;
+    off.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'perpendicular-chord-bisector.png'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  exportSVG() {
+    const str = generateSVG(this.state, this.width, this.height);
+    const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'perpendicular-chord-bisector.svg'; a.click();
+    URL.revokeObjectURL(url);
+  }
+}

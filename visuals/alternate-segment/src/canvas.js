@@ -1,0 +1,191 @@
+import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { computeGeometry, generateSVG } from './model.js';
+
+export class CanvasView {
+  constructor(canvas, container) {
+    this.canvas = canvas;
+    this.container = container;
+    this.ctx = canvas.getContext('2d');
+    this.state = null;
+
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(container);
+    this.resize();
+  }
+
+  resize() {
+    const rect = this.container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    this.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.width = rect.width;
+    this.height = rect.height;
+    if (this.state) this.render(this.state);
+  }
+
+  render(state) {
+    this.state = state;
+    const { ctx, width, height } = this;
+    if (!width || !height) return;
+
+    ctx.clearRect(0, 0, width, height);
+    const g = computeGeometry(state, width, height);
+
+    // Axes
+    if (state.vis2d?.grid !== false) {
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
+      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
+      ctx.stroke();
+    }
+
+    // Circle
+    ctx.strokeStyle = PALETTE.sky;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, g.r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Relevant Area Shading (Alternate Segment & Inscribed Triangle)
+    const showArea = (state.vis2d?.area !== false) && (state.showArea !== false);
+    if (showArea) {
+      // Shading the eponymous "Alternate Segment" on chord TA containing point B
+      drawSegmentContainingPoint(ctx, g.O, g.T, g.A, g.B, g.r, 'rgba(56, 189, 248, 0.10)');
+
+      // Triangle TAB shading
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
+      ctx.beginPath();
+      ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.B.x, g.B.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Diameter proof triangle TBD shading
+      if (state.showProofConstruction && g.D) {
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Diameter proof construction (optional)
+    if (state.showProofConstruction) {
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.D.x, g.D.y);
+      ctx.moveTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = PALETTE.lavender;
+      ctx.beginPath();
+      ctx.arc(g.D.x, g.D.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      if (state.vis2d?.points !== false) {
+        ctx.fillText('D', g.D.x - 6, g.D.y - 10);
+      }
+    }
+
+    // Tangent Line with sharp double arrowheads (no blobs)
+    drawDoubleArrow(ctx, g.Tan1, g.Tan2, PALETTE.emerald, 3);
+
+    // Triangle chords
+    ctx.strokeStyle = PALETTE.blue;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y);
+    ctx.lineTo(g.B.x, g.B.y);
+    ctx.lineTo(g.T.x, g.T.y);
+    ctx.stroke();
+
+    // Angles at B and T for wedges and badges
+    const angBT = Math.atan2(g.T.y - g.B.y, g.T.x - g.B.x);
+    const angBA = Math.atan2(g.A.y - g.B.y, g.A.x - g.B.x);
+    const angTan = Math.atan2(g.Tan1.y - g.T.y, g.Tan1.x - g.T.x);
+    const angTA = Math.atan2(g.A.y - g.T.y, g.A.x - g.T.x);
+
+    const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
+
+    // Equal Angle Wedges (at T and B)
+    if (showAngles) {
+      // 1. Angle between Tangent and Chord TA at T
+      drawAngleWedge(ctx, g.T, angTan, angTA, 32, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+
+      // 2. Inscribed angle at B: ∠TBA
+      drawAngleWedge(ctx, g.B, angBA, angBT, 28, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+    }
+
+    // Points and Labels adhering to Euclidean standards with outward radial clearance
+    if (state.vis2d?.points !== false) {
+      const vis = state.vis2d || {};
+      drawRadialLabelledPoint(ctx, g.T, g.O, PALETTE.red, getPointLabel('T', g.T.x - g.cx, -(g.T.y - g.cy), vis), 20);
+      drawRadialLabelledPoint(ctx, g.A, g.O, PALETTE.blue, getPointLabel('A', g.A.x - g.cx, -(g.A.y - g.cy), vis), 20);
+      drawRadialLabelledPoint(ctx, g.B, g.O, PALETTE.orange, getPointLabel('B', g.B.x - g.cx, -(g.B.y - g.cy), vis), 20);
+      if (state.showProofConstruction && g.D) {
+        drawRadialLabelledPoint(ctx, g.D, g.O, PALETTE.lavender, getPointLabel('D', g.D.x - g.cx, -(g.D.y - g.cy), vis), 20);
+      }
+    }
+
+    // Angle text annotations with protective badge pills
+    if (showAngles) {
+      // Inscribed angle at B
+      const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
+      const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
+      const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
+      const lenB = Math.hypot(bisBX, bisBY);
+      const nbBX = lenB > 0.001 ? bisBX / lenB : 0;
+      const nbBY = lenB > 0.001 ? bisBY / lenB : 1;
+      drawTextBadge(ctx, `α = ${g.inscribedDeg.toFixed(1)}°`, g.B.x + 46 * nbBX, g.B.y + 46 * nbBY, PALETTE.yellow);
+
+      // Tangent-chord angle at T
+      const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
+      const uTAx = lenTA > 0.001 ? (g.A.x - g.T.x) / lenTA : 0;
+      const uTAy = lenTA > 0.001 ? (g.A.y - g.T.y) / lenTA : -1;
+      // Tangent vector is perpendicular to OT
+      const uOTx = (g.T.x - g.cx) / g.r, uOTy = (g.T.y - g.cy) / g.r;
+      let uTanX = -uOTy, uTanY = uOTx;
+      if (uTanX * uTAx + uTanY * uTAy < 0) {
+        uTanX = -uTanX;
+        uTanY = -uTanY;
+      }
+      const bisTX = uTAx + uTanX, bisTY = uTAy + uTanY;
+      const lenT = Math.hypot(bisTX, bisTY);
+      const nbTX = lenT > 0.001 ? bisTX / lenT : 0;
+      const nbTY = lenT > 0.001 ? bisTY / lenT : 1;
+      drawTextBadge(ctx, `α = ${g.tangentChordDeg.toFixed(1)}°`, g.T.x + 44 * nbTX, g.T.y + 44 * nbTY, PALETTE.yellow);
+    }
+  }
+
+  exportPNG() {
+    const off = document.createElement('canvas');
+    off.width = this.width * 2; off.height = this.height * 2;
+    const offCtx = off.getContext('2d');
+    offCtx.scale(2, 2);
+    offCtx.fillStyle = '#0f172a';
+    offCtx.fillRect(0, 0, this.width, this.height);
+    const prevCtx = this.ctx; this.ctx = offCtx;
+    this.render(this.state);
+    this.ctx = prevCtx;
+    off.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'alternate-segment.png'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  exportSVG() {
+    const str = generateSVG(this.state, this.width, this.height);
+    const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'alternate-segment.svg'; a.click();
+    URL.revokeObjectURL(url);
+  }
+}

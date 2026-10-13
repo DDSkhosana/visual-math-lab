@@ -1,0 +1,24 @@
+/* Strict Non-Overlapping Unique Token Spectrum Grammar (Zero Overlapping Hues across every primitive, label, angle, and computation) */
+.color-red { color: #ef4444 !important; font-weight: bold; }          /* Red: Diameter |d| / Endpoint a */
+.color-orange { color: #f97316 !important; font-weight: bold; }       /* Orange: Side t / Endpoint b */
+.color-yellow { color: #eab308 !important; font-weight: bold; }       /* Yellow: Polar Angle θ / Latitude */
+.color-amber { color: #fbbf24 !important; font-weight: bold; }        /* Amber: X-Axis / Coordinate P.x */
+.color-lime { color: #84cc16 !important; font-weight: bold; }         /* Lime: Y-Axis / Coordinate P.y */
+.color-steel { color: #6488b0 !important; font-weight: bold; }        /* Steel Blue: Z-Axis / Coordinate P.z */
+.color-pink { color: #6488b0 !important; font-weight: bold; }         /* Steel Blue alias */
+.color-fuchsia { color: #d946ef !important; font-weight: bold; }      /* Fuchsia: Azimuth Angle φ / Longitude */
+.color-magenta { color: #d946ef !important; font-weight: bold; }      /* Fuchsia alias: Azimuth Angle φ / Longitude */
+.color-green { color: #22c55e !important; font-weight: bold; }        /* Green: Inscribed Area (½ · s · t) */
+.color-blue { color: #3b82f6 !important; font-weight: bold; }         /* Blue: Side s */
+.color-indigo { color: #6366f1 !important; font-weight: bold; }       /* Indigo: Radius r / Center C */
+.color-violet { color: #a855f7 !important; font-weight: bold; }       /* Violet: Point P / Volume Box */
+.color-teal { color: #14b8a6 !important; font-weight: bold; }         /* Teal: 90° Right Angle at P */
+.color-lavender { color: #c4b5fd !important; font-weight: bold; }     /* Lavender: Sum of Squares s² + t² */
+.color-lilac { color: #c4b5fd !important; font-weight: bold; }        /* Lavender alias */
+.color-platinum { color: #f8fafc !important; font-weight: bold; }    /* Platinum: Coord Sum (x² + y² + z² / x² + y²) */
+.color-rose { color: #c4b5fd !important; font-weight: bold; }         /* Backward-compatible alias */
+.color-cyan { color: #06b6d4 !important; font-weight: bold; }         /* Cyan: Diameter Squared |d|² */
+.color-sky { color: #0284c7 !important; font-weight: bold; }          /* Sky Blue: Circumference (2πr), Sphere Surface Area (4πr²), Sphere Mesh & Ring */
+.color-emerald { color: #0284c7 !important; font-weight: bold; }      /* Unified with Sky Blue */
+.color-purple { color: #d946ef !important; font-weight: bold; }      /* Fuchsia / Purple */
+

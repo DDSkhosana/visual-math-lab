@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Tangents from an External Point Theorem illustration</title>
+  <desc id="desc">Two tangents to a circle from an external point are equal in length.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+  <circle cx="480" cy="400" r="220" fill="none" stroke="#111111" stroke-width="16"/>
+  <!-- Center O -->
+  <circle cx="480" cy="400" r="14" fill="#111111"/>
+  <text x="440" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">O</text>
+  <!-- External point P at (980, 400) -->
+  <circle cx="980" cy="400" r="14" fill="#a855f7"/>
+  <text x="1005" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#a855f7">P</text>
+  <!-- Tangent points A(610, 222) and B(610, 578) -->
+  <circle cx="610" cy="222" r="14" fill="#ef4444"/>
+  <text x="615" y="190" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
+  <circle cx="610" cy="578" r="14" fill="#f97316"/>
+  <text x="615" y="630" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#f97316">B</text>
+  <!-- Tangent lines PA, PB -->
+  <line x1="980" y1="400" x2="610" y2="222" stroke="#10b981" stroke-width="12"/>
+  <line x1="980" y1="400" x2="610" y2="578" stroke="#10b981" stroke-width="12"/>
+  <!-- Radii OA, OB -->
+  <line x1="480" y1="400" x2="610" y2="222" stroke="#6366f1" stroke-width="10"/>
+  <line x1="480" y1="400" x2="610" y2="578" stroke="#6366f1" stroke-width="10"/>
+  <!-- Axis OP -->
+  <line x1="480" y1="400" x2="980" y2="400" stroke="#94a3b8" stroke-width="6" stroke-dasharray="12,12"/>
+  <!-- Label PA = PB -->
+  <text x="820" y="275" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#10b981">PA</text>
+  <text x="820" y="555" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#10b981">PB</text>
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">TANGENTS FROM AN EXTERNAL POINT</text>
+</svg>

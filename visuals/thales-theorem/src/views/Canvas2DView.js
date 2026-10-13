@@ -1,0 +1,112 @@
+import { computeFrame, drawScene } from './canvas2d-draw.js';
+import { generateSceneSVG } from './canvas2d-svg.js';
+
+/** Owns the 2D canvas: sizing (via ResizeObserver) and painting. Holds no domain state. */
+export class Canvas2DView {
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'plane2D', 'pan', 'zoom', 'hoverP2D', 'vis2d'];
+
+  constructor(canvas, container) {
+    this.canvas = canvas;
+    this.container = container;
+    this.ctx = canvas.getContext('2d');
+    this.state = null;
+    new ResizeObserver(() => this.resize()).observe(container);
+  }
+
+  resize() {
+    const { clientWidth: width, clientHeight: height } = this.container;
+    if (!width || !height) return;
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.draw();
+  }
+
+  render(state) {
+    this.state = state;
+    this.draw();
+    this.updateTitle(state);
+  }
+
+  updateTitle(state) {
+    const title = this.container.querySelector('#view-title-2d') || document.getElementById('view-title-2d');
+    if (!title) return;
+    const plane = state.plane2D ?? 'great-circle';
+    if (plane === 'xy') {
+      title.innerHTML = `2D: XY Plane Projection (<span class="color-amber">X: Diameter Axis</span>, <span class="color-lime">Y: Elevation</span>)`;
+    } else if (plane === 'xz') {
+      title.innerHTML = `2D: XZ Plane Projection (<span class="color-amber">X: Diameter Axis</span>, <span class="color-steel">Z: Depth</span>)`;
+    } else if (plane === 'yz') {
+      title.innerHTML = `2D: YZ Plane Projection (<span class="color-steel">Z: Depth</span>, <span class="color-lime">Y: Elevation</span>, <span class="color-red">AB ⟂</span>)`;
+    } else {
+      title.innerHTML = `2D: Great-Circle Section (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)`;
+    }
+  }
+
+  draw() {
+    if (!this.state || !this.canvas.width) return;
+    drawScene(this.ctx, this.state, this.frame());
+  }
+
+  frame(state = this.state) {
+    return computeFrame(state, this.canvas.width, this.canvas.height);
+  }
+
+  /** Pointer position in canvas pixels. */
+  toLocal(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
+  exportPNG(filename = 'thales-theorem-2d.png') {
+    const { width, height } = this.canvas;
+    if (!width || !height || !this.state) return;
+
+    const offscreen = document.createElement('canvas');
+    const scale = 2; // high-dpi crisp export
+    offscreen.width = width * scale;
+    offscreen.height = height * scale;
+    const offCtx = offscreen.getContext('2d');
+    offCtx.scale(scale, scale);
+
+    // Dark background
+    offCtx.fillStyle = '#0f172a';
+    offCtx.fillRect(0, 0, width, height);
+
+    // Render scene without hover state
+    const exportState = { ...this.state, hoverP2D: false };
+    drawScene(offCtx, exportState, this.frame(exportState));
+
+    // Attribution watermark
+    offCtx.fillStyle = 'rgba(148, 163, 184, 0.7)';
+    offCtx.font = 'bold 11px monospace';
+    offCtx.fillText("Thales' Theorem | Visual Mathematics Lab", 14, height - 12);
+
+    offscreen.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  exportSVG(filename = 'thales-theorem-2d.svg') {
+    if (!this.state || !this.canvas.width) return;
+    const f = this.frame();
+    if (!f) return;
+    const svgStr = generateSceneSVG(this.state, f);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
