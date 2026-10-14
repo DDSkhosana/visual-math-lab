@@ -8,8 +8,8 @@
     "published": true,
     "youtubeId": "",
     "video": {
-      "enabled": false,
-      "version": 1,
+      "enabled": true,
+      "version": 2,
       "script": "",
       "thumbnailText": ""
     }

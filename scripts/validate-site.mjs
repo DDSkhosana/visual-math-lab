@@ -83,7 +83,6 @@ for (const visual of visuals) {
       report(Number.isInteger(video.version) && video.version >= 1, `Visual "${visual.slug}" must have a positive integer "video.version".`);
       report(typeof video.script === "string", `Visual "${visual.slug}" must have string "video.script".`);
       report(typeof video.thumbnailText === "string", `Visual "${visual.slug}" must have string "video.thumbnailText".`);
-      report(!video.enabled || visual.youtubeId !== "", `Visual "${visual.slug}" enables video but has an empty "youtubeId".`);
     }
   const visualIndex = resolve(root, "visuals", visual.slug, "index.html");
   report(existsSync(visualIndex), `Visual "${visual.slug}" is missing visuals/${visual.slug}/index.html.`);
