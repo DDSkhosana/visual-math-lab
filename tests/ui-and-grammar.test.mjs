@@ -130,13 +130,20 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
     applyCommonVis(state) {
       this.latestVis3d = state?.vis3d || {};
       if (this.grid) this.grid.visible = state?.vis3d?.gridXZ !== false;
-      if (this.axes) this.axes.visible = state?.vis3d?.axes !== undefined ? Boolean(state.vis3d.axes) : (state?.vis3d?.gridXZ !== false);
+      if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
       if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
       if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     },
   };
 
-  // State 1: grid disabled, but axes remains visible
+  // State 1: grid disabled with axes unspecified (undefined) - axes must remain visible!
+  mockScene.applyCommonVis({
+    vis3d: { gridXZ: false },
+  });
+  assert.equal(mockScene.grid.visible, false, 'grid must be hidden');
+  assert.equal(mockScene.axes.visible, true, 'axes must remain visible when grid is toggled off');
+
+  // State 2: grid disabled, but axes remains visible
   mockScene.applyCommonVis({
     vis3d: { gridXZ: false, axes: true, sphere: true, circleWire: false },
   });
@@ -145,7 +152,7 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
   assert.equal(mockScene.sphere.visible, true, 'sphere must be visible');
   assert.equal(mockScene.circleWire.visible, false, 'circle wire must be hidden independently');
 
-  // State 2: sphere disabled, but circle wire remains visible
+  // State 3: sphere disabled, but circle wire remains visible
   mockScene.applyCommonVis({
     vis3d: { gridXZ: true, axes: false, sphere: false, circleWire: true },
   });
@@ -154,3 +161,4 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
   assert.equal(mockScene.sphere.visible, false, 'sphere mesh must be hidden');
   assert.equal(mockScene.circleWire.visible, true, 'circle wireframe must remain visible');
 });
+
