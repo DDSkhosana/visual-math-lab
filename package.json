@@ -4,6 +4,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "start": "node scripts/serve.mjs",
+    "dev": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.mjs",
     "validate": "node scripts/validate-site.mjs"
   }
