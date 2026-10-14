@@ -138,8 +138,10 @@
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Visual Toggles</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-area" checked><span class="checkmark"></span><span class="color-sky">Shade Areas &amp; Congruent Triangles</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-radii" checked><span class="checkmark"></span><span class="color-amber">Show Radii (OA and OB)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-radii" checked><span class="checkmark"></span><span class="color-indigo">Show Radii (OA and OB)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-bisector" checked><span class="checkmark"></span><span class="color-lavender">Extended Bisector Line</span></label>
               </div>
             </div>
@@ -183,16 +185,17 @@
           </div>
           <div class="panel-body hidden">
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grids</span><span class="icon">▼</span></div>
-              <div class="collapsible-content">
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span>Grid lines</span></label>
+              <div class="collapsible-header"><span>2D Grids &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span>Cartesian Grid</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span><span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</span></label>
               </div>
             </div>
             <div class="collapsible-section">
               <div class="collapsible-header"><span>2D Overlays</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span>Point Markers</label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Point Labels (<span class="color-sky">O</span>, <span class="color-blue">A</span>, <span class="color-orange">B</span>, <span class="color-emerald">M</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Point Labels (<span class="color-indigo">O</span>, <span class="color-blue">A</span>, <span class="color-orange">B</span>, <span class="color-emerald">M</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Chord Length Badges (|AM|, |MB|)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Angles &amp; Right-Angle Marker</span></label>

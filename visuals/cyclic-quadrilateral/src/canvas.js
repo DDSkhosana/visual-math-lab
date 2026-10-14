@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawArrow, withShadow, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawArrow, withShadow, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -32,15 +32,8 @@ export class CanvasView {
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
-    // Axes
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -83,15 +76,23 @@ export class CanvasView {
 
     const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
 
-    // Angle Wedges at opposite vertices (A and C) demonstrating supplementary angles
+    // Angle Wedges at all four vertices demonstrating supplementary pairs (A + C = 180°, B + D = 180°)
     if (showAngles) {
       const angAD = Math.atan2(g.D.y - g.A.y, g.D.x - g.A.x);
       const angAB = Math.atan2(g.B.y - g.A.y, g.B.x - g.A.x);
       drawAngleWedge(ctx, g.A, angAD, angAB, 24, 'rgba(168, 85, 247, 0.25)', PALETTE.violet);
 
+      const angBA = Math.atan2(g.A.y - g.B.y, g.A.x - g.B.x);
+      const angBC = Math.atan2(g.C.y - g.B.y, g.C.x - g.B.x);
+      drawAngleWedge(ctx, g.B, angBA, angBC, 24, 'rgba(6, 182, 212, 0.25)', PALETTE.cyan);
+
       const angCB = Math.atan2(g.B.y - g.C.y, g.B.x - g.C.x);
       const angCD = Math.atan2(g.D.y - g.C.y, g.D.x - g.C.x);
       drawAngleWedge(ctx, g.C, angCB, angCD, 24, 'rgba(245, 158, 11, 0.25)', PALETTE.amber);
+
+      const angDC = Math.atan2(g.C.y - g.D.y, g.C.x - g.D.x);
+      const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
+      drawAngleWedge(ctx, g.D, angDC, angDA, 24, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
     }
 
     // Exterior line extending DC through C to E

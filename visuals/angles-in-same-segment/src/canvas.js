@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -33,15 +33,8 @@ export class CanvasView {
 
     const g = computeGeometry(state, width, height);
 
-    // Grid lines
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -70,16 +63,23 @@ export class CanvasView {
       ctx.fill();
     }
 
-    // Optional center radii OA, OB
+    // Optional center radii OA, OB & Central Angle AOB
     if (state.showCenter) {
-      ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
+      ctx.lineWidth = 1.75;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
       ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.A.x, g.A.y);
       ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.B.x, g.B.y);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
+      if (showAngles) {
+        const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
+        const angB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
+        drawAngleWedge(ctx, g.O, angA, angB, 30, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+      }
     }
 
     // Base chord AB

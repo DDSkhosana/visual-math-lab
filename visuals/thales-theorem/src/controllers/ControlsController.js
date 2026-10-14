@@ -9,8 +9,10 @@ export class ControlsController {
       ...config,
       input: root.getElementById(config.input),
       label: root.getElementById(config.label),
-    }));
-    this.toggles = Object.entries(TOGGLES).map(([id, path]) => ({ path, input: root.getElementById(id) }));
+    })).filter((s) => s.input && s.label);
+    this.toggles = Object.entries(TOGGLES)
+      .map(([id, path]) => ({ path, input: root.getElementById(id) }))
+      .filter((t) => t.input);
 
     for (const slider of this.sliders) {
       slider.input.addEventListener('input', () => {
@@ -40,7 +42,9 @@ export class ControlsController {
       label.textContent = format(value);
     }
     for (const { input, path } of this.toggles) {
-      input.checked = path.reduce((node, key) => node[key], state);
+      if (input) {
+        input.checked = path.reduce((node, key) => node[key], state);
+      }
     }
     const currentPlane = state.plane2D ?? 'great-circle';
     for (const { plane, btn } of this.planeButtons) {

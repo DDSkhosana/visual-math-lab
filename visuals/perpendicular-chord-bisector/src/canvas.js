@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawSubtendedSegment, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawSubtendedSegment, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -32,15 +32,8 @@ export class CanvasView {
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
-    // Grid lines
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Shaded areas (circular segment, congruent triangles, and angle wedges)
     const center = { x: g.cx, y: g.cy };
@@ -102,7 +95,7 @@ export class CanvasView {
 
     // Radii OA, OB
     if (state.showRadii) {
-      ctx.strokeStyle = PALETTE.amber;
+      ctx.strokeStyle = PALETTE.indigo;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.A.x, g.A.y);
@@ -110,14 +103,20 @@ export class CanvasView {
       ctx.stroke();
     }
 
-    // Chord AB
+    // Chord Segments: AM (Blue) and MB (Orange)
     ctx.strokeStyle = PALETTE.blue;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.B.x, g.B.y);
+    ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.M.x, g.M.y);
     ctx.stroke();
 
-    // Perpendicular OM
+    ctx.strokeStyle = PALETTE.orange;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(g.M.x, g.M.y); ctx.lineTo(g.B.x, g.B.y);
+    ctx.stroke();
+
+    // Perpendicular OM (Emerald)
     ctx.strokeStyle = PALETTE.emerald;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -135,7 +134,7 @@ export class CanvasView {
     const uOMy = g.distOM > 0.001 ? (g.M.y - g.cy) / g.distOM : 1;
     if (state.vis2d?.points !== false) {
       const vis = state.vis2d || {};
-      drawLabelledPoint(ctx, center, PALETTE.sky, getPointLabel('O', 0, 0, vis), -16, 18);
+      drawLabelledPoint(ctx, center, PALETTE.indigo, getPointLabel('O', 0, 0, vis), -16, 18);
       drawRadialLabelledPoint(ctx, g.A, center, PALETTE.blue, getPointLabel('A', g.A.x - g.cx, -(g.A.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.B, center, PALETTE.orange, getPointLabel('B', g.B.x - g.cx, -(g.B.y - g.cy), vis), 20);
       drawLabelledPoint(ctx, g.M, PALETTE.emerald, getPointLabel('M', g.M.x - g.cx, -(g.M.y - g.cy), vis), 16 * uOMx, 16 * uOMy);

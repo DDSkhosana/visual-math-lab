@@ -77,6 +77,8 @@
             <div class="stats-body hidden" id="telemetry-body">
               <div class="stat-line"><span>Central Angle (<span class="color-yellow">∠AOB</span>):</span><strong class="color-yellow" id="tel-central-angle">120.0°</strong></div>
               <div class="stat-line"><span>Inscribed Angle (<span class="color-green">∠APB</span>):</span><strong class="color-green" id="tel-inscribed-angle">60.0°</strong></div>
+              <div class="stat-line"><span>Base Angle α (in △OPA):</span><strong class="color-lime" id="tel-alpha">30.0°</strong></div>
+              <div class="stat-line"><span>Base Angle β (in △OPB):</span><strong class="color-fuchsia" id="tel-beta">30.0°</strong></div>
               <div class="stat-line"><span>Angle Ratio (2θ / θ):</span><strong class="color-teal" id="tel-ratio">2.000</strong></div>
               <div class="stat-line"><span>Radius r:</span><span class="color-indigo" id="tel-radius">180 px</span></div>
               <div class="stat-line"><span>Arc Length AB:</span><span class="color-amber" id="tel-arc">377.0 px</span></div>
@@ -110,6 +112,8 @@
                 <span>3D Central ∠AOB:</span><strong class="color-yellow" id="val-3d-central">120.0°</strong>
               </div>
               <div class="stat-line"><span>3D Inscribed ∠APB:</span><strong class="color-green" id="val-3d-inscribed">60.0°</strong></div>
+              <div class="stat-line"><span>Base Angle α (△OPA):</span><strong class="color-lime" id="val-3d-alpha">30.0°</strong></div>
+              <div class="stat-line"><span>Base Angle β (△OPB):</span><strong class="color-fuchsia" id="val-3d-beta">30.0°</strong></div>
               <div class="stat-line"><span>3D Ratio (2θ / θ):</span><strong class="color-teal" id="val-3d-ratio">2.000</strong></div>
             </div>
           </div>
@@ -142,10 +146,18 @@
             </div>
 
             <div class="collapsible-section">
+              <div class="collapsible-header"><span>2D Grid &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
+              </div>
+            </div>
+
+            <div class="collapsible-section">
               <div class="collapsible-header"><span>Visual Toggles</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="toggle-area" checked><span class="checkmark"></span><span class="color-yellow">Relevant Area Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-radii" checked><span class="checkmark"></span><span class="color-indigo">Radii (OA, OB)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-radii" checked><span class="checkmark"></span><span>Radii (<span class="color-red">OA</span>, <span class="color-orange">OB</span>)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-split" checked><span class="checkmark"></span><span class="color-lavender">Isosceles Split Line (OP)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-angles" checked><span class="checkmark"></span><span class="color-yellow">Angle Arcs &amp; Readouts</span></label>
               </div>
@@ -191,9 +203,10 @@
           </div>
           <div class="panel-body hidden">
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grids</span><span class="icon">▼</span></div>
-              <div class="collapsible-content">
+              <div class="collapsible-header"><span>2D Grids &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
               </div>
             </div>
             <div class="collapsible-section">

@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -32,15 +32,8 @@ export class CanvasView {
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
-    // Axes
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Circle
     ctx.strokeStyle = PALETTE.sky;

@@ -137,6 +137,8 @@
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Visual Overlays</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-shading" checked><span class="checkmark"></span><span class="color-blue">Segment &amp; Triangle Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-center" checked><span class="checkmark"></span><span class="color-indigo">Radii to Center (O)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-angles" checked><span class="checkmark"></span><span class="color-emerald">Angle Arcs &amp; Labels</span></label>
@@ -182,9 +184,10 @@
           </div>
           <div class="panel-body hidden">
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grids</span><span class="icon">▼</span></div>
-              <div class="collapsible-content">
+              <div class="collapsible-header"><span>2D Grids &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
               </div>
             </div>
             <div class="collapsible-section">

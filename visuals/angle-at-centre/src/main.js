@@ -185,9 +185,22 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    // Base angles alpha and beta
+    const angPA = Math.atan2(g.A.y - g.P.y, g.A.x - g.P.x);
+    const angPB = Math.atan2(g.B.y - g.P.y, g.B.x - g.P.x);
+    const angPO = Math.atan2(g.O.y - g.P.y, g.O.x - g.P.x);
+    const diffAlpha = Math.abs(((angPA - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const diffBeta = Math.abs(((angPB - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const alphaDeg = diffAlpha * (180 / Math.PI);
+    const betaDeg = diffBeta * (180 / Math.PI);
+
     // Update 2D telemetry
     document.getElementById('tel-central-angle').textContent = `${g.centralDeg.toFixed(1)}°`;
     document.getElementById('tel-inscribed-angle').textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    const elTelAlpha = document.getElementById('tel-alpha');
+    if (elTelAlpha) elTelAlpha.textContent = `${alphaDeg.toFixed(1)}°`;
+    const elTelBeta = document.getElementById('tel-beta');
+    if (elTelBeta) elTelBeta.textContent = `${betaDeg.toFixed(1)}°`;
     document.getElementById('tel-ratio').textContent = `${g.ratio.toFixed(3)}`;
     document.getElementById('tel-radius').textContent = `${state.radius} px`;
     document.getElementById('tel-arc').textContent = `${g.arcLength.toFixed(1)} px`;
@@ -201,6 +214,10 @@ function bootstrap() {
     if (elCentral) elCentral.textContent = `${g.centralDeg.toFixed(1)}°`;
     const elInscribed = document.getElementById('val-3d-inscribed');
     if (elInscribed) elInscribed.textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    const el3dAlpha = document.getElementById('val-3d-alpha');
+    if (el3dAlpha) el3dAlpha.textContent = `${alphaDeg.toFixed(1)}°`;
+    const el3dBeta = document.getElementById('val-3d-beta');
+    if (el3dBeta) el3dBeta.textContent = `${betaDeg.toFixed(1)}°`;
     const elRatio = document.getElementById('val-3d-ratio');
     if (elRatio) elRatio.textContent = g.ratio.toFixed(3);
 

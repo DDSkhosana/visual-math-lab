@@ -98,16 +98,26 @@ export class AngleAtCentreDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ ${tag('indigo', 'Center O')} = (0.0, 0.0), Radius ${tag('indigo', 'r')} = ${r} px<br>` +
-        `↳ ${tag('red', 'A')} = (${ax}, ${ay}), ${tag('orange', 'B')} = (${bx}, ${by})<br>` +
-        `↳ ${tag('violet', 'P')} = (${px}, ${py}) | |OA| = |OB| = |OP| = ${tag('indigo', `${r} px`)}`;
+        `↳ ${tag('indigo', 'Center O')} = (0.0, 0.0), Radius ${tag('indigo', `r = ${r} px`)}<br>` +
+        `↳ ${tag('red', 'A')} = (${tag('amber', ax)}, ${tag('lime', ay)}), ${tag('orange', 'B')} = (${tag('amber', bx)}, ${tag('lime', by)})<br>` +
+        `↳ ${tag('violet', 'P')} = (${tag('amber', px)}, ${tag('lime', py)}) | ${tag('red', '|OA|')} = ${tag('orange', '|OB|')} = ${tag('lavender', '|OP|')} = ${tag('indigo', `${r} px`)}`;
     }
     if (this.slots.s2) {
-      const alpha = (insc * 0.45).toFixed(1);
-      const beta = (insc * 0.55).toFixed(1);
+      let alpha = (insc * 0.5).toFixed(1);
+      let beta = (insc * 0.5).toFixed(1);
+      if (g.P && g.A && g.B) {
+        const angPA = Math.atan2(g.A.y - g.P.y, g.A.x - g.P.x);
+        const angPB = Math.atan2(g.B.y - g.P.y, g.B.x - g.P.x);
+        const angPO = Math.atan2(g.cy - g.P.y, g.cx - g.P.x);
+        const diffA = Math.abs(((angPA - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+        const diffB = Math.abs(((angPB - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+        alpha = (diffA * (180 / Math.PI)).toFixed(1);
+        beta = (diffB * (180 / Math.PI)).toFixed(1);
+      }
       this.slots.s2.innerHTML =
-        `↳ Base angle in △OPA: ${tag('lime', 'α')} ≈ ${alpha}°<br>` +
-        `↳ Base angle in △OPB: ${tag('fuchsia', 'β')} ≈ ${beta}°`;
+        `↳ Base angle in ${tag('blue', '△OPA')}: ${tag('lime', `α = ${alpha}°`)}<br>` +
+        `↳ Base angle in ${tag('orange', '△OPB')}: ${tag('fuchsia', `β = ${beta}°`)}<br>` +
+        `↳ Total Inscribed Angle: ${tag('green', 'θ')} = ${tag('lime', `${alpha}°`)} + ${tag('fuchsia', `${beta}°`)} = ${tag('green', `${insc.toFixed(1)}°`)}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
@@ -192,21 +202,21 @@ export class AnglesInSameSegmentDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Radius ${tag('indigo', 'r')} = ${state.radius} px | Base chord |AB| = ${tag('red', `${chordLen} px`)}<br>` +
-        `↳ Central angle subtended by arc AB: ${tag('yellow', `${g.centralDeg.toFixed(1)}°`)}`;
+        `↳ Radius ${tag('indigo', `r = ${state.radius} px`)} | Base chord ${tag('red', `|AB| = ${chordLen} px`)}<br>` +
+        `↳ Central angle subtended by ${tag('red', 'Arc AB')}: ${tag('yellow', `2θ = ${g.centralDeg.toFixed(1)}°`)}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Subtended angle ${tag('blue', '∠AP₁B (θ₁)')} = ½(${tag('yellow', `${g.centralDeg.toFixed(1)}°`)}) = ${tag('blue', `${g.angleP1Deg.toFixed(1)}°`)}`;
+        `↳ Subtended angle ${tag('blue', '∠AP₁B (θ₁)')} = ½(${tag('yellow', `${g.centralDeg.toFixed(1)}°`)}) = ${tag('blue', `θ₁ = ${g.angleP1Deg.toFixed(1)}°`)}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ Subtended angle ${tag('emerald', '∠AP₂B (θ₂)')} = ½(${tag('yellow', `${g.centralDeg.toFixed(1)}°`)}) = ${tag('emerald', `${g.angleP2Deg.toFixed(1)}°`)}`;
+        `↳ Subtended angle ${tag('emerald', '∠AP₂B (θ₂)')} = ½(${tag('yellow', `${g.centralDeg.toFixed(1)}°`)}) = ${tag('emerald', `θ₂ = ${g.angleP2Deg.toFixed(1)}°`)}`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
         `↳ ${tag('blue', `∠AP₁B = ${g.angleP1Deg.toFixed(1)}°`)}, ${tag('emerald', `∠AP₂B = ${g.angleP2Deg.toFixed(1)}°`)}<br>` +
-        `↳ Difference: ${tag('teal', `Δ = |${g.angleP1Deg.toFixed(1)}° - ${g.angleP2Deg.toFixed(1)}°| = ${diff}°`)}`;
+        `↳ Invariant Difference: ${tag('teal', `Δ = |${g.angleP1Deg.toFixed(1)}° - ${g.angleP2Deg.toFixed(1)}°| = ${diff}°`)}`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
@@ -283,12 +293,12 @@ export class CyclicQuadDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Radius ${tag('indigo', 'r')} = ${state.radius} px | 4 vertices concyclic on circumference`;
+        `↳ Radius ${tag('indigo', `r = ${state.radius} px`)} | 4 vertices concyclic on circumference`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Central arc subtended by ∠A: 2 · ${angleA.toFixed(1)}° = ${(2 * angleA).toFixed(1)}°<br>` +
-        `↳ Central arc subtended by ∠C: 2 · ${angleC.toFixed(1)}° = ${(2 * angleC).toFixed(1)}°`;
+        `↳ Central arc subtended by ${tag('violet', '∠A')}: 2 · ${tag('violet', `${angleA.toFixed(1)}°`)} = ${tag('violet', `${(2 * angleA).toFixed(1)}°`)}<br>` +
+        `↳ Central arc subtended by ${tag('amber', '∠C')}: 2 · ${tag('amber', `${angleC.toFixed(1)}°`)} = ${tag('amber', `${(2 * angleC).toFixed(1)}°`)}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
@@ -301,7 +311,7 @@ export class CyclicQuadDerivations {
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ ${tag('cyan', `∠B = ${angleB.toFixed(1)}°`)}, ${tag('rose', `∠D = ${angleD.toFixed(1)}°`)} ⟹ Sum = ${tag('teal', `${sumBD.toFixed(1)}°`)}<br>` +
+        `↳ ${tag('cyan', `∠B = ${angleB.toFixed(1)}°`)}, ${tag('rose', `∠D = ${angleD.toFixed(1)}°`)} ⟹ Sum = ${tag('cyan', `${angleB.toFixed(1)}°`)} + ${tag('rose', `${angleD.toFixed(1)}°`)} = ${tag('teal', `${sumBD.toFixed(1)}°`)}<br>` +
         `↳ Total Quadrilateral Interior Sum = ${tag('platinum', `${total.toFixed(1)}°`)}`;
     }
     if (this.slots.s4e) {
@@ -376,16 +386,16 @@ export class TangentRadiusDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Contact Point ${tag('red', 'T')} = (${tx}, ${ty}) at angle θ = ${tag('yellow', `${deg}°`)}<br>` +
-        `↳ Radial vector magnitude |OT| = ${tag('indigo', `${r} px`)}`;
+        `↳ Contact Point ${tag('red', 'T')} = (${tag('amber', tx)}, ${tag('lime', ty)}) at angle θ = ${tag('yellow', `${deg}°`)}<br>` +
+        `↳ Radial vector magnitude ${tag('indigo', `|OT| = ${r} px`)}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Tangent vector: ${tag('emerald', 'v_tan')} = (${(-parseFloat(ty)).toFixed(1)}, ${tx})`;
+        `↳ Tangent vector: ${tag('emerald', 'v_tan')} = (${tag('amber', (-parseFloat(ty)).toFixed(1))}, ${tag('lime', tx)})`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ (${tx}) · (${(-parseFloat(ty)).toFixed(1)}) + (${ty}) · (${tx}) = ${tag('teal', '0.0000')}`;
+        `↳ (${tag('amber', tx)}) · (${tag('amber', (-parseFloat(ty)).toFixed(1))}) + (${tag('lime', ty)}) · (${tag('lime', tx)}) = ${tag('teal', '0.0000')}`;
     }
     if (this.slots.s3e) {
       this.slots.s3e.innerHTML =
@@ -393,7 +403,7 @@ export class TangentRadiusDerivations {
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ Angle between radius OT and tangent line = ${tag('teal', '90.0°')}<br>` +
+        `↳ Angle between radius ${tag('indigo', 'OT')} and ${tag('emerald', 'Tangent line')} = ${tag('teal', '90.0°')}<br>` +
         `↳ Radius is perpendicular to tangent at contact point.`;
     }
     if (this.slots.s4e) {
@@ -426,14 +436,14 @@ export class AlternateSegmentDerivations {
         'Step 2',
         `Inscribed Angle at Alternate Vertex ${tag('orange', 'B')}`,
         `Vertex ${tag('orange', 'B')} lies on circumference in the alternate segment.<br>` +
-        `Angle subtended by chord TA at ${tag('orange', 'B')}: ${tag('yellow', '∠TBA = α')}`
+        `Angle subtended by chord ${tag('blue', 'TA')} at ${tag('orange', 'B')}: ${tag('yellow', '∠TBA = α')}`
       )}
       ${cardTemplate(
         'as-step-3',
         'Step 3',
         `Diameter Construction (${tag('lavender', 'TD')}) Proof`,
-        `Draw diameter TD through T. Tangent ⊥ TD ⟹ ∠DTA = 90° - α.<br>` +
-        `By Thales' Theorem, ∠TBD = 90° ⟹ ∠TBA = 90° - ∠ABD = 90° - (90° - α) = α`
+        `Draw diameter ${tag('lavender', 'TD')} through ${tag('red', 'T')}. ${tag('emerald', 'Tangent')} ⊥ ${tag('lavender', 'TD')} ⟹ ∠DTA = ${tag('teal', '90°')} - ${tag('yellow', 'α')}.<br>` +
+        `By Thales' Theorem, ∠TBD = ${tag('teal', '90°')} ⟹ ∠TBA = ${tag('teal', '90°')} - ∠ABD = ${tag('teal', '90°')} - (${tag('teal', '90°')} - ${tag('yellow', 'α')}) = ${tag('yellow', 'α')}`
       )}
       ${cardTemplate(
         'as-step-4',
@@ -465,7 +475,7 @@ export class AlternateSegmentDerivations {
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
         `↳ Tangent-chord angle ${tag('yellow', 'α')} = ${tag('yellow', `${g.tangentChordDeg.toFixed(1)}°`)}<br>` +
-        `↳ Chord |TA| = ${chordLen} px`;
+        `↳ Base Chord ${tag('blue', `|TA| = ${chordLen} px`)}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
@@ -473,12 +483,12 @@ export class AlternateSegmentDerivations {
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ Auxiliary diameter |TD| = ${(2 * state.radius)} px | ∠TBD = 90.0° (Thales)`;
+        `↳ Auxiliary diameter ${tag('lavender', `|TD| = ${(2 * state.radius)} px`)} | ${tag('teal', '∠TBD = 90.0°')} (Thales)`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
         `↳ ${tag('yellow', `Tangent-chord α = ${g.tangentChordDeg.toFixed(1)}°`)}, ${tag('yellow', `Inscribed α = ${g.inscribedDeg.toFixed(1)}°`)}<br>` +
-        `↳ Difference: ${tag('teal', `Δ = |α - α| = ${diff}°`)}`;
+        `↳ Invariant Difference: ${tag('teal', `Δ = |α - α| = ${diff}°`)}`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
@@ -502,29 +512,29 @@ export class TangentsFromPointDerivations {
         'tfp-step-1',
         'Step 1',
         `External Point ${tag('red', 'P')} & Distance ${tag('yellow', 'd = |OP|')}`,
-        `Circle centered at ${tag('sky', 'O')}(0, 0) with radius ${tag('amber', 'r')}.<br>` +
-        `Point ${tag('red', 'P')} lies outside the circle: ${tag('yellow', 'd')} > ${tag('amber', 'r')}`
+        `Circle centered at ${tag('sky', 'O')}(0, 0) with radius ${tag('indigo', 'r')}.<br>` +
+        `Point ${tag('red', 'P')} lies outside the circle: ${tag('yellow', 'd')} > ${tag('indigo', 'r')}`
       )}
       ${cardTemplate(
         'tfp-step-2',
         'Step 2',
-        `Tangent Contact Points ${tag('emerald', 'T₁')}, ${tag('emerald', 'T₂')} & Right Angles`,
+        `Tangent Contact Points ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} & Right Angles`,
         `Radii to contact points are perpendicular to tangent segments:<br>` +
-        `OT₁ ⊥ PT₁ (∠OT₁P = 90°) and OT₂ ⊥ PT₂ (∠OT₂P = 90°)`
+        `${tag('indigo', 'OT₁')} ⊥ ${tag('emerald', 'PT₁')} (∠OT₁P = ${tag('teal', '90°')}) and ${tag('indigo', 'OT₂')} ⊥ ${tag('blue', 'PT₂')} (∠OT₂P = ${tag('teal', '90°')})`
       )}
       ${cardTemplate(
         'tfp-step-3',
         'Step 3',
         `Pythagorean Tangent Length Formula`,
-        `In right △OT₁P: ${tag('emerald', '|PT₁|')} = √(d² - r²)<br>` +
-        `In right △OT₂P: ${tag('emerald', '|PT₂|')} = √(d² - r²)`
+        `In right ${tag('emerald', '△OT₁P')}: ${tag('emerald', '|PT₁|')} = √(d² - r²)<br>` +
+        `In right ${tag('blue', '△OT₂P')}: ${tag('blue', '|PT₂|')} = √(d² - r²)`
       )}
       ${cardTemplate(
         'tfp-step-4',
         'Step 4',
-        `RHS Congruence & Tangent Length Equality (${tag('emerald', '|PT₁|')} = ${tag('emerald', '|PT₂|')})`,
-        `△OT₁P ≅ △OT₂P (Shared hypotenuse OP, Leg OT₁ = OT₂ = r, Right angle).<br>` +
-        `Corresponding lengths are equal: ${tag('emerald', '|PT₁|')} = ${tag('emerald', '|PT₂|')} ⟹ Difference ${tag('teal', 'Δ = 0.00 px')}`,
+        `RHS Congruence & Tangent Length Equality (${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')})`,
+        `△OT₁P ≅ △OT₂P (Shared hypotenuse ${tag('lavender', 'OP')}, Leg OT₁ = OT₂ = ${tag('indigo', 'r')}, Right angle ${tag('teal', '90°')}).<br>` +
+        `Corresponding lengths are equal: ${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')} ⟹ Difference ${tag('teal', 'Δ = 0.00 px')}`,
         true
       )}
     `;
@@ -556,11 +566,11 @@ export class TangentsFromPointDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Radius ${tag('amber', 'r')} = ${r} px | Distance ${tag('yellow', 'd = |OP|')} = ${d} px (${d} > ${r})`;
+        `↳ Radius ${tag('indigo', `r = ${r} px`)} | Distance ${tag('yellow', `d = |OP| = ${d} px`)} (${d} > ${r})`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Contact points: ${tag('emerald', 'T₁')}, ${tag('emerald', 'T₂')} | ∠OT₁P = 90.0°, ∠OT₂P = 90.0°`;
+        `↳ Contact points: ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} | ∠OT₁P = ${tag('teal', '90.0°')}, ∠OT₂P = ${tag('teal', '90.0°')}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
@@ -568,12 +578,12 @@ export class TangentsFromPointDerivations {
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ ${tag('emerald', `|PT₁| = ${len1} px`)}, ${tag('emerald', `|PT₂| = ${len2} px`)}<br>` +
-        `↳ Difference: ${tag('teal', `Δ = |${len1} - ${len2}| = ${diff} px`)}`;
+        `↳ ${tag('emerald', `|PT₁| = ${len1} px`)}, ${tag('blue', `|PT₂| = ${len2} px`)}<br>` +
+        `↳ Invariant Difference: ${tag('teal', `Δ = |${len1} - ${len2}| = ${diff} px`)}`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
-        `<span>${tag('emerald', `|PT₁| = ${len1} px`)} ≝ ${tag('emerald', `|PT₂| = ${len2} px`)}</span><span class="derivation-check">✓ Tangent Segments Equal</span>`;
+        `<span>${tag('emerald', `|PT₁| = ${len1} px`)} ≝ ${tag('blue', `|PT₂| = ${len2} px`)}</span><span class="derivation-check">✓ Tangent Segments Equal</span>`;
     }
   }
 }
@@ -593,28 +603,28 @@ export class ChordBisectorDerivations {
         'cb-step-1',
         'Step 1',
         `Chord Endpoints ${tag('blue', 'A')}, ${tag('orange', 'B')} on Circle`,
-        `Circle centered at ${tag('sky', 'O')}(0, 0) with radius ${tag('amber', 'r')}.<br>` +
-        `Endpoints on circumference satisfy: |OA| = |OB| = ${tag('amber', 'r')}`
+        `Circle centered at ${tag('indigo', 'O')}(0, 0) with radius ${tag('indigo', 'r')}.<br>` +
+        `Endpoints on circumference satisfy: |OA| = |OB| = ${tag('indigo', 'r')}`
       )}
       ${cardTemplate(
         'cb-step-2',
         'Step 2',
         `Midpoint ${tag('emerald', 'M')} of Chord ${tag('blue', 'AB')}`,
         `Coordinates of midpoint: ${tag('emerald', 'M')} = (A + B) / 2<br>` +
-        `Half-chord lengths: |AM| = ½|AB|, |MB| = ½|AB|`
+        `Half-chord lengths: ${tag('blue', '|AM|')} = ½|AB|, ${tag('orange', '|MB|')} = ½|AB|`
       )}
       ${cardTemplate(
         'cb-step-3',
         'Step 3',
         `Perpendicularity of Radius Line (${tag('emerald', 'OM')} ⊥ ${tag('blue', 'AB')})`,
         `Vector OM · Vector AB = (x_M)(x_B - x_A) + (y_M)(y_B - y_A) = 0<br>` +
-        `⟹ Radial line from center through midpoint is perpendicular to chord (∠OMA = 90°)`
+        `⟹ Radial line from center through midpoint is perpendicular to chord (∠OMA = ${tag('teal', '90°')})`
       )}
       ${cardTemplate(
         'cb-step-4',
         'Step 4',
         `RHS Congruence & Bisector Invariant (${tag('blue', '|AM|')} = ${tag('orange', '|MB|')})`,
-        `In right △OMA and △OMB: OA = OB = r (hypotenuses), OM shared leg, ∠OMA = ∠OMB = 90°.<br>` +
+        `In right ${tag('blue', '△OMA')} and ${tag('orange', '△OMB')}: OA = OB = ${tag('indigo', 'r')} (hypotenuses), ${tag('emerald', 'OM')} shared leg, ∠OMA = ∠OMB = ${tag('teal', '90°')}.<br>` +
         `By RHS congruence: △OMA ≅ △OMB ⟹ ${tag('blue', '|AM|')} = ${tag('orange', '|MB|')} (Bisected)`,
         true
       )}
@@ -642,20 +652,20 @@ export class ChordBisectorDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Radius ${tag('amber', 'r')} = ${r} px | Total chord length |AB| = ${tag('blue', `${chordLen} px`)}`;
+        `↳ Radius ${tag('indigo', `r = ${r} px`)} | Total chord length ${tag('blue', `|AB| = ${chordLen} px`)}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Chord midpoint ${tag('emerald', 'M')} | Half-chord |AM| = ${tag('blue', `${halfChord} px`)}, |MB| = ${tag('orange', `${halfChord} px`)}`;
+        `↳ Chord midpoint ${tag('emerald', 'M')} | Half-chord ${tag('blue', `|AM| = ${halfChord} px`)}, ${tag('orange', `|MB| = ${halfChord} px`)}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ Distance from center |OM| = ${omLen} px | Angle ∠OMA = ${tag('teal', '90.0°')}`;
+        `↳ Distance from center ${tag('emerald', `|OM| = ${omLen} px`)} | Angle ∠OMA = ${tag('teal', '90.0°')}`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
         `↳ ${tag('blue', `|AM| = ${halfChord} px`)}, ${tag('orange', `|MB| = ${halfChord} px`)}<br>` +
-        `↳ Difference: ${tag('teal', `Δ = |AM - MB| = ${diff} px`)}`;
+        `↳ Invariant Difference: ${tag('teal', `Δ = |AM - MB| = ${diff} px`)}`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =

@@ -1,4 +1,4 @@
-import { PALETTE, toDegrees, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, toDegrees, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -33,15 +33,8 @@ export class CanvasView {
 
     const g = computeGeometry(state, width, height);
 
-    // Coordinate grid axes
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Main Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -56,22 +49,30 @@ export class CanvasView {
       // Central Sector subtending P on arc AB
       drawSubtendedSector(ctx, g.O, g.A, g.B, g.P, g.r, 'rgba(234, 179, 8, 0.16)');
 
-      // Inscribed Triangle Shading
-      ctx.fillStyle = 'rgba(34, 197, 94, 0.16)';
+      // Inscribed Triangles Shading: Triangle OPA (Blue) and Triangle OPB (Orange)
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
       ctx.beginPath();
-      ctx.moveTo(g.P.x, g.P.y);
-      ctx.lineTo(g.A.x, g.A.y);
-      ctx.lineTo(g.B.x, g.B.y);
+      ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.P.x, g.P.y); ctx.lineTo(g.A.x, g.A.y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.16)';
+      ctx.beginPath();
+      ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.P.x, g.P.y); ctx.lineTo(g.B.x, g.B.y);
       ctx.closePath();
       ctx.fill();
     }
 
-    // Radii OA, OB
+    // Radii: OA (Red) and OB (Orange)
     if (state.showRadii) {
-      ctx.strokeStyle = PALETTE.indigo;
       ctx.lineWidth = 2.5;
+      ctx.strokeStyle = PALETTE.red;
       ctx.beginPath();
       ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.A.x, g.A.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = PALETTE.orange;
+      ctx.beginPath();
       ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.B.x, g.B.y);
       ctx.stroke();
     }
@@ -104,14 +105,28 @@ export class CanvasView {
     const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
 
     // Angle Arcs and Wedges
+    const angPA = Math.atan2(g.A.y - g.P.y, g.A.x - g.P.x);
+    const angPB = Math.atan2(g.B.y - g.P.y, g.B.x - g.P.x);
+    const angPO = Math.atan2(g.O.y - g.P.y, g.O.x - g.P.x);
+    const angAO = Math.atan2(g.O.y - g.A.y, g.O.x - g.A.x);
+    const angAP = Math.atan2(g.P.y - g.A.y, g.P.x - g.A.x);
+    const angBO = Math.atan2(g.O.y - g.B.y, g.O.x - g.B.x);
+    const angBP = Math.atan2(g.P.y - g.B.y, g.P.x - g.B.x);
+
+    const diffAlpha = Math.abs(((angPA - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const alphaDeg = diffAlpha * (180 / Math.PI);
+    const diffBeta = Math.abs(((angPB - angPO + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const betaDeg = diffBeta * (180 / Math.PI);
+
     if (showAngles) {
       // Central Angle arc wedge
       drawSubtendedSector(ctx, g.O, g.A, g.B, g.P, 36, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
 
-      // Inscribed Angle arc wedge
-      const angPA = Math.atan2(g.A.y - g.P.y, g.A.x - g.P.x);
-      const angPB = Math.atan2(g.B.y - g.P.y, g.B.x - g.P.x);
-      drawAngleWedge(ctx, g.P, angPA, angPB, 30, 'rgba(34, 197, 94, 0.25)', PALETTE.green);
+      // Base angles alpha (Lime) in △OPA and beta (Fuchsia) in △OPB
+      drawAngleWedge(ctx, g.P, angPO, angPA, 30, 'rgba(132, 204, 22, 0.25)', PALETTE.lime);
+      drawAngleWedge(ctx, g.P, angPO, angPB, 30, 'rgba(217, 70, 239, 0.25)', PALETTE.fuchsia);
+      drawAngleWedge(ctx, g.A, angAO, angAP, 22, 'rgba(132, 204, 22, 0.25)', PALETTE.lime);
+      drawAngleWedge(ctx, g.B, angBO, angBP, 22, 'rgba(217, 70, 239, 0.25)', PALETTE.fuchsia);
     }
 
     // Points and Labels adhering to Euclidean standards with outward radial clearance
@@ -135,18 +150,22 @@ export class CanvasView {
       const centBadgeY = g.cy + 52 * Math.sin(midCentAng);
       drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, centBadgeX, centBadgeY, PALETTE.yellow);
 
-      // Inscribed Angle badge placed along inscribed angle bisector
-      const angPA = Math.atan2(g.A.y - g.P.y, g.A.x - g.P.x);
-      const angPB = Math.atan2(g.B.y - g.P.y, g.B.x - g.P.x);
+      // Inscribed Angle badges
       const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
       const uBx = Math.cos(angPB), uBy = Math.sin(angPB);
       const bisX = uAx + uBx, bisY = uAy + uBy;
       const bisLen = Math.hypot(bisX, bisY);
       const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
       const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-      const inscBadgeX = g.P.x + 48 * nBisX;
-      const inscBadgeY = g.P.y + 48 * nBisY;
+      const inscBadgeX = g.P.x + 52 * nBisX;
+      const inscBadgeY = g.P.y + 52 * nBisY;
       drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
+
+      // Base angle alpha and beta badges near P
+      const bisP_alpha = (angPO + angPA) / 2;
+      const bisP_beta = (angPO + angPB) / 2;
+      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_alpha), g.P.y + 36 * Math.sin(bisP_alpha), PALETTE.lime);
+      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_beta), g.P.y + 36 * Math.sin(bisP_beta), PALETTE.fuchsia);
     }
   }
 

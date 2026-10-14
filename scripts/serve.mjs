@@ -77,3 +77,4 @@ server.listen(PORT, () => {
   console.log(`  ➜ Thales:  http://localhost:${PORT}/visuals/thales-theorem/`);
   console.log(`\n  Press Ctrl+C to stop.\n`);
 });
+

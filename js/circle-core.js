@@ -588,6 +588,118 @@ export function drawDoubleArrow(ctx, p1, p2, color, width = 2, head = 10) {
 }
 
 /**
+ * Draws a 2D Cartesian grid and coordinate axes through (cx, cy).
+ * - vis2d.grid !== false: draws subtle Cartesian grid lines across the canvas.
+ * - vis2d.axes !== false: draws X and Y coordinate axes through (cx, cy) with arrowheads and labels (+X, -X, +Y, -Y).
+ */
+export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step = 40) {
+  const showGrid = vis2d?.grid !== false;
+  const showAxes = vis2d?.axes !== false;
+
+  ctx.save();
+
+  if (showGrid) {
+    ctx.lineWidth = 1;
+    // Secondary grid lines
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.22)';
+    ctx.beginPath();
+    const startX = cx % step;
+    for (let x = startX; x <= width; x += step) {
+      if (Math.abs(x - cx) < 1) continue;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    const startY = cy % step;
+    for (let y = startY; y <= height; y += step) {
+      if (Math.abs(y - cy) < 1) continue;
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    ctx.stroke();
+
+    // Primary grid lines every 4 steps
+    const majorStep = step * 4;
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.35)';
+    ctx.beginPath();
+    const startMajorX = cx % majorStep;
+    for (let x = startMajorX; x <= width; x += majorStep) {
+      if (Math.abs(x - cx) < 1) continue;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    const startMajorY = cy % majorStep;
+    for (let y = startMajorY; y <= height; y += majorStep) {
+      if (Math.abs(y - cy) < 1) continue;
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    ctx.stroke();
+  }
+
+  if (showAxes) {
+    // X-Axis (Horizontal) - Amber
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+    ctx.lineWidth = 1.75;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(width, cy);
+    ctx.stroke();
+
+    // Y-Axis (Vertical) - Lime
+    ctx.strokeStyle = 'rgba(132, 204, 22, 0.8)';
+    ctx.lineWidth = 1.75;
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, height);
+    ctx.stroke();
+
+    // Arrowheads (+X at right, -X at left, +Y at top, -Y at bottom)
+    const arrowHead = 8;
+    // +X (right)
+    ctx.fillStyle = PALETTE.amber;
+    ctx.beginPath();
+    ctx.moveTo(width - 2, cy);
+    ctx.lineTo(width - arrowHead - 2, cy - 4);
+    ctx.lineTo(width - arrowHead - 2, cy + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // -X (left)
+    ctx.beginPath();
+    ctx.moveTo(2, cy);
+    ctx.lineTo(arrowHead + 2, cy - 4);
+    ctx.lineTo(arrowHead + 2, cy + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // +Y (top)
+    ctx.fillStyle = PALETTE.lime;
+    ctx.beginPath();
+    ctx.moveTo(cx, 2);
+    ctx.lineTo(cx - 4, arrowHead + 2);
+    ctx.lineTo(cx + 4, arrowHead + 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // -Y (bottom)
+    ctx.beginPath();
+    ctx.moveTo(cx, height - 2);
+    ctx.lineTo(cx - 4, height - arrowHead - 2);
+    ctx.lineTo(cx + 4, height - arrowHead - 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Axis Labels
+    drawHaloText(ctx, '+X', width - 20, cy - 10, PALETTE.amber, 'bold 11px monospace');
+    drawHaloText(ctx, '-X', 20, cy - 10, PALETTE.amber, 'bold 11px monospace');
+    drawHaloText(ctx, '+Y', cx + 12, 18, PALETTE.lime, 'bold 11px monospace');
+    drawHaloText(ctx, '-Y', cx + 12, height - 12, PALETTE.lime, 'bold 11px monospace');
+  }
+
+  ctx.restore();
+}
+
+/**
  * Standard Euclidean right-angle square marker.
  */
 export function drawRightAngle(ctx, vertex, towards1, towards2, size = 14, color = PALETTE.teal, fill = 'rgba(20, 184, 166, 0.25)') {
@@ -783,6 +895,7 @@ export function createDefaultVisState() {
   return {
     vis2d: {
       grid: true,
+      axes: true,
       points: true,
       labels: true,
       coords: false,
@@ -792,6 +905,7 @@ export function createDefaultVisState() {
     },
     vis3d: {
       gridXZ: true,
+      axes: true,
       sphere: true,
       circleWire: true,
       labels: true,
@@ -861,6 +975,7 @@ export function bindStandardToggles(store, ...args) {
   const syncAll = (st = {}) => {
     if (st.vis2d) {
       syncCheck(['vis-2d-grid', 'toggle-2d-grid', 'vis-2d-grid-x'], st.vis2d.grid !== false);
+      syncCheck(['vis-2d-axes', 'toggle-2d-axes'], st.vis2d.axes !== false);
       syncCheck(['vis-2d-points', 'toggle-2d-points'], st.vis2d.points !== false);
       syncCheck(['vis-2d-labels', 'toggle-2d-labels'], st.vis2d.labels !== false);
       syncCheck(['vis-2d-coords', 'toggle-2d-coords'], Boolean(st.vis2d.coords));
@@ -885,6 +1000,9 @@ export function bindStandardToggles(store, ...args) {
 
   bindCheck(['vis-2d-grid', 'toggle-2d-grid', 'vis-2d-grid-x'], (val) => {
     store.set({ vis2d: { ...(store.get().vis2d || {}), grid: val } });
+  });
+  bindCheck(['vis-2d-axes', 'toggle-2d-axes'], (val) => {
+    store.set({ vis2d: { ...(store.get().vis2d || {}), axes: val } });
   });
   bindCheck(['vis-2d-points', 'toggle-2d-points'], (val) => {
     store.set({ vis2d: { ...(store.get().vis2d || {}), points: val } });

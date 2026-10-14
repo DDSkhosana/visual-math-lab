@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -32,15 +32,8 @@ export class CanvasView {
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
-    // Axes
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -62,9 +55,9 @@ export class CanvasView {
       ctx.closePath();
       ctx.fill();
 
-      // Diameter proof triangle TBD shading
+      // Diameter proof triangle TBD shading (Lavender matching 3D proofTriMesh)
       if (state.showProofConstruction && g.D) {
-        ctx.fillStyle = 'rgba(168, 85, 247, 0.12)';
+        ctx.fillStyle = 'rgba(196, 181, 253, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
         ctx.closePath();
@@ -107,8 +100,13 @@ export class CanvasView {
     // Angles at B and T for wedges and badges
     const angBT = Math.atan2(g.T.y - g.B.y, g.T.x - g.B.x);
     const angBA = Math.atan2(g.A.y - g.B.y, g.A.x - g.B.x);
-    const angTan = Math.atan2(g.Tan1.y - g.T.y, g.Tan1.x - g.T.x);
+    const angTan1 = Math.atan2(g.Tan1.y - g.T.y, g.Tan1.x - g.T.x);
+    const angTan2 = Math.atan2(g.Tan2.y - g.T.y, g.Tan2.x - g.T.x);
     const angTA = Math.atan2(g.A.y - g.T.y, g.A.x - g.T.x);
+
+    const diff1 = Math.abs(((angTan1 - angTA + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const diff2 = Math.abs(((angTan2 - angTA + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    const angTan = Math.abs(diff1 * (180 / Math.PI) - g.tangentChordDeg) < Math.abs(diff2 * (180 / Math.PI) - g.tangentChordDeg) ? angTan1 : angTan2;
 
     const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
 

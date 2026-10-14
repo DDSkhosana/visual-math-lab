@@ -66,7 +66,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Tangents from External Point (<span class="color-emerald">|PT₁| = |PT₂|</span>)</div>
+          <div class="view-title">2D: Tangents from External Point (<span class="color-emerald">|PT₁|</span> = <span class="color-blue">|PT₂|</span>)</div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -76,7 +76,7 @@
             </div>
             <div class="stats-body hidden" id="telemetry-body">
               <div class="stat-line"><span>Tangent |PT₁|:</span><strong class="color-emerald" id="tel-len-t1">--</strong></div>
-              <div class="stat-line"><span>Tangent |PT₂|:</span><strong class="color-emerald" id="tel-len-t2">--</strong></div>
+              <div class="stat-line"><span>Tangent |PT₂|:</span><strong class="color-blue" id="tel-len-t2">--</strong></div>
               <div class="stat-line"><span>Difference |L₁ − L₂|:</span><strong class="color-teal" id="tel-diff">0.000 px</strong></div>
               <div class="stat-line"><span>Subtended ∠T₁PT₂:</span><span class="color-lavender" id="tel-angle-tpt">--</span></div>
             </div>
@@ -104,7 +104,7 @@
             <div class="stats-body hidden" id="stats-3d-body">
               <div class="stat-line"><span>Point P (x, z):</span><span class="color-red" id="val-3d-p">0.00, 0.00</span></div>
               <div class="stat-line"><span>3D Tangent |PT₁|:</span><strong class="color-emerald" id="val-3d-len1">0.00</strong></div>
-              <div class="stat-line"><span>3D Tangent |PT₂|:</span><strong class="color-emerald" id="val-3d-len2">0.00</strong></div>
+              <div class="stat-line"><span>3D Tangent |PT₂|:</span><strong class="color-blue" id="val-3d-len2">0.00</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span>3D Invariant Δ:</span><strong class="color-teal" id="val-3d-diff">0.000</strong>
               </div>
@@ -136,6 +136,14 @@
                   <label for="slider-dist"><span>Distance OP (d):</span><span id="label-dist">260px</span></label>
                   <input type="range" id="slider-dist" min="140" max="420" value="260" step="5">
                 </div>
+              </div>
+            </div>
+
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>2D Grid &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
               </div>
             </div>
 
@@ -185,16 +193,17 @@
           </div>
           <div class="panel-body hidden">
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grids</span><span class="icon">▼</span></div>
-              <div class="collapsible-content">
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span>Grid lines</span></label>
+              <div class="collapsible-header"><span>2D Grids &amp; Axes</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span>Cartesian Grid</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span><span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</span></label>
               </div>
             </div>
             <div class="collapsible-section">
               <div class="collapsible-header"><span>2D Overlays</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span>Point Markers</label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Point Labels (<span class="color-sky">O</span>, <span class="color-emerald">T₁</span>, <span class="color-emerald">T₂</span>, <span class="color-red">P</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Point Labels (<span class="color-sky">O</span>, <span class="color-emerald">T₁</span>, <span class="color-blue">T₂</span>, <span class="color-red">P</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Tangent Length Badges</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Angles &amp; Right-Angle Markers</span></label>

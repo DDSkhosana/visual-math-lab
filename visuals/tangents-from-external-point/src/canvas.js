@@ -1,4 +1,4 @@
-import { PALETTE, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, withShadow, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -32,19 +32,21 @@ export class CanvasView {
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
-    // Grid lines
-    if (state.vis2d?.grid !== false) {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, g.cy); ctx.lineTo(width, g.cy);
-      ctx.moveTo(g.cx, 0); ctx.lineTo(g.cx, height);
-      ctx.stroke();
-    }
+    // Cartesian Grid & Coordinate Axes
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Congruence triangles fill and angle wedges
     const showArea = (state.vis2d?.area !== false) && (state.showCongruence !== false) && (state.showArea !== false);
     const showAngles = (state.vis2d?.angles !== false);
+
+    // Common angle rays
+    const angPT1 = Math.atan2(g.T1.y - g.P.y, g.T1.x - g.P.x);
+    const angPO = Math.atan2(g.cy - g.P.y, g.cx - g.P.x);
+    const angPT2 = Math.atan2(g.T2.y - g.P.y, g.T2.x - g.P.x);
+
+    const angOT1 = Math.atan2(g.T1.y - g.cy, g.T1.x - g.cx);
+    const angOP = Math.atan2(g.P.y - g.cy, g.P.x - g.cx);
+    const angOT2 = Math.atan2(g.T2.y - g.cy, g.T2.x - g.cx);
 
     if (showArea || showAngles) {
       if (showArea) {
@@ -62,11 +64,6 @@ export class CanvasView {
       }
 
       if (showAngles) {
-        // Equal angle wedges at external point P: angle(T1, P, O) = angle(T2, P, O)
-        const angPT1 = Math.atan2(g.T1.y - g.P.y, g.T1.x - g.P.x);
-        const angPO = Math.atan2(g.cy - g.P.y, g.cx - g.P.x);
-        const angPT2 = Math.atan2(g.T2.y - g.P.y, g.T2.x - g.P.x);
-
         const sweepWedge = (vertex, a1, a2, fill, stroke) => {
           let diff = (a2 - a1) % (Math.PI * 2);
           if (diff < 0) diff += Math.PI * 2;
@@ -78,9 +75,6 @@ export class CanvasView {
         sweepWedge(g.P, angPO, angPT2, 'rgba(59, 130, 246, 0.28)', PALETTE.blue);
 
         // Equal central angle wedges at O: angle(T1, O, P) = angle(T2, O, P)
-        const angOT1 = Math.atan2(g.T1.y - g.cy, g.T1.x - g.cx);
-        const angOP = Math.atan2(g.P.y - g.cy, g.P.x - g.cx);
-        const angOT2 = Math.atan2(g.T2.y - g.cy, g.T2.x - g.cx);
         sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT1, 'rgba(16, 185, 129, 0.22)', null);
         sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT2, 'rgba(59, 130, 246, 0.22)', null);
       }
@@ -103,7 +97,7 @@ export class CanvasView {
     ctx.setLineDash([]);
 
     // Radii OT1, OT2
-    ctx.strokeStyle = PALETTE.amber;
+    ctx.strokeStyle = PALETTE.indigo;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T1.x, g.T1.y);
@@ -117,11 +111,15 @@ export class CanvasView {
       drawRightAngle(ctx, g.T2, { x: g.cx, y: g.cy }, g.P, 14, PALETTE.teal, raFill);
     }
 
-    // Tangents PT1, PT2
-    ctx.strokeStyle = PALETTE.emerald;
+    // Tangents: PT1 (Emerald) and PT2 (Blue)
     ctx.lineWidth = 3.5;
+    ctx.strokeStyle = PALETTE.emerald;
     ctx.beginPath();
     ctx.moveTo(g.P.x, g.P.y); ctx.lineTo(g.T1.x, g.T1.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = PALETTE.blue;
+    ctx.beginPath();
     ctx.moveTo(g.P.x, g.P.y); ctx.lineTo(g.T2.x, g.T2.y);
     ctx.stroke();
 
@@ -131,7 +129,7 @@ export class CanvasView {
       const vis = state.vis2d || {};
       drawLabelledPoint(ctx, center, PALETTE.sky, getPointLabel('O', 0, 0, vis), -16, -10);
       drawRadialLabelledPoint(ctx, g.T1, center, PALETTE.emerald, getPointLabel('T₁', g.T1.x - g.cx, -(g.T1.y - g.cy), vis), 20);
-      drawRadialLabelledPoint(ctx, g.T2, center, PALETTE.emerald, getPointLabel('T₂', g.T2.x - g.cx, -(g.T2.y - g.cy), vis), 20);
+      drawRadialLabelledPoint(ctx, g.T2, center, PALETTE.blue, getPointLabel('T₂', g.T2.x - g.cx, -(g.T2.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.P, center, PALETTE.red, getPointLabel('P', g.P.x - g.cx, -(g.P.y - g.cy), vis), 20);
     }
 
@@ -150,7 +148,25 @@ export class CanvasView {
       const l2 = Math.hypot(d2x, d2y);
       let n2x = l2 > 0.001 ? -d2y / l2 : 0, n2y = l2 > 0.001 ? d2x / l2 : 1;
       if (n2x * (mid2.x - g.cx) + n2y * (mid2.y - g.cy) < 0) { n2x = -n2x; n2y = -n2y; }
-      drawTextBadge(ctx, `|PT₂| = ${g.lenPT2.toFixed(1)}px`, mid2.x + 18 * n2x, mid2.y + 18 * n2y, PALETTE.emerald);
+      drawTextBadge(ctx, `|PT₂| = ${g.lenPT2.toFixed(1)}px`, mid2.x + 18 * n2x, mid2.y + 18 * n2y, PALETTE.blue);
+    }
+
+    // 2D Canvas Angle Badges
+    if (showAngles) {
+      const alphaDeg = Math.asin(Math.min(1, g.r / g.d)) * (180 / Math.PI);
+      const betaDeg = 90 - alphaDeg;
+
+      // Angles at P (alpha1 emerald, alpha2 blue)
+      const bisP1 = (angPO + angPT1) / 2;
+      const bisP2 = (angPO + angPT2) / 2;
+      drawTextBadge(ctx, `α₁ = ${alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP1), g.P.y + 44 * Math.sin(bisP1), PALETTE.emerald);
+      drawTextBadge(ctx, `α₂ = ${alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP2), g.P.y + 44 * Math.sin(bisP2), PALETTE.blue);
+
+      // Angles at O (beta1 emerald, beta2 blue)
+      const bisO1 = (angOP + angOT1) / 2;
+      const bisO2 = (angOP + angOT2) / 2;
+      drawTextBadge(ctx, `β₁ = ${betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO1), g.cy + 38 * Math.sin(bisO1), PALETTE.emerald);
+      drawTextBadge(ctx, `β₂ = ${betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO2), g.cy + 38 * Math.sin(bisO2), PALETTE.blue);
     }
   }
 
