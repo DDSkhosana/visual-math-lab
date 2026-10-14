@@ -24,6 +24,6 @@ export function createInitialState() {
     show3dArea: true,
     show3dAngles: true,
     vis2d: { points: true, lengths: true, coords: false, area: true, angles: true, gridX: true, gridY: true },
-    vis3d: { labels: true, coords: false, volume: true, sphere: true, gridXZ: true, gridXY: false, gridYZ: false },
+    vis3d: { labels: true, coords: false, volume: true, sphere: true, circleWire: true, axes: true, gridXZ: true, gridXY: false, gridYZ: false },
   };
 }

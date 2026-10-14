@@ -466,8 +466,10 @@ body.header-collapsed .circle-explorer {
   padding: 0.75rem;
 }
 
-.collapsible-section.collapsed .collapsible-content {
-  display: none;
+.collapsible-section.collapsed .collapsible-content,
+.collapsible-section.collapsed > .collapsible-content,
+.collapsible-content.collapsed {
+  display: none !important;
 }
 
 /* Buttons */

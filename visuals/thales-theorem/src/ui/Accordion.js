@@ -20,7 +20,18 @@ export class Accordion {
   #activate(event) {
     const header = event.target.closest(HEADER);
     if (!header || !this.root.contains(header)) return false;
-    this.setOpen(header, !header.classList.contains('open'));
+    const nextState = !header.classList.contains('open');
+    this.setOpen(header, nextState);
+    const panel = header.closest('.ui-panel');
+    if (panel) {
+      const expandBtn = panel.querySelector('[id$="-btn"], [id$="-expand"]');
+      const body = panel.querySelector('.panel-body');
+      if (expandBtn && body) {
+        const headers = this.headers(body);
+        const allOpen = headers.length > 0 && headers.every((h) => h.classList.contains('open'));
+        expandBtn.textContent = allOpen ? 'Collapse All' : 'Expand All';
+      }
+    }
     return true;
   }
 

@@ -140,21 +140,27 @@ export class Panel {
     if (!this.body) return;
     const sections = Array.from(this.body.querySelectorAll('.collapsible-section'));
     const cards = Array.from(this.body.querySelectorAll('.derivation-card'));
-    const allOpen = !this.minimized && (
-      (sections.length > 0 && sections.every((s) => !s.classList.contains('collapsed'))) ||
-      (cards.length > 0 && cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open')))
+    const isCollapse = this.expandButton?.textContent === 'Collapse All' || (
+      !this.minimized && (
+        (sections.length > 0 && sections.every((s) => !s.classList.contains('collapsed'))) &&
+        (cards.length === 0 || cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open')))
+      )
     );
     this.setMinimized(false);
-    sections.forEach((s) => s.classList.toggle('collapsed', allOpen));
+    sections.forEach((s) => {
+      s.classList.toggle('collapsed', isCollapse);
+      const icon = s.querySelector('.collapsible-header .icon');
+      if (icon) icon.textContent = isCollapse ? '▶' : '▼';
+    });
     cards.forEach((c) => {
       const header = c.querySelector('.derivation-card-header');
       const content = c.querySelector('.derivation-card-content');
-      header?.classList.toggle('open', !allOpen);
-      header?.setAttribute('aria-expanded', String(!allOpen));
-      content?.classList.toggle('open', !allOpen);
+      header?.classList.toggle('open', !isCollapse);
+      header?.setAttribute('aria-expanded', String(!isCollapse));
+      content?.classList.toggle('open', !isCollapse);
     });
     if (this.expandButton) {
-      this.expandButton.textContent = allOpen ? 'Expand All' : 'Collapse All';
+      this.expandButton.textContent = isCollapse ? 'Expand All' : 'Collapse All';
     }
   }
 
@@ -380,16 +386,43 @@ export function initCollapsibleSections(root = document) {
   root.addEventListener('click', (e) => {
     const header = e.target.closest('.collapsible-header');
     if (!header || !root.contains(header)) return;
-    const section = header.closest('.collapsible-section');
-    if (section) section.classList.toggle('collapsed');
+
     const card = header.closest('.derivation-card');
     if (card) {
       const isOpen = header.classList.toggle('open');
       header.setAttribute('aria-expanded', String(isOpen));
       const content = card.querySelector('.derivation-card-content');
       if (content) content.classList.toggle('open', isOpen);
+      _syncPanelExpandButton(header);
+      return;
+    }
+
+    const section = header.closest('.collapsible-section');
+    if (section) {
+      const isCollapsed = section.classList.toggle('collapsed');
+      header.setAttribute('aria-expanded', String(!isCollapsed));
+      const icon = header.querySelector('.icon');
+      if (icon) {
+        icon.textContent = isCollapsed ? '▶' : '▼';
+      }
+      _syncPanelExpandButton(header);
     }
   });
+}
+
+function _syncPanelExpandButton(header) {
+  const panel = header.closest('.ui-panel');
+  if (!panel) return;
+  const expandBtn = panel.querySelector('[id$="-expand"], [id$="-btn"]');
+  const body = panel.querySelector('.panel-body');
+  if (!expandBtn || !body) return;
+
+  const sections = Array.from(body.querySelectorAll('.collapsible-section'));
+  const cards = Array.from(body.querySelectorAll('.derivation-card'));
+  const allSectionsOpen = sections.length === 0 || sections.every((s) => !s.classList.contains('collapsed'));
+  const allCardsOpen = cards.length === 0 || cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open'));
+
+  expandBtn.textContent = (allSectionsOpen && allCardsOpen) ? 'Collapse All' : 'Expand All';
 }
 
 /**
@@ -837,6 +870,7 @@ export function bindStandardToggles(store, ...args) {
     }
     if (st.vis3d) {
       syncCheck(['vis-3d-grid', 'toggle-3d-grid', 'vis-3d-grid-xz'], st.vis3d.gridXZ !== false);
+      syncCheck(['vis-3d-axes', 'toggle-3d-axes'], st.vis3d.axes !== false);
       syncCheck(['vis-3d-sphere', 'toggle-3d-sphere'], st.vis3d.sphere !== false);
       syncCheck(['vis-3d-wire', 'toggle-3d-circle-wire', 'vis-3d-circle-wire'], st.vis3d.circleWire !== false);
       syncCheck(['vis-3d-labels', 'toggle-3d-labels'], st.vis3d.labels !== false);
@@ -873,6 +907,9 @@ export function bindStandardToggles(store, ...args) {
 
   bindCheck(['vis-3d-grid', 'toggle-3d-grid', 'vis-3d-grid-xz'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), gridXZ: val } });
+  });
+  bindCheck(['vis-3d-axes', 'toggle-3d-axes'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), axes: val } });
   });
   bindCheck(['vis-3d-sphere', 'toggle-3d-sphere'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), sphere: val } });

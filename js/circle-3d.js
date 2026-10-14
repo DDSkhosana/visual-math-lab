@@ -249,7 +249,7 @@ export class BaseScene3DView {
   applyCommonVis(state) {
     this.latestVis3d = state?.vis3d || {};
     if (this.grid) this.grid.visible = state?.vis3d?.gridXZ !== false;
-    if (this.axes) this.axes.visible = state?.vis3d?.gridXZ !== false;
+    if (this.axes) this.axes.visible = state?.vis3d?.axes !== undefined ? Boolean(state.vis3d.axes) : (state?.vis3d?.gridXZ !== false);
     if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     if (this.overlay && this.overlay.overlayContainer) {

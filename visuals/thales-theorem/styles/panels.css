@@ -115,3 +115,5 @@
     font-size: 0.875rem;
 }
 .collapsible-content.open { display: block; }
+.collapsible-section.collapsed .collapsible-content,
+.collapsible-content.collapsed { display: none !important; }

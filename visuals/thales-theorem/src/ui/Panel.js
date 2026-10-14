@@ -43,10 +43,14 @@ export class Panel {
   }
 
   #toggleAll() {
-    const open = !this.minimized && this.accordion.allOpen(this.body);
+    if (!this.accordion || !this.body) return;
+    const shouldCollapse = this.expandButton?.textContent === 'Collapse All' ||
+      (!this.minimized && this.accordion.allOpen(this.body));
     this.setMinimized(false);
-    this.accordion.setAll(this.body, !open);
-    this.expandButton.textContent = open ? 'Expand All' : 'Collapse All';
+    this.accordion.setAll(this.body, !shouldCollapse);
+    if (this.expandButton) {
+      this.expandButton.textContent = shouldCollapse ? 'Expand All' : 'Collapse All';
+    }
   }
 
   #resetLayout() {

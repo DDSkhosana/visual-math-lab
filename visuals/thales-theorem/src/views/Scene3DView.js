@@ -47,6 +47,9 @@ export class Scene3DView {
     o.grids.xz.visible = state.vis3d.gridXZ;
     o.grids.xy.visible = state.vis3d.gridXY;
     o.grids.yz.visible = state.vis3d.gridYZ;
+    if (o.axes) {
+      o.axes.visible = state.vis3d.axes !== undefined ? Boolean(state.vis3d.axes) : true;
+    }
     o.sphere.visible = o.sphereLines.visible = state.vis3d.sphere;
     o.sphere.scale.setScalar(r);
     o.sphereLines.scale.setScalar(r);
@@ -55,7 +58,7 @@ export class Scene3DView {
     if (o.greatCircleWire) {
       o.greatCircleWire.rotation.x = psi;
       o.greatCircleWire.scale.setScalar(r);
-      o.greatCircleWire.visible = state.vis3d.sphere;
+      o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
     }
 
     o.pointP.position.set(x, y, z);
