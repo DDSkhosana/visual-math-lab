@@ -50,12 +50,21 @@ jobs:
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || echo "$CHANGED_FILES" | grep -q "^data/visuals\.json$"; then
             echo "Detected updates to data/visuals.json. Dispatching visual-updated event..."
-            curl -s -f -X POST \
+            RESPONSE=$(curl -s -S -w "\n%{http_code}" -X POST \
               -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: token $AUTOMATION_TOKEN" \
-              https://api.github.com/repos/ddskhosana/visual-math-lab-automation/dispatches \
-              -d '{"event_type": "visual-updated", "client_payload": { "ref": "${{ github.sha }}" }}'
-            echo "Successfully dispatched visual-updated event to visual-math-lab-automation."
+              -H "Authorization: Bearer $AUTOMATION_TOKEN" \
+              https://api.github.com/repos/DDSkhosana/visual-math-lab-automation/dispatches \
+              -d '{"event_type": "visual-updated", "client_payload": { "ref": "${{ github.sha }}" }}')
+
+            HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            if [ "$HTTP_STATUS" -eq 204 ]; then
+              echo "Successfully dispatched visual-updated event (HTTP 204 No Content)."
+            else
+              echo "::warning::Failed to dispatch event to visual-math-lab-automation (HTTP $HTTP_STATUS): $BODY"
+              exit 1
+            fi
           else
             echo "No changes in data/visuals.json; skipping automation notification."
           fi
