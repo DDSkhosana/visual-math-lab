@@ -23,7 +23,7 @@ The following decisions reconcile the repeated and occasionally conflicting requ
 
 1. Build a static, GitHub Pages-compatible site with HTML, CSS, and native ES modules. Do not introduce a framework for the MVP.
 2. Publish one polished visualisation first: Thales' Theorem. Do not expose future visuals, "Coming Soon" cards, membership features, teacher resources, or school licensing in the public interface.
-3. Use the functional `thales_theorem_visualization_2d_3d.html` as the behavior reference. Rebuild its reusable shell and preserve the verified mathematical interactions rather than copying its monolithic inline code unchanged.
+3. Use the functional `thales_s_theorem_visualization2.html` as the behavior reference. Rebuild its reusable shell and preserve the verified mathematical interactions rather than copying its monolithic inline code unchanged.
 4. Adopt the latest video requirement: YouTube embeds only; no `assets/videos/` directory and no locally hosted videos.
 5. Centralize public integration settings in one committed `config/site-config.js` file. Measurement IDs are public configuration; API secrets must never be committed.
 6. Make `data/visuals.json` the source of truth for the public catalogue. A visual is public only when its folder and required metadata both exist.
@@ -172,10 +172,10 @@ The validation script will enforce unique slugs, required fields, a matching `vi
 
 ### Phase 3: Migrate and improve Thales' Theorem
 
-1. Select `thales_theorem_visualization_2d_3d.html` as the behavior baseline and catalogue each control, output, equation, and interaction before extraction.
+1. Select `thales_s_theorem_visualization2.html` as the behavior baseline and catalogue each control, output, equation, and interaction before extraction.
 2. Split the canvas renderer, Three.js scene, state model, control bindings, and visual-specific styles into modules.
 3. Replace mouse-only drag/resize behavior with Pointer Events, keyboard alternatives, focus states, and touch-safe controls.
-4. Create a mobile-first layout: a focused 2D primary view, optional 3D mode, collapsible controls, and no overlapping mandatory panels.
+4. Create a mobile-first layout: a focused 2D view, 3D mode, collapsible controls, and no overlapping mandatory panels.
 5. Ensure equations remain legible when MathJax is unavailable or still loading; use a pinned dependency strategy and documented upgrade process.
 6. Produce an optimized local thumbnail and add accessible explanatory text for the theorem, controls, and mathematical result.
 

@@ -10,7 +10,7 @@ const SITE_CONFIG = {
   },
 
   creator: {
-    name: "Dianah Skhosana"
+    name: "Dianah Delisile Skhosana"
   },
 
   buyMeACoffee: {
@@ -18,9 +18,9 @@ const SITE_CONFIG = {
   },
 
   youtube: {
-    channelUrl: "https://www.youtube.com/@dianahskhosana5134",
+    channelUrl: "https://www.youtube.com/channel/UCvEGsxJsGw66i7rbl7BHupw",
     handle: "@dianahskhosana5134",
-    channelId: ""
+    channelId: "UCvEGsxJsGw66i7rbl7BHupw"
   },
 
   analytics: {
