@@ -34,7 +34,15 @@ export function mountSharedChrome() {
       : "";
     footer.className = "site-footer";
     const links = [supportLink, `<a href="${route(root, "privacy.html")}">Privacy</a>`].filter(Boolean).join(' &middot; ');
-    footer.innerHTML = `<span>&copy; ${new Date().getFullYear()} ${SITE_CONFIG.site.name}</span><span>${links}</span>`;
+    footer.innerHTML = `
+      <div class="site-footer__main">
+        <span>&copy; ${new Date().getFullYear()} ${SITE_CONFIG.site.name}</span>
+        <span>${links}</span>
+      </div>
+      <div class="site-footer__disclaimer" role="note">
+        <p><strong>Disclaimer:</strong> Use of this product is at your own discretion. Neither the authors, contributors, nor Visual Mathematics Lab shall be held liable or responsible for any material loss or damages associated with the use of the app. The product may contain occasional inconsistencies in the colour grammar to visual canvas component mapping; users should interpret all figures, measurements, and derivations with discretion.</p>
+      </div>
+    `;
   }
 
   document.querySelectorAll("[data-support-container]").forEach((container) => {
