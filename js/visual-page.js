@@ -162,6 +162,17 @@ function setupHeaderAndModal(visual) {
   }
 }
 
+export function setFavicon(iconUrl) {
+  let link = document.querySelector("link[rel~='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    link.type = "image/svg+xml";
+    document.head.appendChild(link);
+  }
+  link.href = iconUrl;
+}
+
 async function initializeVisualPage() {
   const visual = await getVisual(currentSlug());
   if (!visual) {
@@ -169,6 +180,10 @@ async function initializeVisualPage() {
   }
 
   document.title = `${visual.title} | Visual Mathematics Lab`;
+  const root = document.body.dataset.root || "../..";
+  if (visual.thumbnail) {
+    setFavicon(`${root}/${visual.thumbnail.replace(/^\//, "")}`);
+  }
   document.querySelectorAll("[data-visual-title]").forEach((el) => {
     el.textContent = visual.title;
   });
