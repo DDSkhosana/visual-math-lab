@@ -5,5 +5,6 @@ Allow: /
 Disallow: /config/
 Disallow: /tests/
 Disallow: /node_modules/
+Disallow: /visuals/
 
 Sitemap: https://ddskhosana.github.io/visual-math-lab/sitemap.xml
