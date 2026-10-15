@@ -336,27 +336,37 @@ function drawAngles(ctx, state, f) {
       ctx.beginPath();
       ctx.moveTo(f.a.x, f.a.y);
       const dirPA = Math.atan2(f.p.y - f.a.y, f.p.x - f.a.x);
-      ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y > f.cy);
+      ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y < f.cy);
       ctx.closePath();
       ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
       ctx.fill();
       ctx.strokeStyle = PALETTE.lime;
       ctx.stroke();
       ctx.fillStyle = PALETTE.lime;
-      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 28 * Math.cos(dirPA / 2) + 2, f.a.y + 28 * Math.sin(dirPA / 2) + (isUpper ? -6 : 14));
+
+      // Vector bisector for alpha label
+      const uxA = (f.p.x - f.a.x) / lenPA, uyA = (f.p.y - f.a.y) / lenPA;
+      const bxA = 1 + uxA, byA = uyA;
+      const bLenA = Math.hypot(bxA, byA) || 1;
+      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 32 * (bxA / bLenA) - 6, f.a.y + 32 * (byA / bLenA) + 4);
 
       // Base angle beta at b (amber fill + stroke)
       ctx.beginPath();
       ctx.moveTo(f.b.x, f.b.y);
       const dirPB = Math.atan2(f.p.y - f.b.y, f.p.x - f.b.x);
-      ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y < f.cy);
+      ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y > f.cy);
       ctx.closePath();
       ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
       ctx.fill();
       ctx.strokeStyle = PALETTE.amber;
       ctx.stroke();
       ctx.fillStyle = PALETTE.amber;
-      ctx.fillText(`β=${betaDeg}°`, f.b.x + 30 * Math.cos(Math.PI + (dirPB - Math.PI) / 2) - 18, f.b.y + 30 * Math.sin(Math.PI + (dirPB - Math.PI) / 2) + (isUpper ? -6 : 14));
+
+      // Vector bisector for beta label
+      const uxB = (f.p.x - f.b.x) / lenPB, uyB = (f.p.y - f.b.y) / lenPB;
+      const bxB = -1 + uxB, byB = uyB;
+      const bLenB = Math.hypot(bxB, byB) || 1;
+      ctx.fillText(`β=${betaDeg}°`, f.b.x + 32 * (bxB / bLenB) - 14, f.b.y + 32 * (byB / bLenB) + 4);
 
       ctx.restore();
     }
