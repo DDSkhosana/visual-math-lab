@@ -110,19 +110,46 @@ export class Scene3DView {
 
     if (o.alphaSector) {
       if (toPFromA.lengthSq() > 1e-4) {
-        this.updateSector(o.alphaSector, o.pointA.position, towardBFromA, toPFromA, r * 0.28);
+        this.updateSector(o.alphaSector, o.pointA.position, towardBFromA, toPFromA, r * 0.28, false);
         o.alphaSector.visible = state.show3dAngles;
       } else {
         o.alphaSector.visible = false;
       }
     }
 
+    if (o.alphaReflexSector) {
+      if (toPFromA.lengthSq() > 1e-4) {
+        this.updateSector(o.alphaReflexSector, o.pointA.position, towardBFromA, toPFromA, r * 0.22, true);
+        o.alphaReflexSector.visible = Boolean(state.vis3d.reflex);
+      } else {
+        o.alphaReflexSector.visible = false;
+      }
+    }
+
     if (o.betaSector) {
       if (toPFromB.lengthSq() > 1e-4) {
-        this.updateSector(o.betaSector, o.pointB.position, towardAFromB, toPFromB, r * 0.28);
+        this.updateSector(o.betaSector, o.pointB.position, towardAFromB, toPFromB, r * 0.28, false);
         o.betaSector.visible = state.show3dAngles;
       } else {
         o.betaSector.visible = false;
+      }
+    }
+
+    if (o.betaReflexSector) {
+      if (toPFromB.lengthSq() > 1e-4) {
+        this.updateSector(o.betaReflexSector, o.pointB.position, towardAFromB, toPFromB, r * 0.22, true);
+        o.betaReflexSector.visible = Boolean(state.vis3d.reflex);
+      } else {
+        o.betaReflexSector.visible = false;
+      }
+    }
+
+    if (o.pReflexSector) {
+      if (toA.lengthSq() > 1e-4 && toB.lengthSq() > 1e-4) {
+        this.updateSector(o.pReflexSector, o.pointP.position, toA, toB, 1.2, true);
+        o.pReflexSector.visible = Boolean(state.vis3d.reflex);
+      } else {
+        o.pReflexSector.visible = false;
       }
     }
 
@@ -134,8 +161,8 @@ export class Scene3DView {
     o.volumeBox.visible = o.volumeWire.visible = state.vis3d.volume;
   }
 
-  updateSector(mesh, center, from, to, radius) {
-    const vertices = sectorVertices(this.THREE, center, from, to, radius);
+  updateSector(mesh, center, from, to, radius, sweepReflex = false) {
+    const vertices = sectorVertices(this.THREE, center, from, to, radius, sweepReflex);
     if (vertices) setPositions(this.THREE, mesh.geometry, vertices);
   }
 

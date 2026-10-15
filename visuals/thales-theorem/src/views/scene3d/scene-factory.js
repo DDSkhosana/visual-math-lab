@@ -97,5 +97,8 @@ export function createThalesScene(THREE) {
     rightAngle: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.8))),
     alphaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.35))),
     betaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.amber, 0.35))),
+    alphaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.16))),
+    betaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.amber, 0.16))),
+    pReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.16))),
   };
 }

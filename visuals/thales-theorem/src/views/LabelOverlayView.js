@@ -73,6 +73,9 @@ function describeLabels(state) {
     { key: 'alpha', at: alphaMid, text: `α = ${alphaDeg.toFixed(1)}°`, show: show3dAngles && toPALen > 1.5, color: 'color-lime' },
     { key: 'beta', at: betaMid, text: `β = ${betaDeg.toFixed(1)}°`, show: show3dAngles && toPBLen > 1.5, color: 'color-amber' },
     { key: 'right', at: rightAt, text: '90° (3D Invariant)', show: show3dAngles, color: 'color-teal' },
+    { key: 'alphaReflex', at: { x: -r - (alphaDir.x / alphaDirLen) * (r * 0.3), y: -(alphaDir.y / alphaDirLen) * (r * 0.3), z: -(alphaDir.z / alphaDirLen) * (r * 0.3) }, text: `α* = ${(360 - alphaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPALen > 1.5), color: 'color-lime' },
+    { key: 'betaReflex', at: { x: r - (betaDir.x / betaDirLen) * (r * 0.3), y: -(betaDir.y / betaDirLen) * (r * 0.3), z: -(betaDir.z / betaDirLen) * (r * 0.3) }, text: `β* = ${(360 - betaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPBLen > 1.5), color: 'color-amber' },
+    { key: 'rightReflex', at: { x: p.x - (bisector.x / bisectorLen) * 1.5, y: p.y - (bisector.y / bisectorLen) * 1.5, z: p.z - (bisector.z / bisectorLen) * 1.5 }, text: '270° (P*)', show: Boolean(vis3d.reflex), color: 'color-teal' },
     { key: 'alt3d', at: { x: p.x, y: p.y / 2 + 0.3, z: p.z / 2 }, text: `h = ${Math.hypot(p.y, p.z).toFixed(1)}`, show: labelsAndArea && Math.hypot(p.y, p.z) > 0.5, color: 'color-lime' },
     { key: 'radius', at: { x: p.x * 0.6, y: p.y * 0.6 + 0.8, z: p.z * 0.6 }, text: 'r', show: vis3d.labels, color: 'color-indigo' },
     { key: 'diam', at: { x: 0, y: -2.0, z: 2.2 }, text: '|d| = 2r', show: vis3d.labels, color: 'color-red' },
@@ -91,7 +94,7 @@ export class LabelOverlayView {
   }
 
   render(state) {
-    const anythingVisible = state.vis3d.labels || state.show3dAngles;
+    const anythingVisible = state.vis3d.labels || state.show3dAngles || state.vis3d.reflex;
     for (const label of describeLabels(state)) {
       const element = this.element(label.key);
       const screen = label.show && anythingVisible ? this.project(label.at) : null;

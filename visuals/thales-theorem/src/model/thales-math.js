@@ -118,6 +118,12 @@ export function thalesStats2D(radius, angle) {
     beta,
     alphaDeg: toDegrees(alpha),
     betaDeg: toDegrees(beta),
+    alphaReflex: TAU - alpha,
+    betaReflex: TAU - beta,
+    alphaReflexDeg: 360 - toDegrees(alpha),
+    betaReflexDeg: 360 - toDegrees(beta),
+    rightAngleReflexDeg: 270,
+    reflexSumDeg: 900,
   };
 }
 
@@ -145,5 +151,11 @@ export function sphereStats(radius, lat, lon) {
     beta,
     alphaDeg: toDegrees(alpha),
     betaDeg: toDegrees(beta),
+    alphaReflex: TAU - alpha,
+    betaReflex: TAU - beta,
+    alphaReflexDeg: 360 - toDegrees(alpha),
+    betaReflexDeg: 360 - toDegrees(beta),
+    rightAngleReflexDeg: 270,
+    reflexSumDeg: 900,
   };
 }

@@ -173,3 +173,39 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
   assert.equal(mockScene.circleWire.visible, true, 'circle wireframe must remain visible');
 });
 
+test('Reflex Angle Features: TOGGLES configuration and Derivation Step 7 grammar', async () => {
+  const { TOGGLES } = await import('../visuals/thales-theorem/src/controllers/controls-config.js');
+  assert.deepEqual(TOGGLES['vis-2d-reflex'], ['vis2d', 'reflex']);
+  assert.deepEqual(TOGGLES['vis-3d-reflex'], ['vis3d', 'reflex']);
+
+  class MockElement {
+    constructor(id = '') {
+      this.id = id;
+      this.innerHTML = '';
+      this.children = [];
+    }
+    get firstElementChild() {
+      return this.children[0] || (this.innerHTML ? new MockElement() : null);
+    }
+    querySelector() {
+      return new MockElement();
+    }
+    querySelectorAll() {
+      return [];
+    }
+  }
+
+  const flatEl = new MockElement('flat');
+  const solidEl = new MockElement('solid');
+  const view = new DerivationView(flatEl, solidEl);
+  view.render({ radius: 10, angle2D: Math.PI / 4, lat3D: Math.PI / 4, lon3D: Math.PI / 2 });
+
+  // Step 7 must exist in flatElement
+  assert.ok(flatEl.innerHTML.includes('deriv-2d-step-7'), 'Step 7 card must be generated');
+  assert.ok(flatEl.innerHTML.includes('Explementary &amp; Reflex Angles') || flatEl.innerHTML.includes('Explementary & Reflex Angles'), 'Step 7 title must mention Explementary & Reflex Angles');
+  assert.ok(flatEl.innerHTML.includes('class="color-lime">α*'), 'α* must be lime');
+  assert.ok(flatEl.innerHTML.includes('class="color-orange">β*'), 'β* must be orange/amber');
+  assert.ok(flatEl.innerHTML.includes('class="color-teal">∠APB*'), '∠APB* must be teal');
+  assert.ok(flatEl.innerHTML.includes('900.0°'), 'Total reflex sum 900.0° must be present');
+});
+

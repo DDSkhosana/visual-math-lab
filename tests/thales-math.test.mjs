@@ -188,3 +188,20 @@ test("Thales 2D & 3D: angles alpha and beta at vertices a and b sum strictly to 
   }
 });
 
+test("Thales Reflex Angles: alpha* and beta* form exact 360° perigon and sum to 900° with 270°", () => {
+  const r = 10;
+  for (let deg = 10; deg < 180; deg += 15) {
+    const s2d = thalesStats2D(r, toRadians(deg));
+    close(s2d.alphaDeg + s2d.alphaReflexDeg, 360);
+    close(s2d.betaDeg + s2d.betaReflexDeg, 360);
+    close(s2d.alphaReflexDeg + s2d.betaReflexDeg + s2d.rightAngleReflexDeg, 900);
+    close(s2d.reflexSumDeg, 900);
+
+    const s3d = sphereStats(r, toRadians(deg), toRadians(45));
+    close(s3d.alphaDeg + s3d.alphaReflexDeg, 360);
+    close(s3d.betaDeg + s3d.betaReflexDeg, 360);
+    close(s3d.alphaReflexDeg + s3d.betaReflexDeg + s3d.rightAngleReflexDeg, 900);
+    close(s3d.reflexSumDeg, 900);
+  }
+});
+

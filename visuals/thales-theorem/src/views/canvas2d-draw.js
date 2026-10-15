@@ -304,22 +304,48 @@ function drawAngles(ctx, state, f) {
     const isRightAngle = Math.abs(dot) < 0.05;
     const size = 16;
 
-    ctx.beginPath();
-    ctx.moveTo(f.p.x + ux * size, f.p.y + uy * size);
-    ctx.lineTo(f.p.x + ux * size + vx * size, f.p.y + uy * size + vy * size);
-    ctx.lineTo(f.p.x + vx * size, f.p.y + vy * size);
-    ctx.strokeStyle = PALETTE.teal;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(20, 184, 166, 0.25)';
-    ctx.fill();
+    if (state.vis2d.angles) {
+      ctx.beginPath();
+      ctx.moveTo(f.p.x + ux * size, f.p.y + uy * size);
+      ctx.lineTo(f.p.x + ux * size + vx * size, f.p.y + uy * size + vy * size);
+      ctx.lineTo(f.p.x + vx * size, f.p.y + vy * size);
+      ctx.strokeStyle = PALETTE.teal;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(20, 184, 166, 0.25)';
+      ctx.fill();
 
-    const deg = Math.round(Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI);
-    ctx.fillStyle = PALETTE.teal;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(isRightAngle ? '90°' : `${deg}°`, f.p.x + (ux + vx) * 22 - 10, f.p.y + (uy + vy) * 22 + 4);
+      const deg = Math.round(Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI);
+      ctx.fillStyle = PALETTE.teal;
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(isRightAngle ? '90°' : `${deg}°`, f.p.x + (ux + vx) * 22 - 10, f.p.y + (uy + vy) * 22 + 4);
+    }
 
-    // Euclidean Isosceles base angles alpha and beta (demonstrating why angle P = alpha + beta = 90 deg)
+    if (state.vis2d.reflex) {
+      // 270° reflex angle around the outside of vertex P
+      const angPA = Math.atan2(uy, ux);
+      const angPB = Math.atan2(vy, vx);
+      const cross = ux * vy - uy * vx;
+      ctx.beginPath();
+      ctx.moveTo(f.p.x, f.p.y);
+      ctx.arc(f.p.x, f.p.y, 18, angPA, angPB, cross > 0);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(20, 184, 166, 0.12)';
+      ctx.fill();
+      ctx.save();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = PALETTE.teal;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+
+      const bLenP = Math.hypot(ux + vx, uy + vy) || 1;
+      ctx.fillStyle = PALETTE.teal;
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('270°', f.p.x - 30 * ((ux + vx) / bLenP) - 10, f.p.y - 30 * ((uy + vy) / bLenP) + 4);
+    }
+
+    // Base angles alpha and beta (interior acute + exterior reflex conjugate)
     if (lenPA > 22 && lenPB > 22) {
       const normTheta = ((f.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
       const isUpper = normTheta <= Math.PI;
@@ -332,41 +358,77 @@ function drawAngles(ctx, state, f) {
       ctx.font = 'bold 11px sans-serif';
       ctx.lineWidth = 1.2;
 
-      // Base angle alpha at a (lime fill + stroke)
-      ctx.beginPath();
-      ctx.moveTo(f.a.x, f.a.y);
       const dirPA = Math.atan2(f.p.y - f.a.y, f.p.x - f.a.x);
-      ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y < f.cy);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
-      ctx.fill();
-      ctx.strokeStyle = PALETTE.lime;
-      ctx.stroke();
-      ctx.fillStyle = PALETTE.lime;
-
-      // Vector bisector for alpha label
       const uxA = (f.p.x - f.a.x) / lenPA, uyA = (f.p.y - f.a.y) / lenPA;
       const bxA = 1 + uxA, byA = uyA;
       const bLenA = Math.hypot(bxA, byA) || 1;
-      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 32 * (bxA / bLenA) - 6, f.a.y + 32 * (byA / bLenA) + 4);
 
-      // Base angle beta at b (amber fill + stroke)
-      ctx.beginPath();
-      ctx.moveTo(f.b.x, f.b.y);
       const dirPB = Math.atan2(f.p.y - f.b.y, f.p.x - f.b.x);
-      ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y > f.cy);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
-      ctx.fill();
-      ctx.strokeStyle = PALETTE.amber;
-      ctx.stroke();
-      ctx.fillStyle = PALETTE.amber;
-
-      // Vector bisector for beta label
       const uxB = (f.p.x - f.b.x) / lenPB, uyB = (f.p.y - f.b.y) / lenPB;
       const bxB = -1 + uxB, byB = uyB;
       const bLenB = Math.hypot(bxB, byB) || 1;
-      ctx.fillText(`β=${betaDeg}°`, f.b.x + 32 * (bxB / bLenB) - 14, f.b.y + 32 * (byB / bLenB) + 4);
+
+      if (state.vis2d.angles) {
+        // Base angle alpha at A (interior lime fill + stroke)
+        ctx.beginPath();
+        ctx.moveTo(f.a.x, f.a.y);
+        ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y < f.cy);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.lime;
+        ctx.stroke();
+        ctx.fillStyle = PALETTE.lime;
+        ctx.fillText(`α=${alphaDeg}°`, f.a.x + 32 * (bxA / bLenA) - 6, f.a.y + 32 * (byA / bLenA) + 4);
+
+        // Base angle beta at B (interior amber fill + stroke)
+        ctx.beginPath();
+        ctx.moveTo(f.b.x, f.b.y);
+        ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y > f.cy);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.amber;
+        ctx.stroke();
+        ctx.fillStyle = PALETTE.amber;
+        ctx.fillText(`β=${betaDeg}°`, f.b.x + 32 * (bxB / bLenB) - 14, f.b.y + 32 * (byB / bLenB) + 4);
+      }
+
+      if (state.vis2d.reflex) {
+        // Reflex angle alpha* at A (exterior lime dashed arc + label)
+        ctx.beginPath();
+        ctx.moveTo(f.a.x, f.a.y);
+        ctx.arc(f.a.x, f.a.y, 22, 0, dirPA, f.p.y > f.cy);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(132, 204, 22, 0.12)';
+        ctx.fill();
+        ctx.save();
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = PALETTE.lime;
+        ctx.stroke();
+        ctx.restore();
+
+        const alphaReflexDeg = (360 - Number(alphaDeg)).toFixed(0);
+        ctx.fillStyle = PALETTE.lime;
+        ctx.fillText(`α*=${alphaReflexDeg}°`, f.a.x - 34 * (bxA / bLenA) - 18, f.a.y - 34 * (byA / bLenA) + 4);
+
+        // Reflex angle beta* at B (exterior amber dashed arc + label)
+        ctx.beginPath();
+        ctx.moveTo(f.b.x, f.b.y);
+        ctx.arc(f.b.x, f.b.y, 22, Math.PI, dirPB, f.p.y < f.cy);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+        ctx.fill();
+        ctx.save();
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = PALETTE.amber;
+        ctx.stroke();
+        ctx.restore();
+
+        const betaReflexDeg = (360 - Number(betaDeg)).toFixed(0);
+        ctx.fillStyle = PALETTE.amber;
+        ctx.fillText(`β*=${betaReflexDeg}°`, f.b.x - 34 * (bxB / bLenB) - 10, f.b.y - 34 * (byB / bLenB) + 4);
+      }
 
       ctx.restore();
     }
@@ -378,18 +440,42 @@ function drawAngles(ctx, state, f) {
   const angleStroke = isPhi ? 'rgba(217, 70, 239, 0.8)' : 'rgba(234, 179, 8, 0.8)';
   const angleLabel = f.plane === 'xz' ? 'φ' : (f.plane === 'yz' ? 'ψ' : 'θ');
 
-  ctx.beginPath();
-  ctx.moveTo(f.cx, f.cy);
-  ctx.arc(f.cx, f.cy, 26, 0, -f.angle, true);
-  ctx.closePath();
-  ctx.fillStyle = angleFill;
-  ctx.fill();
-  ctx.strokeStyle = angleStroke;
-  ctx.stroke();
+  if (state.vis2d.angles) {
+    ctx.beginPath();
+    ctx.moveTo(f.cx, f.cy);
+    ctx.arc(f.cx, f.cy, 26, 0, -f.angle, true);
+    ctx.closePath();
+    ctx.fillStyle = angleFill;
+    ctx.fill();
+    ctx.strokeStyle = angleStroke;
+    ctx.stroke();
 
-  ctx.fillStyle = angleColor;
-  ctx.font = 'italic 13px sans-serif';
-  ctx.fillText(angleLabel, f.cx + 33 * Math.cos(-f.angle / 2) - 4, f.cy + 33 * Math.sin(-f.angle / 2) + 4);
+    ctx.fillStyle = angleColor;
+    ctx.font = 'italic 13px sans-serif';
+    ctx.fillText(angleLabel, f.cx + 33 * Math.cos(-f.angle / 2) - 4, f.cy + 33 * Math.sin(-f.angle / 2) + 4);
+  }
+
+  if (state.vis2d.reflex) {
+    // Central reflex angle (360° - θ)
+    ctx.beginPath();
+    ctx.moveTo(f.cx, f.cy);
+    ctx.arc(f.cx, f.cy, 36, 0, -f.angle, false);
+    ctx.closePath();
+    ctx.fillStyle = isPhi ? 'rgba(217, 70, 239, 0.12)' : 'rgba(234, 179, 8, 0.12)';
+    ctx.fill();
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = angleStroke;
+    ctx.stroke();
+    ctx.restore();
+
+    const normAngle = ((f.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const reflexDeg = Math.round(360 - toDegrees(normAngle));
+    const midAngle = -normAngle / 2 + Math.PI;
+    ctx.fillStyle = angleColor;
+    ctx.font = 'italic 11px sans-serif';
+    ctx.fillText(`${angleLabel}*=${reflexDeg}°`, f.cx + 46 * Math.cos(midAngle) - 10, f.cy + 46 * Math.sin(midAngle) + 4);
+  }
 }
 
 function drawHover(ctx, f) {
@@ -508,7 +594,7 @@ export function drawScene(ctx, state, frame) {
   } else {
     drawArrow(ctx, frame.p, { x: frame.cx, y: frame.cy }, PALETTE.blue, 3);
   }
-  if (state.vis2d.angles) drawAngles(ctx, state, frame);
+  if (state.vis2d.angles || state.vis2d.reflex) drawAngles(ctx, state, frame);
   if (state.hoverP2D) drawHover(ctx, frame);
   if (state.vis2d.points) drawPoints(ctx, state, frame);
   if (state.vis2d.lengths) drawLengthLabels(ctx, frame);

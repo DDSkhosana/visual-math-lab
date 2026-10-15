@@ -89,6 +89,20 @@ export class DerivationView {
         `• <b>Invariant:</b> While height ${tag('lime', 'h')} and ${tag('green', 'Area')} oscillate across quadrants, the right angle ${tag('teal', '∠APB ≡ 90.0°')} and ${tag('lavender', 's² + t² ≡ |d|²')} are strictly invariant.`,
         true
       )}
+      ${cardTemplate(
+        'deriv-2d-step-7',
+        'Step 7',
+        `Explementary & Reflex Angles: Perigon ${tag('lime', '360°')} & Inscribed Theorem`,
+        `<b>Explementary (Conjugate) Perigon Identity:</b><br>` +
+        `Every angle ${tag('yellow', 'γ')} forms a full 360° perigon with its reflex conjugate ${tag('lime', 'γ*')} = 360° - ${tag('yellow', 'γ')}:<br>` +
+        `• Base Angle A: ${tag('lime', 'α')} + ${tag('lime', 'α*')} = 360° ⇒ ${tag('lime', 'α* = 360° - α')}<br>` +
+        `• Base Angle B: ${tag('orange', 'β')} + ${tag('orange', 'β*')} = 360° ⇒ ${tag('orange', 'β* = 360° - β')}<br>` +
+        `• Inscribed Vertex P: ${tag('teal', '∠APB')} + ${tag('teal', '∠APB*')} = 90° + 270° = 360° ⇒ ${tag('teal', '∠APB* = 270.0°')}<br>` +
+        `• <b>Invariant Reflex Sum:</b> ${tag('lavender', 'α* + β* + ∠APB*')} = 3(360°) - 180° = ${tag('lavender', '900.0°')}<br>` +
+        `<b>Inscribed Angle Theorem Connection:</b><br>` +
+        `Diameter AB subtends straight central angle 180° and reflex central angle 180°. For any cyclic polygon, reflex central angles govern obtuse inscribed angles, guaranteeing opposite angles sum to 180°.`,
+        true
+      )}
     `;
 
     this.solidElement.innerHTML = `
@@ -141,6 +155,8 @@ export class DerivationView {
       step5Eval: this.flatElement.querySelector('#deriv-2d-step-5 [data-eval]'),
       step6Sub: this.flatElement.querySelector('#deriv-2d-step-6 [data-sub]'),
       step6Eval: this.flatElement.querySelector('#deriv-2d-step-6 [data-eval]'),
+      step7Sub: this.flatElement.querySelector('#deriv-2d-step-7 [data-sub]'),
+      step7Eval: this.flatElement.querySelector('#deriv-2d-step-7 [data-eval]'),
     };
 
     this.slots3D = {
@@ -251,6 +267,22 @@ export class DerivationView {
     if (this.slots2D.step6Eval) {
       this.slots2D.step6Eval.innerHTML =
         `<span>${tag('green', `Current Area = ${area.toFixed(2)}`)} | ${tag('teal', '∠APB ≡ 90.0° (Constant)')}</span><span class="derivation-check">✓ Quadrant Invariant</span>`;
+    }
+
+    const alphaReflexDeg = 360 - alphaDeg;
+    const betaReflexDeg = 360 - betaDeg;
+    const reflexSumDeg = alphaReflexDeg + betaReflexDeg + 270;
+
+    if (this.slots2D.step7Sub) {
+      this.slots2D.step7Sub.innerHTML =
+        `↳ Conjugate Reflex Angles: ${tag('lime', `α* = 360° - ${alphaDeg.toFixed(1)}° = ${alphaReflexDeg.toFixed(1)}°`)}, ${tag('orange', `β* = 360° - ${betaDeg.toFixed(1)}° = ${betaReflexDeg.toFixed(1)}°`)}<br>` +
+        `↳ Inscribed Right Angle Reflex: ${tag('teal', `∠APB* = 360° - 90.0° = 270.0°`)}<br>` +
+        `↳ Total Triangle Reflex Sum: ${tag('lime', `${alphaReflexDeg.toFixed(1)}°`)} + ${tag('orange', `${betaReflexDeg.toFixed(1)}°`)} + ${tag('teal', `270.0°`)} = ${tag('lavender', `${reflexSumDeg.toFixed(1)}°`)}<br>` +
+        `↳ ${tag('yellow', 'Winding Order & Exterior Space')}: Interior (α + β = 90°) + Exterior (α* + β* = 630°) = 2 × 360° = 720° at baseline vertices.`;
+    }
+    if (this.slots2D.step7Eval) {
+      this.slots2D.step7Eval.innerHTML =
+        `<span>${tag('lavender', `Total Reflex Sum = ${reflexSumDeg.toFixed(1)}° ≡ 900.0°`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`;
     }
   }
 

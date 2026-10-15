@@ -5,14 +5,18 @@ export function setPositions(THREE, geometry, values) {
   geometry.computeVertexNormals();
 }
 
-/** Triangle fan for the angle between two directions at `center`; null when either direction is degenerate. */
-export function sectorVertices(THREE, center, vec1, vec2, radius) {
+/** Triangle fan for the angle between two directions at `center`; null when either direction is degenerate.
+ * If sweepReflex is true, sweeps the exterior conjugate (2π - angle) angle.
+ */
+export function sectorVertices(THREE, center, vec1, vec2, radius, sweepReflex = false) {
   if (vec1.lengthSq() === 0 || vec2.lengthSq() === 0) return null;
   const v1 = vec1.clone().normalize();
   const v2 = vec2.clone().normalize();
-  const angle = v1.angleTo(v2);
-  const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+  const innerAngle = v1.angleTo(v2);
+  const angle = sweepReflex ? Math.PI * 2 - innerAngle : innerAngle;
+  let normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
   if (normal.lengthSq() < 0.001) normal.set(0, 1, 0);
+  if (sweepReflex) normal.negate();
 
   const rim = [];
   for (let i = 0; i <= SECTOR_SEGMENTS; i++) {

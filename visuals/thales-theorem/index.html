@@ -103,6 +103,12 @@
                     </div>
                     <div class="stat-line"><span class="color-amber">Angle β at B:</span> <span class="stat-value color-amber" id="val-2d-beta">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">Sum α + β:</span> <span class="stat-value color-teal" id="val-2d-sum-ab">90.00°</span></div>
+                    <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                        <span class="color-lime">Reflex α* (360°-α):</span> <span class="stat-value color-lime" id="val-2d-alpha-reflex">0.00°</span>
+                    </div>
+                    <div class="stat-line"><span class="color-amber">Reflex β* (360°-β):</span> <span class="stat-value color-amber" id="val-2d-beta-reflex">0.00°</span></div>
+                    <div class="stat-line"><span class="color-teal">Reflex ∠P* (360°-90°):</span> <span class="stat-value color-teal" id="val-2d-p-reflex">270.00°</span></div>
+                    <div class="stat-line"><span class="color-lavender">Total Reflex Sum:</span> <span class="stat-value color-lavender" id="val-2d-reflex-sum">900.00°</span></div>
                 </div>
             </div>
         </div>
@@ -142,6 +148,11 @@
                     </div>
                     <div class="stat-line"><span class="color-amber">3D Angle β at B:</span> <span class="stat-value color-amber" id="val-3d-beta">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">3D Sum α + β:</span> <span class="stat-value color-teal" id="val-3d-sum-ab">90.00°</span></div>
+                    <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                        <span class="color-lime">3D Reflex α*:</span> <span class="stat-value color-lime" id="val-3d-alpha-reflex">0.00°</span>
+                    </div>
+                    <div class="stat-line"><span class="color-amber">3D Reflex β*:</span> <span class="stat-value color-amber" id="val-3d-beta-reflex">0.00°</span></div>
+                    <div class="stat-line"><span class="color-lavender">3D Total Reflex Sum:</span> <span class="stat-value color-lavender" id="val-3d-reflex-sum">900.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-sky">Sphere Area (4πr²):</span> <span class="stat-value color-sky" id="val-surf">0.00</span>
                     </div>
@@ -274,6 +285,7 @@
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-green">Inscribed Area (½st)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-yellow">Angle θ</span><span class="color-fuchsia">/φ</span> &amp; <span class="color-teal">Right Angle 90°</span></label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Angles</span> (<span class="color-lime">α*</span>, <span class="color-amber">β*</span>, <span class="color-teal">270°</span>)</label>
                         </div>
                     </div>
                 </div>
@@ -332,6 +344,7 @@
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-volume" checked><span class="checkmark"></span><span class="color-violet">Volume Box (|xyz|)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="toggle-3d-area" checked><span class="checkmark"></span><span class="color-green">Area Triangle (½st)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="toggle-3d-angles" checked><span class="checkmark"></span><span class="color-yellow">Angles (θ</span>, <span class="color-fuchsia">φ)</span> &amp; <span class="color-teal">Right Angle 90°</span></label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Sectors</span> (<span class="color-lime">360°-α</span>, <span class="color-amber">360°-β</span>, <span class="color-teal">270°</span>)</label>
                         </div>
                     </div>
                 </div>
