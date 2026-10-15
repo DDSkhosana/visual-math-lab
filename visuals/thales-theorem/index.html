@@ -61,6 +61,7 @@
         <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
       </div>
       <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+      <button type="button" class="btn-toolbar" id="btn-flip-baseline" title="Flip baseline diameter AB between X and Y axes (90° Z-rotation)">Flip Baseline (X⟷Y)</button>
       <span class="toolbar-divider" aria-hidden="true"></span>
       <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep Point P continuously" aria-label="Auto-sweep playback" aria-pressed="false">
         <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -260,6 +261,11 @@
                             <button type="button" class="btn" id="btn-plane-xy" data-plane="xy" title="Orthographic projection onto XY plane (Z = 0)">XY Plane</button>
                             <button type="button" class="btn" id="btn-plane-xz" data-plane="xz" title="Orthographic projection onto XZ plane (Y = 0)">XZ Plane</button>
                             <button type="button" class="btn" id="btn-plane-yz" data-plane="yz" title="Orthographic projection onto YZ plane (X = 0, diameter perpendicular)">YZ Plane</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3 mb-1.5">Baseline Orientation (Diameter AB):</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                            <button type="button" class="btn active" id="btn-baseline-horiz" title="Horizontal baseline (AB along X-axis)">Horizontal (X)</button>
+                            <button type="button" class="btn" id="btn-baseline-vert" title="Vertical baseline (AB along Y-axis)">Vertical (Y)</button>
                         </div>
                     </div>
                 </div>

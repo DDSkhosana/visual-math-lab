@@ -39,7 +39,7 @@ export class Scene3DInteraction {
     this.store.set({ hoverP3D: this.dragging || this.scene.hitsPointP() });
     if (!this.dragging) return;
 
-    const hit = this.scene.pickSphere();
+    const hit = this.scene.pickSphere(this.store.get().baselineRotation || 0);
     if (hit) this.store.set(setSpherePoint(cartesianToSpherical(hit, this.store.get().radius), this.store.get()));
     event.stopPropagation();
   }

@@ -4,7 +4,7 @@ import {
   angle2DToLongitude, cartesianToSpherical, greatCircleTo3D, longitudeToAngle2D, point3DToGreatCircle, pointerToAngle,
   sphereStats, sphericalToCartesian, thalesStats2D, toDegrees, toRadians,
 } from '../visuals/thales-theorem/src/model/thales-math.js';
-import { setPlane2D } from '../visuals/thales-theorem/src/model/actions.js';
+import { rotateBaseline90, setBaselineRotation, setPlane2D } from '../visuals/thales-theorem/src/model/actions.js';
 import { computeFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
 import { createInitialState } from '../visuals/thales-theorem/src/config/defaults.js';
 
@@ -204,4 +204,109 @@ test("Thales Reflex Angles: alpha* and beta* form exact 360° perigon and sum to
     close(s3d.reflexSumDeg, 900);
   }
 });
+
+test('Baseline rotation: actions update rotation in 90-degree steps and full cycle', () => {
+  const state = createInitialState();
+  assert.equal(state.baselineRotation, 0);
+
+  const step1 = rotateBaseline90(state);
+  close(step1.baselineRotation, Math.PI / 2);
+
+  const step2 = rotateBaseline90({ baselineRotation: step1.baselineRotation });
+  close(step2.baselineRotation, Math.PI);
+
+  const step3 = rotateBaseline90({ baselineRotation: step2.baselineRotation });
+  close(step3.baselineRotation, 3 * Math.PI / 2);
+
+  const step4 = rotateBaseline90({ baselineRotation: step3.baselineRotation });
+  close(step4.baselineRotation, 0);
+
+  const direct = setBaselineRotation(Math.PI / 2);
+  close(direct.baselineRotation, Math.PI / 2);
+});
+
+test('Baseline rotation 2D: rotating baseline to vertical aligns AB along Y and preserves 90° right angle & invariants', () => {
+  const state = createInitialState();
+  state.radius = 10;
+  state.zoom = 1;
+  state.pan = { x: 0, y: 0 };
+  state.baselineRotation = Math.PI / 2; // 90° rotation: X becomes Y
+  const width = 800, height = 600, cx = 400, cy = 300;
+
+  const frame = computeFrame(state, width, height);
+  // Vertices A and B must now lie on the vertical axis (x = cx)
+  close(frame.a.x, cx);
+  close(frame.a.y, cy + 10); // A is at bottom (canvas y down)
+  close(frame.b.x, cx);
+  close(frame.b.y, cy - 10); // B is at top
+
+  // Diameter must still be exactly 2r
+  close(frame.lenD, 20);
+
+  // Across all angles, right angle at P, sides s and t, and area are strictly preserved
+  for (let deg = 0; deg < 360; deg += 30) {
+    state.angle2D = toRadians(deg);
+    const f = computeFrame(state, width, height);
+
+    // Vector from P to A and P to B
+    const paX = f.a.x - f.p.x;
+    const paY = f.a.y - f.p.y;
+    const pbX = f.b.x - f.p.x;
+    const pbY = f.b.y - f.p.y;
+
+    // Dot product (P - A) · (P - B) must be 0 (exact 90° right angle)
+    const dot = paX * pbX + paY * pbY;
+    close(dot, 0, 1e-7);
+
+    // s² + t² = d² = 400
+    close(f.lenS * f.lenS + f.lenT * f.lenT, 400, 1e-7);
+
+    // Theoretical area = 0.5 * s * t
+    const expected = thalesStats2D(10, toRadians(deg));
+    close(f.lenS, expected.s, 1e-7);
+    close(f.lenT, expected.t, 1e-7);
+    close(0.5 * f.lenS * f.lenT, expected.area, 1e-7);
+  }
+});
+
+test('Baseline rotation 3D: rigid rotation around Z preserves distances and orthogonality', () => {
+  const r = 10;
+  const rot = Math.PI / 2;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
+
+  // Rotated diameter endpoints in 3D
+  const a3 = { x: -r * cosR, y: -r * sinR, z: 0 };
+  const b3 = { x: r * cosR, y: r * sinR, z: 0 };
+
+  // A and B lie on Y axis
+  close(a3.x, 0);
+  close(a3.y, -10);
+  close(b3.x, 0);
+  close(b3.y, 10);
+
+  for (let latDeg = 15; latDeg <= 165; latDeg += 30) {
+    for (let lonDeg = -150; lonDeg <= 180; lonDeg += 45) {
+      const raw = sphericalToCartesian(r, toRadians(latDeg), toRadians(lonDeg));
+      const p3 = {
+        x: raw.x * cosR - raw.y * sinR,
+        y: raw.x * sinR + raw.y * cosR,
+        z: raw.z,
+      };
+
+      // Distance to origin is r
+      close(Math.hypot(p3.x, p3.y, p3.z), r, 1e-7);
+
+      // Distance to A and B
+      const s = Math.hypot(p3.x - a3.x, p3.y - a3.y, p3.z - a3.z);
+      const t = Math.hypot(p3.x - b3.x, p3.y - b3.y, p3.z - b3.z);
+      close(s * s + t * t, 4 * r * r, 1e-7);
+
+      // Inscribed 3D right angle
+      const dot = (a3.x - p3.x) * (b3.x - p3.x) + (a3.y - p3.y) * (b3.y - p3.y) + (a3.z - p3.z) * (b3.z - p3.z);
+      close(dot, 0, 1e-7);
+    }
+  }
+});
+
 

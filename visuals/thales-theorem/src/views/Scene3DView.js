@@ -4,7 +4,7 @@ import { rightAngleVertices, sectorVertices, setPositions } from './scene3d/geom
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
-  static stateKeys = ['radius', 'lat3D', 'lon3D', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D'];
+  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D'];
 
   constructor(THREE, container) {
     this.THREE = THREE;
@@ -42,7 +42,13 @@ export class Scene3DView {
     const { THREE } = this;
     const o = this.objects;
     const r = state.radius;
-    const { x, y, z } = sphericalToCartesian(r, state.lat3D, state.lon3D);
+    const rot = state.baselineRotation || 0;
+    const cosR = Math.cos(rot);
+    const sinR = Math.sin(rot);
+    const raw = sphericalToCartesian(r, state.lat3D, state.lon3D);
+    const x = raw.x * cosR - raw.y * sinR;
+    const y = raw.x * sinR + raw.y * cosR;
+    const z = raw.z;
 
     o.grids.xz.visible = state.vis3d.gridXZ;
     o.grids.xy.visible = state.vis3d.gridXY;
@@ -54,16 +60,18 @@ export class Scene3DView {
     o.sphere.scale.setScalar(r);
     o.sphereLines.scale.setScalar(r);
 
-    const { psi } = point3DToGreatCircle({ x, y, z }, r);
+    const { psi } = point3DToGreatCircle(raw, r);
     if (o.greatCircleWire) {
+      o.greatCircleWire.rotation.order = 'ZYX';
+      o.greatCircleWire.rotation.z = rot;
       o.greatCircleWire.rotation.x = psi;
       o.greatCircleWire.scale.setScalar(r);
       o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
     }
 
     o.pointP.position.set(x, y, z);
-    o.pointA.position.set(-r, 0, 0);
-    o.pointB.position.set(r, 0, 0);
+    o.pointA.position.set(-r * cosR, -r * sinR, 0);
+    o.pointB.position.set(r * cosR, r * sinR, 0);
     o.pointP.material = state.hoverP3D ? o.materials.markerHover : o.materials.markerHidden;
 
     const toA = new THREE.Vector3().subVectors(o.pointA.position, o.pointP.position);
@@ -88,7 +96,9 @@ export class Scene3DView {
     o.areaTriangle.visible = state.show3dArea;
 
     if (o.altitudeLine) {
-      o.altitudeLine.geometry.setFromPoints([new THREE.Vector3(x, 0, 0), o.pointP.position]);
+      const proj = x * cosR + y * sinR;
+      const foot = new THREE.Vector3(proj * cosR, proj * sinR, 0);
+      o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
       o.altitudeLine.computeLineDistances();
       o.altitudeLine.visible = state.show3dArea;
     }
@@ -103,8 +113,8 @@ export class Scene3DView {
       o.rightAngle.visible = false;
     }
 
-    const towardBFromA = new THREE.Vector3(1, 0, 0);
-    const towardAFromB = new THREE.Vector3(-1, 0, 0);
+    const towardBFromA = new THREE.Vector3(cosR, sinR, 0);
+    const towardAFromB = new THREE.Vector3(-cosR, -sinR, 0);
     const toPFromA = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
     const toPFromB = new THREE.Vector3().subVectors(o.pointP.position, o.pointB.position);
 
@@ -200,21 +210,34 @@ export class Scene3DView {
     return this.raycaster.ray.distanceToPoint(this.objects.pointP.position) < 2.0;
   }
 
-  pickSphere() {
+  pickSphere(baselineRotation = 0) {
     const hits = this.raycaster.intersectObject(this.objects.sphere);
-    if (hits.length) return hits[0].point;
+    let pt = hits.length ? hits[0].point : null;
 
-    // When dragged past the sphere's edge, clamp to the nearest point on the sphere silhouette
-    const r = this.objects.sphere.scale.x;
-    const ray = this.raycaster.ray;
-    const t = -ray.origin.dot(ray.direction);
-    if (t > 0) {
-      const closestPointOnRay = ray.origin.clone().addScaledVector(ray.direction, t);
-      if (closestPointOnRay.lengthSq() > 0) {
-        return closestPointOnRay.normalize().multiplyScalar(r);
+    if (!pt) {
+      // When dragged past the sphere's edge, clamp to the nearest point on the sphere silhouette
+      const r = this.objects.sphere.scale.x;
+      const ray = this.raycaster.ray;
+      const t = -ray.origin.dot(ray.direction);
+      if (t > 0) {
+        const closestPointOnRay = ray.origin.clone().addScaledVector(ray.direction, t);
+        if (closestPointOnRay.lengthSq() > 0) {
+          pt = closestPointOnRay.normalize().multiplyScalar(r);
+        }
       }
     }
-    return null;
+    if (!pt) return null;
+
+    if (baselineRotation) {
+      const c = Math.cos(-baselineRotation);
+      const s = Math.sin(-baselineRotation);
+      return new this.THREE.Vector3(
+        pt.x * c - pt.y * s,
+        pt.x * s + pt.y * c,
+        pt.z
+      );
+    }
+    return pt;
   }
 
   setCameraPreset(presetName) {

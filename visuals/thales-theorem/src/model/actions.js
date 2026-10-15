@@ -42,6 +42,12 @@ export const setViewMode = (viewMode) => ({ viewMode });
 
 export const setPlane2D = (plane2D) => ({ plane2D });
 
+export const setBaselineRotation = (baselineRotation) => ({ baselineRotation });
+
+export const rotateBaseline90 = (state) => ({
+  baselineRotation: (((state?.baselineRotation ?? 0) + Math.PI / 2) % (Math.PI * 2)),
+});
+
 export const setPlaying = (playing) => ({ playing });
 
 export const toggleSplitDirection = (state) => ({

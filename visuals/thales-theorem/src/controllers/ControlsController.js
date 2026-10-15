@@ -1,4 +1,4 @@
-import { setFlag, setPlane2D } from '../model/actions.js';
+import { rotateBaseline90, setBaselineRotation, setFlag, setPlane2D } from '../model/actions.js';
 import { SLIDERS, TOGGLES } from './controls-config.js';
 
 /** Two-way binding between form controls and the store, driven by controls-config.js. */
@@ -33,6 +33,20 @@ export class ControlsController {
       }
       return { plane, btn };
     }).filter((item) => item.btn);
+
+    this.baselineButtons = [
+      { rot: 0, btn: root.getElementById('btn-baseline-horiz') },
+      { rot: Math.PI / 2, btn: root.getElementById('btn-baseline-vert') },
+    ].filter((item) => item.btn);
+
+    for (const { rot, btn } of this.baselineButtons) {
+      btn.addEventListener('click', () => store.set(setBaselineRotation(rot)));
+    }
+
+    const flipBtn = root.getElementById('btn-flip-baseline');
+    if (flipBtn) {
+      flipBtn.addEventListener('click', () => store.set(rotateBaseline90(store.get())));
+    }
   }
 
   render(state) {
@@ -49,6 +63,11 @@ export class ControlsController {
     const currentPlane = state.plane2D ?? 'great-circle';
     for (const { plane, btn } of this.planeButtons) {
       btn.classList.toggle('active', plane === currentPlane);
+    }
+    const isVert = Math.abs(Math.sin(state.baselineRotation || 0)) > 0.5;
+    for (const { rot, btn } of this.baselineButtons) {
+      const active = (rot === 0 && !isVert) || (rot !== 0 && isVert);
+      btn.classList.toggle('active', active);
     }
   }
 }

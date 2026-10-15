@@ -70,9 +70,11 @@ export class Canvas2DInteraction {
     const state = this.store.get();
     const { x, y } = this.view.toLocal(event);
     const { cx, cy } = this.view.frame(state);
-    const ang = pointerToAngle(x - cx, cy - y);
-    const r = state.radius;
     const plane = state.plane2D ?? 'great-circle';
+    const rot = plane === 'yz' ? 0 : (state.baselineRotation || 0);
+    const rawAng = pointerToAngle(x - cx, cy - y);
+    const ang = ((rawAng - rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const r = state.radius;
 
     if (plane === 'xy') {
       const x3 = r * Math.cos(ang), y3 = r * Math.sin(ang), z3 = 0;

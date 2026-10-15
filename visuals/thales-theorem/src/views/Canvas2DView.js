@@ -3,7 +3,7 @@ import { generateSceneSVG } from './canvas2d-svg.js';
 
 /** Owns the 2D canvas: sizing (via ResizeObserver) and painting. Holds no domain state. */
 export class Canvas2DView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'plane2D', 'pan', 'zoom', 'hoverP2D', 'vis2d'];
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'plane2D', 'baselineRotation', 'pan', 'zoom', 'hoverP2D', 'vis2d'];
 
   constructor(canvas, container) {
     this.canvas = canvas;

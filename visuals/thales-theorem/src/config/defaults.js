@@ -18,6 +18,7 @@ export function createInitialState() {
     pan: { x: 0, y: 0 },
     zoom: 18,
     plane2D: 'great-circle',
+    baselineRotation: 0,
     playing: false,
     hoverP2D: false,
     hoverP3D: false,

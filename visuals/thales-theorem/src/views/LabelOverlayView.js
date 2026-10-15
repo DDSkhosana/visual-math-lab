@@ -5,7 +5,18 @@ const fix = (n, d = 1) => n.toFixed(d);
 /** Declarative label table: where it sits, what it says, when it shows. */
 function describeLabels(state) {
   const { radius: r, vis3d, show3dArea, show3dAngles } = state;
-  const { p } = sphereStats(r, state.lat3D, state.lon3D);
+  const rot = state.baselineRotation || 0;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
+  const rawP = sphereStats(r, state.lat3D, state.lon3D).p;
+  const p = {
+    x: rawP.x * cosR - rawP.y * sinR,
+    y: rawP.x * sinR + rawP.y * cosR,
+    z: rawP.z,
+  };
+  const ax = -r * cosR, ay = -r * sinR, az = 0;
+  const bx = r * cosR, by = r * sinR, bz = 0;
+
   const withCoords = (name, x, y, z) => (vis3d.coords ? `${name} (${fix(x)}, ${fix(y)}, ${fix(z)})` : name);
   const labelsAndArea = show3dArea && vis3d.labels;
 
@@ -25,10 +36,10 @@ function describeLabels(state) {
   const phiR = r * 0.42;
   const phiMid = { x: (phiDir.x / phiDirLen) * phiR, y: 0.2, z: (phiDir.z / phiDirLen) * phiR };
 
-  const lenPA = Math.hypot(-r - p.x, -p.y, -p.z) || 1;
-  const lenPB = Math.hypot(r - p.x, -p.y, -p.z) || 1;
-  const ux = (-r - p.x) / lenPA, uy = -p.y / lenPA, uz = -p.z / lenPA;
-  const vx = (r - p.x) / lenPB, vy = -p.y / lenPB, vz = -p.z / lenPB;
+  const lenPA = Math.hypot(ax - p.x, ay - p.y, az - p.z) || 1;
+  const lenPB = Math.hypot(bx - p.x, by - p.y, bz - p.z) || 1;
+  const ux = (ax - p.x) / lenPA, uy = (ay - p.y) / lenPA, uz = (az - p.z) / lenPA;
+  const vx = (bx - p.x) / lenPB, vy = (by - p.y) / lenPB, vz = (bz - p.z) / lenPB;
   const bisector = { x: ux + vx, y: uy + vy, z: uz + vz };
   const bisectorLen = Math.hypot(bisector.x, bisector.y, bisector.z) || 1;
   const rightAt = {
@@ -41,42 +52,46 @@ function describeLabels(state) {
   const alphaDeg = solidStats.alphaDeg;
   const betaDeg = solidStats.betaDeg;
 
-  const toPA = { x: p.x + r, y: p.y, z: p.z };
+  const toPA = { x: p.x - ax, y: p.y - ay, z: p.z };
   const toPALen = Math.hypot(toPA.x, toPA.y, toPA.z) || 1;
-  const alphaDir = { x: 1 + toPA.x / toPALen, y: toPA.y / toPALen, z: toPA.z / toPALen };
+  const alphaDir = { x: cosR + toPA.x / toPALen, y: sinR + toPA.y / toPALen, z: toPA.z / toPALen };
   const alphaDirLen = Math.hypot(alphaDir.x, alphaDir.y, alphaDir.z) || 1;
   const alphaMid = {
-    x: -r + (alphaDir.x / alphaDirLen) * (r * 0.35),
-    y: (alphaDir.y / alphaDirLen) * (r * 0.35) + 0.3,
+    x: ax + (alphaDir.x / alphaDirLen) * (r * 0.35),
+    y: ay + (alphaDir.y / alphaDirLen) * (r * 0.35) + 0.3,
     z: (alphaDir.z / alphaDirLen) * (r * 0.35),
   };
 
-  const toPB = { x: p.x - r, y: p.y, z: p.z };
+  const toPB = { x: p.x - bx, y: p.y - by, z: p.z };
   const toPBLen = Math.hypot(toPB.x, toPB.y, toPB.z) || 1;
-  const betaDir = { x: -1 + toPB.x / toPBLen, y: toPB.y / toPBLen, z: toPB.z / toPBLen };
+  const betaDir = { x: -cosR + toPB.x / toPBLen, y: -sinR + toPB.y / toPBLen, z: toPB.z / toPBLen };
   const betaDirLen = Math.hypot(betaDir.x, betaDir.y, betaDir.z) || 1;
   const betaMid = {
-    x: r + (betaDir.x / betaDirLen) * (r * 0.35),
-    y: (betaDir.y / betaDirLen) * (r * 0.35) + 0.3,
+    x: bx + (betaDir.x / betaDirLen) * (r * 0.35),
+    y: by + (betaDir.y / betaDirLen) * (r * 0.35) + 0.3,
     z: (betaDir.z / betaDirLen) * (r * 0.35),
   };
 
+  const proj = p.x * cosR + p.y * sinR;
+  const foot = { x: proj * cosR, y: proj * sinR, z: 0 };
+  const hLen = Math.hypot(p.x - foot.x, p.y - foot.y, p.z);
+
   return [
     { key: 'p', at: { x: p.x * 1.15, y: p.y * 1.15, z: p.z * 1.15 }, text: withCoords('P', p.x, p.y, p.z), show: vis3d.labels, color: 'color-violet' },
-    { key: 'a', at: { x: -r * 1.15, y: 0, z: 0 }, text: withCoords('A', -r, 0, 0), show: vis3d.labels, color: 'color-red' },
-    { key: 'b', at: { x: r * 1.15, y: 0, z: 0 }, text: withCoords('B', r, 0, 0), show: vis3d.labels, color: 'color-orange' },
+    { key: 'a', at: { x: ax * 1.15, y: ay * 1.15, z: 0 }, text: withCoords('A', ax, ay, 0), show: vis3d.labels, color: 'color-red' },
+    { key: 'b', at: { x: bx * 1.15, y: by * 1.15, z: 0 }, text: withCoords('B', bx, by, 0), show: vis3d.labels, color: 'color-orange' },
     { key: 'c', at: { x: -1.2, y: 0.9, z: -1.2 }, text: withCoords('O', 0, 0, 0), show: vis3d.labels, color: 'color-indigo' },
-    { key: 's', at: { x: (p.x - r) / 2, y: p.y / 2 + 0.4, z: p.z / 2 }, text: 's', show: labelsAndArea, color: 'color-blue' },
-    { key: 't', at: { x: (p.x + r) / 2, y: p.y / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
-    { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(state.lat3D))}°`, show: show3dAngles, color: 'color-yellow' },
-    { key: 'phi', at: phiMid, text: Math.round(toDegrees(state.lon3D)) === 90 ? 'φ = 90° (z=0, XY)' : `φ = ${Math.round(toDegrees(state.lon3D))}°`, show: show3dAngles, color: 'color-fuchsia' },
+    { key: 's', at: { x: (p.x + ax) / 2, y: (p.y + ay) / 2 + 0.4, z: p.z / 2 }, text: 's', show: labelsAndArea, color: 'color-blue' },
+    { key: 't', at: { x: (p.x + bx) / 2, y: (p.y + by) / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
+    { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(Math.acos(Math.max(-1, Math.min(1, p.y / r)))))}°`, show: show3dAngles, color: 'color-yellow' },
+    { key: 'phi', at: phiMid, text: `φ = ${Math.round(toDegrees(Math.atan2(p.x, p.z)))}°`, show: show3dAngles, color: 'color-fuchsia' },
     { key: 'alpha', at: alphaMid, text: `α = ${alphaDeg.toFixed(1)}°`, show: show3dAngles && toPALen > 1.5, color: 'color-lime' },
     { key: 'beta', at: betaMid, text: `β = ${betaDeg.toFixed(1)}°`, show: show3dAngles && toPBLen > 1.5, color: 'color-amber' },
     { key: 'right', at: rightAt, text: '90° (3D Invariant)', show: show3dAngles, color: 'color-teal' },
-    { key: 'alphaReflex', at: { x: -r - (alphaDir.x / alphaDirLen) * (r * 0.3), y: -(alphaDir.y / alphaDirLen) * (r * 0.3), z: -(alphaDir.z / alphaDirLen) * (r * 0.3) }, text: `α* = ${(360 - alphaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPALen > 1.5), color: 'color-lime' },
-    { key: 'betaReflex', at: { x: r - (betaDir.x / betaDirLen) * (r * 0.3), y: -(betaDir.y / betaDirLen) * (r * 0.3), z: -(betaDir.z / betaDirLen) * (r * 0.3) }, text: `β* = ${(360 - betaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPBLen > 1.5), color: 'color-amber' },
+    { key: 'alphaReflex', at: { x: ax - (alphaDir.x / alphaDirLen) * (r * 0.3), y: ay - (alphaDir.y / alphaDirLen) * (r * 0.3), z: -(alphaDir.z / alphaDirLen) * (r * 0.3) }, text: `α* = ${(360 - alphaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPALen > 1.5), color: 'color-lime' },
+    { key: 'betaReflex', at: { x: bx - (betaDir.x / betaDirLen) * (r * 0.3), y: by - (betaDir.y / betaDirLen) * (r * 0.3), z: -(betaDir.z / betaDirLen) * (r * 0.3) }, text: `β* = ${(360 - betaDeg).toFixed(1)}°`, show: Boolean(vis3d.reflex && toPBLen > 1.5), color: 'color-amber' },
     { key: 'rightReflex', at: { x: p.x - (bisector.x / bisectorLen) * 1.5, y: p.y - (bisector.y / bisectorLen) * 1.5, z: p.z - (bisector.z / bisectorLen) * 1.5 }, text: '270° (P*)', show: Boolean(vis3d.reflex), color: 'color-teal' },
-    { key: 'alt3d', at: { x: p.x, y: p.y / 2 + 0.3, z: p.z / 2 }, text: `h = ${Math.hypot(p.y, p.z).toFixed(1)}`, show: labelsAndArea && Math.hypot(p.y, p.z) > 0.5, color: 'color-lime' },
+    { key: 'alt3d', at: { x: (p.x + foot.x) / 2, y: (p.y + foot.y) / 2 + 0.3, z: p.z / 2 }, text: `h = ${hLen.toFixed(1)}`, show: labelsAndArea && hLen > 0.5, color: 'color-lime' },
     { key: 'radius', at: { x: p.x * 0.6, y: p.y * 0.6 + 0.8, z: p.z * 0.6 }, text: 'r', show: vis3d.labels, color: 'color-indigo' },
     { key: 'diam', at: { x: 0, y: -2.0, z: 2.2 }, text: '|d| = 2r', show: vis3d.labels, color: 'color-red' },
     { key: 'axis-x', at: { x: 15.8, y: 0, z: 0 }, text: '+X', show: vis3d.labels, color: 'color-amber' },

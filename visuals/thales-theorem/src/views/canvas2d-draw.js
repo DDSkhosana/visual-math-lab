@@ -7,21 +7,26 @@ export function computeFrame(state, width, height) {
   const cy = height / 2 + state.pan.y;
   const r = state.radius * state.zoom;
   const plane = state.plane2D ?? 'great-circle';
+  const rot = state.baselineRotation || 0;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
 
   let a, b, p, angle, pCoords, aCoords, bCoords, outOfPlane;
   const p3d = sphericalToCartesian(state.radius, state.lat3D, state.lon3D);
 
   if (plane === 'xy') {
-    const px = p3d.x * state.zoom;
-    const py = p3d.y * state.zoom;
-    a = { x: cx - r, y: cy };
-    b = { x: cx + r, y: cy };
-    p = { x: cx + px, y: cy - py };
-    angle = Math.atan2(p3d.y, p3d.x);
+    const px = p3d.x;
+    const py = p3d.y;
+    const rx = px * cosR - py * sinR;
+    const ry = px * sinR + py * cosR;
+    aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
+    bCoords = { x: state.radius * cosR, y: state.radius * sinR };
+    pCoords = { x: rx, y: ry };
+    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
+    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
+    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
+    angle = Math.atan2(ry, rx);
     if (angle < 0) angle += Math.PI * 2;
-    pCoords = { x: p3d.x, y: p3d.y };
-    aCoords = { x: -state.radius, y: 0 };
-    bCoords = { x: state.radius, y: 0 };
     outOfPlane = {
       axis: 'Z',
       val: p3d.z,
@@ -30,16 +35,18 @@ export function computeFrame(state, width, height) {
       color: PALETTE.steel,
     };
   } else if (plane === 'xz') {
-    const px = p3d.x * state.zoom;
-    const pz = p3d.z * state.zoom;
-    a = { x: cx - r, y: cy };
-    b = { x: cx + r, y: cy };
-    p = { x: cx + px, y: cy - pz };
-    angle = Math.atan2(p3d.z, p3d.x);
+    const px = p3d.x;
+    const pz = p3d.z;
+    const rx = px * cosR - pz * sinR;
+    const rz = px * sinR + pz * cosR;
+    aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
+    bCoords = { x: state.radius * cosR, y: state.radius * sinR };
+    pCoords = { x: rx, y: rz };
+    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
+    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
+    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
+    angle = Math.atan2(rz, rx);
     if (angle < 0) angle += Math.PI * 2;
-    pCoords = { x: p3d.x, y: p3d.z };
-    aCoords = { x: -state.radius, y: 0 };
-    bCoords = { x: state.radius, y: 0 };
     outOfPlane = {
       axis: 'Y',
       val: p3d.y,
@@ -48,16 +55,16 @@ export function computeFrame(state, width, height) {
       color: PALETTE.lime,
     };
   } else if (plane === 'yz') {
-    const pz = p3d.z * state.zoom;
-    const py = p3d.y * state.zoom;
-    a = { x: cx, y: cy };
-    b = { x: cx, y: cy };
-    p = { x: cx + pz, y: cy - py };
-    angle = Math.atan2(p3d.y, p3d.z);
+    const pz = p3d.z;
+    const py = p3d.y;
+    aCoords = { x: 0, y: -state.radius * sinR };
+    bCoords = { x: 0, y: state.radius * sinR };
+    pCoords = { x: pz, y: py };
+    a = { x: cx, y: cy - aCoords.y * state.zoom };
+    b = { x: cx, y: cy - bCoords.y * state.zoom };
+    p = { x: cx + pz * state.zoom, y: cy - py * state.zoom };
+    angle = Math.atan2(py, pz);
     if (angle < 0) angle += Math.PI * 2;
-    pCoords = { x: p3d.z, y: p3d.y };
-    aCoords = { x: 0, y: 0 };
-    bCoords = { x: 0, y: 0 };
     outOfPlane = {
       axis: 'X',
       val: p3d.x,
@@ -67,15 +74,16 @@ export function computeFrame(state, width, height) {
     };
   } else {
     // 'great-circle'
-    const pt = pointOnCircle(r, state.angle2D);
     const ptMath = pointOnCircle(state.radius, state.angle2D);
-    a = { x: cx - r, y: cy };
-    b = { x: cx + r, y: cy };
-    p = { x: cx + pt.x, y: cy - pt.y };
+    const rx = ptMath.x * cosR - ptMath.y * sinR;
+    const ry = ptMath.x * sinR + ptMath.y * cosR;
+    aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
+    bCoords = { x: state.radius * cosR, y: state.radius * sinR };
+    pCoords = { x: rx, y: ry };
+    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
+    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
+    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
     angle = state.angle2D;
-    pCoords = { x: ptMath.x, y: ptMath.y };
-    aCoords = { x: -state.radius, y: 0 };
-    bCoords = { x: state.radius, y: 0 };
     const { psi } = point3DToGreatCircle(p3d, state.radius);
     const psiDeg = (psi * 180) / Math.PI;
     outOfPlane = {
@@ -93,7 +101,7 @@ export function computeFrame(state, width, height) {
   const lenR = Math.hypot(p.x - cx, p.y - cy) / (state.zoom || 1);
 
   return {
-    width, height, cx, cy, r, plane,
+    width, height, cx, cy, r, plane, baselineRotation: rot, zoom: state.zoom,
     a, b, p, angle, pCoords, aCoords, bCoords,
     lenS, lenT, lenD, lenR, outOfPlane,
   };
@@ -133,8 +141,9 @@ function drawAxes(ctx, state, f) {
         xLabel = '+Z'; xColor = PALETTE.steel;
         yLabel = '+Y'; yColor = PALETTE.lime;
       } else if (f.plane === 'great-circle') {
-        xLabel = '+X (AB)'; xColor = PALETTE.amber;
-        yLabel = '+Y₂D'; yColor = PALETTE.lime;
+        const isVert = Math.abs(Math.sin(f.baselineRotation || 0)) > 0.5;
+        xLabel = isVert ? '+X (⟂)' : '+X (AB)'; xColor = PALETTE.amber;
+        yLabel = isVert ? '+Y (AB)' : '+Y₂D'; yColor = PALETTE.lime;
       }
       ctx.fillStyle = xColor;
       ctx.fillText(xLabel, f.width - (xLabel.length > 2 ? 55 : 25), f.cy - 8);
@@ -242,41 +251,66 @@ function drawArea(ctx, f) {
   ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
   ctx.fill();
 
-  // Altitude line from P perpendicular to diameter AB (shows height h = |y| and explains quadrant area variation)
-  if (Math.abs(f.p.y - f.cy) > 8) {
-    ctx.save();
-    ctx.strokeStyle = PALETTE.lime;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(f.p.x, f.p.y);
-    ctx.lineTo(f.p.x, f.cy);
-    ctx.stroke();
-    ctx.setLineDash([]);
+  // Altitude line from P perpendicular to diameter AB (shows height h and explains quadrant area variation)
+  const dxAB = f.b.x - f.a.x;
+  const dyAB = f.b.y - f.a.y;
+  const lenAB = Math.hypot(dxAB, dyAB);
+  if (lenAB > 1e-4) {
+    const uxAB = dxAB / lenAB;
+    const uyAB = dyAB / lenAB;
+    const dxAP = f.p.x - f.a.x;
+    const dyAP = f.p.y - f.a.y;
+    const t = dxAP * uxAB + dyAP * uyAB;
+    const footX = f.a.x + t * uxAB;
+    const footY = f.a.y + t * uyAB;
+    const hx = f.p.x - footX;
+    const hy = f.p.y - footY;
+    const hLen = Math.hypot(hx, hy);
 
-    // Small right-angle marker at altitude foot
-    const signY = f.p.y < f.cy ? -1 : 1;
-    const footSize = 8;
-    ctx.beginPath();
-    ctx.moveTo(f.p.x, f.cy + signY * footSize);
-    ctx.lineTo(f.p.x + (f.p.x > f.cx ? -footSize : footSize), f.cy + signY * footSize);
-    ctx.lineTo(f.p.x + (f.p.x > f.cx ? -footSize : footSize), f.cy);
-    ctx.strokeStyle = PALETTE.lime;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (hLen > 6) {
+      ctx.save();
+      ctx.strokeStyle = PALETTE.lime;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(f.p.x, f.p.y);
+      ctx.lineTo(footX, footY);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    // Height label
-    ctx.font = 'bold 11px monospace';
-    ctx.fillStyle = PALETTE.lime;
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-    const textH = `h = ${Math.abs(f.pCoords.y).toFixed(1)}`;
-    const textX = f.p.x + (f.p.x > f.cx ? -footSize - 44 : footSize + 4);
-    const textY = (f.p.y + f.cy) / 2 + 3;
-    ctx.strokeText(textH, textX, textY);
-    ctx.fillText(textH, textX, textY);
-    ctx.restore();
+      // Small right-angle marker at altitude foot
+      const uhX = hx / hLen;
+      const uhY = hy / hLen;
+      const footSize = 8;
+      const dirAlongAB = t >= lenAB / 2 ? -1 : 1;
+      const c1x = footX + uhX * footSize;
+      const c1y = footY + uhY * footSize;
+      const c2x = c1x + uxAB * footSize * dirAlongAB;
+      const c2y = c1y + uyAB * footSize * dirAlongAB;
+      const c3x = footX + uxAB * footSize * dirAlongAB;
+      const c3y = footY + uyAB * footSize * dirAlongAB;
+
+      ctx.beginPath();
+      ctx.moveTo(c1x, c1y);
+      ctx.lineTo(c2x, c2y);
+      ctx.lineTo(c3x, c3y);
+      ctx.strokeStyle = PALETTE.lime;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Height label
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = PALETTE.lime;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+      const textH = `h = ${(hLen / (f.zoom || 1)).toFixed(1)}`;
+      const midH = { x: (f.p.x + footX) / 2, y: (f.p.y + footY) / 2 };
+      const offsetNorm = { x: -uhY * 12, y: uhX * 12 };
+      ctx.strokeText(textH, midH.x + offsetNorm.x - 14, midH.y + offsetNorm.y + 4);
+      ctx.fillText(textH, midH.x + offsetNorm.x - 14, midH.y + offsetNorm.y + 4);
+      ctx.restore();
+    }
   }
 }
 
@@ -358,21 +392,27 @@ function drawAngles(ctx, state, f) {
       ctx.font = 'bold 11px sans-serif';
       ctx.lineWidth = 1.2;
 
+      const baseAB = Math.atan2(f.b.y - f.a.y, f.b.x - f.a.x);
+      const uxAB = Math.cos(baseAB), uyAB = Math.sin(baseAB);
       const dirPA = Math.atan2(f.p.y - f.a.y, f.p.x - f.a.x);
       const uxA = (f.p.x - f.a.x) / lenPA, uyA = (f.p.y - f.a.y) / lenPA;
-      const bxA = 1 + uxA, byA = uyA;
+      const bxA = uxAB + uxA, byA = uyAB + uyA;
       const bLenA = Math.hypot(bxA, byA) || 1;
+      const crossA = uxAB * uyA - uyAB * uxA;
 
+      const baseBA = Math.atan2(f.a.y - f.b.y, f.a.x - f.b.x);
+      const uxBA = Math.cos(baseBA), uyBA = Math.sin(baseBA);
       const dirPB = Math.atan2(f.p.y - f.b.y, f.p.x - f.b.x);
       const uxB = (f.p.x - f.b.x) / lenPB, uyB = (f.p.y - f.b.y) / lenPB;
-      const bxB = -1 + uxB, byB = uyB;
+      const bxB = uxBA + uxB, byB = uyBA + uyB;
       const bLenB = Math.hypot(bxB, byB) || 1;
+      const crossB = uxBA * uyB - uyBA * uxB;
 
       if (state.vis2d.angles) {
         // Base angle alpha at A (interior lime fill + stroke)
         ctx.beginPath();
         ctx.moveTo(f.a.x, f.a.y);
-        ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y < f.cy);
+        ctx.arc(f.a.x, f.a.y, 24, baseAB, dirPA, crossA < 0);
         ctx.closePath();
         ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
         ctx.fill();
@@ -384,7 +424,7 @@ function drawAngles(ctx, state, f) {
         // Base angle beta at B (interior amber fill + stroke)
         ctx.beginPath();
         ctx.moveTo(f.b.x, f.b.y);
-        ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y > f.cy);
+        ctx.arc(f.b.x, f.b.y, 24, baseBA, dirPB, crossB < 0);
         ctx.closePath();
         ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
         ctx.fill();
@@ -398,7 +438,7 @@ function drawAngles(ctx, state, f) {
         // Reflex angle alpha* at A (exterior lime dashed arc + label)
         ctx.beginPath();
         ctx.moveTo(f.a.x, f.a.y);
-        ctx.arc(f.a.x, f.a.y, 22, 0, dirPA, f.p.y > f.cy);
+        ctx.arc(f.a.x, f.a.y, 22, baseAB, dirPA, crossA > 0);
         ctx.closePath();
         ctx.fillStyle = 'rgba(132, 204, 22, 0.12)';
         ctx.fill();
@@ -415,7 +455,7 @@ function drawAngles(ctx, state, f) {
         // Reflex angle beta* at B (exterior amber dashed arc + label)
         ctx.beginPath();
         ctx.moveTo(f.b.x, f.b.y);
-        ctx.arc(f.b.x, f.b.y, 22, Math.PI, dirPB, f.p.y < f.cy);
+        ctx.arc(f.b.x, f.b.y, 22, baseBA, dirPB, crossB > 0);
         ctx.closePath();
         ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
         ctx.fill();
@@ -440,26 +480,33 @@ function drawAngles(ctx, state, f) {
   const angleStroke = isPhi ? 'rgba(217, 70, 239, 0.8)' : 'rgba(234, 179, 8, 0.8)';
   const angleLabel = f.plane === 'xz' ? 'φ' : (f.plane === 'yz' ? 'ψ' : 'θ');
 
+  const baseO = Math.atan2(f.b.y - f.cy, f.b.x - f.cx);
+  const dirOP = Math.atan2(f.p.y - f.cy, f.p.x - f.cx);
+  const uOBx = Math.cos(baseO), uOBy = Math.sin(baseO);
+  const uOPx = Math.cos(dirOP), uOPy = Math.sin(dirOP);
+  const crossO = uOBx * uOPy - uOBy * uOPx;
+  const angO = Math.acos(Math.max(-1, Math.min(1, uOBx * uOPx + uOBy * uOPy)));
+
   if (state.vis2d.angles) {
     ctx.beginPath();
     ctx.moveTo(f.cx, f.cy);
-    ctx.arc(f.cx, f.cy, 26, 0, -f.angle, true);
+    ctx.arc(f.cx, f.cy, 26, baseO, dirOP, crossO < 0);
     ctx.closePath();
     ctx.fillStyle = angleFill;
     ctx.fill();
     ctx.strokeStyle = angleStroke;
     ctx.stroke();
 
+    const midAngle = baseO + (crossO < 0 ? -1 : 1) * (angO / 2);
     ctx.fillStyle = angleColor;
     ctx.font = 'italic 13px sans-serif';
-    ctx.fillText(angleLabel, f.cx + 33 * Math.cos(-f.angle / 2) - 4, f.cy + 33 * Math.sin(-f.angle / 2) + 4);
+    ctx.fillText(angleLabel, f.cx + 33 * Math.cos(midAngle) - 4, f.cy + 33 * Math.sin(midAngle) + 4);
   }
 
   if (state.vis2d.reflex) {
-    // Central reflex angle (360° - θ)
     ctx.beginPath();
     ctx.moveTo(f.cx, f.cy);
-    ctx.arc(f.cx, f.cy, 36, 0, -f.angle, false);
+    ctx.arc(f.cx, f.cy, 36, baseO, dirOP, crossO > 0);
     ctx.closePath();
     ctx.fillStyle = isPhi ? 'rgba(217, 70, 239, 0.12)' : 'rgba(234, 179, 8, 0.12)';
     ctx.fill();
@@ -469,12 +516,11 @@ function drawAngles(ctx, state, f) {
     ctx.stroke();
     ctx.restore();
 
-    const normAngle = ((f.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    const reflexDeg = Math.round(360 - toDegrees(normAngle));
-    const midAngle = -normAngle / 2 + Math.PI;
+    const reflexDeg = Math.round(360 - toDegrees(angO));
+    const midReflex = baseO + (crossO < 0 ? 1 : -1) * ((Math.PI * 2 - angO) / 2);
     ctx.fillStyle = angleColor;
     ctx.font = 'italic 11px sans-serif';
-    ctx.fillText(`${angleLabel}*=${reflexDeg}°`, f.cx + 46 * Math.cos(midAngle) - 10, f.cy + 46 * Math.sin(midAngle) + 4);
+    ctx.fillText(`${angleLabel}*=${reflexDeg}°`, f.cx + 46 * Math.cos(midReflex) - 10, f.cy + 46 * Math.sin(midReflex) + 4);
   }
 }
 
