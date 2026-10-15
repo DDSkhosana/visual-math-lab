@@ -1,15 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/about.html</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/contact.html</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/privacy.html</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/angle-at-centre/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/angles-in-same-segment/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/cyclic-quadrilateral/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/</loc></url>
-  <url><loc>https://ddskhosana.github.io/visual-math-lab/visuals/perpendicular-chord-bisector/</loc></url>
+<urlset 
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/about.html</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/contact.html</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/privacy.html</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/angle-at-centre/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/angles-in-same-segment/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/cyclic-quadrilateral/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/</loc>
+  </url>
+  <url>
+    <loc>https://ddskhosana.github.io/visual-math-lab/visuals/perpendicular-chord-bisector/</loc>
+  </url>
+  
 </urlset>
