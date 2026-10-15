@@ -110,6 +110,53 @@ function drawAxes(ctx, state, f) {
   }
 }
 
+function drawQuadrantOverlay(ctx, state, f) {
+  if (f.plane === 'yz') return;
+  const px = f.pCoords.x;
+  const py = f.pCoords.y;
+  const activeQ = py >= 0 ? (px >= 0 ? 1 : 2) : (px < 0 ? 3 : 4);
+
+  // Subtle Roman Numerals in each quadrant at radius 0.82r
+  const qr = f.r * 0.82;
+  const quads = [
+    { num: 'I', q: 1, x: f.cx + qr * 0.707, y: f.cy - qr * 0.707 },
+    { num: 'II', q: 2, x: f.cx - qr * 0.707, y: f.cy - qr * 0.707 },
+    { num: 'III', q: 3, x: f.cx - qr * 0.707, y: f.cy + qr * 0.707 },
+    { num: 'IV', q: 4, x: f.cx + qr * 0.707, y: f.cy + qr * 0.707 },
+  ];
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const q of quads) {
+    const isActive = q.q === activeQ;
+    if (isActive) {
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillStyle = PALETTE.yellow;
+      ctx.shadowColor = 'rgba(234, 179, 8, 0.6)';
+      ctx.shadowBlur = 8;
+      ctx.fillText(q.num, q.x, q.y);
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
+      ctx.fillText(q.num, q.x, q.y);
+    }
+  }
+
+  // Active projection plane & quadrant corner pill watermark
+  if (state.vis2d.points || state.vis2d.coords) {
+    const planeName = f.plane === 'xy' ? 'XY Plane (Z=0)' : (f.plane === 'xz' ? 'XZ Plane (Y=0)' : 'Great Circle');
+    const qLabel = `Quadrant ${['I', 'II', 'III', 'IV'][activeQ - 1]} (${px >= 0 ? '+X' : '-X'}, ${py >= 0 ? '+Y' : '-Y'})`;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+    ctx.fillText(`${planeName} | ${qLabel}`, 12, f.height - 10);
+  }
+  ctx.restore();
+}
+
 function drawCircleAndRadius(ctx, state, f) {
   ctx.beginPath();
   ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
@@ -389,6 +436,7 @@ export function drawScene(ctx, state, frame) {
   ctx.clearRect(0, 0, frame.width, frame.height);
   drawGrid(ctx, state, frame);
   drawAxes(ctx, state, frame);
+  drawQuadrantOverlay(ctx, state, frame);
   drawCircleAndRadius(ctx, state, frame);
   drawDiameter(ctx, frame);
   if (state.vis2d.area && frame.plane !== 'yz') drawArea(ctx, frame);

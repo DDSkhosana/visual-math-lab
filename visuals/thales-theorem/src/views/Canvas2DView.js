@@ -31,14 +31,21 @@ export class Canvas2DView {
     const title = this.container.querySelector('#view-title-2d') || document.getElementById('view-title-2d');
     if (!title) return;
     const plane = state.plane2D ?? 'great-circle';
+    const frame = this.frame(state);
+    const px = frame.pCoords.x;
+    const py = frame.pCoords.y;
+    const qStr = py >= 0
+      ? (px >= 0 ? 'Quadrant I (+X, +Y)' : 'Quadrant II (-X, +Y)')
+      : (px < 0 ? 'Quadrant III (-X, -Y)' : 'Quadrant IV (+X, -Y)');
+
     if (plane === 'xy') {
-      title.innerHTML = `2D: XY Plane Projection (<span class="color-amber">X: Diameter Axis</span>, <span class="color-lime">Y: Elevation</span>)`;
+      title.innerHTML = `2D: XY Plane Projection — <span class="color-yellow">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-lime">Y: Elevation</span>)`;
     } else if (plane === 'xz') {
-      title.innerHTML = `2D: XZ Plane Projection (<span class="color-amber">X: Diameter Axis</span>, <span class="color-steel">Z: Depth</span>)`;
+      title.innerHTML = `2D: XZ Plane Projection — <span class="color-fuchsia">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-steel">Z: Depth</span>)`;
     } else if (plane === 'yz') {
-      title.innerHTML = `2D: YZ Plane Projection (<span class="color-steel">Z: Depth</span>, <span class="color-lime">Y: Elevation</span>, <span class="color-red">AB ⟂</span>)`;
+      title.innerHTML = `2D: YZ Plane Projection — <span class="color-steel">${qStr}</span> (<span class="color-steel">Z: Depth</span>, <span class="color-lime">Y: Elevation</span>, <span class="color-red">AB ⟂</span>)`;
     } else {
-      title.innerHTML = `2D: Great-Circle Section (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)`;
+      title.innerHTML = `2D: Great-Circle Section — <span class="color-yellow">${qStr}</span> (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)`;
     }
   }
 
