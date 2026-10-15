@@ -1,5 +1,5 @@
 import { PALETTE } from '../config/palette.js';
-import { pointOnCircle, sphericalToCartesian, thalesStats2D } from '../model/thales-math.js';
+import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D } from '../model/thales-math.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -8,10 +8,10 @@ export function computeFrame(state, width, height) {
   const r = state.radius * state.zoom;
   const plane = state.plane2D ?? 'great-circle';
 
-  let a, b, p, angle, pCoords, aCoords, bCoords;
+  let a, b, p, angle, pCoords, aCoords, bCoords, outOfPlane;
+  const p3d = sphericalToCartesian(state.radius, state.lat3D, state.lon3D);
 
   if (plane === 'xy') {
-    const p3d = sphericalToCartesian(state.radius, state.lat3D, state.lon3D);
     const px = p3d.x * state.zoom;
     const py = p3d.y * state.zoom;
     a = { x: cx - r, y: cy };
@@ -22,8 +22,14 @@ export function computeFrame(state, width, height) {
     pCoords = { x: p3d.x, y: p3d.y };
     aCoords = { x: -state.radius, y: 0 };
     bCoords = { x: state.radius, y: 0 };
+    outOfPlane = {
+      axis: 'Z',
+      val: p3d.z,
+      symbol: p3d.z > 0.05 ? '⊙' : (p3d.z < -0.05 ? '⊗' : '—'),
+      dirText: p3d.z > 0.05 ? '+Z (toward viewer)' : (p3d.z < -0.05 ? '-Z (into screen)' : 'coplanar'),
+      color: PALETTE.steel,
+    };
   } else if (plane === 'xz') {
-    const p3d = sphericalToCartesian(state.radius, state.lat3D, state.lon3D);
     const px = p3d.x * state.zoom;
     const pz = p3d.z * state.zoom;
     a = { x: cx - r, y: cy };
@@ -34,8 +40,14 @@ export function computeFrame(state, width, height) {
     pCoords = { x: p3d.x, y: p3d.z };
     aCoords = { x: -state.radius, y: 0 };
     bCoords = { x: state.radius, y: 0 };
+    outOfPlane = {
+      axis: 'Y',
+      val: p3d.y,
+      symbol: p3d.y > 0.05 ? '⊙' : (p3d.y < -0.05 ? '⊗' : '—'),
+      dirText: p3d.y > 0.05 ? '+Y (zenith up)' : (p3d.y < -0.05 ? '-Y (nadir down)' : 'equatorial'),
+      color: PALETTE.lime,
+    };
   } else if (plane === 'yz') {
-    const p3d = sphericalToCartesian(state.radius, state.lat3D, state.lon3D);
     const pz = p3d.z * state.zoom;
     const py = p3d.y * state.zoom;
     a = { x: cx, y: cy };
@@ -46,6 +58,13 @@ export function computeFrame(state, width, height) {
     pCoords = { x: p3d.z, y: p3d.y };
     aCoords = { x: 0, y: 0 };
     bCoords = { x: 0, y: 0 };
+    outOfPlane = {
+      axis: 'X',
+      val: p3d.x,
+      symbol: p3d.x > 0.05 ? '⊙' : (p3d.x < -0.05 ? '⊗' : '—'),
+      dirText: p3d.x > 0.05 ? '+X (towards B)' : (p3d.x < -0.05 ? '-X (towards A)' : 'midplane'),
+      color: PALETTE.amber,
+    };
   } else {
     // 'great-circle'
     const pt = pointOnCircle(r, state.angle2D);
@@ -57,11 +76,26 @@ export function computeFrame(state, width, height) {
     pCoords = { x: ptMath.x, y: ptMath.y };
     aCoords = { x: -state.radius, y: 0 };
     bCoords = { x: state.radius, y: 0 };
+    const { psi } = point3DToGreatCircle(p3d, state.radius);
+    const psiDeg = (psi * 180) / Math.PI;
+    outOfPlane = {
+      axis: 'ψ',
+      val: psiDeg,
+      symbol: Math.abs(psiDeg) > 0.5 ? '⟂' : '—',
+      dirText: Math.abs(psiDeg) > 0.5 ? `tilt ${psiDeg.toFixed(1)}°` : 'equatorial',
+      color: PALETTE.magenta,
+    };
   }
+
+  const lenS = Math.hypot(p.x - a.x, p.y - a.y) / (state.zoom || 1);
+  const lenT = Math.hypot(p.x - b.x, p.y - b.y) / (state.zoom || 1);
+  const lenD = Math.hypot(b.x - a.x, b.y - a.y) / (state.zoom || 1);
+  const lenR = Math.hypot(p.x - cx, p.y - cy) / (state.zoom || 1);
 
   return {
     width, height, cx, cy, r, plane,
     a, b, p, angle, pCoords, aCoords, bCoords,
+    lenS, lenT, lenD, lenR, outOfPlane,
   };
 }
 
@@ -144,15 +178,16 @@ function drawQuadrantOverlay(ctx, state, f) {
     }
   }
 
-  // Active projection plane & quadrant corner pill watermark
+  // Active projection plane & quadrant corner pill watermark with out-of-plane frame dimension
   if (state.vis2d.points || state.vis2d.coords) {
-    const planeName = f.plane === 'xy' ? 'XY Plane (Z=0)' : (f.plane === 'xz' ? 'XZ Plane (Y=0)' : 'Great Circle');
+    const planeName = f.plane === 'xy' ? 'XY Plane (Z=0)' : (f.plane === 'xz' ? 'XZ Plane (Y=0)' : (f.plane === 'yz' ? 'YZ Plane (X=0)' : 'Great Circle Section'));
     const qLabel = `Quadrant ${['I', 'II', 'III', 'IV'][activeQ - 1]} (${px >= 0 ? '+X' : '-X'}, ${py >= 0 ? '+Y' : '-Y'})`;
+    const oopLabel = f.outOfPlane ? ` | ⟂ ${f.outOfPlane.axis}: ${f.outOfPlane.symbol} ${f.outOfPlane.val > 0 ? '+' : ''}${f.outOfPlane.val.toFixed(1)} (${f.outOfPlane.dirText})` : '';
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
-    ctx.fillText(`${planeName} | ${qLabel}`, 12, f.height - 10);
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+    ctx.fillText(`${planeName} | ${qLabel}${oopLabel}`, 12, f.height - 10);
   }
   ctx.restore();
 }
@@ -174,8 +209,9 @@ function drawCircleAndRadius(ctx, state, f) {
 
   if (state.vis2d.lengths) {
     ctx.fillStyle = PALETTE.indigo;
-    ctx.font = 'italic 13px sans-serif';
-    ctx.fillText('r', f.cx + (f.p.x - f.cx) / 2 + 6, f.cy + (f.p.y - f.cy) / 2 - 6);
+    ctx.font = 'bold 12px monospace';
+    const rLabel = f.plane === 'great-circle' ? `r=${state.radius.toFixed(1)}` : `r=${f.lenR.toFixed(1)}`;
+    ctx.fillText(rLabel, f.cx + (f.p.x - f.cx) / 2 + 6, f.cy + (f.p.y - f.cy) / 2 - 6);
   }
 }
 
@@ -404,11 +440,24 @@ function drawPoints(ctx, state, f) {
   const alignP = upx > 0.35 ? 'left' : (upx < -0.35 ? 'right' : 'center');
   const baseP = upy > 0.35 ? 'top' : (upy < -0.35 ? 'bottom' : 'middle');
   drawLabelledPoint(ctx, f.p, PALETTE.violet, label('P', f.pCoords.x, f.pCoords.y), 18 * upx, 18 * upy, alignP, baseP);
+
+  // If point P has an out-of-plane component in current reference plane, show its 3D depth direction & magnitude
+  if (state.vis2d.coords && f.outOfPlane && Math.abs(f.outOfPlane.val) > 0.05) {
+    ctx.save();
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = f.outOfPlane.color;
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.lineWidth = 3;
+    const oopText = `${f.outOfPlane.symbol} ${f.outOfPlane.axis}=${f.outOfPlane.val > 0 ? '+' : ''}${f.outOfPlane.val.toFixed(1)}`;
+    ctx.strokeText(oopText, f.p.x + 20 * upx, f.p.y + 20 * upy + 14);
+    ctx.fillText(oopText, f.p.x + 20 * upx, f.p.y + 20 * upy + 14);
+    ctx.restore();
+  }
 }
 
 function drawLengthLabels(ctx, f) {
   ctx.save();
-  ctx.font = 'bold 13px monospace';
+  ctx.font = 'bold 12px monospace';
   ctx.lineJoin = 'round';
   ctx.miterLimit = 2;
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
@@ -420,13 +469,16 @@ function drawLengthLabels(ctx, f) {
     ctx.fillText(text, x, y);
   };
 
+  const sText = `s=${f.lenS.toFixed(1)}`;
+  const tText = `t=${f.lenT.toFixed(1)}`;
+
   if (f.plane !== 'yz') {
-    renderWithHalo('s', f.p.x + (f.a.x - f.p.x) / 2 - 12, f.p.y + (f.a.y - f.p.y) / 2 - 10, PALETTE.blue);
-    renderWithHalo('t', f.p.x + (f.b.x - f.p.x) / 2 + 8, f.p.y + (f.b.y - f.p.y) / 2 - 10, PALETTE.orange);
-    renderWithHalo('|d| = 2r', f.cx, f.cy - 10, PALETTE.red);
+    renderWithHalo(sText, f.p.x + (f.a.x - f.p.x) / 2 - 20, f.p.y + (f.a.y - f.p.y) / 2 - 10, PALETTE.blue);
+    renderWithHalo(tText, f.p.x + (f.b.x - f.p.x) / 2 + 10, f.p.y + (f.b.y - f.p.y) / 2 - 10, PALETTE.orange);
+    renderWithHalo(`|d|=${f.lenD.toFixed(1)}`, f.cx - 24, f.cy - 10, PALETTE.red);
   } else {
-    renderWithHalo('s, t', f.p.x + (f.cx - f.p.x) / 2 + 6, f.p.y + (f.cy - f.p.y) / 2 - 6, PALETTE.blue);
-    renderWithHalo('|d| ⟂', f.cx + 8, f.cy - 10, PALETTE.red);
+    renderWithHalo(`s,t=${f.lenS.toFixed(1)}`, f.p.x + (f.cx - f.p.x) / 2 + 6, f.p.y + (f.cy - f.p.y) / 2 - 6, PALETTE.blue);
+    renderWithHalo(`|d|⟂=${f.lenD.toFixed(1)}`, f.cx + 8, f.cy - 10, PALETTE.red);
   }
   ctx.restore();
 }
