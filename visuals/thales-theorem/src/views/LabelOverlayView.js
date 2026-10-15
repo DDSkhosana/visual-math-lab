@@ -37,6 +37,30 @@ function describeLabels(state) {
     z: p.z + (bisector.z / bisectorLen) * 1.5,
   };
 
+  const solidStats = sphereStats(r, state.lat3D, state.lon3D);
+  const alphaDeg = solidStats.alphaDeg;
+  const betaDeg = solidStats.betaDeg;
+
+  const toPA = { x: p.x + r, y: p.y, z: p.z };
+  const toPALen = Math.hypot(toPA.x, toPA.y, toPA.z) || 1;
+  const alphaDir = { x: 1 + toPA.x / toPALen, y: toPA.y / toPALen, z: toPA.z / toPALen };
+  const alphaDirLen = Math.hypot(alphaDir.x, alphaDir.y, alphaDir.z) || 1;
+  const alphaMid = {
+    x: -r + (alphaDir.x / alphaDirLen) * (r * 0.35),
+    y: (alphaDir.y / alphaDirLen) * (r * 0.35) + 0.3,
+    z: (alphaDir.z / alphaDirLen) * (r * 0.35),
+  };
+
+  const toPB = { x: p.x - r, y: p.y, z: p.z };
+  const toPBLen = Math.hypot(toPB.x, toPB.y, toPB.z) || 1;
+  const betaDir = { x: -1 + toPB.x / toPBLen, y: toPB.y / toPBLen, z: toPB.z / toPBLen };
+  const betaDirLen = Math.hypot(betaDir.x, betaDir.y, betaDir.z) || 1;
+  const betaMid = {
+    x: r + (betaDir.x / betaDirLen) * (r * 0.35),
+    y: (betaDir.y / betaDirLen) * (r * 0.35) + 0.3,
+    z: (betaDir.z / betaDirLen) * (r * 0.35),
+  };
+
   return [
     { key: 'p', at: { x: p.x * 1.15, y: p.y * 1.15, z: p.z * 1.15 }, text: withCoords('P', p.x, p.y, p.z), show: vis3d.labels, color: 'color-violet' },
     { key: 'a', at: { x: -r * 1.15, y: 0, z: 0 }, text: withCoords('a', -r, 0, 0), show: vis3d.labels, color: 'color-red' },
@@ -46,6 +70,8 @@ function describeLabels(state) {
     { key: 't', at: { x: (p.x + r) / 2, y: p.y / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
     { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(state.lat3D))}°`, show: show3dAngles, color: 'color-yellow' },
     { key: 'phi', at: phiMid, text: Math.round(toDegrees(state.lon3D)) === 90 ? 'φ = 90° (z=0, XY)' : `φ = ${Math.round(toDegrees(state.lon3D))}°`, show: show3dAngles, color: 'color-fuchsia' },
+    { key: 'alpha', at: alphaMid, text: `α = ${alphaDeg.toFixed(1)}°`, show: show3dAngles && toPALen > 1.5, color: 'color-lime' },
+    { key: 'beta', at: betaMid, text: `β = ${betaDeg.toFixed(1)}°`, show: show3dAngles && toPBLen > 1.5, color: 'color-amber' },
     { key: 'right', at: rightAt, text: '90° (3D Invariant)', show: show3dAngles, color: 'color-teal' },
     { key: 'alt3d', at: { x: p.x, y: p.y / 2 + 0.3, z: p.z / 2 }, text: `h = ${Math.hypot(p.y, p.z).toFixed(1)}`, show: labelsAndArea && Math.hypot(p.y, p.z) > 0.5, color: 'color-lime' },
     { key: 'radius', at: { x: p.x * 0.6, y: p.y * 0.6 + 0.8, z: p.z * 0.6 }, text: 'r', show: vis3d.labels, color: 'color-indigo' },

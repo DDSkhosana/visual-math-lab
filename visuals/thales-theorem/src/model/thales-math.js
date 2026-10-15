@@ -101,6 +101,9 @@ export function thalesStats2D(radius, angle) {
   const p = pointOnCircle(radius, angle);
   const s = Math.hypot(p.x + radius, p.y);
   const t = Math.hypot(p.x - radius, p.y);
+  const d = 2 * radius;
+  const alpha = Math.asin(clamp(t / d, -1, 1));
+  const beta = Math.asin(clamp(s / d, -1, 1));
   return {
     radius,
     diameter: radius * 2,
@@ -111,6 +114,10 @@ export function thalesStats2D(radius, angle) {
     sumSquares: s * s + t * t,
     diameterSquared: (2 * radius) ** 2,
     area: 0.5 * s * t,
+    alpha,
+    beta,
+    alphaDeg: toDegrees(alpha),
+    betaDeg: toDegrees(beta),
   };
 }
 
@@ -118,6 +125,9 @@ export function sphereStats(radius, lat, lon) {
   const p = sphericalToCartesian(radius, lat, lon);
   const s = Math.hypot(p.x + radius, p.y, p.z);
   const t = Math.hypot(p.x - radius, p.y, p.z);
+  const d = 2 * radius;
+  const alpha = Math.asin(clamp(t / d, -1, 1));
+  const beta = Math.asin(clamp(s / d, -1, 1));
   return {
     radius,
     diameter: radius * 2,
@@ -131,5 +141,9 @@ export function sphereStats(radius, lat, lon) {
     radiusSquared: radius * radius,
     volume: Math.abs(p.x * p.y * p.z),
     area: 0.5 * s * t,
+    alpha,
+    beta,
+    alphaDeg: toDegrees(alpha),
+    betaDeg: toDegrees(beta),
   };
 }

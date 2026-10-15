@@ -103,6 +103,29 @@ export class Scene3DView {
       o.rightAngle.visible = false;
     }
 
+    const towardBFromA = new THREE.Vector3(1, 0, 0);
+    const towardAFromB = new THREE.Vector3(-1, 0, 0);
+    const toPFromA = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
+    const toPFromB = new THREE.Vector3().subVectors(o.pointP.position, o.pointB.position);
+
+    if (o.alphaSector) {
+      if (toPFromA.lengthSq() > 1e-4) {
+        this.updateSector(o.alphaSector, o.pointA.position, towardBFromA, toPFromA, r * 0.28);
+        o.alphaSector.visible = state.show3dAngles;
+      } else {
+        o.alphaSector.visible = false;
+      }
+    }
+
+    if (o.betaSector) {
+      if (toPFromB.lengthSq() > 1e-4) {
+        this.updateSector(o.betaSector, o.pointB.position, towardAFromB, toPFromB, r * 0.28);
+        o.betaSector.visible = state.show3dAngles;
+      } else {
+        o.betaSector.visible = false;
+      }
+    }
+
     const min = 0.001;
     o.volumeBox.scale.set(Math.max(Math.abs(x), min), Math.max(Math.abs(y), min), Math.max(Math.abs(z), min));
     o.volumeBox.position.set(x / 2, y / 2, z / 2);

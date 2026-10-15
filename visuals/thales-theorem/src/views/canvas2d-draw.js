@@ -249,23 +249,31 @@ function drawAngles(ctx, state, f) {
       ctx.font = 'bold 11px sans-serif';
       ctx.lineWidth = 1.2;
 
-      // Base angle alpha at a (lime)
+      // Base angle alpha at a (lime fill + stroke)
       ctx.beginPath();
+      ctx.moveTo(f.a.x, f.a.y);
       const dirPA = Math.atan2(f.p.y - f.a.y, f.p.x - f.a.x);
-      ctx.arc(f.a.x, f.a.y, 22, 0, dirPA, f.p.y > f.cy);
+      ctx.arc(f.a.x, f.a.y, 24, 0, dirPA, f.p.y > f.cy);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
+      ctx.fill();
       ctx.strokeStyle = PALETTE.lime;
       ctx.stroke();
       ctx.fillStyle = PALETTE.lime;
-      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 24 * Math.cos(dirPA / 2) + 2, f.a.y + 24 * Math.sin(dirPA / 2) + (isUpper ? -6 : 14));
+      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 28 * Math.cos(dirPA / 2) + 2, f.a.y + 28 * Math.sin(dirPA / 2) + (isUpper ? -6 : 14));
 
-      // Base angle beta at b (orange)
+      // Base angle beta at b (amber fill + stroke)
       ctx.beginPath();
+      ctx.moveTo(f.b.x, f.b.y);
       const dirPB = Math.atan2(f.p.y - f.b.y, f.p.x - f.b.x);
-      ctx.arc(f.b.x, f.b.y, 22, Math.PI, dirPB, f.p.y < f.cy);
-      ctx.strokeStyle = PALETTE.orange;
+      ctx.arc(f.b.x, f.b.y, 24, Math.PI, dirPB, f.p.y < f.cy);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+      ctx.fill();
+      ctx.strokeStyle = PALETTE.amber;
       ctx.stroke();
-      ctx.fillStyle = PALETTE.orange;
-      ctx.fillText(`β=${betaDeg}°`, f.b.x + 26 * Math.cos(Math.PI + (dirPB - Math.PI) / 2) - 16, f.b.y + 26 * Math.sin(Math.PI + (dirPB - Math.PI) / 2) + (isUpper ? -6 : 14));
+      ctx.fillStyle = PALETTE.amber;
+      ctx.fillText(`β=${betaDeg}°`, f.b.x + 30 * Math.cos(Math.PI + (dirPB - Math.PI) / 2) - 18, f.b.y + 30 * Math.sin(Math.PI + (dirPB - Math.PI) / 2) + (isUpper ? -6 : 14));
 
       ctx.restore();
     }

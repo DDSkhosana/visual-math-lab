@@ -174,3 +174,17 @@ test('Plane projection: computeFrame produces accurate projection coordinates fo
   close(frameYZ.b.x, cx);
   close(frameYZ.b.y, cy);
 });
+
+test("Thales 2D & 3D: angles alpha and beta at vertices a and b sum strictly to 90°", () => {
+  const r = 10;
+  for (let deg = 10; deg < 180; deg += 10) {
+    const s2d = thalesStats2D(r, toRadians(deg));
+    close(s2d.alphaDeg + s2d.betaDeg, 90);
+    close(s2d.alpha + s2d.beta, Math.PI / 2);
+
+    const s3d = sphereStats(r, toRadians(deg), toRadians(30));
+    close(s3d.alphaDeg + s3d.betaDeg, 90);
+    close(s3d.alpha + s3d.beta, Math.PI / 2);
+  }
+});
+
