@@ -158,6 +158,43 @@ function drawArea(ctx, f) {
   ctx.closePath();
   ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
   ctx.fill();
+
+  // Altitude line from P perpendicular to diameter AB (shows height h = |y| and explains quadrant area variation)
+  if (Math.abs(f.p.y - f.cy) > 8) {
+    ctx.save();
+    ctx.strokeStyle = PALETTE.lime;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(f.p.x, f.p.y);
+    ctx.lineTo(f.p.x, f.cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Small right-angle marker at altitude foot
+    const signY = f.p.y < f.cy ? -1 : 1;
+    const footSize = 8;
+    ctx.beginPath();
+    ctx.moveTo(f.p.x, f.cy + signY * footSize);
+    ctx.lineTo(f.p.x + (f.p.x > f.cx ? -footSize : footSize), f.cy + signY * footSize);
+    ctx.lineTo(f.p.x + (f.p.x > f.cx ? -footSize : footSize), f.cy);
+    ctx.strokeStyle = PALETTE.lime;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Height label
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = PALETTE.lime;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+    const textH = `h = ${Math.abs(f.pCoords.y).toFixed(1)}`;
+    const textX = f.p.x + (f.p.x > f.cx ? -footSize - 44 : footSize + 4);
+    const textY = (f.p.y + f.cy) / 2 + 3;
+    ctx.strokeText(textH, textX, textY);
+    ctx.fillText(textH, textX, textY);
+    ctx.restore();
+  }
 }
 
 function drawArrow(ctx, from, to, color, width) {
@@ -198,6 +235,40 @@ function drawAngles(ctx, state, f) {
     ctx.fillStyle = PALETTE.teal;
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText(isRightAngle ? '90°' : `${deg}°`, f.p.x + (ux + vx) * 22 - 10, f.p.y + (uy + vy) * 22 + 4);
+
+    // Euclidean Isosceles base angles alpha and beta (demonstrating why angle P = alpha + beta = 90 deg)
+    if (lenPA > 22 && lenPB > 22) {
+      const normTheta = ((f.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const isUpper = normTheta <= Math.PI;
+      const alphaRad = isUpper ? normTheta / 2 : (Math.PI * 2 - normTheta) / 2;
+      const betaRad = Math.PI / 2 - alphaRad;
+      const alphaDeg = (alphaRad * 180 / Math.PI).toFixed(0);
+      const betaDeg = (betaRad * 180 / Math.PI).toFixed(0);
+
+      ctx.save();
+      ctx.font = 'bold 11px sans-serif';
+      ctx.lineWidth = 1.2;
+
+      // Base angle alpha at a (lime)
+      ctx.beginPath();
+      const dirPA = Math.atan2(f.p.y - f.a.y, f.p.x - f.a.x);
+      ctx.arc(f.a.x, f.a.y, 22, 0, dirPA, f.p.y > f.cy);
+      ctx.strokeStyle = PALETTE.lime;
+      ctx.stroke();
+      ctx.fillStyle = PALETTE.lime;
+      ctx.fillText(`α=${alphaDeg}°`, f.a.x + 24 * Math.cos(dirPA / 2) + 2, f.a.y + 24 * Math.sin(dirPA / 2) + (isUpper ? -6 : 14));
+
+      // Base angle beta at b (orange)
+      ctx.beginPath();
+      const dirPB = Math.atan2(f.p.y - f.b.y, f.p.x - f.b.x);
+      ctx.arc(f.b.x, f.b.y, 22, Math.PI, dirPB, f.p.y < f.cy);
+      ctx.strokeStyle = PALETTE.orange;
+      ctx.stroke();
+      ctx.fillStyle = PALETTE.orange;
+      ctx.fillText(`β=${betaDeg}°`, f.b.x + 26 * Math.cos(Math.PI + (dirPB - Math.PI) / 2) - 16, f.b.y + 26 * Math.sin(Math.PI + (dirPB - Math.PI) / 2) + (isUpper ? -6 : 14));
+
+      ctx.restore();
+    }
   }
 
   const isPhi = f.plane === 'xz';

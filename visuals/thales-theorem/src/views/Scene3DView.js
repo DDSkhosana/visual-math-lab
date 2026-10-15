@@ -87,6 +87,12 @@ export class Scene3DView {
     setPositions(THREE, o.areaTriangle.geometry, [a.x, a.y, a.z, b.x, b.y, b.z, p.x, p.y, p.z]);
     o.areaTriangle.visible = state.show3dArea;
 
+    if (o.altitudeLine) {
+      o.altitudeLine.geometry.setFromPoints([new THREE.Vector3(x, 0, 0), o.pointP.position]);
+      o.altitudeLine.computeLineDistances();
+      o.altitudeLine.visible = state.show3dArea;
+    }
+
     const origin = new THREE.Vector3();
     this.updateSector(o.thetaSector, origin, new THREE.Vector3(0, 1, 0), p, r * 0.35);
     this.updateSector(o.phiSector, origin, new THREE.Vector3(0, 0, 1), new THREE.Vector3(x, 0, z), r * 0.45);
