@@ -74,11 +74,36 @@
               <span class="stats-title">2D Telemetry</span>
               <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false">+</button>
             </div>
-            <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span>Tangent |PT₁|:</span><strong class="color-emerald" id="tel-len-t1">--</strong></div>
-              <div class="stat-line"><span>Tangent |PT₂|:</span><strong class="color-blue" id="tel-len-t2">--</strong></div>
-              <div class="stat-line"><span>Difference |L₁ − L₂|:</span><strong class="color-teal" id="tel-diff">0.000 px</strong></div>
-              <div class="stat-line"><span>Subtended ∠T₁PT₂:</span><span class="color-lavender" id="tel-angle-tpt">--</span></div>
+            <div class="stats-body hidden" id="telemetry-body" style="max-height: 380px; overflow-y: auto;">
+              <!-- 1. Computations -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics</div>
+              <div class="stat-line"><span>Kite Area (OT₁PT₂):</span><strong class="color-amber" id="tel-kite-area">-- px²</strong></div>
+              <div class="stat-line"><span>Triangle Area (ΔOPT₁):</span><strong class="color-emerald" id="tel-tri-area">-- px²</strong></div>
+              <div class="stat-line"><span>Tangent Length |PT₁|:</span><strong class="color-emerald" id="tel-len-t1">-- px</strong></div>
+              <div class="stat-line"><span>Tangent Length |PT₂|:</span><strong class="color-blue" id="tel-len-t2">-- px</strong></div>
+              <div class="stat-line"><span>Tangent Difference Δ:</span><strong class="color-teal" id="tel-diff">0.000 px</strong></div>
+              <div class="stat-line"><span>External Distance d = |OP|:</span><strong class="color-yellow" id="tel-dist-op">-- px</strong></div>
+              <div class="stat-line"><span>Chord Length |T₁T₂|:</span><strong class="color-violet" id="tel-chord-t1t2">-- px</strong></div>
+              <div class="stat-line"><span>Half-Chord |KT₁| = |KT₂|:</span><strong class="color-violet" id="tel-chord-half">-- px</strong></div>
+              <div class="stat-line"><span>Radius r:</span><strong class="color-sky" id="tel-radius">-- px</strong></div>
+
+              <!-- 2. Angles -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">2. Angles</div>
+              <div class="stat-line"><span>Right Angles (∠OT₁P, ∠OT₂P):</span><strong class="color-teal">90.0°</strong></div>
+              <div class="stat-line"><span>Diagonal Intersection ∠OKT₁:</span><strong class="color-teal">90.0°</strong></div>
+              <div class="stat-line"><span>Vertex Angle α₁ (∠T₁PO):</span><strong class="color-lime" id="tel-angle-alpha1">--°</strong></div>
+              <div class="stat-line"><span>Vertex Angle α₂ (∠T₂PO):</span><strong class="color-fuchsia" id="tel-angle-alpha2">--°</strong></div>
+              <div class="stat-line"><span>Total Subtended ∠T₁PT₂ (2α):</span><strong class="color-yellow" id="tel-angle-tpt">--°</strong></div>
+              <div class="stat-line"><span>Central Angle β₁ (∠T₁OP):</span><strong class="color-amber" id="tel-angle-beta1">--°</strong></div>
+              <div class="stat-line"><span>Central Angle β₂ (∠T₂OP):</span><strong class="color-orange" id="tel-angle-beta2">--°</strong></div>
+
+              <!-- 3. Circle Geometry Glyphs -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
+              <div class="stat-line"><span>Center O (Glyph):</span><span class="color-sky" id="tel-glyph-o">(0.0, 0.0)</span></div>
+              <div class="stat-line"><span>External Point P:</span><span class="color-red" id="tel-glyph-p">--</span></div>
+              <div class="stat-line"><span>Tangent Contact T₁:</span><span class="color-emerald" id="tel-glyph-t1">--</span></div>
+              <div class="stat-line"><span>Tangent Contact T₂:</span><span class="color-blue" id="tel-glyph-t2">--</span></div>
+              <div class="stat-line"><span>Diagonal Node K:</span><span class="color-violet" id="tel-glyph-k">--</span></div>
             </div>
           </div>
         </div>
@@ -101,14 +126,31 @@
               <span class="stats-title">3D Telemetry</span>
               <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false">+</button>
             </div>
-            <div class="stats-body hidden" id="stats-3d-body">
-              <div class="stat-line"><span>Point P (x, z):</span><span class="color-red" id="val-3d-p">0.00, 0.00</span></div>
+            <div class="stats-body hidden" id="stats-3d-body" style="max-height: 380px; overflow-y: auto;">
+              <!-- 1. Computations -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics</div>
+              <div class="stat-line"><span>3D Kite Area:</span><strong class="color-amber" id="val-3d-area">0.00</strong></div>
               <div class="stat-line"><span>3D Tangent |PT₁|:</span><strong class="color-emerald" id="val-3d-len1">0.00</strong></div>
               <div class="stat-line"><span>3D Tangent |PT₂|:</span><strong class="color-blue" id="val-3d-len2">0.00</strong></div>
-              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
-                <span>3D Invariant Δ:</span><strong class="color-teal" id="val-3d-diff">0.000</strong>
-              </div>
-              <div class="stat-line"><span>Congruence:</span><span class="color-lavender">RHS</span></div>
+              <div class="stat-line"><span>3D Invariant Difference Δ:</span><strong class="color-teal" id="val-3d-diff">0.000</strong></div>
+              <div class="stat-line"><span>3D Distance d = |OP|:</span><strong class="color-yellow" id="val-3d-dist">0.00</strong></div>
+              <div class="stat-line"><span>3D Chord |T₁T₂|:</span><strong class="color-violet" id="val-3d-chord">0.00</strong></div>
+
+              <!-- 2. Angles -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">2. Angles</div>
+              <div class="stat-line"><span>3D Right Angles:</span><strong class="color-teal">90.0° (RHS)</strong></div>
+              <div class="stat-line"><span>3D Vertex Angle α₁:</span><strong class="color-lime" id="val-3d-ang-p1">0.0°</strong></div>
+              <div class="stat-line"><span>3D Vertex Angle α₂:</span><strong class="color-fuchsia" id="val-3d-ang-p2">0.0°</strong></div>
+              <div class="stat-line"><span>3D Central Angle β₁:</span><strong class="color-amber" id="val-3d-ang-o1">0.0°</strong></div>
+              <div class="stat-line"><span>3D Central Angle β₂:</span><strong class="color-orange" id="val-3d-ang-o2">0.0°</strong></div>
+
+              <!-- 3. Circle Geometry Glyphs -->
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
+              <div class="stat-line"><span>Center O (x, z):</span><span class="color-sky">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Point P (x, z):</span><span class="color-red" id="val-3d-p">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Contact T₁ (x, z):</span><span class="color-emerald" id="val-3d-t1">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Contact T₂ (x, z):</span><span class="color-blue" id="val-3d-t2">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Diagonal Node K (x, z):</span><span class="color-violet" id="val-3d-k">0.00, 0.00</span></div>
             </div>
           </div>
         </div>

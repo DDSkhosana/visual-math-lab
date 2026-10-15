@@ -130,6 +130,19 @@ export class CanvasView {
 
     // Angle text annotations with protective badge pills inside angle cones
     if (showAngles) {
+      // Central Angle badge at O (above O along angle bisector) in yellow
+      if (state.showCenter) {
+        const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
+        const angB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
+        const uAx = Math.cos(angA), uAy = Math.sin(angA);
+        const uBx = Math.cos(angB), uBy = Math.sin(angB);
+        const bisOX = uAx + uBx, bisOY = uAy + uBy;
+        const lenO = Math.hypot(bisOX, bisOY);
+        const nbOX = lenO > 0.001 ? bisOX / lenO : 0;
+        const nbOY = lenO > 0.001 ? bisOY / lenO : -1;
+        drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, g.O.x + 44 * nbOX, g.O.y + 44 * nbOY, PALETTE.yellow);
+      }
+
       const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
       const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
       const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
@@ -138,7 +151,7 @@ export class CanvasView {
       const len1 = Math.hypot(bis1X, bis1Y);
       const nb1X = len1 > 0.001 ? bis1X / len1 : 0;
       const nb1Y = len1 > 0.001 ? bis1Y / len1 : 1;
-      drawTextBadge(ctx, `α = ${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 44 * nb1X, g.P1.y + 44 * nb1Y, PALETTE.blue);
+      drawTextBadge(ctx, `θ₁ = ${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 44 * nb1X, g.P1.y + 44 * nb1Y, PALETTE.blue);
 
       const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
       const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
@@ -148,7 +161,7 @@ export class CanvasView {
       const len2 = Math.hypot(bis2X, bis2Y);
       const nb2X = len2 > 0.001 ? bis2X / len2 : 0;
       const nb2Y = len2 > 0.001 ? bis2Y / len2 : 1;
-      drawTextBadge(ctx, `β = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 44 * nb2X, g.P2.y + 44 * nb2Y, PALETTE.emerald);
+      drawTextBadge(ctx, `θ₂ = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 44 * nb2X, g.P2.y + 44 * nb2Y, PALETTE.emerald);
     }
   }
 

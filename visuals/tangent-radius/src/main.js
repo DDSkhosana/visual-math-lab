@@ -145,6 +145,8 @@ function bootstrap() {
 
     // 2D telemetry
     document.getElementById('tel-radius-len').textContent = `${state.radius} px`;
+    const elVtan2D = document.getElementById('tel-vtan');
+    if (elVtan2D) elVtan2D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, ${(Math.cos(state.angleT)).toFixed(2)})`;
     document.getElementById('tel-angle').textContent = '90.0°';
     document.getElementById('tel-dot').textContent = `${Math.abs(g.dotProduct).toFixed(4)}`;
     document.getElementById('label-radius').textContent = `${state.radius}px`;
@@ -154,6 +156,8 @@ function bootstrap() {
     const tz = (10 * Math.sin(state.angleT)).toFixed(2);
     const elT = document.getElementById('val-3d-t');
     if (elT) elT.textContent = `${tx}, ${tz}`;
+    const elVtan3D = document.getElementById('val-3d-vtan');
+    if (elVtan3D) elVtan3D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, 0.00, ${(Math.cos(state.angleT)).toFixed(2)})`;
     const elAngle = document.getElementById('val-3d-angle');
     if (elAngle) elAngle.textContent = '90.0°';
     const elDot = document.getElementById('val-3d-dot');

@@ -66,7 +66,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Alternate Segment (<span class="color-yellow">∠(Tangent, TA)</span> = <span class="color-orange">∠TBA</span>)</div>
+          <div class="view-title">2D: Alternate Segment (<span class="color-yellow">∠(Tangent, TA)</span> = <span class="color-yellow">∠TBA</span> = <span class="color-yellow">α</span>)</div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -75,9 +75,10 @@
               <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false">+</button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span>Tangent-Chord Angle:</span><strong class="color-yellow" id="tel-tangent-angle">60.0°</strong></div>
-              <div class="stat-line"><span>Alternate Inscribed (∠TBA):</span><strong class="color-orange" id="tel-inscribed-angle">60.0°</strong></div>
-              <div class="stat-line"><span>Discrepancy:</span><strong class="color-teal" id="tel-diff">0.000°</strong></div>
+              <div class="stat-line"><span>Tangent-Chord Angle (α):</span><strong class="color-yellow" id="tel-tangent-angle">60.0°</strong></div>
+              <div class="stat-line"><span>Alternate Inscribed (∠TBA):</span><strong class="color-yellow" id="tel-inscribed-angle">60.0°</strong></div>
+              <div class="stat-line"><span>Primary Chord |TA|:</span><strong class="color-blue" id="tel-chord-ta">0.0 px</strong></div>
+              <div class="stat-line"><span>Invariant Difference Δ:</span><strong class="color-teal" id="tel-diff">0.000°</strong></div>
               <div class="stat-line"><span>Radius r:</span><span class="color-indigo" id="tel-radius">180 px</span></div>
             </div>
           </div>
@@ -103,11 +104,12 @@
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
               <div class="stat-line"><span>Contact T (x, z):</span><span class="color-red" id="val-3d-t">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Vertex A (x, z):</span><span class="color-blue" id="val-3d-a">0.00, 0.00</span></div>
               <div class="stat-line"><span>Vertex B (x, z):</span><span class="color-orange" id="val-3d-b">0.00, 0.00</span></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
-                <span>3D Tangent Angle:</span><strong class="color-yellow" id="val-3d-ang-tan">60.0°</strong>
+                <span>3D Tangent Angle (α):</span><strong class="color-yellow" id="val-3d-ang-tan">60.0°</strong>
               </div>
-              <div class="stat-line"><span>3D Alternate ∠TBA:</span><strong class="color-orange" id="val-3d-ang-tba">60.0°</strong></div>
+              <div class="stat-line"><span>3D Alternate ∠TBA:</span><strong class="color-yellow" id="val-3d-ang-tba">60.0°</strong></div>
               <div class="stat-line"><span>3D Invariant Δ:</span><strong class="color-teal" id="val-3d-diff">0.000°</strong></div>
             </div>
           </div>

@@ -75,7 +75,7 @@ export class CanvasView {
     }
 
     // Radius OT
-    ctx.strokeStyle = PALETTE.indigo;
+    ctx.strokeStyle = PALETTE.blue;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(g.O.x, g.O.y); ctx.lineTo(g.T.x, g.T.y);
@@ -111,7 +111,7 @@ export class CanvasView {
     // Points and Labels adhering to Euclidean standards with outward radial clearance
     if (state.vis2d?.points !== false) {
       const vis = state.vis2d || {};
-      drawLabelledPoint(ctx, g.O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), 10, 16);
+      drawLabelledPoint(ctx, g.O, PALETTE.blue, getPointLabel('O', 0, 0, vis), 10, 16);
       drawRadialLabelledPoint(ctx, g.T, g.O, PALETTE.red, getPointLabel('T', g.T.x - g.cx, -(g.T.y - g.cy), vis), 20);
     }
 

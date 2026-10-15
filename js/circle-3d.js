@@ -823,13 +823,16 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.inscribedAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.green, 0.65);
     this.angleAlphaPMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
     this.angleBetaPMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
+    this.angleAlphaAMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
+    this.angleBetaBMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
 
     this.scene.add(
       this.markerO, this.markerA, this.markerB, this.markerP,
       this.lineOA, this.lineOB, this.lineOP, this.linePA, this.linePB,
       this.sectorMesh, this.triOPAMesh, this.triOPBMesh,
       this.centralAngleMesh, this.inscribedAngleMesh,
-      this.angleAlphaPMesh, this.angleBetaPMesh
+      this.angleAlphaPMesh, this.angleBetaPMesh,
+      this.angleAlphaAMesh, this.angleBetaBMesh
     );
 
     this.draggableTargets = [
@@ -893,8 +896,11 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4);
     setAngleWedgeVertices3D(this.angleAlphaPMesh, P, A, O, 2.8);
     setAngleWedgeVertices3D(this.angleBetaPMesh, P, O, B, 2.8);
+    setAngleWedgeVertices3D(this.angleAlphaAMesh, A, O, P, 2.6);
+    setAngleWedgeVertices3D(this.angleBetaBMesh, B, O, P, 2.6);
     this.centralAngleMesh.visible = this.inscribedAngleMesh.visible = showAngles;
     this.angleAlphaPMesh.visible = this.angleBetaPMesh.visible = showAngles;
+    this.angleAlphaAMesh.visible = this.angleBetaBMesh.visible = showAngles;
 
     const degCent = get3DAngleDegrees(O, A, B, THREE);
     const degInsc = get3DAngleDegrees(P, A, B, THREE);
@@ -905,6 +911,8 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const inscribedLabelPos = get3DAngleBisector(P, A, B, 3.6, THREE);
     const alphaLabelPos = get3DAngleBisector(P, A, O, 4.2, THREE);
     const betaLabelPos = get3DAngleBisector(P, O, B, 4.2, THREE);
+    const alphaALabelPos = get3DAngleBisector(A, O, P, 3.8, THREE);
+    const betaBLabelPos = get3DAngleBisector(B, O, P, 3.8, THREE);
 
     const A_pos = A.clone().multiplyScalar(1.15);
     const B_pos = B.clone().multiplyScalar(1.15);
@@ -919,8 +927,10 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       { key: 'P', at: P_pos, name: 'P', text: 'P', coords: P, color: 'color-violet' },
       { key: 'central', at: centralLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
       { key: 'inscribed', at: inscribedLabelPos, text: `θ = ${degInsc.toFixed(1)}°`, isAngle: true, color: 'color-green', show: showAngles },
-      { key: 'alpha', at: alphaLabelPos, text: `α = ${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
-      { key: 'beta', at: betaLabelPos, text: `β = ${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
+      { key: 'alphaP', at: alphaLabelPos, text: `α = ${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'betaP', at: betaLabelPos, text: `β = ${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
+      { key: 'alphaA', at: alphaALabelPos, text: `α = ${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'betaB', at: betaBLabelPos, text: `β = ${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);
   }
@@ -1064,8 +1074,8 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-red' },
       { key: 'P1', at: P1_pos, name: 'P₁', text: 'P₁', coords: P1, color: 'color-blue' },
       { key: 'P2', at: P2_pos, name: 'P₂', text: 'P₂', coords: P2, color: 'color-emerald' },
-      { key: 'angP1', at: p1LabelPos, text: `α = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
-      { key: 'angP2', at: p2LabelPos, text: `β = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
+      { key: 'angP1', at: p1LabelPos, text: `θ₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
+      { key: 'angP2', at: p2LabelPos, text: `θ₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
     ];
     if (showCenter) {
       this.currentLabels.push(
@@ -1233,10 +1243,10 @@ export class TangentRadius3DView extends BaseScene3DView {
     this.sphere.scale.setScalar(R);
     this.circleWire.scale.setScalar(R);
 
-    this.markerO = makeMarker(THREE, PALETTE.indigo, 0.16);
+    this.markerO = makeMarker(THREE, PALETTE.blue, 0.16);
     this.markerT = makeMarker(THREE, PALETTE.red, 0.18);
 
-    this.lineOT = makeLine(THREE, PALETTE.indigo);
+    this.lineOT = makeLine(THREE, PALETTE.blue);
     this.tangentDoubleArrow = makeDoubleArrowLine(THREE, PALETTE.emerald);
     this.rightAngleMarker = makeLine(THREE, PALETTE.teal);
     this.rightAngleMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
@@ -1316,7 +1326,7 @@ export class TangentRadius3DView extends BaseScene3DView {
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
-      { key: 'O', at: O_pos, name: 'O', text: 'O', coords: O, color: 'color-indigo' },
+      { key: 'O', at: O_pos, name: 'O', text: 'O', coords: O, color: 'color-blue' },
       { key: 'T', at: T_pos, name: 'T', text: 'T', coords: T, color: 'color-red' },
       { key: 'right', at: rightAngleAt, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
     ];
@@ -1341,26 +1351,31 @@ export class AlternateSegment3DView extends BaseScene3DView {
     this.markerT = makeMarker(THREE, PALETTE.red, 0.18);
     this.markerA = makeMarker(THREE, PALETTE.blue, 0.18);
     this.markerB = makeMarker(THREE, PALETTE.orange, 0.18);
-    this.markerD = makeMarker(THREE, PALETTE.lavender, 0.18);
+    this.markerD = makeMarker(THREE, PALETTE.indigo, 0.18);
 
     this.tangentDoubleArrow = makeDoubleArrowLine(THREE, PALETTE.emerald);
+    this.tangentDoubleArrow.group.renderOrder = 5;
     this.chordTA = makeLine(THREE, PALETTE.blue);
-    this.chordAB = makeLine(THREE, PALETTE.blue);
-    this.chordBT = makeLine(THREE, PALETTE.blue);
+    this.chordAB = makeLine(THREE, PALETTE.orange);
+    this.chordBT = makeLine(THREE, PALETTE.cyan);
 
-    this.diameterTD = makeLine(THREE, PALETTE.lavender, true);
-    this.chordDB = makeLine(THREE, PALETTE.lavender, true);
+    this.diameterTD = makeLine(THREE, PALETTE.indigo, true);
+    this.chordDB = makeLine(THREE, PALETTE.rose, true);
 
-    this.segmentMesh = makeTriMesh(THREE, PALETTE.sky, 0.12);
-    this.triMesh = makeTriMesh(THREE, PALETTE.blue, 0.16);
-    this.proofTriMesh = makeTriMesh(THREE, PALETTE.lavender, 0.14);
+    this.segmentMesh = makeTriMesh(THREE, PALETTE.sky, 0.16);
+    this.minorSegmentMesh = makeTriMesh(THREE, PALETTE.amber, 0.16);
+    this.triMesh = makeTriMesh(THREE, PALETTE.cyan, 0.16);
+    this.proofTriMesh = makeTriMesh(THREE, PALETTE.indigo, 0.16);
+    this.triABDMesh = makeTriMesh(THREE, PALETTE.rose, 0.14);
+    this.rightAngleBMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.angleTanMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
     this.angleBMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
 
     this.scene.add(
       this.markerT, this.markerA, this.markerB, this.markerD,
       this.tangentDoubleArrow.group, this.chordTA, this.chordAB, this.chordBT,
-      this.diameterTD, this.chordDB, this.segmentMesh, this.triMesh, this.proofTriMesh,
+      this.diameterTD, this.chordDB, this.segmentMesh, this.minorSegmentMesh,
+      this.triMesh, this.proofTriMesh, this.triABDMesh, this.rightAngleBMesh,
       this.angleTanMesh, this.angleBMesh
     );
 
@@ -1426,16 +1441,21 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const segStart = (arcRange.start + arcRange.sweep) % TAU;
     const segSweep = TAU - arcRange.sweep;
     setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, segStart, segSweep, 32);
+    setSegmentXZVertices(this.minorSegmentMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
 
     setTriVertices(this.triMesh.geometry, T, A, B);
     if (showProof) {
       setTriVertices(this.proofTriMesh.geometry, T, B, D);
+      setTriVertices(this.triABDMesh.geometry, A, B, D);
+      setRightAngle3DVertices(this.rightAngleBMesh, B, T, D, 1.4);
     }
 
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     this.segmentMesh.visible = showArea;
+    this.minorSegmentMesh.visible = showArea;
     this.triMesh.visible = showArea;
     this.proofTriMesh.visible = showProof && showArea;
+    this.triABDMesh.visible = showProof && showArea;
 
     // 3D Angle Wedges & Spatial Bisectors
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
@@ -1448,9 +1468,11 @@ export class AlternateSegment3DView extends BaseScene3DView {
     setAngleWedgeVertices3D(this.angleTanMesh, T, activeTan, A, 2.5);
     setAngleWedgeVertices3D(this.angleBMesh, B, T, A, 2.4);
     this.angleTanMesh.visible = this.angleBMesh.visible = showAngles;
+    this.rightAngleBMesh.visible = showProof && showAngles;
 
     const angTPos = get3DAngleBisector(T, activeTan, A, 3.2, THREE);
     const angBPos = get3DAngleBisector(B, T, A, 3.2, THREE);
+    const tanLabelPos = new THREE.Vector3().addVectors(T, tanDir.clone().multiplyScalar(L * 0.65));
 
     const T_pos = T.clone().multiplyScalar(1.15);
     const A_pos = A.clone().multiplyScalar(1.15);
@@ -1462,11 +1484,14 @@ export class AlternateSegment3DView extends BaseScene3DView {
       { key: 'T', at: T_pos, name: 'T', text: 'T', coords: T, color: 'color-red' },
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-blue' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
+      { key: 'tangent', at: tanLabelPos, name: 'Tangent', text: 'Tangent', color: 'color-emerald' },
       { key: 'angTan', at: angTPos, text: `α = ${degTan.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
       { key: 'angB', at: angBPos, text: `α = ${degB.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
     ];
     if (showProof) {
-      this.currentLabels.push({ key: 'D', at: D_pos, name: 'D', text: 'D', coords: D, color: 'color-lavender' });
+      this.currentLabels.push({ key: 'D', at: D_pos, name: 'D', text: 'D', coords: D, color: 'color-indigo' });
+      const rightAngleBAt = get3DAngleBisector(B, T, D, 2.6, THREE);
+      this.currentLabels.push({ key: 'rightB', at: rightAngleBAt, text: '90°', isAngle: true, color: 'color-teal', show: showAngles });
     }
     this.overlay.render(this.currentLabels, state.vis3d);
   }
@@ -1487,28 +1512,31 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     this.markerP = makeMarker(THREE, PALETTE.red, 0.18);
     this.markerT1 = makeMarker(THREE, PALETTE.emerald, 0.18);
     this.markerT2 = makeMarker(THREE, PALETTE.blue, 0.18);
+    this.markerK = makeMarker(THREE, PALETTE.violet, 0.15);
 
-    this.lineOP = makeLine(THREE, PALETTE.lavender, true);
-    this.radiusOT1 = makeLine(THREE, PALETTE.indigo);
-    this.radiusOT2 = makeLine(THREE, PALETTE.indigo);
+    this.lineOP = makeLine(THREE, PALETTE.yellow, true);
+    this.radiusOT1 = makeLine(THREE, PALETTE.emerald);
+    this.radiusOT2 = makeLine(THREE, PALETTE.blue);
     this.tangentPT1 = makeLine(THREE, PALETTE.emerald);
     this.tangentPT2 = makeLine(THREE, PALETTE.blue);
+    this.chordT1T2 = makeLine(THREE, PALETTE.violet);
 
-    this.tri1Mesh = makeTriMesh(THREE, PALETTE.emerald, 0.16);
-    this.tri2Mesh = makeTriMesh(THREE, PALETTE.blue, 0.16);
+    this.tri1Mesh = makeTriMesh(THREE, PALETTE.emerald, 0.18);
+    this.tri2Mesh = makeTriMesh(THREE, PALETTE.blue, 0.18);
     this.rightAngle1Mesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngle2Mesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
-    this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.emerald, 0.65);
-    this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.65);
-    this.angleOMesh1 = makeAngleWedgeMesh(THREE, PALETTE.emerald, 0.65);
-    this.angleOMesh2 = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.65);
+    this.rightAngleKMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
+    this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
+    this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
+    this.angleOMesh1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.65);
+    this.angleOMesh2 = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.65);
 
     this.scene.add(
-      this.markerO, this.markerP, this.markerT1, this.markerT2,
+      this.markerO, this.markerP, this.markerT1, this.markerT2, this.markerK,
       this.lineOP, this.radiusOT1, this.radiusOT2,
-      this.tangentPT1, this.tangentPT2,
+      this.tangentPT1, this.tangentPT2, this.chordT1T2,
       this.tri1Mesh, this.tri2Mesh,
-      this.rightAngle1Mesh, this.rightAngle2Mesh,
+      this.rightAngle1Mesh, this.rightAngle2Mesh, this.rightAngleKMesh,
       this.anglePMesh1, this.anglePMesh2,
       this.angleOMesh1, this.angleOMesh2
     );
@@ -1554,11 +1582,13 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     // Tangent contact points on sphere
     const T1 = u.clone().multiplyScalar(R * Math.cos(alpha)).add(v.clone().multiplyScalar(R * Math.sin(alpha)));
     const T2 = u.clone().multiplyScalar(R * Math.cos(alpha)).sub(v.clone().multiplyScalar(R * Math.sin(alpha)));
+    const K = u.clone().multiplyScalar(R * Math.cos(alpha));
 
     this.markerO.position.copy(O);
     this.markerP.position.copy(P);
     this.markerT1.position.copy(T1);
     this.markerT2.position.copy(T2);
+    this.markerK.position.copy(K);
 
     this.lineOP.geometry.setFromPoints([O, P]);
     this.lineOP.computeLineDistances();
@@ -1566,18 +1596,20 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     this.radiusOT2.geometry.setFromPoints([O, T2]);
     this.tangentPT1.geometry.setFromPoints([P, T1]);
     this.tangentPT2.geometry.setFromPoints([P, T2]);
+    this.chordT1T2.geometry.setFromPoints([T1, T2]);
 
     setTriVertices(this.tri1Mesh.geometry, O, T1, P);
     setTriVertices(this.tri2Mesh.geometry, O, T2, P);
     setRightAngle3DVertices(this.rightAngle1Mesh, T1, O, P, 1.3);
     setRightAngle3DVertices(this.rightAngle2Mesh, T2, O, P, 1.3);
+    setRightAngle3DVertices(this.rightAngleKMesh, K, T1, P, 1.1);
 
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     this.tri1Mesh.visible = this.tri2Mesh.visible = (state.showCongruence !== false) && showArea;
 
     // 3D Angle Shading & Spatial Bisectors
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
-    this.rightAngle1Mesh.visible = this.rightAngle2Mesh.visible = showAngles;
+    this.rightAngle1Mesh.visible = this.rightAngle2Mesh.visible = this.rightAngleKMesh.visible = showAngles;
 
     setAngleWedgeVertices3D(this.anglePMesh1, P, T1, O, 4.2);
     setAngleWedgeVertices3D(this.anglePMesh2, P, O, T2, 4.2);
@@ -1598,11 +1630,13 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
 
     const right1Pos = get3DAngleBisector(T1, O, P, 3.0, THREE);
     const right2Pos = get3DAngleBisector(T2, O, P, 3.0, THREE);
+    const midOP = new THREE.Vector3().addVectors(O, P).multiplyScalar(0.5);
 
     const T1_pos = T1.clone().multiplyScalar(1.15);
     const T2_pos = T2.clone().multiplyScalar(1.15);
     const P_pos = P.clone().multiplyScalar(1.08);
     const O_pos = new THREE.Vector3(0, 0.8, 0);
+    const K_pos = K.clone().add(new THREE.Vector3(0, 0.7, 0));
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -1610,12 +1644,14 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       { key: 'P', at: P_pos, name: 'P', text: 'P', coords: P, color: 'color-red' },
       { key: 'T1', at: T1_pos, name: 'T₁', text: 'T₁', coords: T1, color: 'color-emerald' },
       { key: 'T2', at: T2_pos, name: 'T₂', text: 'T₂', coords: T2, color: 'color-blue' },
+      { key: 'K', at: K_pos, name: 'K', text: 'K', coords: K, color: 'color-violet' },
+      { key: 'd', at: midOP, text: `d = ${d.toFixed(1)}`, isAngle: false, color: 'color-yellow' },
       { key: 'right1', at: right1Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
       { key: 'right2', at: right2Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
-      { key: 'angO1', at: angO1Pos, text: `β = ${degO1.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
-      { key: 'angO2', at: angO2Pos, text: `β = ${degO2.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
-      { key: 'angP1', at: angP1Pos, text: `α = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
-      { key: 'angP2', at: angP2Pos, text: `α = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
+      { key: 'angO1', at: angO1Pos, text: `β₁ = ${degO1.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
+      { key: 'angO2', at: angO2Pos, text: `β₂ = ${degO2.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
+      { key: 'angP1', at: angP1Pos, text: `α₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'angP2', at: angP2Pos, text: `α₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);
   }
@@ -1640,20 +1676,23 @@ export class ChordBisector3DView extends BaseScene3DView {
     this.lineAM = makeLine(THREE, PALETTE.blue);
     this.lineMB = makeLine(THREE, PALETTE.orange);
     this.perpOM = makeLine(THREE, PALETTE.emerald);
-    this.lineOA = makeLine(THREE, PALETTE.indigo);
-    this.lineOB = makeLine(THREE, PALETTE.indigo);
+    this.lineOA = makeLine(THREE, PALETTE.blue);
+    this.lineOB = makeLine(THREE, PALETTE.orange);
     this.bisectorExtArrow = makeDoubleArrowLine(THREE, PALETTE.lavender);
 
     this.tri1Mesh = makeTriMesh(THREE, PALETTE.blue, 0.16);
     this.tri2Mesh = makeTriMesh(THREE, PALETTE.orange, 0.16);
     this.segmentMesh = makeTriMesh(THREE, PALETTE.sky, 0.12);
     this.rightAngleMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
+    this.angleAOMMesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.65);
+    this.angleBOMMesh = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.65);
 
     this.scene.add(
       this.markerO, this.markerA, this.markerB, this.markerM,
       this.lineAM, this.lineMB, this.perpOM, this.lineOA, this.lineOB,
       this.bisectorExtArrow.group,
-      this.tri1Mesh, this.tri2Mesh, this.segmentMesh, this.rightAngleMesh
+      this.tri1Mesh, this.tri2Mesh, this.segmentMesh, this.rightAngleMesh,
+      this.angleAOMMesh, this.angleBOMMesh
     );
 
     this.draggableTargets = [
@@ -1713,8 +1752,15 @@ export class ChordBisector3DView extends BaseScene3DView {
     // 3D Angle Shading & Spatial Bisector
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
     this.rightAngleMesh.visible = showAngles;
+    setAngleWedgeVertices3D(this.angleAOMMesh, O, A, M, 2.6);
+    setAngleWedgeVertices3D(this.angleBOMMesh, O, M, B, 2.6);
+    this.angleAOMMesh.visible = this.angleBOMMesh.visible = showAngles;
 
+    const degAOM = get3DAngleDegrees(O, A, M, THREE);
+    const degBOM = get3DAngleDegrees(O, M, B, THREE);
     const rightPos = get3DAngleBisector(M, O, A, 3.2, THREE);
+    const aomLabelPos = get3DAngleBisector(O, A, M, 3.8, THREE);
+    const bomLabelPos = get3DAngleBisector(O, M, B, 3.8, THREE);
 
     const A_pos = A.clone().multiplyScalar(1.15);
     const B_pos = B.clone().multiplyScalar(1.15);
@@ -1727,6 +1773,8 @@ export class ChordBisector3DView extends BaseScene3DView {
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-blue' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
       { key: 'M', at: M_pos, name: 'M', text: 'M', coords: M, color: 'color-emerald' },
+      { key: 'angAOM', at: aomLabelPos, text: `∠AOM = ${degAOM.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
+      { key: 'angBOM', at: bomLabelPos, text: `∠BOM = ${degBOM.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
       { key: 'right', at: rightPos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);

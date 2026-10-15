@@ -65,7 +65,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Tangent-Radius Theorem (<span class="color-indigo">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90°</span>)</div>
+          <div class="view-title">2D: Tangent-Radius Theorem (<span class="color-blue">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90°</span>)</div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -74,7 +74,8 @@
               <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false">+</button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span>Radius Length (OT):</span><strong class="color-indigo" id="tel-radius-len">180 px</strong></div>
+              <div class="stat-line"><span>Radius Length (OT):</span><strong class="color-blue" id="tel-radius-len">180 px</strong></div>
+              <div class="stat-line"><span>Tangent Vector (v_tan):</span><strong class="color-emerald" id="tel-vtan">(-0.00, 0.00)</strong></div>
               <div class="stat-line"><span>Angle at Contact T:</span><strong class="color-teal" id="tel-angle">90.0°</strong></div>
               <div class="stat-line"><span>Vector Dot Product (r · t):</span><strong class="color-emerald" id="tel-dot">0.0000</strong></div>
             </div>
@@ -101,7 +102,8 @@
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
               <div class="stat-line"><span>Contact T (x, z):</span><span class="color-amber" id="val-3d-t">0.00, 0.00</span></div>
-              <div class="stat-line"><span>Radius R:</span><span class="color-indigo">10.0</span></div>
+              <div class="stat-line"><span>Radius R:</span><span class="color-blue">10.0</span></div>
+              <div class="stat-line"><span>Tangent Vector (v_tan):</span><strong class="color-emerald" id="val-3d-vtan">(-0.00, 0.00, 0.00)</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span>3D Normal Angle:</span><strong class="color-teal" id="val-3d-angle">90.0°</strong>
               </div>

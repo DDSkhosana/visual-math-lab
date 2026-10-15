@@ -137,9 +137,9 @@ function bootstrap() {
 
     canvas.style.cursor = 'grabbing';
     const dx = x - g.cx;
-    const dy = y - g.cy;
+    const dy = g.cy - y;
     const dist = Math.max(g.r + 15, Math.hypot(dx, dy));
-    const angle = Math.atan2(dy, dx);
+    const angle = pointerToAngle(dx, dy);
     store.set({ pointDist: dist, pointAngle: angle });
   });
 
@@ -160,29 +160,67 @@ function bootstrap() {
     const g = computeGeometry(state, view.width, view.height);
 
     // 2D telemetry
-    document.getElementById('tel-len-t1').textContent = `${g.lenPT1.toFixed(1)} px`;
-    document.getElementById('tel-len-t2').textContent = `${g.lenPT2.toFixed(1)} px`;
-    document.getElementById('tel-diff').textContent = `${g.lenDiff.toFixed(3)} px`;
-    document.getElementById('tel-angle-tpt').textContent = `${g.angleT1PT2Deg.toFixed(1)}°`;
+    const setT = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setT('tel-kite-area', `${g.kiteArea.toFixed(1)} px²`);
+    setT('tel-tri-area', `${g.triArea.toFixed(1)} px²`);
+    setT('tel-len-t1', `${g.lenPT1.toFixed(1)} px`);
+    setT('tel-len-t2', `${g.lenPT2.toFixed(1)} px`);
+    setT('tel-diff', `${g.lenDiff.toFixed(3)} px`);
+    setT('tel-dist-op', `${g.d.toFixed(1)} px`);
+    setT('tel-chord-t1t2', `${g.chordT1T2.toFixed(1)} px`);
+    setT('tel-chord-half', `${g.halfChord.toFixed(1)} px`);
+    setT('tel-radius', `${state.radius} px`);
 
-    document.getElementById('label-radius').textContent = `${state.radius}px`;
-    document.getElementById('label-dist').textContent = `${Math.round(g.d)}px`;
+    setT('tel-angle-alpha1', `${g.alphaDeg.toFixed(1)}°`);
+    setT('tel-angle-alpha2', `${g.alphaDeg.toFixed(1)}°`);
+    setT('tel-angle-tpt', `${g.angleT1PT2Deg.toFixed(1)}°`);
+    setT('tel-angle-beta1', `${g.betaDeg.toFixed(1)}°`);
+    setT('tel-angle-beta2', `${g.betaDeg.toFixed(1)}°`);
+
+    setT('tel-glyph-o', `(${g.cx.toFixed(0)}, ${g.cy.toFixed(0)})`);
+    setT('tel-glyph-p', `(${g.P.x.toFixed(0)}, ${g.P.y.toFixed(0)})`);
+    setT('tel-glyph-t1', `(${g.T1.x.toFixed(0)}, ${g.T1.y.toFixed(0)})`);
+    setT('tel-glyph-t2', `(${g.T2.x.toFixed(0)}, ${g.T2.y.toFixed(0)})`);
+    setT('tel-glyph-k', `(${g.K.x.toFixed(0)}, ${g.K.y.toFixed(0)})`);
+
+    setT('label-radius', `${state.radius}px`);
+    setT('label-dist', `${Math.round(g.d)}px`);
 
     // 3D telemetry
     const distRatio = Math.max(1.15, (state.pointDist || 260) / (state.radius || 120));
     const d3 = 8 * distRatio;
-    const px3 = (d3 * Math.cos(state.pointAngle || 0)).toFixed(2);
-    const pz3 = (d3 * Math.sin(state.pointAngle || 0)).toFixed(2);
-    const tanLen3 = Math.sqrt(d3 * d3 - 64).toFixed(2);
+    const ang3 = state.pointAngle || 0;
+    const px3 = (d3 * Math.cos(ang3)).toFixed(2);
+    const pz3 = (d3 * Math.sin(ang3)).toFixed(2);
+    const tanLen3 = Math.sqrt(Math.max(0, d3 * d3 - 64)).toFixed(2);
+    const kiteArea3 = (8 * parseFloat(tanLen3)).toFixed(2);
+    const alpha3Rad = Math.acos(Math.min(1, 8 / d3));
+    const alpha3Deg = (alpha3Rad * 180 / Math.PI).toFixed(1);
+    const beta3Deg = (90 - parseFloat(alpha3Deg)).toFixed(1);
+    const t1x3 = (8 * Math.cos(ang3 + alpha3Rad)).toFixed(2);
+    const t1z3 = (8 * Math.sin(ang3 + alpha3Rad)).toFixed(2);
+    const t2x3 = (8 * Math.cos(ang3 - alpha3Rad)).toFixed(2);
+    const t2z3 = (8 * Math.sin(ang3 - alpha3Rad)).toFixed(2);
+    const kx3 = ((64 / d3) * Math.cos(ang3)).toFixed(2);
+    const kz3 = ((64 / d3) * Math.sin(ang3)).toFixed(2);
+    const chord3 = (2 * (8 / d3) * parseFloat(tanLen3)).toFixed(2);
 
-    const elP = document.getElementById('val-3d-p');
-    if (elP) elP.textContent = `${px3}, ${pz3}`;
-    const elLen1 = document.getElementById('val-3d-len1');
-    if (elLen1) elLen1.textContent = tanLen3;
-    const elLen2 = document.getElementById('val-3d-len2');
-    if (elLen2) elLen2.textContent = tanLen3;
-    const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = '0.000';
+    setT('val-3d-area', kiteArea3);
+    setT('val-3d-len1', tanLen3);
+    setT('val-3d-len2', tanLen3);
+    setT('val-3d-diff', '0.000');
+    setT('val-3d-dist', d3.toFixed(2));
+    setT('val-3d-chord', chord3);
+
+    setT('val-3d-ang-p1', `${alpha3Deg}°`);
+    setT('val-3d-ang-p2', `${alpha3Deg}°`);
+    setT('val-3d-ang-o1', `${beta3Deg}°`);
+    setT('val-3d-ang-o2', `${beta3Deg}°`);
+
+    setT('val-3d-p', `${px3}, ${pz3}`);
+    setT('val-3d-t1', `${t1x3}, ${t1z3}`);
+    setT('val-3d-t2', `${t2x3}, ${t2z3}`);
+    setT('val-3d-k', `${kx3}, ${kz3}`);
 
     // Live math derivations
     derivations.render(state, g);

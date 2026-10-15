@@ -312,7 +312,8 @@ export class CyclicQuadDerivations {
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
         `↳ ${tag('cyan', `∠B = ${angleB.toFixed(1)}°`)}, ${tag('rose', `∠D = ${angleD.toFixed(1)}°`)} ⟹ Sum = ${tag('cyan', `${angleB.toFixed(1)}°`)} + ${tag('rose', `${angleD.toFixed(1)}°`)} = ${tag('teal', `${sumBD.toFixed(1)}°`)}<br>` +
-        `↳ Total Quadrilateral Interior Sum = ${tag('platinum', `${total.toFixed(1)}°`)}`;
+        `↳ Total Quadrilateral Interior Sum = ${tag('platinum', `${total.toFixed(1)}°`)}<br>` +
+        `↳ <small style="color:#94a3b8"><em>Geometric invariant: Sliding vertex ${tag('cyan', 'B')} along arc AC preserves ${tag('cyan', '∠B')} because it subtends the fixed chord AC (Angles in Same Segment Theorem). Moving bounding vertices ${tag('violet', 'A')} or ${tag('amber', 'C')} dynamically changes ${tag('cyan', '∠B')} and ${tag('rose', '∠D')}.</em></small>`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
@@ -335,31 +336,33 @@ export class TangentRadiusDerivations {
       ${cardTemplate(
         'tr-step-1',
         'Step 1',
-        `Radial Vector ${tag('indigo', 'OT')}`,
-        `Origin ${tag('indigo', 'Center O')} = (0, 0), Point of tangency ${tag('red', 'T')} on circle.<br>` +
-        `Radial vector: ${tag('indigo', 'OT')} = (r cos θ, r sin θ), magnitude |OT| = ${tag('indigo', 'r')}`
+        `Radial Vector ${tag('blue', 'OT')}`,
+        `Origin ${tag('blue', 'Center O')} = (0, 0), Point of tangency ${tag('red', 'T')} on circle.<br>` +
+        `Radial vector: ${tag('blue', 'OT')} = (${tag('amber', 'r cos θ')}, ${tag('lime', 'r sin θ')}), magnitude |${tag('blue', 'OT')}| = ${tag('blue', 'r')}`
       )}
       ${cardTemplate(
         'tr-step-2',
         'Step 2',
         `Tangent Line Direction Vector ${tag('emerald', 'v_tan')}`,
-        `Direction along circumference at ${tag('red', 'T')}:<br>` +
-        `${tag('emerald', 'v_tan')} = d/dθ (r cos θ, r sin θ) = (-r sin θ, r cos θ) = (-y_T, x_T)`
+        `Velocity / direction along circle circumference at ${tag('red', 'T')}:<br>` +
+        `${tag('emerald', 'v_tan')} = d/dθ (${tag('amber', 'r cos θ')}, ${tag('lime', 'r sin θ')}) = (${tag('amber', '-r sin θ')}, ${tag('lime', 'r cos θ')}) = (${tag('amber', '-y_T')}, ${tag('lime', 'x_T')})`
       )}
       ${cardTemplate(
         'tr-step-3',
         'Step 3',
-        `Orthogonality via Vector Dot Product`,
-        `${tag('indigo', 'OT')} · ${tag('emerald', 'v_tan')} = (x_T)(-y_T) + (y_T)(x_T) = -x_T y_T + x_T y_T = 0<br>` +
-        `Dot product vanishes identically for all angles θ.`,
+        `Orthogonality via Vector Product (Inner Product Criterion)`,
+        `<strong>Orthogonality Axiom:</strong> In Euclidean space, two non-zero vectors are perpendicular (${tag('teal', 'u ⊥ v')}) if and only if their inner (dot) product is zero: ${tag('blue', 'u')} · ${tag('emerald', 'v')} = 0.<br>` +
+        `Coordinate inner product expansion:<br>` +
+        `${tag('blue', 'OT')} · ${tag('emerald', 'v_tan')} = (${tag('amber', 'x_T')})(${tag('amber', '-y_T')}) + (${tag('lime', 'y_T')})(${tag('lime', 'x_T')}) = ${tag('amber', '-x_T y_T')} + ${tag('lime', 'x_T y_T')} = ${tag('teal', '0')}<br>` +
+        `The dot product vanishes identically for all angles θ.`,
         true
       )}
       ${cardTemplate(
         'tr-step-4',
         'Step 4',
         `Perpendicular Invariant (${tag('teal', '∠(OT, Tangent) = 90.0°')})`,
-        `cos ∠(OT, Tangent) = (OT · v_tan) / (|OT| · |v_tan|) = 0 / r² = 0<br>` +
-        `⟹ Angle = arccos(0) = ${tag('teal', '90.0° (Right Angle)')}`,
+        `By cosine definition of angle: cos ∠(${tag('blue', 'OT')}, ${tag('emerald', 'Tangent')}) = (${tag('blue', 'OT')} · ${tag('emerald', 'v_tan')}) / (|${tag('blue', 'OT')}| · |${tag('emerald', 'v_tan')}|) = 0 / r² = 0<br>` +
+        `⟹ Geometric angle = arccos(0) = ${tag('teal', '90.0° (Right Angle)')}`,
         true
       )}
     `;
@@ -387,28 +390,33 @@ export class TangentRadiusDerivations {
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
         `↳ Contact Point ${tag('red', 'T')} = (${tag('amber', tx)}, ${tag('lime', ty)}) at angle θ = ${tag('yellow', `${deg}°`)}<br>` +
-        `↳ Radial vector magnitude ${tag('indigo', `|OT| = ${r} px`)}`;
+        `↳ Radial vector magnitude ${tag('blue', `|OT| = ${r} px`)}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Tangent vector: ${tag('emerald', 'v_tan')} = (${tag('amber', (-parseFloat(ty)).toFixed(1))}, ${tag('lime', tx)})`;
+        `↳ Tangent vector: ${tag('emerald', 'v_tan')} = (${tag('amber', (-parseFloat(ty)).toFixed(1))}, ${tag('lime', tx)}) px<br>` +
+        `↳ Tangent vector direction is strictly tangential to circumference at ${tag('red', 'T')}`;
     }
     if (this.slots.s3) {
+      const prod1 = (parseFloat(tx) * (-parseFloat(ty))).toFixed(1);
+      const prod2 = (parseFloat(ty) * parseFloat(tx)).toFixed(1);
       this.slots.s3.innerHTML =
-        `↳ (${tag('amber', tx)}) · (${tag('amber', (-parseFloat(ty)).toFixed(1))}) + (${tag('lime', ty)}) · (${tag('lime', tx)}) = ${tag('teal', '0.0000')}`;
+        `↳ Intermediate Substitution: (${tag('amber', tx)}) · (${tag('amber', (-parseFloat(ty)).toFixed(1))}) + (${tag('lime', ty)}) · (${tag('lime', tx)})<br>` +
+        `= ${tag('amber', prod1)} + ${tag('lime', prod2)} = ${tag('teal', '0.0000')}<br>` +
+        `↳ By Orthogonality Axiom: ${tag('blue', 'OT')} · ${tag('emerald', 'v_tan')} = 0 ⟹ ${tag('blue', 'OT')} ⊥ ${tag('emerald', 'Tangent')}`;
     }
     if (this.slots.s3e) {
       this.slots.s3e.innerHTML =
-        `<span>${tag('teal', 'OT · v_tan = 0.0000 (Dot Product)')}</span><span class="derivation-check">✓ Orthogonal</span>`;
+        `<span>${tag('teal', `${tag('blue', 'OT')} · ${tag('emerald', 'v_tan')} = 0.0000 (Dot Product)`)}</span><span class="derivation-check">✓ Orthogonal</span>`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ Angle between radius ${tag('indigo', 'OT')} and ${tag('emerald', 'Tangent line')} = ${tag('teal', '90.0°')}<br>` +
-        `↳ Radius is perpendicular to tangent at contact point.`;
+        `↳ Angle between radius ${tag('blue', 'OT')} and ${tag('emerald', 'Tangent line')} = ${tag('teal', '90.0°')}<br>` +
+        `↳ Tangent line is strictly perpendicular to the radial vector at point of contact.`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
-        `<span>${tag('teal', '∠(OT, Tangent) = 90.0° (Right Angle)')}</span><span class="derivation-check">✓ Perpendicular</span>`;
+        `<span>${tag('teal', `∠(${tag('blue', 'OT')}, ${tag('emerald', 'Tangent')}) = 90.0° (Right Angle)`)}</span><span class="derivation-check">✓ Perpendicular</span>`;
     }
   }
 }
@@ -427,30 +435,34 @@ export class AlternateSegmentDerivations {
       ${cardTemplate(
         'as-step-1',
         'Step 1',
-        `Tangent at ${tag('red', 'T')} & Chord ${tag('blue', 'TA')}`,
-        `Tangent line touches circle at ${tag('red', 'T')}. Chord connects ${tag('red', 'T')} and ${tag('blue', 'A')}.<br>` +
-        `Angle between tangent and chord: ${tag('yellow', '∠(Tangent, TA) = α')}`
+        `${tag('emerald', '[Tangent line]')} at ${tag('red', 'T')} & Chord ${tag('blue', 'TA')}`,
+        `${tag('emerald', '[Tangent line]')} touches circle at contact vertex ${tag('red', 'T')}. Primary chord ${tag('blue', 'TA')} connects ${tag('red', 'T')} and ${tag('blue', 'A')}.<br>` +
+        `Chord ${tag('blue', 'TA')} divides the circle into two circular segments: the ${tag('amber', 'Minor Segment (Amber)')} on chord ${tag('blue', 'TA')}, and the ${tag('sky', 'Alternate Segment (Sky)')} containing vertex ${tag('orange', 'B')}.<br>` +
+        `Angle between ${tag('emerald', '[Tangent line]')} and chord ${tag('blue', 'TA')}: ${tag('yellow', '∠(Tangent, TA) = α')}`
       )}
       ${cardTemplate(
         'as-step-2',
         'Step 2',
         `Inscribed Angle at Alternate Vertex ${tag('orange', 'B')}`,
-        `Vertex ${tag('orange', 'B')} lies on circumference in the alternate segment.<br>` +
-        `Angle subtended by chord ${tag('blue', 'TA')} at ${tag('orange', 'B')}: ${tag('yellow', '∠TBA = α')}`
+        `Vertex ${tag('orange', 'B')} lies on circumference in the ${tag('sky', 'Alternate Segment (Sky)')}.<br>` +
+        `Angle subtended by chord ${tag('blue', 'TA')} at alternate vertex ${tag('orange', 'B')}: ${tag('yellow', '∠TBA = α')}`
       )}
       ${cardTemplate(
         'as-step-3',
         'Step 3',
-        `Diameter Construction (${tag('lavender', 'TD')}) Proof`,
-        `Draw diameter ${tag('lavender', 'TD')} through ${tag('red', 'T')}. ${tag('emerald', 'Tangent')} ⊥ ${tag('lavender', 'TD')} ⟹ ∠DTA = ${tag('teal', '90°')} - ${tag('yellow', 'α')}.<br>` +
-        `By Thales' Theorem, ∠TBD = ${tag('teal', '90°')} ⟹ ∠TBA = ${tag('teal', '90°')} - ∠ABD = ${tag('teal', '90°')} - (${tag('teal', '90°')} - ${tag('yellow', 'α')}) = ${tag('yellow', 'α')}`
+        `Diameter Construction (${tag('indigo', 'TD')}) Proof: Thales' Theorem Overlay`,
+        `Construct auxiliary diameter ${tag('indigo', 'TD')} through contact point ${tag('red', 'T')}, passing through center ${tag('sky', 'O')}.<br>` +
+        `1. ${tag('emerald', '[Tangent line]')} ⊥ ${tag('indigo', 'TD')} ⟹ ${tag('indigo', '∠DTA')} = ${tag('teal', '90°')} - ${tag('yellow', 'α')}.<br>` +
+        `2. By Thales' Theorem, any angle inscribed in a semicircle subtended by diameter ${tag('indigo', 'TD')} is a right angle: ${tag('teal', '∠TBD = 90.0°')}.<br>` +
+        `3. In right-angled triangle ${tag('indigo', 'ΔTBD')}: ${tag('yellow', '∠TBA')} = ${tag('teal', '90°')} - ${tag('rose', '∠ABD')} = ${tag('teal', '90°')} - (${tag('teal', '90°')} - ${tag('yellow', 'α')}) = ${tag('yellow', 'α')}.<br>` +
+        `<em>Thales' Theorem overlay: Chord ${tag('indigo', 'TD')} is the hypotenuse of right triangle ${tag('indigo', 'ΔTBD')}. Reflexive primitives share unified color tokens.</em>`
       )}
       ${cardTemplate(
         'as-step-4',
         'Step 4',
-        `Alternate Segment Angle Invariant (${tag('yellow', 'α (Tangent)')} = ${tag('yellow', 'α (Inscribed)')})`,
-        `The angle between tangent and chord equals the angle subtended in alternate segment:<br>` +
-        `${tag('yellow', '∠(Tangent, TA)')} = ${tag('yellow', '∠TBA')} ⟹ ${tag('teal', 'Δ = |α - α| = 0.00°')}`,
+        `Alternate Segment Angle Invariant (${tag('yellow', 'α (Tangent-Chord)')} = ${tag('yellow', 'α (Inscribed)')})`,
+        `The angle between ${tag('emerald', '[Tangent line]')} and chord ${tag('blue', 'TA')} equals the angle subtended in the ${tag('sky', 'Alternate Segment (Sky)')}:<br>` +
+        `${tag('yellow', '∠(Tangent, TA)')} = ${tag('yellow', '∠TBA')} ⟹ Invariant Difference ${tag('teal', 'Δ = |α - α| = 0.00°')}`,
         true
       )}
     `;
@@ -474,21 +486,22 @@ export class AlternateSegmentDerivations {
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Tangent-chord angle ${tag('yellow', 'α')} = ${tag('yellow', `${g.tangentChordDeg.toFixed(1)}°`)}<br>` +
-        `↳ Base Chord ${tag('blue', `|TA| = ${chordLen} px`)}`;
+        `↳ ${tag('emerald', '[Tangent line]')} angle with chord ${tag('blue', 'TA')}: ${tag('yellow', `α = ${g.tangentChordDeg.toFixed(1)}°`)}<br>` +
+        `↳ Primary chord ${tag('blue', `|TA| = ${chordLen} px`)} | Partitions circle into ${tag('amber', 'Minor Segment')} & ${tag('sky', 'Alternate Segment')}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Inscribed angle in alternate segment: ${tag('yellow', '∠TBA (α)')} = ${tag('yellow', `${g.inscribedDeg.toFixed(1)}°`)}`;
+        `↳ Inscribed angle at ${tag('orange', 'B')} in ${tag('sky', 'Alternate Segment')}: ${tag('yellow', `∠TBA = ${g.inscribedDeg.toFixed(1)}°`)} (Subtends chord ${tag('blue', 'TA')})`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ Auxiliary diameter ${tag('lavender', `|TD| = ${(2 * state.radius)} px`)} | ${tag('teal', '∠TBD = 90.0°')} (Thales)`;
+        `↳ Auxiliary diameter ${tag('indigo', `|TD| = ${(2 * state.radius)} px`)} | Thales Right Angle: ${tag('teal', '∠TBD = 90.0°')}<br>` +
+        `↳ ${tag('indigo', 'ΔTBD')} (Right Triangle on Diameter) & ${tag('rose', 'ΔABD')} overlay Thales geometry`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ ${tag('yellow', `Tangent-chord α = ${g.tangentChordDeg.toFixed(1)}°`)}, ${tag('yellow', `Inscribed α = ${g.inscribedDeg.toFixed(1)}°`)}<br>` +
-        `↳ Invariant Difference: ${tag('teal', `Δ = |α - α| = ${diff}°`)}`;
+        `↳ ${tag('emerald', '[Tangent line]')} angle: ${tag('yellow', `α = ${g.tangentChordDeg.toFixed(1)}°`)} | ${tag('sky', 'Alternate Segment')} angle at ${tag('orange', 'B')}: ${tag('yellow', `α = ${g.inscribedDeg.toFixed(1)}°`)}<br>` +
+        `↳ Invariant Difference: ${tag('teal', `Δ = |${g.tangentChordDeg.toFixed(1)}° - ${g.inscribedDeg.toFixed(1)}°| = ${diff}°`)}`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
@@ -512,29 +525,36 @@ export class TangentsFromPointDerivations {
         'tfp-step-1',
         'Step 1',
         `External Point ${tag('red', 'P')} & Distance ${tag('yellow', 'd = |OP|')}`,
-        `Circle centered at ${tag('sky', 'O')}(0, 0) with radius ${tag('indigo', 'r')}.<br>` +
-        `Point ${tag('red', 'P')} lies outside the circle: ${tag('yellow', 'd')} > ${tag('indigo', 'r')}`
+        `Circle centered at ${tag('sky', 'Center O')}(0, 0) with radius ${tag('sky', 'r')}.<br>` +
+        `Point ${tag('red', 'P')} lies strictly outside the circle: ${tag('yellow', 'd = |OP|')} > ${tag('sky', 'r')}`
       )}
       ${cardTemplate(
         'tfp-step-2',
         'Step 2',
-        `Tangent Contact Points ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} & Right Angles`,
-        `Radii to contact points are perpendicular to tangent segments:<br>` +
-        `${tag('indigo', 'OT₁')} ⊥ ${tag('emerald', 'PT₁')} (∠OT₁P = ${tag('teal', '90°')}) and ${tag('indigo', 'OT₂')} ⊥ ${tag('blue', 'PT₂')} (∠OT₂P = ${tag('teal', '90°')})`
+        `Tangent Contact Points ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} & Kite Structure`,
+        `Rays from ${tag('red', 'P')} touch the circle at ${tag('emerald', 'T₁')} and ${tag('blue', 'T₂')} with right angles: ${tag('emerald', 'OT₁')} ⊥ ${tag('emerald', 'PT₁')} (${tag('teal', '∠OT₁P = 90°')}) and ${tag('blue', 'OT₂')} ⊥ ${tag('blue', 'PT₂')} (${tag('teal', '∠OT₂P = 90°')}).<br>` +
+        `This forms a bounded <strong>Kite Quadrilateral</strong> ${tag('sky', 'O')}-${tag('emerald', 'T₁')}-${tag('red', 'P')}-${tag('blue', 'T₂')}.<br>` +
+        `Diagonal ${tag('yellow', 'OP (d)')} and diagonal chord ${tag('violet', 'T₁T₂')} intersect at node ${tag('violet', 'K')}, where ${tag('yellow', 'OP')} ⊥ ${tag('violet', 'T₁T₂')} and ${tag('violet', '|KT₁| = |KT₂|')}.`
       )}
       ${cardTemplate(
         'tfp-step-3',
         'Step 3',
-        `Pythagorean Tangent Length Formula`,
-        `In right ${tag('emerald', '△OT₁P')}: ${tag('emerald', '|PT₁|')} = √(d² - r²)<br>` +
-        `In right ${tag('blue', '△OT₂P')}: ${tag('blue', '|PT₂|')} = √(d² - r²)`
+        `Pythagorean Tangent Length Formula (Kite Area & Radical Shading)`,
+        `In right triangle ${tag('emerald', 'ΔOT₁P')}: |${tag('emerald', 'OT₁')}|² + |${tag('emerald', 'PT₁')}|² = |${tag('yellow', 'OP')}|² ⟹ r² + |${tag('emerald', 'PT₁')}|² = d².<br>` +
+        `Rearranging yields: ${tag('emerald', '|PT₁|')} = √(${tag('yellow', 'd²')} - ${tag('sky', 'r²')}).<br>` +
+        `Similarly in ${tag('blue', 'ΔOT₂P')}: ${tag('blue', '|PT₂|')} = √(${tag('yellow', 'd²')} - ${tag('sky', 'r²')}).<br>` +
+        `The shaded area enclosed by kite ${tag('sky', 'O')}-${tag('emerald', 'T₁')}-${tag('red', 'P')}-${tag('blue', 'T₂')} is ${tag('amber', 'Area = r · √(d² - r²)')}.`
       )}
       ${cardTemplate(
         'tfp-step-4',
         'Step 4',
         `RHS Congruence & Tangent Length Equality (${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')})`,
-        `△OT₁P ≅ △OT₂P (Shared hypotenuse ${tag('lavender', 'OP')}, Leg OT₁ = OT₂ = ${tag('indigo', 'r')}, Right angle ${tag('teal', '90°')}).<br>` +
-        `Corresponding lengths are equal: ${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')} ⟹ Difference ${tag('teal', 'Δ = 0.00 px')}`,
+        `Comparing ${tag('emerald', 'ΔOT₁P')} and ${tag('blue', 'ΔOT₂P')}:<br>` +
+        `1. Right Angles: ${tag('teal', '∠OT₁P = ∠OT₂P = 90.0°')}<br>` +
+        `2. Shared Hypotenuse: Common diagonal ${tag('yellow', 'OP')} (${tag('yellow', 'd')})<br>` +
+        `3. Equal Radial Legs: ${tag('emerald', 'OT₁')} = ${tag('blue', 'OT₂')} = ${tag('sky', 'r')}<br>` +
+        `By RHS (Right-angle Hypotenuse Side) Congruence: ${tag('emerald', 'ΔOT₁P')} ≅ ${tag('blue', 'ΔOT₂P')}.<br>` +
+        `Corresponding tangent segments are equal: ${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')} ⟹ Difference ${tag('teal', 'Δ = |PT₁| - |PT₂| = 0.00 px')}`,
         true
       )}
     `;
@@ -558,28 +578,34 @@ export class TangentsFromPointDerivations {
     const d = dVal.toFixed(1);
     const d2 = (dVal * dVal).toFixed(1);
     const r2 = (r * r).toFixed(1);
+    const diffRad = Math.max(0, dVal * dVal - r * r).toFixed(1);
     const len1Val = g.lenPT1 ?? g.len1 ?? g.tangentLength ?? 0;
     const len2Val = g.lenPT2 ?? g.len2 ?? g.tangentLength ?? 0;
     const len1 = len1Val.toFixed(1);
     const len2 = len2Val.toFixed(1);
     const diff = (g.lenDiff ?? Math.abs(len1Val - len2Val)).toFixed(2);
+    const kiteArea = (g.kiteArea ?? (r * len1Val)).toFixed(1);
+    const halfChord = (g.halfChord ?? 0).toFixed(1);
 
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
-        `↳ Radius ${tag('indigo', `r = ${r} px`)} | Distance ${tag('yellow', `d = |OP| = ${d} px`)} (${d} > ${r})`;
+        `↳ Radius ${tag('sky', `r = ${r} px`)} | External distance ${tag('yellow', `d = |OP| = ${d} px`)} (${d} > ${r})`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Contact points: ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} | ∠OT₁P = ${tag('teal', '90.0°')}, ∠OT₂P = ${tag('teal', '90.0°')}`;
+        `↳ Tangent contacts: ${tag('emerald', 'T₁')}, ${tag('blue', 'T₂')} | Kite ${tag('sky', 'O')}-${tag('emerald', 'T₁')}-${tag('red', 'P')}-${tag('blue', 'T₂')}<br>` +
+        `↳ Diagonals intersect at ${tag('violet', 'K')}: ${tag('violet', `|KT₁| = |KT₂| = ${halfChord} px`)} | ${tag('teal', 'OP ⊥ T₁T₂ = 90.0°')}`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ √(d² - r²) = √(${d2} - ${r2}) = ${tag('teal', `${len1} px`)}`;
+        `↳ ${tag('emerald', '|PT₁|')} = √(${tag('yellow', '|OP|²')} - ${tag('emerald', '|OT₁|²')}) = √(${tag('yellow', `${d}²`)} - ${tag('emerald', `${r}²`)})<br>` +
+        `= √(${tag('yellow', d2)} - ${tag('emerald', r2)}) = √(${diffRad}) = ${tag('emerald', `${len1} px`)}<br>` +
+        `↳ Shaded Kite Area = ${tag('amber', `${kiteArea} px²`)} (Sum of congruent right triangles)`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ ${tag('emerald', `|PT₁| = ${len1} px`)}, ${tag('blue', `|PT₂| = ${len2} px`)}<br>` +
-        `↳ Invariant Difference: ${tag('teal', `Δ = |${len1} - ${len2}| = ${diff} px`)}`;
+        `↳ Tangent segment ${tag('emerald', `|PT₁| = ${len1} px`)}, Tangent segment ${tag('blue', `|PT₂| = ${len2} px`)}<br>` +
+        `↳ Invariant Difference: ${tag('teal', `Δ = |${len1} - ${len2}| = ${diff} px`)} (Zero invariant under all configurations)`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =

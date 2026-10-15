@@ -93,12 +93,16 @@ export class CanvasView {
       ctx.setLineDash([]);
     }
 
-    // Radii OA, OB
+    // Radii OA (Blue) and OB (Orange)
     if (state.showRadii) {
-      ctx.strokeStyle = PALETTE.indigo;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = PALETTE.blue;
       ctx.beginPath();
       ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.A.x, g.A.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = PALETTE.orange;
+      ctx.beginPath();
       ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.B.x, g.B.y);
       ctx.stroke();
     }
@@ -138,6 +142,21 @@ export class CanvasView {
       drawRadialLabelledPoint(ctx, g.A, center, PALETTE.blue, getPointLabel('A', g.A.x - g.cx, -(g.A.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.B, center, PALETTE.orange, getPointLabel('B', g.B.x - g.cx, -(g.B.y - g.cy), vis), 20);
       drawLabelledPoint(ctx, g.M, PALETTE.emerald, getPointLabel('M', g.M.x - g.cx, -(g.M.y - g.cy), vis), 16 * uOMx, 16 * uOMy);
+    }
+
+    // Angle text labels at O and right-angle at M
+    if (showAngles) {
+      const angA = Math.atan2(g.A.y - g.cy, g.A.x - g.cx);
+      const angB = Math.atan2(g.B.y - g.cy, g.B.x - g.cx);
+      const angM = Math.atan2(g.M.y - g.cy, g.M.x - g.cx);
+      const degAOM = Math.abs(((angA - angM + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * (180 / Math.PI);
+      const degBOM = Math.abs(((angB - angM + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * (180 / Math.PI);
+
+      const bisAOM = (angA + angM) / 2;
+      const bisBOM = (angB + angM) / 2;
+      drawTextBadge(ctx, `∠AOM = ${degAOM.toFixed(1)}°`, g.cx + 42 * Math.cos(bisAOM), g.cy + 42 * Math.sin(bisAOM), PALETTE.blue);
+      drawTextBadge(ctx, `∠BOM = ${degBOM.toFixed(1)}°`, g.cx + 42 * Math.cos(bisBOM), g.cy + 42 * Math.sin(bisBOM), PALETTE.orange);
+      drawTextBadge(ctx, '90.0°', g.M.x - 24 * uOMx, g.M.y - 24 * uOMy, PALETTE.teal);
     }
 
     // Length text on chord halves with protective badge pills offset perpendicular to chord

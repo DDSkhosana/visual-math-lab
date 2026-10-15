@@ -175,6 +175,14 @@ function bootstrap() {
     document.getElementById('label-radius').textContent = `${state.radius}px`;
 
     // 3D telemetry
+    const el3dA = document.getElementById('val-3d-a');
+    if (el3dA) el3dA.textContent = `${g.angleADeg.toFixed(1)}°`;
+    const el3dB = document.getElementById('val-3d-b');
+    if (el3dB) el3dB.textContent = `${g.angleBDeg.toFixed(1)}°`;
+    const el3dC = document.getElementById('val-3d-c');
+    if (el3dC) el3dC.textContent = `${g.angleCDeg.toFixed(1)}°`;
+    const el3dD = document.getElementById('val-3d-d');
+    if (el3dD) el3dD.textContent = `${g.angleDDeg.toFixed(1)}°`;
     const elSum1 = document.getElementById('val-3d-sum1');
     if (elSum1) elSum1.textContent = `${g.sumAC.toFixed(1)}°`;
     const elSum2 = document.getElementById('val-3d-sum2');

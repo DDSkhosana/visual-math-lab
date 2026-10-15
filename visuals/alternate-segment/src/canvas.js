@@ -42,59 +42,83 @@ export class CanvasView {
     ctx.arc(g.cx, g.cy, g.r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Relevant Area Shading (Alternate Segment & Inscribed Triangle)
+    // Relevant Area Shading (Both Alternate Segments & Triangles)
     const showArea = (state.vis2d?.area !== false) && (state.showArea !== false);
     if (showArea) {
-      // Shading the eponymous "Alternate Segment" on chord TA containing point B
-      drawSegmentContainingPoint(ctx, g.O, g.T, g.A, g.B, g.r, 'rgba(56, 189, 248, 0.10)');
+      // 1. Alternate Segment on chord TA containing vertex B (Sky)
+      drawSegmentContainingPoint(ctx, g.O, g.T, g.A, g.B, g.r, 'rgba(56, 189, 248, 0.16)');
 
-      // Triangle TAB shading
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
+      // 2. Minor Segment on chord TA not containing vertex B (Amber)
+      drawSubtendedSegment(ctx, g.O, g.T, g.A, g.B, g.r, 'rgba(245, 158, 11, 0.16)');
+
+      // 3. Triangle TBA shading (Cyan)
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.14)';
       ctx.beginPath();
-      ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.B.x, g.B.y);
+      ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.A.x, g.A.y);
       ctx.closePath();
       ctx.fill();
 
-      // Diameter proof triangle TBD shading (Lavender matching 3D proofTriMesh)
+      // 4. Diameter proof triangles TBD (Indigo) and ABD (Rose)
       if (state.showProofConstruction && g.D) {
-        ctx.fillStyle = 'rgba(196, 181, 253, 0.16)';
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
         ctx.closePath();
         ctx.fill();
       }
     }
 
-    // Diameter proof construction (optional)
-    if (state.showProofConstruction) {
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
+    // Diameter proof construction (optional: TD and BD)
+    if (state.showProofConstruction && g.D) {
+      // Diameter TD (Indigo)
+      ctx.strokeStyle = PALETTE.indigo;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 4]);
       ctx.beginPath();
       ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.D.x, g.D.y);
+      ctx.stroke();
+
+      // Chord BD (Rose)
+      ctx.strokeStyle = PALETTE.rose;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
       ctx.moveTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
       ctx.stroke();
       ctx.setLineDash([]);
-
-      ctx.fillStyle = PALETTE.lavender;
-      ctx.beginPath();
-      ctx.arc(g.D.x, g.D.y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      if (state.vis2d?.points !== false) {
-        ctx.fillText('D', g.D.x - 6, g.D.y - 10);
-      }
     }
 
     // Tangent Line with sharp double arrowheads (no blobs)
     drawDoubleArrow(ctx, g.Tan1, g.Tan2, PALETTE.emerald, 3);
+    const tanMidX = g.T.x + (g.Tan2.x - g.T.x) * 0.45;
+    const tanMidY = g.T.y + (g.Tan2.y - g.T.y) * 0.45;
+    drawTextBadge(ctx, 'Tangent', tanMidX, tanMidY, PALETTE.emerald);
 
-    // Triangle chords
+    // Differentiated Chords with distinct color tokens
+    // 1. Primary Chord TA (Blue)
     ctx.strokeStyle = PALETTE.blue;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.8;
     ctx.beginPath();
     ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y);
-    ctx.lineTo(g.B.x, g.B.y);
-    ctx.lineTo(g.T.x, g.T.y);
+    ctx.stroke();
+
+    // 2. Chord TB (Cyan)
+    ctx.strokeStyle = PALETTE.cyan;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y);
+    ctx.stroke();
+
+    // 3. Chord BA (Orange)
+    ctx.strokeStyle = PALETTE.orange;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(g.B.x, g.B.y); ctx.lineTo(g.A.x, g.A.y);
     ctx.stroke();
 
     // Angles at B and T for wedges and badges
@@ -117,6 +141,12 @@ export class CanvasView {
 
       // 2. Inscribed angle at B: ∠TBA
       drawAngleWedge(ctx, g.B, angBA, angBT, 28, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+
+      // 3. Thales Right Angle at B (∠TBD = 90.0°)
+      if (state.showProofConstruction && g.D) {
+        const angBD = Math.atan2(g.D.y - g.B.y, g.D.x - g.B.x);
+        drawAngleWedge(ctx, g.B, angBT, angBD, 22, 'rgba(20, 184, 166, 0.28)', PALETTE.teal);
+      }
     }
 
     // Points and Labels adhering to Euclidean standards with outward radial clearance
@@ -126,7 +156,7 @@ export class CanvasView {
       drawRadialLabelledPoint(ctx, g.A, g.O, PALETTE.blue, getPointLabel('A', g.A.x - g.cx, -(g.A.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.B, g.O, PALETTE.orange, getPointLabel('B', g.B.x - g.cx, -(g.B.y - g.cy), vis), 20);
       if (state.showProofConstruction && g.D) {
-        drawRadialLabelledPoint(ctx, g.D, g.O, PALETTE.lavender, getPointLabel('D', g.D.x - g.cx, -(g.D.y - g.cy), vis), 20);
+        drawRadialLabelledPoint(ctx, g.D, g.O, PALETTE.indigo, getPointLabel('D', g.D.x - g.cx, -(g.D.y - g.cy), vis), 20);
       }
     }
 

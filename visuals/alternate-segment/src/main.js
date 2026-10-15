@@ -156,6 +156,9 @@ function bootstrap() {
     // 2D telemetry
     document.getElementById('tel-tangent-angle').textContent = `${g.tangentChordDeg.toFixed(1)}°`;
     document.getElementById('tel-inscribed-angle').textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    const chordLen = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y).toFixed(1);
+    const elChordTA = document.getElementById('tel-chord-ta');
+    if (elChordTA) elChordTA.textContent = `${chordLen} px`;
     document.getElementById('tel-diff').textContent = `${g.diffDeg.toFixed(3)}°`;
     document.getElementById('tel-radius').textContent = `${state.radius} px`;
     document.getElementById('label-radius').textContent = `${state.radius}px`;
@@ -163,10 +166,14 @@ function bootstrap() {
     // 3D telemetry
     const tx = (10 * Math.cos(state.angleT)).toFixed(2);
     const tz = (10 * Math.sin(state.angleT)).toFixed(2);
+    const ax = (10 * Math.cos(state.angleA)).toFixed(2);
+    const az = (10 * Math.sin(state.angleA)).toFixed(2);
     const bx = (10 * Math.cos(state.angleB)).toFixed(2);
     const bz = (10 * Math.sin(state.angleB)).toFixed(2);
     const elT = document.getElementById('val-3d-t');
     if (elT) elT.textContent = `${tx}, ${tz}`;
+    const elA = document.getElementById('val-3d-a');
+    if (elA) elA.textContent = `${ax}, ${az}`;
     const elB = document.getElementById('val-3d-b');
     if (elB) elB.textContent = `${bx}, ${bz}`;
     const elTan = document.getElementById('val-3d-ang-tan');

@@ -122,11 +122,24 @@ export class CanvasView {
       // Central Angle arc wedge
       drawSubtendedSector(ctx, g.O, g.A, g.B, g.P, 36, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
 
-      // Base angles alpha (Lime) in △OPA and beta (Fuchsia) in △OPB
-      drawAngleWedge(ctx, g.P, angPO, angPA, 30, 'rgba(132, 204, 22, 0.25)', PALETTE.lime);
-      drawAngleWedge(ctx, g.P, angPO, angPB, 30, 'rgba(217, 70, 239, 0.25)', PALETTE.fuchsia);
-      drawAngleWedge(ctx, g.A, angAO, angAP, 22, 'rgba(132, 204, 22, 0.25)', PALETTE.lime);
-      drawAngleWedge(ctx, g.B, angBO, angBP, 22, 'rgba(217, 70, 239, 0.25)', PALETTE.fuchsia);
+      // Helper for interior acute sweep wedge
+      const sweepWedge = (vertex, a1, a2, radius, fill, stroke) => {
+        let diff = (a2 - a1) % (Math.PI * 2);
+        if (diff < 0) diff += Math.PI * 2;
+        const anticlockwise = diff > Math.PI;
+        drawAngleWedge(ctx, vertex, a1, a2, radius, fill, stroke, anticlockwise);
+      };
+
+      // Inscribed angle theta at P between PA and PB
+      sweepWedge(g.P, angPA, angPB, 38, 'rgba(34, 197, 94, 0.20)', PALETTE.green);
+
+      // Base angles alpha (Lime) in △OPA at P and A
+      sweepWedge(g.P, angPO, angPA, 30, 'rgba(132, 204, 22, 0.35)', PALETTE.lime);
+      sweepWedge(g.A, angAO, angAP, 26, 'rgba(132, 204, 22, 0.35)', PALETTE.lime);
+
+      // Base angles beta (Fuchsia) in △OPB at P and B
+      sweepWedge(g.P, angPO, angPB, 30, 'rgba(217, 70, 239, 0.35)', PALETTE.fuchsia);
+      sweepWedge(g.B, angBO, angBP, 26, 'rgba(217, 70, 239, 0.35)', PALETTE.fuchsia);
     }
 
     // Points and Labels adhering to Euclidean standards with outward radial clearance
@@ -157,8 +170,8 @@ export class CanvasView {
       const bisLen = Math.hypot(bisX, bisY);
       const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
       const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-      const inscBadgeX = g.P.x + 52 * nBisX;
-      const inscBadgeY = g.P.y + 52 * nBisY;
+      const inscBadgeX = g.P.x + 54 * nBisX;
+      const inscBadgeY = g.P.y + 54 * nBisY;
       drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
 
       // Base angle alpha and beta badges near P
@@ -166,6 +179,12 @@ export class CanvasView {
       const bisP_beta = (angPO + angPB) / 2;
       drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_alpha), g.P.y + 36 * Math.sin(bisP_alpha), PALETTE.lime);
       drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_beta), g.P.y + 36 * Math.sin(bisP_beta), PALETTE.fuchsia);
+
+      // Badges at base vertices A and B
+      const bisA = (angAO + angAP) / 2;
+      const bisB = (angBO + angBP) / 2;
+      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.A.x + 32 * Math.cos(bisA), g.A.y + 32 * Math.sin(bisA), PALETTE.lime);
+      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.B.x + 32 * Math.cos(bisB), g.B.y + 32 * Math.sin(bisB), PALETTE.fuchsia);
     }
   }
 

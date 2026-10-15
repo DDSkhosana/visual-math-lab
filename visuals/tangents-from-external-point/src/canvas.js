@@ -36,6 +36,7 @@ export class CanvasView {
     draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
 
     // Congruence triangles fill and angle wedges
+    // Congruence triangles fill and angle wedges (Kite structure: OT1PT2)
     const showArea = (state.vis2d?.area !== false) && (state.showCongruence !== false) && (state.showArea !== false);
     const showAngles = (state.vis2d?.angles !== false);
 
@@ -50,13 +51,15 @@ export class CanvasView {
 
     if (showArea || showAngles) {
       if (showArea) {
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.16)';
+        // Triangle 1: OPT1 (Emerald)
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
         ctx.beginPath();
         ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T1.x, g.T1.y); ctx.lineTo(g.P.x, g.P.y);
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
+        // Triangle 2: OPT2 (Blue)
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.18)';
         ctx.beginPath();
         ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T2.x, g.T2.y); ctx.lineTo(g.P.x, g.P.y);
         ctx.closePath();
@@ -71,12 +74,13 @@ export class CanvasView {
           drawAngleWedge(ctx, vertex, a1, a2, 28, fill, stroke, anticlockwise);
         };
 
-        sweepWedge(g.P, angPO, angPT1, 'rgba(16, 185, 129, 0.28)', PALETTE.emerald);
-        sweepWedge(g.P, angPO, angPT2, 'rgba(59, 130, 246, 0.28)', PALETTE.blue);
+        // Disentangled angles: alpha1 (Lime), alpha2 (Fuchsia) at P
+        sweepWedge(g.P, angPO, angPT1, 'rgba(132, 204, 22, 0.28)', PALETTE.lime);
+        sweepWedge(g.P, angPO, angPT2, 'rgba(217, 70, 239, 0.28)', PALETTE.fuchsia);
 
-        // Equal central angle wedges at O: angle(T1, O, P) = angle(T2, O, P)
-        sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT1, 'rgba(16, 185, 129, 0.22)', null);
-        sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT2, 'rgba(59, 130, 246, 0.22)', null);
+        // Disentangled central angles at O: beta1 (Amber), beta2 (Orange)
+        sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT1, 'rgba(245, 158, 11, 0.26)', PALETTE.amber);
+        sweepWedge({ x: g.cx, y: g.cy }, angOP, angOT2, 'rgba(249, 115, 22, 0.26)', PALETTE.orange);
       }
     }
 
@@ -87,28 +91,47 @@ export class CanvasView {
     ctx.arc(g.cx, g.cy, g.r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Central bisector line OP
-    ctx.strokeStyle = PALETTE.lavender;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
+    // Diagonal Chord T1T2 (Violet)
+    ctx.strokeStyle = PALETTE.violet;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(g.T1.x, g.T1.y); ctx.lineTo(g.T2.x, g.T2.y);
+    ctx.stroke();
+
+    // Central bisector line OP (d) in Yellow
+    ctx.strokeStyle = PALETTE.yellow;
+    ctx.lineWidth = 2.2;
+    ctx.setLineDash([5, 4]);
     ctx.beginPath();
     ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.P.x, g.P.y);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Radii OT1, OT2
-    ctx.strokeStyle = PALETTE.indigo;
-    ctx.lineWidth = 2.5;
+    // Distance d badge along OP
+    const midOPX = (g.cx + g.P.x) / 2;
+    const midOPY = (g.cy + g.P.y) / 2;
+    drawTextBadge(ctx, `d = ${g.d.toFixed(1)}px`, midOPX, midOPY - 14, PALETTE.yellow);
+
+    // Differentiated Radii: OT1 (Emerald) and OT2 (Blue)
+    ctx.lineWidth = 2.8;
+    ctx.strokeStyle = PALETTE.emerald;
     ctx.beginPath();
     ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T1.x, g.T1.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = PALETTE.blue;
+    ctx.beginPath();
     ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T2.x, g.T2.y);
     ctx.stroke();
 
-    // Right-angle markers at T1 and T2
+    // Right-angle markers at T1 and T2, plus node K
     if (showAngles) {
       const raFill = 'rgba(20, 184, 166, 0.25)';
       drawRightAngle(ctx, g.T1, { x: g.cx, y: g.cy }, g.P, 14, PALETTE.teal, raFill);
       drawRightAngle(ctx, g.T2, { x: g.cx, y: g.cy }, g.P, 14, PALETTE.teal, raFill);
+      drawRightAngle(ctx, g.K, g.T1, g.P, 11, PALETTE.teal, raFill);
+      drawTextBadge(ctx, '90°', g.T1.x + (g.cx - g.T1.x) * 0.22, g.T1.y + (g.cy - g.T1.y) * 0.22, PALETTE.teal);
+      drawTextBadge(ctx, '90°', g.T2.x + (g.cx - g.T2.x) * 0.22, g.T2.y + (g.cy - g.T2.y) * 0.22, PALETTE.teal);
     }
 
     // Tangents: PT1 (Emerald) and PT2 (Blue)
@@ -131,6 +154,7 @@ export class CanvasView {
       drawRadialLabelledPoint(ctx, g.T1, center, PALETTE.emerald, getPointLabel('T₁', g.T1.x - g.cx, -(g.T1.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.T2, center, PALETTE.blue, getPointLabel('T₂', g.T2.x - g.cx, -(g.T2.y - g.cy), vis), 20);
       drawRadialLabelledPoint(ctx, g.P, center, PALETTE.red, getPointLabel('P', g.P.x - g.cx, -(g.P.y - g.cy), vis), 20);
+      drawLabelledPoint(ctx, g.K, PALETTE.violet, getPointLabel('K', g.K.x - g.cx, -(g.K.y - g.cy), vis), 8, -8, 4);
     }
 
     // Tangent lengths displayed with protective badge pills offset perpendicularly outwards
@@ -151,22 +175,19 @@ export class CanvasView {
       drawTextBadge(ctx, `|PT₂| = ${g.lenPT2.toFixed(1)}px`, mid2.x + 18 * n2x, mid2.y + 18 * n2y, PALETTE.blue);
     }
 
-    // 2D Canvas Angle Badges
+    // 2D Canvas Angle Badges with distinct tokens
     if (showAngles) {
-      const alphaDeg = Math.asin(Math.min(1, g.r / g.d)) * (180 / Math.PI);
-      const betaDeg = 90 - alphaDeg;
-
-      // Angles at P (alpha1 emerald, alpha2 blue)
+      // Angles at P (alpha1 Lime, alpha2 Fuchsia)
       const bisP1 = (angPO + angPT1) / 2;
       const bisP2 = (angPO + angPT2) / 2;
-      drawTextBadge(ctx, `α₁ = ${alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP1), g.P.y + 44 * Math.sin(bisP1), PALETTE.emerald);
-      drawTextBadge(ctx, `α₂ = ${alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP2), g.P.y + 44 * Math.sin(bisP2), PALETTE.blue);
+      drawTextBadge(ctx, `α₁ = ${g.alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP1), g.P.y + 44 * Math.sin(bisP1), PALETTE.lime);
+      drawTextBadge(ctx, `α₂ = ${g.alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP2), g.P.y + 44 * Math.sin(bisP2), PALETTE.fuchsia);
 
-      // Angles at O (beta1 emerald, beta2 blue)
+      // Angles at O (beta1 Amber, beta2 Orange)
       const bisO1 = (angOP + angOT1) / 2;
       const bisO2 = (angOP + angOT2) / 2;
-      drawTextBadge(ctx, `β₁ = ${betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO1), g.cy + 38 * Math.sin(bisO1), PALETTE.emerald);
-      drawTextBadge(ctx, `β₂ = ${betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO2), g.cy + 38 * Math.sin(bisO2), PALETTE.blue);
+      drawTextBadge(ctx, `β₁ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO1), g.cy + 38 * Math.sin(bisO1), PALETTE.amber);
+      drawTextBadge(ctx, `β₂ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO2), g.cy + 38 * Math.sin(bisO2), PALETTE.orange);
     }
   }
 

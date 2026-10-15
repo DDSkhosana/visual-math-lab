@@ -78,21 +78,38 @@ export class CanvasView {
 
     // Angle Wedges at all four vertices demonstrating supplementary pairs (A + C = 180°, B + D = 180°)
     if (showAngles) {
+      const sweepWedge = (vertex, a1, a2, radius, fill, stroke) => {
+        let diff = (a2 - a1) % (Math.PI * 2);
+        if (diff < 0) diff += Math.PI * 2;
+        const anticlockwise = diff > Math.PI;
+        drawAngleWedge(ctx, vertex, a1, a2, radius, fill, stroke, anticlockwise);
+      };
+
       const angAD = Math.atan2(g.D.y - g.A.y, g.D.x - g.A.x);
       const angAB = Math.atan2(g.B.y - g.A.y, g.B.x - g.A.x);
-      drawAngleWedge(ctx, g.A, angAD, angAB, 24, 'rgba(168, 85, 247, 0.25)', PALETTE.violet);
+      sweepWedge(g.A, angAD, angAB, 26, 'rgba(168, 85, 247, 0.28)', PALETTE.violet);
 
       const angBA = Math.atan2(g.A.y - g.B.y, g.A.x - g.B.x);
       const angBC = Math.atan2(g.C.y - g.B.y, g.C.x - g.B.x);
-      drawAngleWedge(ctx, g.B, angBA, angBC, 24, 'rgba(6, 182, 212, 0.25)', PALETTE.cyan);
+      sweepWedge(g.B, angBA, angBC, 26, 'rgba(6, 182, 212, 0.28)', PALETTE.cyan);
 
       const angCB = Math.atan2(g.B.y - g.C.y, g.B.x - g.C.x);
       const angCD = Math.atan2(g.D.y - g.C.y, g.D.x - g.C.x);
-      drawAngleWedge(ctx, g.C, angCB, angCD, 24, 'rgba(245, 158, 11, 0.25)', PALETTE.amber);
+      sweepWedge(g.C, angCB, angCD, 26, 'rgba(245, 158, 11, 0.28)', PALETTE.amber);
 
       const angDC = Math.atan2(g.C.y - g.D.y, g.C.x - g.D.x);
       const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
-      drawAngleWedge(ctx, g.D, angDC, angDA, 24, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
+      sweepWedge(g.D, angDC, angDA, 26, 'rgba(244, 63, 94, 0.28)', PALETTE.rose);
+
+      // Explicit angle badges for all 4 vertices
+      const badgeA = { x: g.A.x + 0.24 * (g.cx - g.A.x), y: g.A.y + 0.24 * (g.cy - g.A.y) };
+      const badgeB = { x: g.B.x + 0.24 * (g.cx - g.B.x), y: g.B.y + 0.24 * (g.cy - g.B.y) };
+      const badgeC = { x: g.C.x + 0.24 * (g.cx - g.C.x), y: g.C.y + 0.24 * (g.cy - g.C.y) };
+      const badgeD = { x: g.D.x + 0.24 * (g.cx - g.D.x), y: g.D.y + 0.24 * (g.cy - g.D.y) };
+      drawTextBadge(ctx, `∠A = ${g.angleADeg.toFixed(1)}°`, badgeA.x, badgeA.y, PALETTE.violet);
+      drawTextBadge(ctx, `∠B = ${g.angleBDeg.toFixed(1)}°`, badgeB.x, badgeB.y, PALETTE.cyan);
+      drawTextBadge(ctx, `∠C = ${g.angleCDeg.toFixed(1)}°`, badgeC.x, badgeC.y, PALETTE.amber);
+      drawTextBadge(ctx, `∠D = ${g.angleDDeg.toFixed(1)}°`, badgeD.x, badgeD.y, PALETTE.rose);
     }
 
     // Exterior line extending DC through C to E

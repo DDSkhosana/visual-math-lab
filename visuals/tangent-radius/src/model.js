@@ -60,13 +60,13 @@ export function generateSVG(state, width, height) {
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   <!-- Radius OT -->
-  <line x1="${g.O.x}" y1="${g.O.y}" x2="${g.T.x}" y2="${g.T.y}" stroke="${PALETTE.indigo}" stroke-width="3"/>
+  <line x1="${g.O.x}" y1="${g.O.y}" x2="${g.T.x}" y2="${g.T.y}" stroke="${PALETTE.blue}" stroke-width="3"/>
   <!-- Tangent line T1-T2 -->
   <line x1="${g.T1.x}" y1="${g.T1.y}" x2="${g.T2.x}" y2="${g.T2.y}" stroke="${PALETTE.emerald}" stroke-width="3"/>
   <!-- Center and Tangent points -->
-  <circle cx="${g.O.x}" cy="${g.O.y}" r="5" fill="${PALETTE.indigo}"/>
+  <circle cx="${g.O.x}" cy="${g.O.y}" r="5" fill="${PALETTE.blue}"/>
   <circle cx="${g.T.x}" cy="${g.T.y}" r="7" fill="${PALETTE.red}"/>
-  <text x="${g.O.x + 8}" y="${g.O.y + 18}" fill="${PALETTE.indigo}" font-weight="bold">O</text>
+  <text x="${g.O.x + 8}" y="${g.O.y + 18}" fill="${PALETTE.blue}" font-weight="bold">O</text>
   ${(() => {
     const lt = getRadialLabelCoords(g.T, g.O, 18);
     return `<text x="${lt.x}" y="${lt.y}" fill="${PALETTE.red}" font-weight="bold" text-anchor="${lt.anchor}" dominant-baseline="${lt.baseline}">T</text>`;

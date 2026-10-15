@@ -86,7 +86,7 @@ test('Colour Grammar: Derivations comply with theorem point identities and line 
     cy: 0,
   });
   assert.ok(c4.innerHTML.includes('class="color-red">T</span>'), 'Tangent point T must be red');
-  assert.ok(c4.innerHTML.includes('class="color-indigo">OT</span>'), 'Radius OT must be indigo');
+  assert.ok(c4.innerHTML.includes('class="color-blue">OT</span>'), 'Radius OT must be blue');
   assert.ok(c4.innerHTML.includes('class="color-emerald">v_tan</span>'), 'Tangent direction must be emerald');
 
   // 4. Tangents from Point: P is red, O is sky, T1 and T2 are emerald
