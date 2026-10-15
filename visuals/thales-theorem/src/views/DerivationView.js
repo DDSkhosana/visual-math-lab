@@ -37,8 +37,8 @@ export class DerivationView {
         'deriv-2d-step-1',
         'Step 1',
         `Coordinate Setup & Diameter Chord ${tag('red', '|d|')}`,
-        `Origin ${tag('indigo', 'Center C')} = (0, 0)<br>` +
-        `Endpoints: ${tag('red', 'a')} = (-${tag('indigo', 'r')}, 0), ${tag('orange', 'b')} = (${tag('indigo', 'r')}, 0)<br>` +
+        `Origin ${tag('indigo', 'Center O')} = (0, 0)<br>` +
+        `Endpoints: ${tag('red', 'A')} = (-${tag('indigo', 'r')}, 0), ${tag('orange', 'B')} = (${tag('indigo', 'r')}, 0)<br>` +
         `${tag('red', 'Diameter')} magnitude: ${tag('red', '|d|')} = 2${tag('indigo', 'r')}<br>` +
         `${tag('sky', 'Circumference')}: ${tag('sky', '2πr')}`
       )}
@@ -54,8 +54,8 @@ export class DerivationView {
         'deriv-2d-step-3',
         'Step 3',
         `Triangle Legs ${tag('blue', 's')} & ${tag('orange', 't')} (Euclidean Distance)`,
-        `${tag('blue', 'Leg s')} = |${tag('violet', 'P')} - ${tag('red', 'a')}| = √[(${tag('amber', 'x')} + ${tag('indigo', 'r')})² + ${tag('lime', 'y')}²]<br>` +
-        `${tag('orange', 'Leg t')} = |${tag('violet', 'P')} - ${tag('orange', 'b')}| = √[(${tag('amber', 'x')} - ${tag('indigo', 'r')})² + ${tag('lime', 'y')}²]`
+        `${tag('blue', 'Leg s')} = |${tag('violet', 'P')} - ${tag('red', 'A')}| = √[(${tag('amber', 'x')} + ${tag('indigo', 'r')})² + ${tag('lime', 'y')}²]<br>` +
+        `${tag('orange', 'Leg t')} = |${tag('violet', 'P')} - ${tag('orange', 'B')}| = √[(${tag('amber', 'x')} - ${tag('indigo', 'r')})² + ${tag('lime', 'y')}²]`
       )}
       ${cardTemplate(
         'deriv-2d-step-4',
@@ -69,13 +69,13 @@ export class DerivationView {
         'deriv-2d-step-5',
         'Step 5',
         `Right Angle at ${tag('violet', 'P')}: Euclidean Isosceles & Dot Product`,
-        `<b>Euclidean Proof:</b> Radius ${tag('indigo', '|CP|')} = ${tag('red', '|Ca|')} = ${tag('orange', '|Cb|')} = ${tag('indigo', 'r')}<br>` +
-        `⇒ ${tag('blue', '△CaP')} isosceles (${tag('red', 'Ca')} = ${tag('indigo', 'CP')}): base angle ${tag('lime', '∠CaP')} = ${tag('lime', '∠CPa')} = ${tag('lime', 'α')}<br>` +
-        `⇒ ${tag('orange', '△CbP')} isosceles (${tag('orange', 'Cb')} = ${tag('indigo', 'CP')}): base angle ${tag('orange', '∠CbP')} = ${tag('orange', '∠CPb')} = ${tag('orange', 'β')}<br>` +
-        `⇒ At vertex ${tag('violet', 'P')}: ${tag('teal', '∠aPb')} = ${tag('lime', 'α')} + ${tag('orange', 'β')}<br>` +
-        `Angle sum in △aPb: ${tag('lime', 'α')} + ${tag('orange', 'β')} + (${tag('lime', 'α')} + ${tag('orange', 'β')}) = 2(${tag('lime', 'α')} + ${tag('orange', 'β')}) = 180° ⇒ ${tag('teal', '∠aPb = 90.0°')}<br>` +
-        `<b>Vector Dot Product:</b> ${tag('blue', 'u')} = ${tag('red', 'a')} - ${tag('violet', 'P')}, ${tag('orange', 'v')} = ${tag('orange', 'b')} - ${tag('violet', 'P')}<br>` +
-        `${tag('teal', 'Dot product')}: ${tag('blue', 'u')} · ${tag('orange', 'v')} = (${tag('amber', 'x²')} + ${tag('lime', 'y²')}) - ${tag('indigo', 'r²')} = ${tag('indigo', 'r²')} - ${tag('indigo', 'r²')} = 0 ⇒ ${tag('teal', '∠aPb = 90.0°')}`,
+        `<b>Euclidean Proof:</b> Radius ${tag('indigo', '|OP|')} = ${tag('red', '|OA|')} = ${tag('orange', '|OB|')} = ${tag('indigo', 'r')}<br>` +
+        `⇒ ${tag('blue', '△OAP')} isosceles (${tag('red', 'OA')} = ${tag('indigo', 'OP')}): base angle ${tag('lime', '∠OAP')} = ${tag('lime', '∠OPA')} = ${tag('lime', 'α')}<br>` +
+        `⇒ ${tag('orange', '△OBP')} isosceles (${tag('orange', 'OB')} = ${tag('indigo', 'OP')}): base angle ${tag('orange', '∠OBP')} = ${tag('orange', '∠OPB')} = ${tag('orange', 'β')}<br>` +
+        `⇒ At vertex ${tag('violet', 'P')}: ${tag('teal', '∠APB')} = ${tag('lime', 'α')} + ${tag('orange', 'β')}<br>` +
+        `Angle sum in △APB: ${tag('lime', 'α')} + ${tag('orange', 'β')} + (${tag('lime', 'α')} + ${tag('orange', 'β')}) = 2(${tag('lime', 'α')} + ${tag('orange', 'β')}) = 180° ⇒ ${tag('teal', '∠APB = 90.0°')}<br>` +
+        `<b>Vector Dot Product:</b> ${tag('blue', 'u')} = ${tag('red', 'A')} - ${tag('violet', 'P')}, ${tag('orange', 'v')} = ${tag('orange', 'B')} - ${tag('violet', 'P')}<br>` +
+        `${tag('teal', 'Dot product')}: ${tag('blue', 'u')} · ${tag('orange', 'v')} = (${tag('amber', 'x²')} + ${tag('lime', 'y²')}) - ${tag('indigo', 'r²')} = ${tag('indigo', 'r²')} - ${tag('indigo', 'r²')} = 0 ⇒ ${tag('teal', '∠APB = 90.0°')}`,
         true
       )}
       ${cardTemplate(
@@ -86,7 +86,7 @@ export class DerivationView {
         `<b>Quadrant Area Dynamics:</b><br>` +
         `• Upper Semicircle (Q-I & Q-II, ${tag('lime', 'y > 0')}): Elevation ${tag('lime', 'h = y')}. Area peaks at zenith ${tag('yellow', 'θ = 90°')} (${tag('indigo', 'Area = r²')}) and collapses to 0 at diameter endpoints.<br>` +
         `• Lower Semicircle (Q-III & Q-IV, ${tag('lime', 'y < 0')}): Triangle reflects into southern hemisphere with height ${tag('lime', 'h = -y = |y|')}.<br>` +
-        `• <b>Invariant:</b> While height ${tag('lime', 'h')} and ${tag('green', 'Area')} oscillate across quadrants, the right angle ${tag('teal', '∠aPb ≡ 90.0°')} and ${tag('lavender', 's² + t² ≡ |d|²')} are strictly invariant.`,
+        `• <b>Invariant:</b> While height ${tag('lime', 'h')} and ${tag('green', 'Area')} oscillate across quadrants, the right angle ${tag('teal', '∠APB ≡ 90.0°')} and ${tag('lavender', 's² + t² ≡ |d|²')} are strictly invariant.`,
         true
       )}
     `;
@@ -114,9 +114,9 @@ export class DerivationView {
         'deriv-3d-step-3',
         'Step 3',
         `3D Great Circle Invariance & Spatial Orthogonality`,
-        `• ${tag('teal', '3D Dot Product')}: (${tag('red', 'a')} - ${tag('violet', 'P')}) · (${tag('orange', 'b')} - ${tag('violet', 'P')}) = (${tag('amber', 'x²')} + ${tag('lime', 'y²')} + ${tag('steel', 'z²')}) - ${tag('indigo', 'r²')} = ${tag('indigo', 'r²')} - ${tag('indigo', 'r²')} = 0 ⇒ ${tag('teal', '3D ∠aPb = 90.0°')}<br>` +
-        `• <b>Geometric Invariance:</b> Points ${tag('red', 'a')}, ${tag('orange', 'b')}, and ${tag('violet', 'P')} span a Great Circle slicing plane through sphere center ${tag('indigo', 'C(0,0,0)')} with diameter ${tag('red', 'ab')}. Therefore, Thales' Theorem holds in 3D across the entire sphere surface.<br>` +
-        `• ${tag('green', '3D Inscribed Area')}: ½ · ${tag('blue', 's')} · ${tag('orange', 't')} = ${tag('indigo', 'r')} · √(${tag('lime', 'y²')} + ${tag('steel', 'z²')}) = ${tag('indigo', 'r')} · dist(${tag('violet', 'P')}, ${tag('red', 'ab')})`,
+        `• ${tag('teal', '3D Dot Product')}: (${tag('red', 'A')} - ${tag('violet', 'P')}) · (${tag('orange', 'B')} - ${tag('violet', 'P')}) = (${tag('amber', 'x²')} + ${tag('lime', 'y²')} + ${tag('steel', 'z²')}) - ${tag('indigo', 'r²')} = ${tag('indigo', 'r²')} - ${tag('indigo', 'r²')} = 0 ⇒ ${tag('teal', '3D ∠APB = 90.0°')}<br>` +
+        `• <b>Geometric Invariance:</b> Points ${tag('red', 'A')}, ${tag('orange', 'B')}, and ${tag('violet', 'P')} span a Great Circle slicing plane through sphere center ${tag('indigo', 'O(0,0,0)')} with diameter ${tag('red', 'AB')}. Therefore, Thales' Theorem holds in 3D across the entire sphere surface.<br>` +
+        `• ${tag('green', '3D Inscribed Area')}: ½ · ${tag('blue', 's')} · ${tag('orange', 't')} = ${tag('indigo', 'r')} · √(${tag('lime', 'y²')} + ${tag('steel', 'z²')}) = ${tag('indigo', 'r')} · dist(${tag('violet', 'P')}, ${tag('red', 'AB')})`,
         true
       )}
       ${cardTemplate(
@@ -187,8 +187,8 @@ export class DerivationView {
 
     if (this.slots2D.step1Sub) {
       this.slots2D.step1Sub.innerHTML =
-        `↳ ${tag('indigo', 'Center C')} = (0.00, 0.00)<br>` +
-        `↳ ${tag('red', 'a')} = (${tag('red', ax.toFixed(2))}, 0.00), ${tag('orange', 'b')} = (${tag('orange', bx.toFixed(2))}, 0.00)<br>` +
+        `↳ ${tag('indigo', 'Center O')} = (0.00, 0.00)<br>` +
+        `↳ ${tag('red', 'A')} = (${tag('red', ax.toFixed(2))}, 0.00), ${tag('orange', 'B')} = (${tag('orange', bx.toFixed(2))}, 0.00)<br>` +
         `↳ ${tag('red', '|d|')} = 2 · ${tag('indigo', radius.toFixed(2))} = ${tag('red', d.toFixed(2))}<br>` +
         `↳ ${tag('sky', 'Circumference 2πr')} = 2π · ${tag('indigo', radius.toFixed(2))} = ${tag('sky', (2 * Math.PI * radius).toFixed(2))}`;
     }
@@ -234,7 +234,7 @@ export class DerivationView {
         `↳ Euclidean Base Angles: ${tag('lime', `α = ${alphaDeg.toFixed(1)}°`)}, ${tag('orange', `β = ${betaDeg.toFixed(1)}°`)} ⇒ ${tag('teal', `α + β = ${(alphaDeg + betaDeg).toFixed(1)}° (Right Angle)`)}<br>` +
         `↳ Vectors: ${tag('blue', 'u')} = (${tag('blue', ux.toFixed(2))}, ${tag('blue', uy.toFixed(2))}), ${tag('orange', 'v')} = (${tag('orange', vx.toFixed(2))}, ${tag('orange', vy.toFixed(2))})<br>` +
         `↳ Dot Product: (${tag('blue', ux.toFixed(2))})(${tag('orange', vx.toFixed(2))}) + (${tag('blue', uy.toFixed(2))})(${tag('orange', vy.toFixed(2))}) = ${tag('teal', Math.abs(dotProduct) < 0.005 ? '0.00' : dotProduct.toFixed(2))}<br>` +
-        `↳ ${tag('teal', '∠aPb')} = arccos(0) = ${tag('teal', '90.0°')}`;
+        `↳ ${tag('teal', '∠APB')} = arccos(0) = ${tag('teal', '90.0°')}`;
     }
     if (this.slots2D.step5Eval) {
       this.slots2D.step5Eval.innerHTML =
@@ -246,11 +246,11 @@ export class DerivationView {
         `↳ Active Position: ${tag('yellow', qStr)} (Altitude ${tag('lime', `h = |y| = ${h.toFixed(2)}`)})<br>` +
         `↳ ${tag('green', 'Inscribed Area')} = ½ · ${tag('blue', s.toFixed(2))} · ${tag('orange', t.toFixed(2))} = ${tag('indigo', radius.toFixed(2))} · ${tag('lime', h.toFixed(2))} = ${tag('green', area.toFixed(2))}<br>` +
         `↳ Max Peak Area at Zenith (θ = 90°): ${tag('indigo', `r² = ${r2.toFixed(2)}`)} (current ratio: ${r2 > 0 ? (area / r2 * 100).toFixed(1) : '0.0'}%)<br>` +
-        `↳ ${tag('teal', 'Quadrant Invariant')}: While altitude and area oscillate across quadrants, ${tag('teal', '∠aPb ≡ 90.0°')} and ${tag('lavender', `s² + t² = ${sumSquares.toFixed(2)} ≡ |d|² = ${d2.toFixed(2)}`)}`;
+        `↳ ${tag('teal', 'Quadrant Invariant')}: While altitude and area oscillate across quadrants, ${tag('teal', '∠APB ≡ 90.0°')} and ${tag('lavender', `s² + t² = ${sumSquares.toFixed(2)} ≡ |d|² = ${d2.toFixed(2)}`)}`;
     }
     if (this.slots2D.step6Eval) {
       this.slots2D.step6Eval.innerHTML =
-        `<span>${tag('green', `Current Area = ${area.toFixed(2)}`)} | ${tag('teal', '∠aPb ≡ 90.0° (Constant)')}</span><span class="derivation-check">✓ Quadrant Invariant</span>`;
+        `<span>${tag('green', `Current Area = ${area.toFixed(2)}`)} | ${tag('teal', '∠APB ≡ 90.0° (Constant)')}</span><span class="derivation-check">✓ Quadrant Invariant</span>`;
     }
   }
 
@@ -313,11 +313,11 @@ export class DerivationView {
         `↳ ${tag('blue', 's')} = ${tag('blue', s3D.toFixed(2))} ⇒ ${tag('blue', 's²')} = ${tag('blue', s3D2.toFixed(2))}, ${tag('orange', 't')} = ${tag('orange', t3D.toFixed(2))} ⇒ ${tag('orange', 't²')} = ${tag('orange', t3D2.toFixed(2))}<br>` +
         `↳ ${tag('lavender', 's² + t²')} = ${tag('blue', s3D2.toFixed(2))} + ${tag('orange', t3D2.toFixed(2))} = ${tag('lavender', sumSquares3D.toFixed(2))} ≡ ${tag('cyan', d2.toFixed(2))} (${tag('cyan', '|d|²')})<br>` +
         `↳ 3D Altitude ${tag('lime', 'h')} = √[y² + z²] = ${tag('lime', alt3D.toFixed(2))} ⇒ ${tag('green', '3D Area')} = ½ · ${tag('blue', s3D.toFixed(2))} · ${tag('orange', t3D.toFixed(2))} = ${tag('green', (0.5 * s3D * t3D).toFixed(2))}<br>` +
-        `↳ 3D ${tag('teal', 'Angle ∠aPb')} = arccos(0) = ${tag('teal', '90.0° (Sphere Invariant)')}`;
+        `↳ 3D ${tag('teal', 'Angle ∠APB')} = arccos(0) = ${tag('teal', '90.0° (Sphere Invariant)')}`;
     }
     if (this.slots3D.step3Eval) {
       this.slots3D.step3Eval.innerHTML =
-        `<span>${tag('teal', '3D Right Angle ∠aPb = 90.0°')}</span><span class="derivation-check">✓ Great Circle Invariant</span>`;
+        `<span>${tag('teal', '3D Right Angle ∠APB = 90.0°')}</span><span class="derivation-check">✓ Great Circle Invariant</span>`;
     }
 
     if (this.slots3D.step4Sub) {

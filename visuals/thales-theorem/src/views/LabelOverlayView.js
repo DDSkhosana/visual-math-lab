@@ -63,9 +63,9 @@ function describeLabels(state) {
 
   return [
     { key: 'p', at: { x: p.x * 1.15, y: p.y * 1.15, z: p.z * 1.15 }, text: withCoords('P', p.x, p.y, p.z), show: vis3d.labels, color: 'color-violet' },
-    { key: 'a', at: { x: -r * 1.15, y: 0, z: 0 }, text: withCoords('a', -r, 0, 0), show: vis3d.labels, color: 'color-red' },
-    { key: 'b', at: { x: r * 1.15, y: 0, z: 0 }, text: withCoords('b', r, 0, 0), show: vis3d.labels, color: 'color-orange' },
-    { key: 'c', at: { x: -1.2, y: 0.9, z: -1.2 }, text: withCoords('C', 0, 0, 0), show: vis3d.labels, color: 'color-indigo' },
+    { key: 'a', at: { x: -r * 1.15, y: 0, z: 0 }, text: withCoords('A', -r, 0, 0), show: vis3d.labels, color: 'color-red' },
+    { key: 'b', at: { x: r * 1.15, y: 0, z: 0 }, text: withCoords('B', r, 0, 0), show: vis3d.labels, color: 'color-orange' },
+    { key: 'c', at: { x: -1.2, y: 0.9, z: -1.2 }, text: withCoords('O', 0, 0, 0), show: vis3d.labels, color: 'color-indigo' },
     { key: 's', at: { x: (p.x - r) / 2, y: p.y / 2 + 0.4, z: p.z / 2 }, text: 's', show: labelsAndArea, color: 'color-blue' },
     { key: 't', at: { x: (p.x + r) / 2, y: p.y / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
     { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(state.lat3D))}°`, show: show3dAngles, color: 'color-yellow' },

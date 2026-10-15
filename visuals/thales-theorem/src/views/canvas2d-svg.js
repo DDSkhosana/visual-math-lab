@@ -81,13 +81,13 @@ export function generateSceneSVG(state, f) {
   <!-- Diameter Chord AB -->
   <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${PALETTE.red}" stroke-width="2.5"/>
 
-  <!-- Leg s (P to a) -->
+  <!-- Leg s (P to A) -->
   <line x1="${p.x}" y1="${p.y}" x2="${a.x}" y2="${a.y}" stroke="${PALETTE.blue}" stroke-width="2.5"/>
 
-  <!-- Leg t (P to b) -->
+  <!-- Leg t (P to B) -->
   <line x1="${p.x}" y1="${p.y}" x2="${b.x}" y2="${b.y}" stroke="${PALETTE.orange}" stroke-width="2.5"/>
 
-  <!-- Radius (C to P) -->
+  <!-- Radius (O to P) -->
   <line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="${PALETTE.indigo}" stroke-width="1.5" stroke-dasharray="4,4"/>
 
   <!-- Points -->
@@ -98,9 +98,9 @@ export function generateSceneSVG(state, f) {
 
   <!-- Text Labels -->
   <g filter="url(#shadow)" font-family="monospace" font-weight="bold" font-size="13">
-    <text x="${a.x - 14}" y="${a.y + 16}" fill="${PALETTE.red}">a</text>
-    <text x="${b.x + 8}" y="${b.y + 16}" fill="${PALETTE.orange}">b</text>
-    <text x="${cx + 6}" y="${cy + 16}" fill="${PALETTE.indigo}">C</text>
+    <text x="${a.x - 14}" y="${a.y + 16}" fill="${PALETTE.red}">A</text>
+    <text x="${b.x + 8}" y="${b.y + 16}" fill="${PALETTE.orange}">B</text>
+    <text x="${cx + 6}" y="${cy + 16}" fill="${PALETTE.indigo}">O</text>
     <text x="${pxLabel}" y="${pyLabel}" fill="${PALETTE.violet}" text-anchor="${pAnchor}" dominant-baseline="${pBaseline}">P</text>
     <text x="${(a.x + p.x) / 2 - 12}" y="${(a.y + p.y) / 2}" fill="${PALETTE.blue}">s</text>
     <text x="${(b.x + p.x) / 2 + 8}" y="${(b.y + p.y) / 2}" fill="${PALETTE.orange}">t</text>

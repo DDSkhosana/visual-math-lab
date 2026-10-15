@@ -12,6 +12,7 @@ import {
   TangentsFromPointDerivations,
   ChordBisectorDerivations,
 } from '../js/circle-derivations.js';
+import { DerivationView } from '../visuals/thales-theorem/src/views/DerivationView.js';
 
 test('Colour Grammar: Core PALETTE and Thales PALETTE tokens are identical', () => {
   const coreKeys = Object.keys(CORE_PALETTE);
@@ -117,6 +118,16 @@ test('Colour Grammar: Derivations comply with theorem point identities and line 
   assert.ok(c6.innerHTML.includes('class="color-indigo">O</span>') || c6.innerHTML.includes('class="color-sky">O</span>'), 'O must be indigo or sky');
   assert.ok(c6.innerHTML.includes('class="color-emerald">M</span>'), 'M must be emerald');
   assert.ok(c6.innerHTML.includes('class="color-blue">AB</span>'), 'Chord AB must be blue');
+
+  // 6. Thales Theorem: A is red, B is orange, Center O is indigo, P is violet
+  const c7Flat = new MockElement('live-math-2d');
+  const c7Solid = new MockElement('live-math-3d');
+  const d7 = new DerivationView(c7Flat, c7Solid);
+  d7.render({ radius: 10, angle2D: Math.PI / 2, lat3D: Math.PI / 2, lon3D: Math.PI / 2 });
+  assert.ok(c7Flat.innerHTML.includes('class="color-red">A</span>'), 'Thales A must be red and uppercase');
+  assert.ok(c7Flat.innerHTML.includes('class="color-orange">B</span>'), 'Thales B must be orange and uppercase');
+  assert.ok(c7Flat.innerHTML.includes('class="color-indigo">Center O</span>'), 'Thales center must be Center O and uppercase');
+  assert.ok(c7Flat.innerHTML.includes('class="color-violet">P</span>'), 'Thales P must be violet and uppercase');
 });
 
 test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independently toggled', () => {

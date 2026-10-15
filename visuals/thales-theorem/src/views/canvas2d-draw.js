@@ -343,11 +343,11 @@ function drawPoints(ctx, state, f) {
   const label = (name, x, y) => (withCoords ? `${name} ${formatPoint(x, y)}` : name);
 
   if (f.plane === 'yz') {
-    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.red, withCoords ? 'a,b (0,0) ⟂' : 'a,b ⟂', -25, 20);
+    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.red, withCoords ? 'A,B (0,0) ⟂' : 'A,B ⟂', -25, 20);
   } else {
-    drawLabelledPoint(ctx, f.a, PALETTE.red, label('a', f.aCoords.x, f.aCoords.y), -16, 0, 'right', 'middle');
-    drawLabelledPoint(ctx, f.b, PALETTE.orange, label('b', f.bCoords.x, f.bCoords.y), 16, 0, 'left', 'middle');
-    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.indigo, label('C', 0, 0), -12, 18, 'right', 'top');
+    drawLabelledPoint(ctx, f.a, PALETTE.red, label('A', f.aCoords.x, f.aCoords.y), -16, 0, 'right', 'middle');
+    drawLabelledPoint(ctx, f.b, PALETTE.orange, label('B', f.bCoords.x, f.bCoords.y), 16, 0, 'left', 'middle');
+    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.indigo, label('O', 0, 0), -12, 18, 'right', 'top');
   }
 
   const dpx = f.p.x - f.cx, dpy = f.p.y - f.cy;
