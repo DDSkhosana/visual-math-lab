@@ -146,7 +146,8 @@ export class Scene3DView {
 
   /** Both pick methods use the ray from the latest pointerToRay call. */
   hitsPointP() {
-    return this.raycaster.intersectObject(this.objects.pointP).length > 0;
+    if (this.raycaster.intersectObject(this.objects.pointP).length > 0) return true;
+    return this.raycaster.ray.distanceToPoint(this.objects.pointP.position) < 2.0;
   }
 
   pickSphere() {

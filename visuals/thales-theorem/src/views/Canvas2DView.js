@@ -54,7 +54,9 @@ export class Canvas2DView {
   /** Pointer position in canvas pixels. */
   toLocal(event) {
     const rect = this.canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const scaleX = rect.width ? this.canvas.width / rect.width : 1;
+    const scaleY = rect.height ? this.canvas.height / rect.height : 1;
+    return { x: (event.clientX - rect.left) * scaleX, y: (event.clientY - rect.top) * scaleY };
   }
 
   exportPNG(filename = 'thales-theorem-2d.png') {

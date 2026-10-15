@@ -24,16 +24,39 @@ export class Canvas2DInteraction {
     }, { passive: false });
   }
 
-  #distanceToP(event) {
+  #distanceTo(event, pt) {
     const { x, y } = this.view.toLocal(event);
-    const { p } = this.view.frame(this.store.get());
-    return Math.hypot(x - p.x, y - p.y);
+    return Math.hypot(x - pt.x, y - pt.y);
+  }
+
+  #distanceToCircumference(event) {
+    const { x, y } = this.view.toLocal(event);
+    const { cx, cy, r } = this.view.frame(this.store.get());
+    return Math.abs(Math.hypot(x - cx, y - cy) - r);
   }
 
   #down(event) {
     const reach = event.pointerType === 'touch' ? LIMITS.pointHitRadius.touch : LIMITS.pointHitRadius.mouse;
-    const { pan } = this.store.get();
-    this.mode = this.#distanceToP(event) < reach ? 'point' : 'pan';
+    const state = this.store.get();
+    const frame = this.view.frame(state);
+    const { pan } = state;
+
+    const distP = this.#distanceTo(event, frame.p);
+    const distA = this.#distanceTo(event, frame.a);
+    const distB = this.#distanceTo(event, frame.b);
+    const distCirc = this.#distanceToCircumference(event);
+
+    if (distP < reach || distCirc < 16) {
+      this.mode = 'point';
+      if (distP >= reach) {
+        this.#updatePointPosition(event);
+      }
+    } else if (distA < reach || distB < reach) {
+      this.mode = 'radius';
+    } else {
+      this.mode = 'pan';
+    }
+
     if (this.store.get().playing) {
       this.store.set(setPlaying(false));
     }
@@ -43,33 +66,59 @@ export class Canvas2DInteraction {
     } catch (_) {}
   }
 
+  #updatePointPosition(event) {
+    const state = this.store.get();
+    const { x, y } = this.view.toLocal(event);
+    const { cx, cy } = this.view.frame(state);
+    const ang = pointerToAngle(x - cx, cy - y);
+    const r = state.radius;
+    const plane = state.plane2D ?? 'great-circle';
+
+    if (plane === 'xy') {
+      const x3 = r * Math.cos(ang), y3 = r * Math.sin(ang), z3 = 0;
+      this.store.set(setSpherePoint(cartesianToSpherical({ x: x3, y: y3, z: z3 }, r), state));
+    } else if (plane === 'xz') {
+      const x3 = r * Math.cos(ang), z3 = r * Math.sin(ang), y3 = 0;
+      this.store.set(setSpherePoint(cartesianToSpherical({ x: x3, y: 0, z: z3 }, r), state));
+    } else if (plane === 'yz') {
+      const z3 = r * Math.cos(ang), y3 = r * Math.sin(ang), x3 = 0;
+      this.store.set(setSpherePoint(cartesianToSpherical({ x: 0, y: y3, z: z3 }, r), state));
+    } else {
+      this.store.set(setAngle2D(ang, state));
+    }
+  }
+
   #move(event) {
     if (this.mode === 'point') {
+      this.#updatePointPosition(event);
+    } else if (this.mode === 'radius') {
       const state = this.store.get();
       const { x, y } = this.view.toLocal(event);
       const { cx, cy } = this.view.frame(state);
-      const ang = pointerToAngle(x - cx, cy - y);
-      const r = state.radius;
-      const plane = state.plane2D ?? 'great-circle';
-
-      if (plane === 'xy') {
-        const x3 = r * Math.cos(ang), y3 = r * Math.sin(ang), z3 = 0;
-        this.store.set(setSpherePoint(cartesianToSpherical({ x: x3, y: y3, z: z3 }, r), state));
-      } else if (plane === 'xz') {
-        const x3 = r * Math.cos(ang), z3 = r * Math.sin(ang), y3 = 0;
-        this.store.set(setSpherePoint(cartesianToSpherical({ x: x3, y: 0, z: z3 }, r), state));
-      } else if (plane === 'yz') {
-        const z3 = r * Math.cos(ang), y3 = r * Math.sin(ang), x3 = 0;
-        this.store.set(setSpherePoint(cartesianToSpherical({ x: 0, y: y3, z: z3 }, r), state));
-      } else {
-        this.store.set(setAngle2D(ang, state));
-      }
+      const distFromCenter = Math.hypot(x - cx, y - cy);
+      const newRadius = clamp(Math.round((distFromCenter / state.zoom) * 2) / 2, 5, 15);
+      this.store.set(setRadius(newRadius));
     } else if (this.mode === 'pan') {
       this.store.set({ pan: { x: event.clientX - this.panOrigin.x, y: event.clientY - this.panOrigin.y } });
     } else if (event.pointerType === 'mouse') {
-      const hover = this.#distanceToP(event) < 25;
-      this.view.canvas.style.cursor = hover ? 'pointer' : 'grab';
-      this.store.set({ hoverP2D: hover });
+      const state = this.store.get();
+      const frame = this.view.frame(state);
+      const distP = this.#distanceTo(event, frame.p);
+      const distA = this.#distanceTo(event, frame.a);
+      const distB = this.#distanceTo(event, frame.b);
+      const distCirc = this.#distanceToCircumference(event);
+
+      const hoverP = distP < 25 || distCirc < 12;
+      const hoverRadius = distA < 22 || distB < 22;
+
+      if (hoverP) {
+        this.view.canvas.style.cursor = 'pointer';
+      } else if (hoverRadius) {
+        this.view.canvas.style.cursor = 'ew-resize';
+      } else {
+        this.view.canvas.style.cursor = 'grab';
+      }
+      this.store.set({ hoverP2D: hoverP });
     }
   }
 
