@@ -22,6 +22,7 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
 };
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
