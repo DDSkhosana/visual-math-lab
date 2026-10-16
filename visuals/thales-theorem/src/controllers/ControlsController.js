@@ -23,7 +23,14 @@ export class ControlsController {
       });
     }
     for (const toggle of this.toggles) {
-      toggle.input.addEventListener('change', () => store.set(setFlag(store.get(), toggle.path, toggle.input.checked)));
+      toggle.input.addEventListener('change', () => {
+        let patch = setFlag(store.get(), toggle.path, toggle.input.checked);
+        if (toggle.path[0] === 'vis2d' && (toggle.path[1] === 'points' || toggle.path[1] === 'labels')) {
+          patch = setFlag(patch, ['vis2d', 'points'], toggle.input.checked);
+          patch = setFlag(patch, ['vis2d', 'labels'], toggle.input.checked);
+        }
+        store.set(patch);
+      });
     }
 
     this.planeButtons = ['great-circle', 'xy', 'xz', 'yz'].map((plane) => {

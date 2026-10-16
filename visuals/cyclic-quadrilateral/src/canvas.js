@@ -102,15 +102,20 @@ export class CanvasView {
       sweepWedge(g.D, angDC, angDA, 26, 'rgba(244, 63, 94, 0.28)', PALETTE.rose);
 
       // Explicit angle badges for all 4 vertices
-      const badgeA = { x: g.A.x + 0.24 * (g.cx - g.A.x), y: g.A.y + 0.24 * (g.cy - g.A.y) };
-      const badgeB = { x: g.B.x + 0.24 * (g.cx - g.B.x), y: g.B.y + 0.24 * (g.cy - g.B.y) };
-      const badgeC = { x: g.C.x + 0.24 * (g.cx - g.C.x), y: g.C.y + 0.24 * (g.cy - g.C.y) };
-      const badgeD = { x: g.D.x + 0.24 * (g.cx - g.D.x), y: g.D.y + 0.24 * (g.cy - g.D.y) };
-      drawTextBadge(ctx, `∠A = ${g.angleADeg.toFixed(1)}°`, badgeA.x, badgeA.y, PALETTE.violet);
-      drawTextBadge(ctx, `∠B = ${g.angleBDeg.toFixed(1)}°`, badgeB.x, badgeB.y, PALETTE.cyan);
-      drawTextBadge(ctx, `∠C = ${g.angleCDeg.toFixed(1)}°`, badgeC.x, badgeC.y, PALETTE.amber);
-      drawTextBadge(ctx, `∠D = ${g.angleDDeg.toFixed(1)}°`, badgeD.x, badgeD.y, PALETTE.rose);
+      const showLabels = state.vis2d?.labels !== false;
+      if (showLabels) {
+        const badgeA = { x: g.A.x + 0.24 * (g.cx - g.A.x), y: g.A.y + 0.24 * (g.cy - g.A.y) };
+        const badgeB = { x: g.B.x + 0.24 * (g.cx - g.B.x), y: g.B.y + 0.24 * (g.cy - g.B.y) };
+        const badgeC = { x: g.C.x + 0.24 * (g.cx - g.C.x), y: g.C.y + 0.24 * (g.cy - g.C.y) };
+        const badgeD = { x: g.D.x + 0.24 * (g.cx - g.D.x), y: g.D.y + 0.24 * (g.cy - g.D.y) };
+        drawTextBadge(ctx, `∠A = ${g.angleADeg.toFixed(1)}°`, badgeA.x, badgeA.y, PALETTE.violet);
+        drawTextBadge(ctx, `∠B = ${g.angleBDeg.toFixed(1)}°`, badgeB.x, badgeB.y, PALETTE.cyan);
+        drawTextBadge(ctx, `∠C = ${g.angleCDeg.toFixed(1)}°`, badgeC.x, badgeC.y, PALETTE.amber);
+        drawTextBadge(ctx, `∠D = ${g.angleDDeg.toFixed(1)}°`, badgeD.x, badgeD.y, PALETTE.rose);
+      }
     }
+
+    const showLabels = state.vis2d?.labels !== false;
 
     // Exterior line extending DC through C to E
     if (state.showExterior) {
@@ -129,7 +134,7 @@ export class CanvasView {
       const vis = state.vis2d || {};
       const formatQuadLabel = (name, angleDeg, pt) => {
         let base = name;
-        if (vis.lengths !== false) base += ` (${angleDeg.toFixed(1)}°)`;
+        if (vis.labels !== false) base += ` (${angleDeg.toFixed(1)}°)`;
         return getPointLabel(base, pt.x - g.cx, -(pt.y - g.cy), vis);
       };
 
@@ -139,7 +144,7 @@ export class CanvasView {
       drawRadialLabelledPoint(ctx, g.D, g.O, PALETTE.rose, formatQuadLabel('D', g.angleDDeg, g.D), 22);
     }
 
-    if (state.showExterior && g.E && showAngles) {
+    if (state.showExterior && g.E && showAngles && showLabels) {
       const dirDCx = g.C.x - g.D.x;
       const dirDCy = g.C.y - g.D.y;
       const lenDC = Math.hypot(dirDCx, dirDCy);

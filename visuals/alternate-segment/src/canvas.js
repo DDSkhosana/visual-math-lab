@@ -97,7 +97,9 @@ export class CanvasView {
     drawDoubleArrow(ctx, g.Tan1, g.Tan2, PALETTE.emerald, 3);
     const tanMidX = g.T.x + (g.Tan2.x - g.T.x) * 0.45;
     const tanMidY = g.T.y + (g.Tan2.y - g.T.y) * 0.45;
-    drawTextBadge(ctx, 'Tangent', tanMidX, tanMidY, PALETTE.emerald);
+    if (state.vis2d?.labels !== false) {
+      drawTextBadge(ctx, 'Tangent', tanMidX, tanMidY, PALETTE.emerald);
+    }
 
     // Differentiated Chords with distinct color tokens
     // 1. Primary Chord TA (Blue)
@@ -161,7 +163,8 @@ export class CanvasView {
     }
 
     // Angle text annotations with protective badge pills
-    if (showAngles) {
+    const showLabels = state.vis2d?.labels !== false;
+    if (showAngles && showLabels) {
       // Inscribed angle at B
       const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
       const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);

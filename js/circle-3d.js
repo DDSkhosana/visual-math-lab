@@ -253,7 +253,7 @@ export class BaseScene3DView {
     if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     if (this.overlay && this.overlay.overlayContainer) {
-      const showLabels = (state?.vis3d?.labels !== false) || Boolean(state?.vis3d?.coords) || (state?.vis3d?.angles !== false);
+      const showLabels = (state?.vis3d?.labels !== false) || Boolean(state?.vis3d?.coords);
       this.overlay.overlayContainer.style.display = showLabels ? '' : 'none';
     }
   }
@@ -453,13 +453,12 @@ export class LabelOverlay3D {
       }
 
       let shouldShow = label.show !== false;
-      if (label.isAngle) {
-        if (!showAngles) shouldShow = false;
+      if (!showLabels && !showCoords) {
+        shouldShow = false;
+      } else if (label.isAngle) {
+        if (!showLabels || !showAngles) shouldShow = false;
       } else if (label.isAxis) {
-        if (vis3d.axes === false || (!showLabels && !showCoords)) shouldShow = false;
-      } else {
-        // Point label
-        if (!showLabels && !showCoords) shouldShow = false;
+        if (vis3d.axes === false) shouldShow = false;
       }
 
       const screen = shouldShow ? this.project(label.at) : null;
@@ -1542,11 +1541,33 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
         id: 'P',
         mesh: this.markerP,
         onDrag: (angle, hit, store, lat) => {
-          const dist3 = hit.length();
+          store.set({ pointAngle: angle, latP: lat });
+        },
+      },
+      {
+        id: 'T1',
+        mesh: this.markerT1,
+        onDrag: (angle, hit, store) => {
           const state = store.get();
-          const r2D = state.radius || 120;
-          const pixelDist = Math.max(r2D + 15, (dist3 / this.R) * r2D);
-          store.set({ pointAngle: angle, pointDist: pixelDist, latP: lat });
+          const r = state.radius || 120;
+          const d = state.pointDist || 260;
+          const alpha = Math.acos(Math.min(1, Math.max(-1, r / d)));
+          let pAngle = angle - alpha;
+          if (pAngle < 0) pAngle += Math.PI * 2;
+          store.set({ pointAngle: pAngle });
+        },
+      },
+      {
+        id: 'T2',
+        mesh: this.markerT2,
+        onDrag: (angle, hit, store) => {
+          const state = store.get();
+          const r = state.radius || 120;
+          const d = state.pointDist || 260;
+          const alpha = Math.acos(Math.min(1, Math.max(-1, r / d)));
+          let pAngle = angle + alpha;
+          if (pAngle >= Math.PI * 2) pAngle -= Math.PI * 2;
+          store.set({ pointAngle: pAngle });
         },
       },
     ];

@@ -129,7 +129,8 @@ export class CanvasView {
     }
 
     // Angle text annotations with protective badge pills inside angle cones
-    if (showAngles) {
+    const showLabels = state.vis2d?.labels !== false;
+    if (showAngles && showLabels) {
       // Central Angle badge at O (above O along angle bisector) in yellow
       if (state.showCenter) {
         const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);

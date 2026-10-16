@@ -116,7 +116,8 @@ export class CanvasView {
     }
 
     // Right-angle 90° annotation with protective badge pill
-    if (showAngles) {
+    const showLabels = state.vis2d?.labels !== false;
+    if (showAngles && showLabels) {
       drawTextBadge(ctx, '90°', c2x + 8, c2y + 8, PALETTE.teal);
     }
   }

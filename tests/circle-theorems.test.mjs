@@ -252,3 +252,112 @@ test('2D CanvasView.render and generateSVG execute cleanly across all 7 circle t
   }
 });
 
+test('Unified labeling toggle: disabling labels suppresses all 2D text rendering across all circle visuals', async () => {
+  const noop = () => {};
+  const createMockCanvas = () => {
+    const ctx = {
+      beginPath: noop,
+      moveTo: noop,
+      lineTo: noop,
+      arc: noop,
+      closePath: noop,
+      stroke: noop,
+      fill: noop,
+      clearRect: noop,
+      fillRect: noop,
+      strokeRect: noop,
+      setLineDash: noop,
+      save: noop,
+      restore: noop,
+      fillText: noop,
+      strokeText: noop,
+      setTransform: noop,
+      translate: noop,
+      rotate: noop,
+      scale: noop,
+      measureText: (text) => ({ width: String(text).length * 7 }),
+      createLinearGradient: () => ({ addColorStop: noop }),
+      createRadialGradient: () => ({ addColorStop: noop }),
+    };
+    return {
+      width: 800,
+      height: 600,
+      style: {},
+      getContext: () => ctx,
+      getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      parentElement: {
+        getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      },
+    };
+  };
+
+  const visuals = [
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+  ];
+
+  for (const { name, model, canvasMod } of visuals) {
+    const state = {
+      ...model.createInitialState(),
+      vis2d: {
+        labels: false,
+        coords: false,
+        points: true,
+        angles: true,
+        lengths: true,
+        grid: true,
+        axes: false,
+      },
+    };
+    const renderedTexts = [];
+    const mockCanvas = createMockCanvas();
+    const ctx = mockCanvas.getContext('2d');
+    ctx.fillText = (text) => renderedTexts.push(text);
+
+    const view = new canvasMod.CanvasView(mockCanvas, mockCanvas.parentElement);
+    view.render(state);
+
+    assert.strictEqual(
+      renderedTexts.length,
+      0,
+      `${name}: when labels is false, no text labels should be rendered, but got: ${JSON.stringify(renderedTexts)}`
+    );
+  }
+});
+
+test('Tangents from External Point: interactive point dragging and bound invariants', () => {
+  const state = TangentsFromPoint.createInitialState();
+  const g1 = TangentsFromPoint.computeGeometry(state, 800, 600);
+
+  // Invariant: external point distance d > radius r
+  assert.ok(g1.d > g1.r, 'Initial point distance d must be strictly greater than radius r');
+
+  // Both tangent contact points T1 and T2 must lie strictly on the circle radius r
+  const distOT1 = Math.hypot(g1.T1.x - g1.cx, g1.T1.y - g1.cy);
+  const distOT2 = Math.hypot(g1.T2.x - g1.cx, g1.T2.y - g1.cy);
+  close(distOT1, g1.r, 1e-4);
+  close(distOT2, g1.r, 1e-4);
+
+  // Both tangent lengths |PT1| and |PT2| must be identical
+  close(g1.lenPT1, g1.lenPT2, 1e-4);
+
+  // Dot products OT1 · PT1 and OT2 · PT2 must be 0 (orthogonality / 90° right angles)
+  const dot1 = (g1.T1.x - g1.cx) * (g1.P.x - g1.T1.x) + (g1.T1.y - g1.cy) * (g1.P.y - g1.T1.y);
+  const dot2 = (g1.T2.x - g1.cx) * (g1.P.x - g1.T2.x) + (g1.T2.y - g1.cy) * (g1.P.y - g1.T2.y);
+  close(dot1, 0, 1e-4);
+  close(dot2, 0, 1e-4);
+
+  // Interactive dragging at various angles:
+  for (const ang of [0, Math.PI / 4, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
+    const movedState = { ...state, pointAngle: ang, pointDist: 280, radius: 120 };
+    const gm = TangentsFromPoint.computeGeometry(movedState, 800, 600);
+    close(gm.lenPT1, gm.lenPT2, 1e-4);
+    close(gm.lenPT1, Math.sqrt(gm.d * gm.d - gm.r * gm.r), 1e-4);
+  }
+});
+

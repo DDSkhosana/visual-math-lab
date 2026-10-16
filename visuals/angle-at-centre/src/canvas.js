@@ -156,7 +156,8 @@ export class CanvasView {
     }
 
     // Angle Text Annotations with protective badge pills
-    if (showAngles) {
+    const showLabels = state.vis2d?.labels !== false;
+    if (showAngles && showLabels) {
       // Central Angle badge placed along central angle bisector
       const midCentAng = -(state.angleA + state.angleB) / 2;
       const centBadgeX = g.cx + 52 * Math.cos(midCentAng);

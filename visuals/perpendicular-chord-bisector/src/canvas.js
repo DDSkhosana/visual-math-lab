@@ -145,7 +145,8 @@ export class CanvasView {
     }
 
     // Angle text labels at O and right-angle at M
-    if (showAngles) {
+    const showLabels = state.vis2d?.labels !== false;
+    if (showAngles && showLabels) {
       const angA = Math.atan2(g.A.y - g.cy, g.A.x - g.cx);
       const angB = Math.atan2(g.B.y - g.cy, g.B.x - g.cx);
       const angM = Math.atan2(g.M.y - g.cy, g.M.x - g.cx);
@@ -160,7 +161,7 @@ export class CanvasView {
     }
 
     // Length text on chord halves with protective badge pills offset perpendicular to chord
-    if (state.vis2d?.lengths !== false) {
+    if (showLabels && state.vis2d?.lengths !== false) {
       const dABx = g.B.x - g.A.x, dABy = g.B.y - g.A.y;
       const lenAB = Math.hypot(dABx, dABy);
       let nABx = lenAB > 0.001 ? -dABy / lenAB : 0, nABy = lenAB > 0.001 ? dABx / lenAB : -1;

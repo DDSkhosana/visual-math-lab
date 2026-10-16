@@ -107,10 +107,14 @@ export class CanvasView {
     ctx.stroke();
     ctx.setLineDash([]);
 
+    const showLabels = state.vis2d?.labels !== false;
+
     // Distance d badge along OP
-    const midOPX = (g.cx + g.P.x) / 2;
-    const midOPY = (g.cy + g.P.y) / 2;
-    drawTextBadge(ctx, `d = ${g.d.toFixed(1)}px`, midOPX, midOPY - 14, PALETTE.yellow);
+    if (showLabels) {
+      const midOPX = (g.cx + g.P.x) / 2;
+      const midOPY = (g.cy + g.P.y) / 2;
+      drawTextBadge(ctx, `d = ${g.d.toFixed(1)}px`, midOPX, midOPY - 14, PALETTE.yellow);
+    }
 
     // Differentiated Radii: OT1 (Emerald) and OT2 (Blue)
     ctx.lineWidth = 2.8;
@@ -130,8 +134,10 @@ export class CanvasView {
       drawRightAngle(ctx, g.T1, { x: g.cx, y: g.cy }, g.P, 14, PALETTE.teal, raFill);
       drawRightAngle(ctx, g.T2, { x: g.cx, y: g.cy }, g.P, 14, PALETTE.teal, raFill);
       drawRightAngle(ctx, g.K, g.T1, g.P, 11, PALETTE.teal, raFill);
-      drawTextBadge(ctx, '90°', g.T1.x + (g.cx - g.T1.x) * 0.22, g.T1.y + (g.cy - g.T1.y) * 0.22, PALETTE.teal);
-      drawTextBadge(ctx, '90°', g.T2.x + (g.cx - g.T2.x) * 0.22, g.T2.y + (g.cy - g.T2.y) * 0.22, PALETTE.teal);
+      if (showLabels) {
+        drawTextBadge(ctx, '90°', g.T1.x + (g.cx - g.T1.x) * 0.22, g.T1.y + (g.cy - g.T1.y) * 0.22, PALETTE.teal);
+        drawTextBadge(ctx, '90°', g.T2.x + (g.cx - g.T2.x) * 0.22, g.T2.y + (g.cy - g.T2.y) * 0.22, PALETTE.teal);
+      }
     }
 
     // Tangents: PT1 (Emerald) and PT2 (Blue)
@@ -158,7 +164,7 @@ export class CanvasView {
     }
 
     // Tangent lengths displayed with protective badge pills offset perpendicularly outwards
-    if (state.vis2d?.lengths !== false) {
+    if (showLabels && state.vis2d?.lengths !== false) {
       const mid1 = { x: (g.P.x + g.T1.x) / 2, y: (g.P.y + g.T1.y) / 2 };
       const mid2 = { x: (g.P.x + g.T2.x) / 2, y: (g.P.y + g.T2.y) / 2 };
 
@@ -176,7 +182,7 @@ export class CanvasView {
     }
 
     // 2D Canvas Angle Badges with distinct tokens
-    if (showAngles) {
+    if (showAngles && showLabels) {
       // Angles at P (alpha1 Lime, alpha2 Fuchsia)
       const bisP1 = (angPO + angPT1) / 2;
       const bisP2 = (angPO + angPT2) / 2;

@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
 import { TangentsFromPointDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, TangentsFromPoint3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -97,13 +97,23 @@ function bootstrap() {
   new PlaybackController(store, playBtn, { field: 'pointAngle', speed: 0.4 });
 
   // Controls
-  document.getElementById('slider-radius').addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  const radiusInput = document.getElementById('slider-radius');
+  radiusInput.addEventListener('input', (e) => {
+    const r = parseFloat(e.target.value);
+    const curDist = store.get().pointDist || 260;
+    const nextDist = Math.max(r + 15, curDist);
+    store.set({ radius: r, pointDist: nextDist });
+  });
   const distInput = document.getElementById('slider-dist');
-  distInput.addEventListener('input', (e) => store.set({ pointDist: parseFloat(e.target.value) }));
+  distInput.addEventListener('input', (e) => {
+    const r = store.get().radius || 120;
+    const d = Math.max(r + 15, parseFloat(e.target.value));
+    store.set({ pointDist: d });
+  });
   document.getElementById('toggle-congruence').addEventListener('change', (e) => store.set({ showCongruence: e.target.checked, showArea: e.target.checked }));
 
-  // Interactive Dragging of P
-  let dragging = false;
+  // Interactive Dragging of P, T1, T2
+  let dragTarget = null;
   function hit(x, y, pt, radius = 24) {
     return Math.hypot(x - pt.x, y - pt.y) < radius;
   }
@@ -114,8 +124,15 @@ function bootstrap() {
     const y = e.clientY - rect.top;
     const g = computeGeometry(store.get(), view.width, view.height);
 
-    if (hit(x, y, g.P)) {
-      dragging = true;
+    if (hit(x, y, g.P, 26)) {
+      dragTarget = 'P';
+    } else if (hit(x, y, g.T1, 24)) {
+      dragTarget = 'T1';
+    } else if (hit(x, y, g.T2, 24)) {
+      dragTarget = 'T2';
+    }
+
+    if (dragTarget) {
       if (store.get().playing) {
         store.set({ playing: false });
       }
@@ -129,8 +146,8 @@ function bootstrap() {
     const y = e.clientY - rect.top;
     const g = computeGeometry(store.get(), view.width, view.height);
 
-    if (!dragging) {
-      const hover = hit(x, y, g.P);
+    if (!dragTarget) {
+      const hover = hit(x, y, g.P, 26) || hit(x, y, g.T1, 24) || hit(x, y, g.T2, 24);
       canvas.style.cursor = hover ? 'pointer' : 'default';
       return;
     }
@@ -138,15 +155,27 @@ function bootstrap() {
     canvas.style.cursor = 'grabbing';
     const dx = x - g.cx;
     const dy = g.cy - y;
-    const dist = Math.max(g.r + 15, Math.hypot(dx, dy));
-    const angle = pointerToAngle(dx, dy);
-    store.set({ pointDist: dist, pointAngle: angle });
+    const rawAngle = pointerToAngle(dx, dy);
+    const alpha = Math.acos(Math.min(1, Math.max(-1, g.r / g.d)));
+
+    if (dragTarget === 'P') {
+      const dist = Math.max(g.r + 15, Math.hypot(dx, dy));
+      store.set({ pointDist: dist, pointAngle: rawAngle });
+    } else if (dragTarget === 'T1') {
+      let pAngle = rawAngle - alpha;
+      if (pAngle < 0) pAngle += Math.PI * 2;
+      store.set({ pointAngle: pAngle });
+    } else if (dragTarget === 'T2') {
+      let pAngle = rawAngle + alpha;
+      if (pAngle >= Math.PI * 2) pAngle -= Math.PI * 2;
+      store.set({ pointAngle: pAngle });
+    }
   });
 
   const stopDrag = (e) => {
-    if (dragging) {
+    if (dragTarget) {
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-      dragging = false;
+      dragTarget = null;
       canvas.style.cursor = 'default';
     }
   };
@@ -232,9 +261,10 @@ function bootstrap() {
     playBtn.querySelector('.icon-play').style.display = isPlaying ? 'none' : 'inline-block';
     playBtn.querySelector('.icon-pause').style.display = isPlaying ? 'inline-block' : 'none';
 
-    // Sync dist slider if not actively dragging on 2D canvas
-    if (!dragging && distInput) {
-      distInput.value = Math.round(state.pointDist);
+    // Sync sliders if not actively dragging on 2D canvas
+    if (!dragTarget) {
+      if (distInput) distInput.value = Math.round(state.pointDist);
+      if (radiusInput) radiusInput.value = Math.round(state.radius);
     }
   };
 
