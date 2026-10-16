@@ -23,7 +23,7 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
 
 /** Renders the "Live Math Derivations" panel with full algebraic proofs and live numerical substitutions. */
 export class DerivationView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D'];
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit'];
 
   constructor(flatElement, solidElement) {
     this.flatElement = flatElement;

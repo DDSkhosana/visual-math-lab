@@ -990,6 +990,8 @@ export function getPointLabel(name, x, y, vis2d = {}) {
 
 export function createDefaultVisState() {
   return {
+    lengthUnit: 'px',
+    angleUnit: 'deg',
     vis2d: {
       grid: true,
       axes: true,
@@ -1295,6 +1297,7 @@ export class UnitSystemConverter {
     cm: { name: 'Centimeters', symbol: 'cm', toPx: 96 / 2.54, fromPx: 2.54 / 96 },
     mm: { name: 'Millimeters', symbol: 'mm', toPx: 9.6 / 2.54, fromPx: 25.4 / 96 },
     in: { name: 'Inches', symbol: 'in', toPx: 96, fromPx: 1 / 96 },
+    u: { name: 'Normalized Units', symbol: 'u', toPx: 180, fromPx: 1 / 180 },
   };
 
   static ANGLE_CONVERSIONS = {
@@ -1303,6 +1306,15 @@ export class UnitSystemConverter {
     grad: { name: 'Gradians', symbol: 'gon', toDeg: 360 / 400, fromDeg: 400 / 360 },
     turn: { name: 'Turns', symbol: 'turn', toDeg: 360, fromDeg: 1 / 360 },
   };
+
+  static PRESETS = [
+    { id: 'standard', name: 'Standard (px, °)', lengthUnit: 'px', angleUnit: 'deg' },
+    { id: 'metric', name: 'Metric (cm, °)', lengthUnit: 'cm', angleUnit: 'deg' },
+    { id: 'engineering', name: 'Eng (mm, °)', lengthUnit: 'mm', angleUnit: 'deg' },
+    { id: 'analytic', name: 'Math (u, rad)', lengthUnit: 'u', angleUnit: 'rad' },
+    { id: 'surveying', name: 'Survey (cm, gon)', lengthUnit: 'cm', angleUnit: 'grad' },
+    { id: 'revolutions', name: 'Turns (px, turn)', lengthUnit: 'px', angleUnit: 'turn' },
+  ];
 
   static convertLength(value, fromUnit, toUnit, radius = 180) {
     if (fromUnit === toUnit) return value;
@@ -1326,28 +1338,51 @@ export class UnitSystemConverter {
     return degVal * (UnitSystemConverter.ANGLE_CONVERSIONS[toUnit]?.fromDeg || 1);
   }
 
-  static formatLength(value, unit, radius = 180) {
+  static formatLength(value, unit = 'px', radius = 180, decimals = null) {
     const converted = UnitSystemConverter.convertLength(value, 'px', unit, radius);
+    if (decimals !== null) {
+      if (unit === 'px') return `${Number(converted).toFixed(decimals)} px`;
+      return `${converted.toFixed(decimals)} ${unit}`;
+    }
     if (unit === 'px') return `${Math.round(converted)} px`;
     if (unit === 'u') return `${converted.toFixed(2)} u`;
     return `${converted.toFixed(2)} ${unit}`;
   }
 
-  static formatAngle(valueDeg, unit) {
+  static formatAngle(valueDeg, unit = 'deg', decimals = null) {
     const converted = UnitSystemConverter.convertAngle(valueDeg, 'deg', unit);
-    if (unit === 'deg') return `${converted.toFixed(1)}°`;
-    if (unit === 'rad') return `${converted.toFixed(3)} rad`;
-    if (unit === 'grad') return `${converted.toFixed(1)} gon`;
-    if (unit === 'turn') return `${converted.toFixed(3)} turn`;
-    return `${converted.toFixed(2)} ${unit}`;
+    const d = decimals !== null ? decimals : (unit === 'rad' || unit === 'turn' ? 3 : 1);
+    if (unit === 'deg') return `${converted.toFixed(d)}°`;
+    if (unit === 'rad') return `${converted.toFixed(d)} rad`;
+    if (unit === 'grad') return `${converted.toFixed(d)} gon`;
+    if (unit === 'turn') return `${converted.toFixed(d)} turn`;
+    return `${converted.toFixed(d)} ${unit}`;
+  }
+
+  static formatArea(valuePxSq, unit = 'px', radius = 180, decimals = null) {
+    const r = radius || 180;
+    if (unit === 'px') {
+      const d = decimals !== null ? decimals : 1;
+      return `${valuePxSq.toFixed(d)} px²`;
+    }
+    if (unit === 'u') {
+      const uArea = valuePxSq / (r * r);
+      const d = decimals !== null ? decimals : 2;
+      return `${uArea.toFixed(d)} u²`;
+    }
+    const fromPx = UnitSystemConverter.LENGTH_CONVERSIONS[unit]?.fromPx || 1;
+    const convertedArea = valuePxSq * fromPx * fromPx;
+    const d = decimals !== null ? decimals : 2;
+    return `${convertedArea.toFixed(d)} ${unit}²`;
   }
 
   constructor(container, store = null) {
     if (!container) return;
     this.container = container;
     this.store = store;
-    this.selectedLengthUnit = 'px';
-    this.selectedAngleUnit = 'deg';
+    const curState = store ? store.get() : {};
+    this.selectedLengthUnit = curState.lengthUnit || 'px';
+    this.selectedAngleUnit = curState.angleUnit || 'deg';
     this.calcValue = 180;
     this.calcUnit = 'len-px';
 
@@ -1355,34 +1390,52 @@ export class UnitSystemConverter {
     this.#bindEvents();
 
     if (this.store) {
-      this.store.subscribe((state) => this.update(state), ['radius']);
+      this.store.subscribe((state) => this.update(state), ['radius', 'lengthUnit', 'angleUnit']);
       this.update(this.store.get());
     } else {
-      this.update({ radius: 180 });
+      this.update({ radius: 180, lengthUnit: 'px', angleUnit: 'deg' });
     }
   }
 
   #renderDOM() {
+    const matchedPreset = UnitSystemConverter.PRESETS.find(
+      (p) => p.lengthUnit === this.selectedLengthUnit && p.angleUnit === this.selectedAngleUnit
+    );
+    const activeLabel = matchedPreset ? matchedPreset.name : `Custom (${this.selectedLengthUnit}, ${this.selectedAngleUnit})`;
+
     this.container.innerHTML = `
       <div class="unit-converter-container">
+        <div class="active-unit-system-banner">
+          <span class="active-unit-system-label">Active Workspace Units:</span>
+          <span class="active-unit-system-tag" id="active-system-name">${activeLabel}</span>
+        </div>
+
+        <div class="unit-presets-bar" role="group" aria-label="Quick Unit Presets">
+          ${UnitSystemConverter.PRESETS.map((p) => `
+            <button type="button" class="unit-preset-btn ${p.lengthUnit === this.selectedLengthUnit && p.angleUnit === this.selectedAngleUnit ? 'active' : ''}" data-len="${p.lengthUnit}" data-ang="${p.angleUnit}" title="${p.name}">
+              ${p.name.split(' ')[0]}
+            </button>
+          `).join('')}
+        </div>
+
         <div class="unit-selectors-grid">
           <div class="unit-select-group">
-            <label class="unit-label" for="select-length-unit">Length Unit</label>
+            <label class="unit-label" for="select-length-unit">Active Length Unit</label>
             <select id="select-length-unit" class="unit-select">
-              <option value="px" selected>Pixels (px)</option>
-              <option value="cm">Centimeters (cm)</option>
-              <option value="mm">Millimeters (mm)</option>
-              <option value="in">Inches (in)</option>
-              <option value="u">Normalized (u = r)</option>
+              <option value="px" ${this.selectedLengthUnit === 'px' ? 'selected' : ''}>Pixels (px)</option>
+              <option value="cm" ${this.selectedLengthUnit === 'cm' ? 'selected' : ''}>Centimeters (cm)</option>
+              <option value="mm" ${this.selectedLengthUnit === 'mm' ? 'selected' : ''}>Millimeters (mm)</option>
+              <option value="in" ${this.selectedLengthUnit === 'in' ? 'selected' : ''}>Inches (in)</option>
+              <option value="u" ${this.selectedLengthUnit === 'u' ? 'selected' : ''}>Normalized (u = r)</option>
             </select>
           </div>
           <div class="unit-select-group">
-            <label class="unit-label" for="select-angle-unit">Angle Unit</label>
+            <label class="unit-label" for="select-angle-unit">Active Angle Unit</label>
             <select id="select-angle-unit" class="unit-select">
-              <option value="deg" selected>Degrees (°)</option>
-              <option value="rad">Radians (rad)</option>
-              <option value="grad">Gradians (gon)</option>
-              <option value="turn">Turns (rev)</option>
+              <option value="deg" ${this.selectedAngleUnit === 'deg' ? 'selected' : ''}>Degrees (°)</option>
+              <option value="rad" ${this.selectedAngleUnit === 'rad' ? 'selected' : ''}>Radians (rad)</option>
+              <option value="grad" ${this.selectedAngleUnit === 'grad' ? 'selected' : ''}>Gradians (gon)</option>
+              <option value="turn" ${this.selectedAngleUnit === 'turn' ? 'selected' : ''}>Turns (rev)</option>
             </select>
           </div>
         </div>
@@ -1390,7 +1443,7 @@ export class UnitSystemConverter {
         <div class="unit-metrics-card">
           <div class="unit-metrics-title">
             <span>Live Circle Invariants</span>
-            <span class="active-length-unit-tag" id="unit-tag-badge">px</span>
+            <span class="active-length-unit-tag" id="unit-tag-badge">${this.selectedLengthUnit}</span>
           </div>
           <div class="unit-metric-row"><span>Radius r:</span><span class="unit-metric-val" id="metric-conv-r">0.00</span></div>
           <div class="unit-metric-row"><span>Diameter 2r:</span><span class="unit-metric-val" id="metric-conv-d">0.00</span></div>
@@ -1432,14 +1485,34 @@ export class UnitSystemConverter {
 
     selLen?.addEventListener('change', (e) => {
       this.selectedLengthUnit = e.target.value;
-      const badge = this.container.querySelector('#unit-tag-badge');
-      if (badge) badge.textContent = this.selectedLengthUnit;
-      this.update(this.store ? this.store.get() : { radius: 180 });
+      if (this.store) {
+        this.store.set({ lengthUnit: this.selectedLengthUnit });
+      } else {
+        this.update({ radius: 180, lengthUnit: this.selectedLengthUnit, angleUnit: this.selectedAngleUnit });
+      }
     });
 
     selAng?.addEventListener('change', (e) => {
       this.selectedAngleUnit = e.target.value;
-      this.update(this.store ? this.store.get() : { radius: 180 });
+      if (this.store) {
+        this.store.set({ angleUnit: this.selectedAngleUnit });
+      } else {
+        this.update({ radius: 180, lengthUnit: this.selectedLengthUnit, angleUnit: this.selectedAngleUnit });
+      }
+    });
+
+    this.container.querySelectorAll('.unit-preset-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const len = btn.getAttribute('data-len');
+        const ang = btn.getAttribute('data-ang');
+        this.selectedLengthUnit = len;
+        this.selectedAngleUnit = ang;
+        if (this.store) {
+          this.store.set({ lengthUnit: len, angleUnit: ang });
+        } else {
+          this.update({ radius: 180, lengthUnit: len, angleUnit: ang });
+        }
+      });
     });
 
     calcInput?.addEventListener('input', (e) => {
@@ -1456,6 +1529,39 @@ export class UnitSystemConverter {
   }
 
   update(state = {}) {
+    if (state.lengthUnit && state.lengthUnit !== this.selectedLengthUnit) {
+      this.selectedLengthUnit = state.lengthUnit;
+    }
+    if (state.angleUnit && state.angleUnit !== this.selectedAngleUnit) {
+      this.selectedAngleUnit = state.angleUnit;
+    }
+
+    const selLen = this.container.querySelector('#select-length-unit');
+    if (selLen && selLen.value !== this.selectedLengthUnit) {
+      selLen.value = this.selectedLengthUnit;
+    }
+    const selAng = this.container.querySelector('#select-angle-unit');
+    if (selAng && selAng.value !== this.selectedAngleUnit) {
+      selAng.value = this.selectedAngleUnit;
+    }
+
+    const badge = this.container.querySelector('#unit-tag-badge');
+    if (badge) badge.textContent = this.selectedLengthUnit;
+
+    const bannerTag = this.container.querySelector('#active-system-name');
+    const matchedPreset = UnitSystemConverter.PRESETS.find(
+      (p) => p.lengthUnit === this.selectedLengthUnit && p.angleUnit === this.selectedAngleUnit
+    );
+    if (bannerTag) {
+      bannerTag.textContent = matchedPreset ? matchedPreset.name : `Custom (${this.selectedLengthUnit}, ${this.selectedAngleUnit})`;
+    }
+
+    this.container.querySelectorAll('.unit-preset-btn').forEach((btn) => {
+      const blen = btn.getAttribute('data-len');
+      const bang = btn.getAttribute('data-ang');
+      btn.classList.toggle('active', blen === this.selectedLengthUnit && bang === this.selectedAngleUnit);
+    });
+
     const r = state.radius || 180;
     const lenUnit = this.selectedLengthUnit;
     const elR = this.container.querySelector('#metric-conv-r');

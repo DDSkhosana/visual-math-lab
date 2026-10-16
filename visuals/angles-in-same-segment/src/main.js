@@ -235,28 +235,31 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
     const telP1Angle = document.getElementById('tel-p1-angle');
-    if (telP1Angle) telP1Angle.textContent = `${g.angleP1Deg.toFixed(1)}°`;
+    if (telP1Angle) telP1Angle.textContent = UnitSystemConverter.formatAngle(g.angleP1Deg, angUnit);
     const telP2Angle = document.getElementById('tel-p2-angle');
-    if (telP2Angle) telP2Angle.textContent = `${g.angleP2Deg.toFixed(1)}°`;
+    if (telP2Angle) telP2Angle.textContent = UnitSystemConverter.formatAngle(g.angleP2Deg, angUnit);
     const p1c2d = document.getElementById('tel-p1-coords');
     if (p1c2d) p1c2d.innerHTML = `<span class="color-amber">${(g.P1.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P1.y - g.cy)).toFixed(1)}</span>`;
     const p2c2d = document.getElementById('tel-p2-coords');
     if (p2c2d) p2c2d.innerHTML = `<span class="color-amber">${(g.P2.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P2.y - g.cy)).toFixed(1)}</span>`;
     const telDiff = document.getElementById('tel-diff');
-    if (telDiff) telDiff.textContent = `${g.diffDeg.toFixed(3)}°`;
+    if (telDiff) telDiff.textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
     const telCentral = document.getElementById('tel-central-angle');
-    if (telCentral) telCentral.textContent = `${g.centralDeg.toFixed(1)}°`;
+    if (telCentral) telCentral.textContent = UnitSystemConverter.formatAngle(g.centralDeg, angUnit);
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
     const labelRadius = document.getElementById('label-radius');
-    if (labelRadius) labelRadius.textContent = `${Math.round(state.radius)}px`;
+    if (labelRadius) labelRadius.textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
-    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const p1x = (R3D * Math.cos(state.angleP1)).toFixed(2);
     const p1z = (R3D * Math.sin(state.angleP1)).toFixed(2);
     const p2x = (R3D * Math.cos(state.angleP2)).toFixed(2);
@@ -266,26 +269,26 @@ function bootstrap() {
     const elP2 = document.getElementById('val-3d-p2');
     if (elP2) elP2.innerHTML = `<span class="color-amber">${p2x}</span>, <span class="color-steel">${p2z}</span>`;
     const elAng1 = document.getElementById('val-3d-ang1');
-    if (elAng1) elAng1.textContent = `${g.angleP1Deg.toFixed(1)}°`;
+    if (elAng1) elAng1.textContent = UnitSystemConverter.formatAngle(g.angleP1Deg, angUnit);
     const elAng2 = document.getElementById('val-3d-ang2');
-    if (elAng2) elAng2.textContent = `${g.angleP2Deg.toFixed(1)}°`;
+    if (elAng2) elAng2.textContent = UnitSystemConverter.formatAngle(g.angleP2Deg, angUnit);
     const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = `${g.diffDeg.toFixed(3)}°`;
+    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
 
     // Reflex Telemetry (2D & 3D)
     const refP1 = 360 - g.angleP1Deg;
     const refP2 = 360 - g.angleP2Deg;
     const elTelRefP1 = document.getElementById('tel-reflex-p1');
-    if (elTelRefP1) elTelRefP1.textContent = `${refP1.toFixed(1)}°`;
+    if (elTelRefP1) elTelRefP1.textContent = UnitSystemConverter.formatAngle(refP1, angUnit);
     const elTelRefP2 = document.getElementById('tel-reflex-p2');
-    if (elTelRefP2) elTelRefP2.textContent = `${refP2.toFixed(1)}°`;
+    if (elTelRefP2) elTelRefP2.textContent = UnitSystemConverter.formatAngle(refP2, angUnit);
     const elTelRefSame = document.getElementById('tel-reflex-same');
-    if (elTelRefSame) elTelRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Invariant' : `${Math.abs(refP1 - refP2).toFixed(3)}°`;
+    if (elTelRefSame) elTelRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Invariant' : UnitSystemConverter.formatAngle(Math.abs(refP1 - refP2), angUnit, 3);
 
     const el3dRefP1 = document.getElementById('val-3d-reflex-p1');
-    if (el3dRefP1) el3dRefP1.textContent = `${refP1.toFixed(1)}°`;
+    if (el3dRefP1) el3dRefP1.textContent = UnitSystemConverter.formatAngle(refP1, angUnit);
     const el3dRefP2 = document.getElementById('val-3d-reflex-p2');
-    if (el3dRefP2) el3dRefP2.textContent = `${refP2.toFixed(1)}°`;
+    if (el3dRefP2) el3dRefP2.textContent = UnitSystemConverter.formatAngle(refP2, angUnit);
     const el3dRefSame = document.getElementById('val-3d-reflex-same');
     if (el3dRefSame) el3dRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Match' : 'Mismatch';
 

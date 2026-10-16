@@ -197,19 +197,22 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
-    document.getElementById('tel-len-am').textContent = `${g.lenAM.toFixed(1)} px`;
-    document.getElementById('tel-len-mb').textContent = `${g.lenMB.toFixed(1)} px`;
-    document.getElementById('tel-diff').textContent = `${g.midDiff.toFixed(3)} px`;
-    document.getElementById('tel-angle-oma').textContent = `${g.angleOMADeg.toFixed(1)}°`;
+    document.getElementById('tel-len-am').textContent = UnitSystemConverter.formatLength(g.lenAM, lenUnit, state.radius, 1);
+    document.getElementById('tel-len-mb').textContent = UnitSystemConverter.formatLength(g.lenMB, lenUnit, state.radius, 1);
+    document.getElementById('tel-diff').textContent = UnitSystemConverter.formatLength(g.midDiff, lenUnit, state.radius, 3);
+    document.getElementById('tel-angle-oma').textContent = UnitSystemConverter.formatAngle(g.angleOMADeg, angUnit);
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
-    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
+    document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
     const R3 = ((state.radius || 170) / 170) * 10;
     const elR3 = document.getElementById('val-3d-r');
-    if (elR3) elR3.textContent = R3.toFixed(1);
+    if (elR3) elR3.textContent = lenUnit === 'px' ? R3.toFixed(1) : UnitSystemConverter.formatLength(R3, lenUnit, 10, 1);
     const a3 = { x: R3 * Math.cos(state.angleA), z: R3 * Math.sin(state.angleA) };
     const b3 = { x: R3 * Math.cos(state.angleB), z: R3 * Math.sin(state.angleB) };
     const m3 = { x: (a3.x + b3.x) / 2, z: (a3.z + b3.z) / 2 };
@@ -219,24 +222,24 @@ function bootstrap() {
     const elM = document.getElementById('val-3d-m');
     if (elM) elM.textContent = `${m3.x.toFixed(2)}, ${m3.z.toFixed(2)}`;
     const elAm = document.getElementById('val-3d-am');
-    if (elAm) elAm.textContent = lenAM3;
+    if (elAm) elAm.textContent = lenUnit === 'px' ? lenAM3 : UnitSystemConverter.formatLength(parseFloat(lenAM3), lenUnit, 10, 2);
     const elMb = document.getElementById('val-3d-mb');
-    if (elMb) elMb.textContent = lenMB3;
+    if (elMb) elMb.textContent = lenUnit === 'px' ? lenMB3 : UnitSystemConverter.formatLength(parseFloat(lenMB3), lenUnit, 10, 2);
     const elAngM = document.getElementById('val-3d-ang-m');
-    if (elAngM) elAngM.textContent = '90.0°';
+    if (elAngM) elAngM.textContent = UnitSystemConverter.formatAngle(90, angUnit);
     const elDiff = document.getElementById('val-3d-diff');
     if (elDiff) elDiff.textContent = '0.000';
 
     // Reflex Telemetry (2D & 3D)
     const elTelRefM = document.getElementById('tel-reflex-m');
-    if (elTelRefM) elTelRefM.textContent = '270.0°';
+    if (elTelRefM) elTelRefM.textContent = UnitSystemConverter.formatAngle(270, angUnit);
     const elTelPerigonM = document.getElementById('tel-perigon-m');
-    if (elTelPerigonM) elTelPerigonM.textContent = '360.0°';
+    if (elTelPerigonM) elTelPerigonM.textContent = UnitSystemConverter.formatAngle(360, angUnit);
 
     const el3dRefM = document.getElementById('val-3d-reflex-m');
-    if (el3dRefM) el3dRefM.textContent = '270.0°';
+    if (el3dRefM) el3dRefM.textContent = UnitSystemConverter.formatAngle(270, angUnit);
     const el3dPerigonM = document.getElementById('val-3d-perigon-m');
-    if (el3dPerigonM) el3dPerigonM.textContent = '360.0°';
+    if (el3dPerigonM) el3dPerigonM.textContent = UnitSystemConverter.formatAngle(360, angUnit);
 
     // Live math derivations
     derivations.render(state, g);

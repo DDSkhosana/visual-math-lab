@@ -11,6 +11,7 @@ import { createInitialState as createThalesInitialState } from '../visuals/thale
 import { computeFrame as computeThalesFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
 import { generateSceneSVG as generateThalesSVG } from '../visuals/thales-theorem/src/views/canvas2d-svg.js';
 import { DerivationView as ThalesDerivations } from '../visuals/thales-theorem/src/views/DerivationView.js';
+import { StatsView } from '../visuals/thales-theorem/src/views/StatsView.js';
 
 import * as AngleAtCentre from '../visuals/angle-at-centre/src/model.js';
 import * as AnglesInSameSegment from '../visuals/angles-in-same-segment/src/model.js';
@@ -30,7 +31,7 @@ import {
   ChordBisectorDerivations,
 } from '../js/circle-derivations.js';
 
-import { PALETTE, UnitSystemConverter } from '../js/circle-core.js';
+import { PALETTE, UnitSystemConverter, createStore } from '../js/circle-core.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,18 +52,79 @@ class HeadlessMockElement {
     this.innerHTML = '';
     this.children = [];
     this.subElements = {};
+    this.listeners = {};
+    this.attributes = {};
+    this.value = '';
+    this._textContent = '';
+    this.classList = {
+      _set: new Set(),
+      add: (...cls) => cls.forEach((c) => this.classList._set.add(c)),
+      remove: (...cls) => cls.forEach((c) => this.classList._set.delete(c)),
+      toggle: (c, force) => {
+        if (force === undefined) {
+          if (this.classList._set.has(c)) this.classList._set.delete(c);
+          else this.classList._set.add(c);
+        } else if (force) {
+          this.classList._set.add(c);
+        } else {
+          this.classList._set.delete(c);
+        }
+      },
+      contains: (c) => this.classList._set.has(c),
+    };
   }
+
+  get textContent() {
+    return this._textContent || this.innerHTML;
+  }
+  set textContent(val) {
+    this._textContent = String(val);
+  }
+
   get firstElementChild() {
     return this.children[0] || (this.innerHTML ? new HeadlessMockElement() : null);
   }
+
+  addEventListener(event, handler) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(handler);
+  }
+
+  trigger(event, eventObj = {}) {
+    const list = this.listeners[event] || [];
+    const ev = { type: event, target: this, ...eventObj };
+    for (const h of list) h(ev);
+  }
+
+  getAttribute(name) {
+    return this.attributes[name] ?? null;
+  }
+
+  setAttribute(name, val) {
+    this.attributes[name] = String(val);
+  }
+
   querySelector(sel) {
     if (!this.subElements[sel]) {
       this.subElements[sel] = new HeadlessMockElement('', sel);
     }
     return this.subElements[sel];
   }
-  querySelectorAll() {
-    return [];
+
+  querySelectorAll(sel) {
+    if (sel === '.unit-preset-btn' && !this.subElements[sel]) {
+      this.subElements[sel] = UnitSystemConverter.PRESETS.map((p) => {
+        const btn = new HeadlessMockElement('', sel);
+        btn.setAttribute('data-len', p.lengthUnit);
+        btn.setAttribute('data-ang', p.angleUnit);
+        btn.textContent = p.name;
+        return btn;
+      });
+    }
+    if (!this.subElements[sel]) {
+      return [];
+    }
+    return Array.isArray(this.subElements[sel]) ? this.subElements[sel] : [this.subElements[sel]];
   }
 }
 
@@ -503,6 +565,142 @@ test('E2E Unit System Conversion: High-precision conversions across Length and A
 
   const turn90 = UnitSystemConverter.convertAngle(90, 'deg', 'turn');
   close(turn90, 0.25, 1e-8);
+});
+
+// =============================================================================
+// Suite 5B: End-to-End Active Workspace Unit System Selection & Store Synchronization
+// =============================================================================
+test('E2E Active Workspace Unit System: Presets, Custom Selectors, Store Dispatch, and Live Cross-Theorem Propagation', () => {
+  // 1. Initial State Compliance across all 8 Circle Theorem Visuals
+  const models = [
+    { name: 'thales-theorem', fn: createThalesInitialState },
+    { name: 'angle-at-centre', fn: AngleAtCentre.createInitialState },
+    { name: 'angles-in-same-segment', fn: AnglesInSameSegment.createInitialState },
+    { name: 'cyclic-quadrilateral', fn: CyclicQuad.createInitialState },
+    { name: 'tangent-radius', fn: TangentRadius.createInitialState },
+    { name: 'alternate-segment', fn: AlternateSegment.createInitialState },
+    { name: 'tangents-from-external-point', fn: TangentsFromPoint.createInitialState },
+    { name: 'perpendicular-chord-bisector', fn: ChordBisector.createInitialState },
+  ];
+
+  for (const { name, fn } of models) {
+    const s = fn();
+    assert.strictEqual(s.lengthUnit, 'px', `${name}: initial lengthUnit must be 'px'`);
+    assert.strictEqual(s.angleUnit, 'deg', `${name}: initial angleUnit must be 'deg'`);
+  }
+
+  // 2. UnitSystemConverter Interactive Store Integration
+  const store = createStore({ radius: 180, lengthUnit: 'px', angleUnit: 'deg' });
+  const container = new HeadlessMockElement('unit-container');
+  const converter = new UnitSystemConverter(container, store);
+
+  // Initial render: Standard preset badge and banner
+  const banner = container.querySelector('#active-system-name');
+  const badge = container.querySelector('#unit-tag-badge');
+  assert.strictEqual(banner.textContent, 'Standard (px, °)');
+  assert.strictEqual(badge.textContent, 'px');
+
+  // Verify preset buttons exist
+  const presetBtns = container.querySelectorAll('.unit-preset-btn');
+  assert.ok(presetBtns.length >= 6, 'Must provide at least 6 standard unit presets');
+
+  // 3. User Selects 'Metric' Preset (cm, deg)
+  const metricBtn = presetBtns.find((b) => b.getAttribute('data-len') === 'cm' && b.getAttribute('data-ang') === 'deg');
+  assert.ok(metricBtn, 'Metric preset button must exist');
+  metricBtn.trigger('click');
+
+  assert.strictEqual(store.get().lengthUnit, 'cm', 'Store lengthUnit must update to cm on Metric preset click');
+  assert.strictEqual(store.get().angleUnit, 'deg', 'Store angleUnit must remain deg on Metric preset click');
+  assert.strictEqual(banner.textContent, 'Metric (cm, °)', 'Active system banner must update to Metric');
+  assert.strictEqual(badge.textContent, 'cm', 'Active length unit tag must update to cm');
+
+  // Verify live circle metrics in cm
+  const elR = container.querySelector('#metric-conv-r');
+  const elD = container.querySelector('#metric-conv-d');
+  assert.ok(elR.textContent.includes('cm'), 'Live radius readout must display in cm');
+  assert.ok(elD.textContent.includes('cm'), 'Live diameter readout must display in cm');
+
+  // 4. User Selects 'Analytic' Preset (u, rad)
+  const analyticBtn = presetBtns.find((b) => b.getAttribute('data-len') === 'u' && b.getAttribute('data-ang') === 'rad');
+  assert.ok(analyticBtn, 'Analytic preset button must exist');
+  analyticBtn.trigger('click');
+
+  assert.strictEqual(store.get().lengthUnit, 'u', 'Store lengthUnit must update to u on Analytic preset click');
+  assert.strictEqual(store.get().angleUnit, 'rad', 'Store angleUnit must update to rad on Analytic preset click');
+  assert.strictEqual(banner.textContent, 'Math (u, rad)', 'Active system banner must update to Math (u, rad)');
+  assert.strictEqual(badge.textContent, 'u', 'Active length unit tag must update to u');
+
+  // 5. User Uses Custom Selectors: Millimeters (mm) and Turns (turn)
+  const selLen = container.querySelector('#select-length-unit');
+  const selAng = container.querySelector('#select-angle-unit');
+
+  selLen.value = 'mm';
+  selLen.trigger('change', { target: { value: 'mm' } });
+  assert.strictEqual(store.get().lengthUnit, 'mm', 'Store lengthUnit must update to mm');
+
+  selAng.value = 'turn';
+  selAng.trigger('change', { target: { value: 'turn' } });
+  assert.strictEqual(store.get().angleUnit, 'turn', 'Store angleUnit must update to turn');
+
+  assert.strictEqual(banner.textContent, 'Custom (mm, turn)', 'Active system banner must display Custom when non-preset combination active');
+
+  // 6. Cross-Theorem Derivation Substitution reacting to Active Workspace Units
+  // Test A: Angle at Centre under Analytic system (u, rad)
+  {
+    const aacContainer = new HeadlessMockElement('aac-analytic');
+    const deriv = new AngleAtCentreDerivations(aacContainer);
+    const aacState = { ...AngleAtCentre.createInitialState(), lengthUnit: 'u', angleUnit: 'rad' };
+    const aacG = AngleAtCentre.computeGeometry(aacState, 800, 600);
+    deriv.render(aacState, aacG);
+
+    const step4Sub = aacContainer.subElements['#aac-step-4 [data-sub]']?.innerHTML || '';
+    assert.ok(step4Sub.includes('rad'), 'Angle at Centre: derivation must format angle in rad when rad is active');
+  }
+
+  // Test B: Tangents from External Point under Metric system (cm, deg)
+  {
+    const tfpContainer = new HeadlessMockElement('tfp-metric');
+    const deriv = new TangentsFromPointDerivations(tfpContainer);
+    const tfpState = { ...TangentsFromPoint.createInitialState(), lengthUnit: 'cm', angleUnit: 'deg' };
+    const tfpG = TangentsFromPoint.computeGeometry(tfpState, 800, 600);
+    deriv.render(tfpState, tfpG);
+
+    const step4Sub = tfpContainer.subElements['#tfp-step-4 [data-sub]']?.innerHTML || '';
+    assert.ok(step4Sub.includes('cm'), 'Tangents from Point: derivation must format tangent lengths in cm when cm is active');
+  }
+
+  // Test C: Perpendicular Chord Bisector under Metric system (mm, deg)
+  {
+    const cbContainer = new HeadlessMockElement('cb-metric');
+    const deriv = new ChordBisectorDerivations(cbContainer);
+    const cbState = { ...ChordBisector.createInitialState(), lengthUnit: 'mm', angleUnit: 'deg' };
+    const cbG = ChordBisector.computeGeometry(cbState, 800, 600);
+    deriv.render(cbState, cbG);
+
+    const step4Sub = cbContainer.subElements['#cb-step-4 [data-sub]']?.innerHTML || '';
+    assert.ok(step4Sub.includes('mm'), 'Chord Bisector: derivation must format lengths in mm when mm is active');
+  }
+
+  // Test D: Thales StatsView under Metric system (cm, rad)
+  {
+    const rootMock = {
+      elements: {},
+      getElementById(id) {
+        if (!this.elements[id]) {
+          this.elements[id] = new HeadlessMockElement(id);
+        }
+        return this.elements[id];
+      },
+    };
+    const statsView = new StatsView(rootMock);
+    const thalesState = { ...createThalesInitialState(), lengthUnit: 'cm', angleUnit: 'rad' };
+    statsView.render(thalesState);
+
+    const rField = rootMock.getElementById('val-2d-r');
+    const thetaField = rootMock.getElementById('val-2d-theta');
+    assert.ok(rField.textContent.includes('cm'), 'Thales StatsView: radius readout must include cm when cm active');
+    assert.ok(thetaField.textContent.includes('rad'), 'Thales StatsView: angle readout must include rad when rad active');
+  }
 });
 
 // =============================================================================

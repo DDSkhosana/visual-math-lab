@@ -196,33 +196,36 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
-    document.getElementById('tel-angle-a').textContent = `${g.angleADeg.toFixed(1)}°`;
-    document.getElementById('tel-angle-c').textContent = `${g.angleCDeg.toFixed(1)}°`;
-    document.getElementById('tel-sum-ac').textContent = `${g.sumAC.toFixed(1)}°`;
-    document.getElementById('tel-angle-b').textContent = `${g.angleBDeg.toFixed(1)}°`;
-    document.getElementById('tel-angle-d').textContent = `${g.angleDDeg.toFixed(1)}°`;
-    document.getElementById('tel-sum-bd').textContent = `${g.sumBD.toFixed(1)}°`;
+    document.getElementById('tel-angle-a').textContent = UnitSystemConverter.formatAngle(g.angleADeg, angUnit);
+    document.getElementById('tel-angle-c').textContent = UnitSystemConverter.formatAngle(g.angleCDeg, angUnit);
+    document.getElementById('tel-sum-ac').textContent = UnitSystemConverter.formatAngle(g.sumAC, angUnit);
+    document.getElementById('tel-angle-b').textContent = UnitSystemConverter.formatAngle(g.angleBDeg, angUnit);
+    document.getElementById('tel-angle-d').textContent = UnitSystemConverter.formatAngle(g.angleDDeg, angUnit);
+    document.getElementById('tel-sum-bd').textContent = UnitSystemConverter.formatAngle(g.sumBD, angUnit);
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
-    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
+    document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
-    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const el3dA = document.getElementById('val-3d-a');
-    if (el3dA) el3dA.textContent = `${g.angleADeg.toFixed(1)}°`;
+    if (el3dA) el3dA.textContent = UnitSystemConverter.formatAngle(g.angleADeg, angUnit);
     const el3dB = document.getElementById('val-3d-b');
-    if (el3dB) el3dB.textContent = `${g.angleBDeg.toFixed(1)}°`;
+    if (el3dB) el3dB.textContent = UnitSystemConverter.formatAngle(g.angleBDeg, angUnit);
     const el3dC = document.getElementById('val-3d-c');
-    if (el3dC) el3dC.textContent = `${g.angleCDeg.toFixed(1)}°`;
+    if (el3dC) el3dC.textContent = UnitSystemConverter.formatAngle(g.angleCDeg, angUnit);
     const el3dD = document.getElementById('val-3d-d');
-    if (el3dD) el3dD.textContent = `${g.angleDDeg.toFixed(1)}°`;
+    if (el3dD) el3dD.textContent = UnitSystemConverter.formatAngle(g.angleDDeg, angUnit);
     const elSum1 = document.getElementById('val-3d-sum1');
-    if (elSum1) elSum1.textContent = `${g.sumAC.toFixed(1)}°`;
+    if (elSum1) elSum1.textContent = UnitSystemConverter.formatAngle(g.sumAC, angUnit);
     const elSum2 = document.getElementById('val-3d-sum2');
-    if (elSum2) elSum2.textContent = `${g.sumBD.toFixed(1)}°`;
+    if (elSum2) elSum2.textContent = UnitSystemConverter.formatAngle(g.sumBD, angUnit);
 
     // Reflex Telemetry (2D & 3D)
     const refA = 360 - g.angleADeg;
@@ -234,34 +237,34 @@ function bootstrap() {
     const refBD = refB + refD;
 
     const elTelRefSum = document.getElementById('tel-reflex-sum');
-    if (elTelRefSum) elTelRefSum.textContent = `${refSum.toFixed(1)}°`;
+    if (elTelRefSum) elTelRefSum.textContent = UnitSystemConverter.formatAngle(refSum, angUnit);
     const elTelRefAC = document.getElementById('tel-reflex-ac');
-    if (elTelRefAC) elTelRefAC.textContent = `${refAC.toFixed(1)}°`;
+    if (elTelRefAC) elTelRefAC.textContent = UnitSystemConverter.formatAngle(refAC, angUnit);
     const elTelRefBD = document.getElementById('tel-reflex-bd');
-    if (elTelRefBD) elTelRefBD.textContent = `${refBD.toFixed(1)}°`;
+    if (elTelRefBD) elTelRefBD.textContent = UnitSystemConverter.formatAngle(refBD, angUnit);
 
     const el3dRefSum = document.getElementById('val-3d-reflex-sum');
-    if (el3dRefSum) el3dRefSum.textContent = `${refSum.toFixed(1)}°`;
+    if (el3dRefSum) el3dRefSum.textContent = UnitSystemConverter.formatAngle(refSum, angUnit);
     const el3dRefAC = document.getElementById('val-3d-reflex-ac');
-    if (el3dRefAC) el3dRefAC.textContent = `${refAC.toFixed(1)}°`;
+    if (el3dRefAC) el3dRefAC.textContent = UnitSystemConverter.formatAngle(refAC, angUnit);
     const el3dRefBD = document.getElementById('val-3d-reflex-bd');
-    if (el3dRefBD) el3dRefBD.textContent = `${refBD.toFixed(1)}°`;
+    if (el3dRefBD) el3dRefBD.textContent = UnitSystemConverter.formatAngle(refBD, angUnit);
 
     // Exterior Angle Telemetry (2D & 3D)
     const extC = g.exteriorAngleDeg !== undefined ? g.exteriorAngleDeg : g.angleADeg;
     const isExtMatch = Math.abs(extC - g.angleADeg) < 0.05;
     const elTelExtC = document.getElementById('tel-ext-c');
-    if (elTelExtC) elTelExtC.textContent = `${extC.toFixed(1)}°`;
+    if (elTelExtC) elTelExtC.textContent = UnitSystemConverter.formatAngle(extC, angUnit);
     const elTelExtMatch = document.getElementById('tel-ext-match');
     if (elTelExtMatch) {
-      elTelExtMatch.textContent = isExtMatch ? `Equal (${g.angleADeg.toFixed(1)}°)` : `${extC.toFixed(1)}° ≠ ${g.angleADeg.toFixed(1)}°`;
+      elTelExtMatch.textContent = isExtMatch ? `Equal (${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)})` : `${UnitSystemConverter.formatAngle(extC, angUnit)} ≠ ${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)}`;
     }
 
     const el3dExtC = document.getElementById('val-3d-ext-c');
-    if (el3dExtC) el3dExtC.textContent = `${extC.toFixed(1)}°`;
+    if (el3dExtC) el3dExtC.textContent = UnitSystemConverter.formatAngle(extC, angUnit);
     const el3dExtMatch = document.getElementById('val-3d-ext-match');
     if (el3dExtMatch) {
-      el3dExtMatch.textContent = isExtMatch ? `Equal (${g.angleADeg.toFixed(1)}°)` : `${extC.toFixed(1)}° ≠ ${g.angleADeg.toFixed(1)}°`;
+      el3dExtMatch.textContent = isExtMatch ? `Equal (${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)})` : `${UnitSystemConverter.formatAngle(extC, angUnit)} ≠ ${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)}`;
     }
 
     // Sync toggle UI with store state

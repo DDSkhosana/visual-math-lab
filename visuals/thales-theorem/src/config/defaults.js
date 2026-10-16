@@ -19,6 +19,8 @@ export function createInitialState() {
     zoom: 18,
     plane2D: 'great-circle',
     baselineRotation: 0,
+    lengthUnit: 'px',
+    angleUnit: 'deg',
     playing: false,
     hoverP2D: false,
     hoverP3D: false,

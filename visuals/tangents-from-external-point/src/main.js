@@ -214,23 +214,26 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
     const setT = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setT('tel-kite-area', `${g.kiteArea.toFixed(1)} px²`);
-    setT('tel-tri-area', `${g.triArea.toFixed(1)} px²`);
-    setT('tel-len-t1', `${g.lenPT1.toFixed(1)} px`);
-    setT('tel-len-t2', `${g.lenPT2.toFixed(1)} px`);
-    setT('tel-diff', `${g.lenDiff.toFixed(3)} px`);
-    setT('tel-dist-op', `${g.d.toFixed(1)} px`);
-    setT('tel-chord-t1t2', `${g.chordT1T2.toFixed(1)} px`);
-    setT('tel-chord-half', `${g.halfChord.toFixed(1)} px`);
-    setT('tel-radius', `${state.radius} px`);
+    setT('tel-kite-area', UnitSystemConverter.formatArea(g.kiteArea, lenUnit, state.radius, 1));
+    setT('tel-tri-area', UnitSystemConverter.formatArea(g.triArea, lenUnit, state.radius, 1));
+    setT('tel-len-t1', UnitSystemConverter.formatLength(g.lenPT1, lenUnit, state.radius, 1));
+    setT('tel-len-t2', UnitSystemConverter.formatLength(g.lenPT2, lenUnit, state.radius, 1));
+    setT('tel-diff', UnitSystemConverter.formatLength(g.lenDiff, lenUnit, state.radius, 3));
+    setT('tel-dist-op', UnitSystemConverter.formatLength(g.d, lenUnit, state.radius, 1));
+    setT('tel-chord-t1t2', UnitSystemConverter.formatLength(g.chordT1T2, lenUnit, state.radius, 1));
+    setT('tel-chord-half', UnitSystemConverter.formatLength(g.halfChord, lenUnit, state.radius, 1));
+    setT('tel-radius', UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius));
 
-    setT('tel-angle-alpha1', `${g.alphaDeg.toFixed(1)}°`);
-    setT('tel-angle-alpha2', `${g.alphaDeg.toFixed(1)}°`);
-    setT('tel-angle-tpt', `${g.angleT1PT2Deg.toFixed(1)}°`);
-    setT('tel-angle-beta1', `${g.betaDeg.toFixed(1)}°`);
-    setT('tel-angle-beta2', `${g.betaDeg.toFixed(1)}°`);
+    setT('tel-angle-alpha1', UnitSystemConverter.formatAngle(g.alphaDeg, angUnit));
+    setT('tel-angle-alpha2', UnitSystemConverter.formatAngle(g.alphaDeg, angUnit));
+    setT('tel-angle-tpt', UnitSystemConverter.formatAngle(g.angleT1PT2Deg, angUnit));
+    setT('tel-angle-beta1', UnitSystemConverter.formatAngle(g.betaDeg, angUnit));
+    setT('tel-angle-beta2', UnitSystemConverter.formatAngle(g.betaDeg, angUnit));
 
     setT('tel-glyph-o', `(${g.cx.toFixed(0)}, ${g.cy.toFixed(0)})`);
     setT('tel-glyph-p', `(${g.P.x.toFixed(0)}, ${g.P.y.toFixed(0)})`);
@@ -238,12 +241,12 @@ function bootstrap() {
     setT('tel-glyph-t2', `(${g.T2.x.toFixed(0)}, ${g.T2.y.toFixed(0)})`);
     setT('tel-glyph-k', `(${g.K.x.toFixed(0)}, ${g.K.y.toFixed(0)})`);
 
-    setT('label-radius', `${state.radius}px`);
-    setT('label-dist', `${Math.round(g.d)}px`);
+    setT('label-radius', UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius));
+    setT('label-dist', UnitSystemConverter.formatLength(g.d, lenUnit, state.radius));
 
     // 3D telemetry
     const R3D = ((state.radius || 120) / 120) * 8;
-    setT('val-3d-r', R3D.toFixed(1));
+    setT('val-3d-r', lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 8, 1));
     const distRatio = Math.max(1.15, (state.pointDist || 260) / (state.radius || 120));
     const d3 = R3D * distRatio;
     const ang3 = state.pointAngle || 0;
@@ -252,8 +255,8 @@ function bootstrap() {
     const tanLen3 = Math.sqrt(Math.max(0, d3 * d3 - R3D * R3D)).toFixed(2);
     const kiteArea3 = (R3D * parseFloat(tanLen3)).toFixed(2);
     const alpha3Rad = Math.acos(Math.min(1, R3D / d3));
-    const alpha3Deg = (alpha3Rad * 180 / Math.PI).toFixed(1);
-    const beta3Deg = (90 - parseFloat(alpha3Deg)).toFixed(1);
+    const alpha3Deg = (alpha3Rad * 180 / Math.PI);
+    const beta3Deg = (90 - alpha3Deg);
     const t1x3 = (R3D * Math.cos(ang3 + alpha3Rad)).toFixed(2);
     const t1z3 = (R3D * Math.sin(ang3 + alpha3Rad)).toFixed(2);
     const t2x3 = (R3D * Math.cos(ang3 - alpha3Rad)).toFixed(2);
@@ -269,14 +272,14 @@ function bootstrap() {
     setT('val-3d-dist', d3.toFixed(2));
     setT('val-3d-chord', chord3);
 
-    setT('val-3d-ang-p1', `${alpha3Deg}°`);
-    setT('val-3d-ang-p2', `${alpha3Deg}°`);
-    setT('val-3d-ang-o1', `${beta3Deg}°`);
-    setT('val-3d-ang-o2', `${beta3Deg}°`);
-    setT('tel-reflex-tangent', '270.0°');
-    setT('tel-reflex-kite', '1080.0°');
-    setT('val-3d-reflex-tangent', '270.0°');
-    setT('val-3d-reflex-kite', '1080.0°');
+    setT('val-3d-ang-p1', UnitSystemConverter.formatAngle(alpha3Deg, angUnit));
+    setT('val-3d-ang-p2', UnitSystemConverter.formatAngle(alpha3Deg, angUnit));
+    setT('val-3d-ang-o1', UnitSystemConverter.formatAngle(beta3Deg, angUnit));
+    setT('val-3d-ang-o2', UnitSystemConverter.formatAngle(beta3Deg, angUnit));
+    setT('tel-reflex-tangent', UnitSystemConverter.formatAngle(270, angUnit));
+    setT('tel-reflex-kite', UnitSystemConverter.formatAngle(1080, angUnit));
+    setT('val-3d-reflex-tangent', UnitSystemConverter.formatAngle(270, angUnit));
+    setT('val-3d-reflex-kite', UnitSystemConverter.formatAngle(1080, angUnit));
 
     setT('val-3d-p', `${px3}, ${pz3}`);
     setT('val-3d-t1', `${t1x3}, ${t1z3}`);

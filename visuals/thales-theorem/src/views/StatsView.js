@@ -1,4 +1,5 @@
 import { sphereStats, thalesStats2D } from '../model/thales-math.js';
+import { UnitSystemConverter } from '../../../../js/circle-core.js';
 
 const IDS = {
   r2d: 'val-2d-r', d2d: 'val-2d-d', circ2d: 'val-2d-circ', theta2d: 'val-2d-theta',
@@ -16,7 +17,7 @@ const IDS = {
 
 /** Writes the numeric read-outs shown over each canvas. */
 export class StatsView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D'];
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit'];
 
   constructor(root = document) {
     this.fields = Object.fromEntries(
@@ -25,6 +26,8 @@ export class StatsView {
   }
 
   render(state) {
+    const lenUnit = state.lengthUnit || 'px';
+    const angUnit = state.angleUnit || 'deg';
     const flat = thalesStats2D(state.radius, state.angle2D);
     const solid = sphereStats(state.radius, state.lat3D, state.lon3D);
     const theta2dDeg = ((state.angle2D * 180 / Math.PI % 360) + 360) % 360;
@@ -47,9 +50,19 @@ export class StatsView {
       'theta2d', 'alpha2d', 'beta2d', 'sumAB2d', 'alphaReflex2d', 'betaReflex2d', 'pReflex2d', 'reflexSum2d',
       'theta3d', 'phi3d', 'alpha3d', 'beta3d', 'sumAB3d', 'alphaReflex3d', 'betaReflex3d', 'reflexSum3d',
     ]);
+    const lengthKeys = new Set([
+      'r2d', 'd2d', 'circ2d', 's', 't', 'r3d', 'd3d', 'circ3d', 'x', 'y', 'z', 's3d', 't3d'
+    ]);
     for (const [key, value] of Object.entries(values)) {
       const field = this.fields[key];
-      if (field) field.textContent = angleKeys.has(key) ? `${value.toFixed(2)}°` : value.toFixed(2);
+      if (!field) continue;
+      if (angleKeys.has(key)) {
+        field.textContent = angUnit === 'deg' ? `${value.toFixed(2)}°` : UnitSystemConverter.formatAngle(value, angUnit);
+      } else if (lengthKeys.has(key)) {
+        field.textContent = lenUnit === 'px' ? value.toFixed(2) : UnitSystemConverter.formatLength(value, lenUnit, state.radius);
+      } else {
+        field.textContent = value.toFixed(2);
+      }
     }
   }
 }

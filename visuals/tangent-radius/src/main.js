@@ -212,24 +212,27 @@ function bootstrap() {
     scene3d.render(state);
     const g = computeGeometry(state, view.width, view.height);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
-    document.getElementById('tel-radius-len').textContent = `${state.radius} px`;
+    document.getElementById('tel-radius-len').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
     const elVtan2D = document.getElementById('tel-vtan');
     if (elVtan2D) elVtan2D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, ${(Math.cos(state.angleT)).toFixed(2)})`;
-    document.getElementById('tel-angle').textContent = '90.0°';
+    document.getElementById('tel-angle').textContent = UnitSystemConverter.formatAngle(90, angUnit);
     document.getElementById('tel-dot').textContent = `${Math.abs(g.dotProduct).toFixed(4)}`;
     const telQuad = document.getElementById('tel-quadrant');
     if (telQuad && g.quadrant) telQuad.textContent = g.quadrant.label;
     const elTelRefTan = document.getElementById('tel-reflex-tangent');
-    if (elTelRefTan) elTelRefTan.textContent = '270.0°';
+    if (elTelRefTan) elTelRefTan.textContent = UnitSystemConverter.formatAngle(270, angUnit);
     const elTelPerigonTan = document.getElementById('tel-perigon-tangent');
-    if (elTelPerigonTan) elTelPerigonTan.textContent = '360.0°';
+    if (elTelPerigonTan) elTelPerigonTan.textContent = UnitSystemConverter.formatAngle(360, angUnit);
 
     const telChords = document.getElementById('tel-chords-container');
     if (telChords) {
       if (g.chords && g.chords.length > 0) {
         telChords.innerHTML = g.chords.map(c =>
-          `<div class="stat-line"><span>${c.label}:</span><strong class="color-${c.colorName}">${Math.round(c.area)} px²</strong></div>`
+          `<div class="stat-line"><span>${c.label}:</span><strong class="color-${c.colorName}">${UnitSystemConverter.formatArea(c.area, lenUnit, state.radius, 0)}</strong></div>`
         ).join('');
       } else {
         telChords.innerHTML = '';
@@ -238,12 +241,12 @@ function bootstrap() {
 
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
-    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
+    document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
-    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const tx = (R3D * Math.cos(state.angleT)).toFixed(2);
     const tz = (R3D * Math.sin(state.angleT)).toFixed(2);
     const elT = document.getElementById('val-3d-t');
@@ -251,7 +254,7 @@ function bootstrap() {
     const elVtan3D = document.getElementById('val-3d-vtan');
     if (elVtan3D) elVtan3D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, 0.00, ${(Math.cos(state.angleT)).toFixed(2)})`;
     const elAngle = document.getElementById('val-3d-angle');
-    if (elAngle) elAngle.textContent = '90.0°';
+    if (elAngle) elAngle.textContent = UnitSystemConverter.formatAngle(90, angUnit);
     const elDot = document.getElementById('val-3d-dot');
     if (elDot) elDot.textContent = Math.abs(g.dotProduct).toFixed(4);
 
@@ -261,9 +264,9 @@ function bootstrap() {
       val3dQuad.textContent = `Quadrant ${g.quadrant.roman} ${qSign3D}`;
     }
     const el3dRefTan = document.getElementById('val-3d-reflex-tangent');
-    if (el3dRefTan) el3dRefTan.textContent = '270.0°';
+    if (el3dRefTan) el3dRefTan.textContent = UnitSystemConverter.formatAngle(270, angUnit);
     const el3dPerigonTan = document.getElementById('val-3d-perigon-tangent');
-    if (el3dPerigonTan) el3dPerigonTan.textContent = '360.0°';
+    if (el3dPerigonTan) el3dPerigonTan.textContent = UnitSystemConverter.formatAngle(360, angUnit);
 
     const val3dChords = document.getElementById('val-3d-chords-container');
     if (val3dChords) {

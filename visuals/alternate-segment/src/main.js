@@ -208,40 +208,43 @@ function bootstrap() {
     if (toggleProofMain && toggleProofMain.checked !== isProof) toggleProofMain.checked = isProof;
     if (toggleDAngles && toggleDAngles.checked !== (state.showDAngles !== false)) toggleDAngles.checked = (state.showDAngles !== false);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // 2D telemetry
-    document.getElementById('tel-tangent-angle').textContent = `${g.tangentChordDeg.toFixed(1)}°`;
-    document.getElementById('tel-inscribed-angle').textContent = `${g.inscribedDeg.toFixed(1)}°`;
-    const chordLen = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y).toFixed(1);
+    document.getElementById('tel-tangent-angle').textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg, angUnit);
+    document.getElementById('tel-inscribed-angle').textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
+    const chordLen = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
     const elChordTA = document.getElementById('tel-chord-ta');
-    if (elChordTA) elChordTA.textContent = `${chordLen} px`;
-    document.getElementById('tel-diff').textContent = `${g.diffDeg.toFixed(3)}°`;
+    if (elChordTA) elChordTA.textContent = UnitSystemConverter.formatLength(chordLen, lenUnit, state.radius, 1);
+    document.getElementById('tel-diff').textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
-    document.getElementById('tel-radius').textContent = `${Math.round(state.radius)} px`;
-    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
+    document.getElementById('tel-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
+    document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // Thales & Point D 2D Telemetry
     const elThalesTBD = document.getElementById('tel-thales-tbd');
-    if (elThalesTBD) elThalesTBD.textContent = `${g.thalesAngleTBD.toFixed(1)}°`;
+    if (elThalesTBD) elThalesTBD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTBD, angUnit);
     const elThalesTAD = document.getElementById('tel-thales-tad');
-    if (elThalesTAD) elThalesTAD.textContent = `${g.thalesAngleTAD.toFixed(1)}°`;
+    if (elThalesTAD) elThalesTAD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTAD, angUnit);
     const elThalesTan = document.getElementById('tel-thales-tan');
-    if (elThalesTan) elThalesTan.textContent = `${g.thalesTangentTD.toFixed(1)}°`;
+    if (elThalesTan) elThalesTan.textContent = UnitSystemConverter.formatAngle(g.thalesTangentTD, angUnit);
     const elAngleTDA = document.getElementById('tel-angle-tda');
-    if (elAngleTDA) elAngleTDA.textContent = `${g.angleTDA.toFixed(1)}°`;
+    if (elAngleTDA) elAngleTDA.textContent = UnitSystemConverter.formatAngle(g.angleTDA, angUnit);
     const elExtD = document.getElementById('tel-ext-d');
-    if (elExtD) elExtD.textContent = `${g.extAngleD.toFixed(1)}°`;
+    if (elExtD) elExtD.textContent = UnitSystemConverter.formatAngle(g.extAngleD, angUnit);
 
     // Alternate segments area telemetry
     const elSegMajor = document.getElementById('tel-seg-major');
-    if (elSegMajor && g.alternateSegments) elSegMajor.textContent = `${Math.round(g.alternateSegments.major.area)} px²`;
+    if (elSegMajor && g.alternateSegments) elSegMajor.textContent = UnitSystemConverter.formatArea(g.alternateSegments.major.area, lenUnit, state.radius, 0);
     const elSegMinor = document.getElementById('tel-seg-minor');
-    if (elSegMinor && g.alternateSegments) elSegMinor.textContent = `${Math.round(g.alternateSegments.minor.area)} px²`;
+    if (elSegMinor && g.alternateSegments) elSegMinor.textContent = UnitSystemConverter.formatArea(g.alternateSegments.minor.area, lenUnit, state.radius, 0);
 
     // 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
-    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const tx = (R3D * Math.cos(state.angleT)).toFixed(2);
     const tz = (R3D * Math.sin(state.angleT)).toFixed(2);
     const ax = (R3D * Math.cos(state.angleA)).toFixed(2);
@@ -261,32 +264,32 @@ function bootstrap() {
     if (elD) elD.textContent = `${dx}, ${dz}`;
 
     const elTan = document.getElementById('val-3d-ang-tan');
-    if (elTan) elTan.textContent = `${g.tangentChordDeg.toFixed(1)}°`;
+    if (elTan) elTan.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg, angUnit);
     const elTba = document.getElementById('val-3d-ang-tba');
-    if (elTba) elTba.textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    if (elTba) elTba.textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
     const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = `${g.diffDeg.toFixed(3)}°`;
+    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
 
     const el3DThalesTBD = document.getElementById('val-3d-thales-tbd');
-    if (el3DThalesTBD) el3DThalesTBD.textContent = `${g.thalesAngleTBD.toFixed(1)}°`;
+    if (el3DThalesTBD) el3DThalesTBD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTBD, angUnit);
     const el3DThalesTAD = document.getElementById('val-3d-thales-tad');
-    if (el3DThalesTAD) el3DThalesTAD.textContent = `${g.thalesAngleTAD.toFixed(1)}°`;
+    if (el3DThalesTAD) el3DThalesTAD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTAD, angUnit);
     const el3DAngIntD = document.getElementById('val-3d-ang-int-d');
-    if (el3DAngIntD) el3DAngIntD.textContent = `${g.angleTDA.toFixed(1)}°`;
+    if (el3DAngIntD) el3DAngIntD.textContent = UnitSystemConverter.formatAngle(g.angleTDA, angUnit);
     const el3DAngExtD = document.getElementById('val-3d-ang-ext-d');
-    if (el3DAngExtD) el3DAngExtD.textContent = `${g.extAngleD.toFixed(1)}°`;
+    if (el3DAngExtD) el3DAngExtD.textContent = UnitSystemConverter.formatAngle(g.extAngleD, angUnit);
 
     // Reflex Telemetry (2D & 3D)
     const reflexAlpha = 360 - g.tangentChordDeg;
     const elTelRefAlpha = document.getElementById('tel-reflex-alpha');
-    if (elTelRefAlpha) elTelRefAlpha.textContent = `${reflexAlpha.toFixed(1)}°`;
+    if (elTelRefAlpha) elTelRefAlpha.textContent = UnitSystemConverter.formatAngle(reflexAlpha, angUnit);
     const elTelPerigonAlpha = document.getElementById('tel-perigon-alpha');
-    if (elTelPerigonAlpha) elTelPerigonAlpha.textContent = `${(g.tangentChordDeg + reflexAlpha).toFixed(1)}°`;
+    if (elTelPerigonAlpha) elTelPerigonAlpha.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg + reflexAlpha, angUnit);
 
     const el3dRefAlpha = document.getElementById('val-3d-reflex-alpha');
-    if (el3dRefAlpha) el3dRefAlpha.textContent = `${reflexAlpha.toFixed(1)}°`;
+    if (el3dRefAlpha) el3dRefAlpha.textContent = UnitSystemConverter.formatAngle(reflexAlpha, angUnit);
     const el3dPerigonAlpha = document.getElementById('val-3d-perigon-alpha');
-    if (el3dPerigonAlpha) el3dPerigonAlpha.textContent = `${(g.tangentChordDeg + reflexAlpha).toFixed(1)}°`;
+    if (el3dPerigonAlpha) el3dPerigonAlpha.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg + reflexAlpha, angUnit);
 
     // Live math derivations
     derivations.render(state, g);

@@ -223,38 +223,41 @@ function bootstrap() {
     const alphaDeg = diffAlpha * (180 / Math.PI);
     const betaDeg = diffBeta * (180 / Math.PI);
 
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+
     // Update 2D telemetry
     const elCentralAngle = document.getElementById('tel-central-angle');
-    if (elCentralAngle) elCentralAngle.textContent = `${g.centralDeg.toFixed(1)}°`;
+    if (elCentralAngle) elCentralAngle.textContent = UnitSystemConverter.formatAngle(g.centralDeg, angUnit);
     const elInscribedAngle = document.getElementById('tel-inscribed-angle');
-    if (elInscribedAngle) elInscribedAngle.textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    if (elInscribedAngle) elInscribedAngle.textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
     const elTelAlpha = document.getElementById('tel-alpha');
-    if (elTelAlpha) elTelAlpha.textContent = `${alphaDeg.toFixed(1)}°`;
+    if (elTelAlpha) elTelAlpha.textContent = UnitSystemConverter.formatAngle(alphaDeg, angUnit);
     const elTelBeta = document.getElementById('tel-beta');
-    if (elTelBeta) elTelBeta.textContent = `${betaDeg.toFixed(1)}°`;
+    if (elTelBeta) elTelBeta.textContent = UnitSystemConverter.formatAngle(betaDeg, angUnit);
     const elTelRatio = document.getElementById('tel-ratio');
     if (elTelRatio) elTelRatio.textContent = `${g.ratio.toFixed(3)}`;
     const elTelRadius = document.getElementById('tel-radius');
-    if (elTelRadius) elTelRadius.textContent = `${state.radius} px`;
+    if (elTelRadius) elTelRadius.textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
     const elTelArc = document.getElementById('tel-arc');
-    if (elTelArc) elTelArc.textContent = `${g.arcLength.toFixed(1)} px`;
+    if (elTelArc) elTelArc.textContent = UnitSystemConverter.formatLength(g.arcLength, lenUnit, state.radius, 1);
 
     // Update 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
     const el3dR = document.getElementById('val-3d-r');
-    if (el3dR) el3dR.textContent = R3D.toFixed(1);
+    if (el3dR) el3dR.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const elPx = document.getElementById('val-3d-px');
     if (elPx) elPx.textContent = (R3D * Math.cos(state.angleP)).toFixed(2);
     const elPz = document.getElementById('val-3d-pz');
     if (elPz) elPz.textContent = (R3D * Math.sin(state.angleP)).toFixed(2);
     const elCentral = document.getElementById('val-3d-central');
-    if (elCentral) elCentral.textContent = `${g.centralDeg.toFixed(1)}°`;
+    if (elCentral) elCentral.textContent = UnitSystemConverter.formatAngle(g.centralDeg, angUnit);
     const elInscribed = document.getElementById('val-3d-inscribed');
-    if (elInscribed) elInscribed.textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    if (elInscribed) elInscribed.textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
     const el3dAlpha = document.getElementById('val-3d-alpha');
-    if (el3dAlpha) el3dAlpha.textContent = `${alphaDeg.toFixed(1)}°`;
+    if (el3dAlpha) el3dAlpha.textContent = UnitSystemConverter.formatAngle(alphaDeg, angUnit);
     const el3dBeta = document.getElementById('val-3d-beta');
-    if (el3dBeta) el3dBeta.textContent = `${betaDeg.toFixed(1)}°`;
+    if (el3dBeta) el3dBeta.textContent = UnitSystemConverter.formatAngle(betaDeg, angUnit);
     const elRatio = document.getElementById('val-3d-ratio');
     if (elRatio) elRatio.textContent = g.ratio.toFixed(3);
 
@@ -262,18 +265,18 @@ function bootstrap() {
     const reflexCentral = 360 - g.centralDeg;
     const reflexInscribed = 360 - g.inscribedDeg;
     const elTelReflexCent = document.getElementById('tel-reflex-central');
-    if (elTelReflexCent) elTelReflexCent.textContent = `${reflexCentral.toFixed(1)}°`;
+    if (elTelReflexCent) elTelReflexCent.textContent = UnitSystemConverter.formatAngle(reflexCentral, angUnit);
     const elTelReflexInsc = document.getElementById('tel-reflex-inscribed');
-    if (elTelReflexInsc) elTelReflexInsc.textContent = `${reflexInscribed.toFixed(1)}°`;
+    if (elTelReflexInsc) elTelReflexInsc.textContent = UnitSystemConverter.formatAngle(reflexInscribed, angUnit);
     const elTelPerigonCent = document.getElementById('tel-perigon-central');
-    if (elTelPerigonCent) elTelPerigonCent.textContent = `${(g.centralDeg + reflexCentral).toFixed(1)}°`;
+    if (elTelPerigonCent) elTelPerigonCent.textContent = UnitSystemConverter.formatAngle(g.centralDeg + reflexCentral, angUnit);
 
     const el3dReflexCent = document.getElementById('val-3d-reflex-central');
-    if (el3dReflexCent) el3dReflexCent.textContent = `${reflexCentral.toFixed(1)}°`;
+    if (el3dReflexCent) el3dReflexCent.textContent = UnitSystemConverter.formatAngle(reflexCentral, angUnit);
     const el3dReflexInsc = document.getElementById('val-3d-reflex-inscribed');
-    if (el3dReflexInsc) el3dReflexInsc.textContent = `${reflexInscribed.toFixed(1)}°`;
+    if (el3dReflexInsc) el3dReflexInsc.textContent = UnitSystemConverter.formatAngle(reflexInscribed, angUnit);
     const el3dPerigon = document.getElementById('val-3d-perigon');
-    if (el3dPerigon) el3dPerigon.textContent = `${(g.centralDeg + reflexCentral).toFixed(1)}°`;
+    if (el3dPerigon) el3dPerigon.textContent = UnitSystemConverter.formatAngle(g.centralDeg + reflexCentral, angUnit);
 
     // Update live math derivations
     derivations.render(state, g);
