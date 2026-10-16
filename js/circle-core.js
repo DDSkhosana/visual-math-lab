@@ -728,12 +728,19 @@ export function drawRightAngle(ctx, vertex, towards1, towards2, size = 14, color
 
 /**
  * Draws a filled and stroked angle sector wedge at a vertex.
+ * When `anticlockwise` is omitted (null), automatically sweeps the minor interior angle (<= 180°).
  */
-export function drawAngleWedge(ctx, vertex, startAngle, endAngle, radius = 28, fill = 'rgba(234, 179, 8, 0.22)', stroke = null, anticlockwise = false) {
+export function drawAngleWedge(ctx, vertex, startAngle, endAngle, radius = 28, fill = 'rgba(234, 179, 8, 0.22)', stroke = null, anticlockwise = null) {
+  let ccw = anticlockwise;
+  if (ccw === null || ccw === undefined) {
+    let diff = (endAngle - startAngle) % (Math.PI * 2);
+    if (diff < 0) diff += Math.PI * 2;
+    ccw = diff > Math.PI;
+  }
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(vertex.x, vertex.y);
-  ctx.arc(vertex.x, vertex.y, radius, startAngle, endAngle, anticlockwise);
+  ctx.arc(vertex.x, vertex.y, radius, startAngle, endAngle, ccw);
   ctx.closePath();
   if (fill) {
     ctx.fillStyle = fill;
@@ -794,20 +801,39 @@ export function drawSubtendedSector(ctx, center, A, B, P, radius, fill = 'rgba(2
 }
 
 /**
- * Draws a circular segment bounded by chord AB and the arc that does NOT contain P.
+ * Draws a circular segment bounded by chord AB and the arc that does NOT contain P
+ * (or the minor arc between A and B when called with signature `(ctx, center, radius, A, B, fill, stroke)`).
  */
 export function drawSubtendedSegment(ctx, center, A, B, P, radius, fill = 'rgba(56, 189, 248, 0.12)', stroke = null) {
-  const { angA, angB, anticlockwise } = getSubtendedArcCanvas(center, A, B, P);
+  let angA, angB, anticlockwise, r, fillStyle, strokeStyle;
+  if (typeof A === 'number') {
+    // Called as (ctx, center, radius, ptA, ptB, fill, stroke)
+    r = A;
+    const ptA = B;
+    const ptB = P;
+    fillStyle = radius || 'rgba(56, 189, 248, 0.12)';
+    strokeStyle = typeof fill === 'string' && fill !== 'rgba(56, 189, 248, 0.12)' ? fill : null;
+    angA = Math.atan2(ptA.y - center.y, ptA.x - center.x);
+    angB = Math.atan2(ptB.y - center.y, ptB.x - center.x);
+    let diff = (angB - angA) % (Math.PI * 2);
+    if (diff < 0) diff += Math.PI * 2;
+    anticlockwise = diff > Math.PI;
+  } else {
+    ({ angA, angB, anticlockwise } = getSubtendedArcCanvas(center, A, B, P));
+    r = radius;
+    fillStyle = fill;
+    strokeStyle = stroke;
+  }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(center.x, center.y, radius, angA, angB, anticlockwise);
+  ctx.arc(center.x, center.y, r, angA, angB, anticlockwise);
   ctx.closePath();
-  if (fill) {
-    ctx.fillStyle = fill;
+  if (fillStyle) {
+    ctx.fillStyle = fillStyle;
     ctx.fill();
   }
-  if (stroke) {
-    ctx.strokeStyle = stroke;
+  if (strokeStyle) {
+    ctx.strokeStyle = strokeStyle;
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
@@ -1143,7 +1169,7 @@ export class PlaybackController {
     const current = this.store.get();
 
     if (typeof this.onStep === 'function') {
-      this.onStep(delta, current, this.store);
+      this.onStep(delta, this.store, current);
     } else if (this.field) {
       let nextVal = ((current[this.field] ?? 0) + this.speed * delta) % (Math.PI * 2);
       if (nextVal < 0) nextVal += Math.PI * 2;

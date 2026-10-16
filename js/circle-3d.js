@@ -1407,11 +1407,7 @@ export class AlternateSegment3DView extends BaseScene3DView {
       R * Math.cos(latB),
       R * Math.sin(latB) * Math.sin(state.angleB)
     );
-    const D = new THREE.Vector3(
-      R * Math.sin(latT) * Math.cos(state.angleT + Math.PI),
-      R * Math.cos(latT),
-      R * Math.sin(latT) * Math.sin(state.angleT + Math.PI)
-    );
+    const D = T.clone().negate();
 
     this.markerT.position.copy(T);
     this.markerA.position.copy(A);

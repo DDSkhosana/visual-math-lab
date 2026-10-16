@@ -183,3 +183,72 @@ test('3D Angle Utilities: spatial bisector and degree calculation in true 3D', (
   close(bis60.x, 3.0 * (Math.sqrt(3) / 2), 1e-4);
   close(bis60.z, 3.0 * 0.5, 1e-4);
 });
+
+test('2D CanvasView.render and generateSVG execute cleanly across all 7 circle theorem visuals', async () => {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    disconnect() {}
+  };
+  globalThis.window = globalThis.window || { devicePixelRatio: 1 };
+
+  const noop = () => {};
+  const createMockCanvas = () => {
+    const ctx = {
+      beginPath: noop,
+      moveTo: noop,
+      lineTo: noop,
+      arc: noop,
+      closePath: noop,
+      stroke: noop,
+      fill: noop,
+      clearRect: noop,
+      fillRect: noop,
+      strokeRect: noop,
+      setLineDash: noop,
+      save: noop,
+      restore: noop,
+      fillText: noop,
+      strokeText: noop,
+      setTransform: noop,
+      translate: noop,
+      rotate: noop,
+      scale: noop,
+      measureText: (text) => ({ width: String(text).length * 7 }),
+      createLinearGradient: () => ({ addColorStop: noop }),
+      createRadialGradient: () => ({ addColorStop: noop }),
+    };
+    return {
+      width: 800,
+      height: 600,
+      style: {},
+      getContext: () => ctx,
+      getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      parentElement: {
+        getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      },
+    };
+  };
+
+  const visuals = [
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+  ];
+
+  for (const { name, model, canvasMod } of visuals) {
+    const state = model.createInitialState();
+    const mockCanvas = createMockCanvas();
+    const view = new canvasMod.CanvasView(mockCanvas, mockCanvas.parentElement);
+    assert.doesNotThrow(() => view.render(state), `${name}: CanvasView.render should not throw`);
+    const genSVG = canvasMod.generateSVG || model.generateSVG;
+    if (genSVG) {
+      const svg = genSVG(state, 800, 600);
+      assert.ok(typeof svg === 'string' && svg.includes('<svg'), `${name}: generateSVG should return valid SVG markup`);
+    }
+  }
+});
+

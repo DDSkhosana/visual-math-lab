@@ -16,8 +16,12 @@ export class Canvas2DView {
   resize() {
     const { clientWidth: width, clientHeight: height } = this.container;
     if (!width || !height) return;
-    this.canvas.width = width;
-    this.canvas.height = height;
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = Math.max(1, Math.floor(width * dpr));
+    this.canvas.height = Math.max(1, Math.floor(height * dpr));
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.logicalWidth = width;
+    this.logicalHeight = height;
     this.draw();
   }
 
@@ -55,19 +59,24 @@ export class Canvas2DView {
   }
 
   frame(state = this.state) {
-    return computeFrame(state, this.canvas.width, this.canvas.height);
+    const w = this.logicalWidth || this.container.clientWidth || this.canvas.width;
+    const h = this.logicalHeight || this.container.clientHeight || this.canvas.height;
+    return computeFrame(state, w, h);
   }
 
   /** Pointer position in canvas pixels. */
   toLocal(event) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = rect.width ? this.canvas.width / rect.width : 1;
-    const scaleY = rect.height ? this.canvas.height / rect.height : 1;
+    const w = this.logicalWidth || rect.width || this.canvas.width;
+    const h = this.logicalHeight || rect.height || this.canvas.height;
+    const scaleX = rect.width ? w / rect.width : 1;
+    const scaleY = rect.height ? h / rect.height : 1;
     return { x: (event.clientX - rect.left) * scaleX, y: (event.clientY - rect.top) * scaleY };
   }
 
   exportPNG(filename = 'thales-theorem-2d.png') {
-    const { width, height } = this.canvas;
+    const width = this.logicalWidth || this.canvas.width;
+    const height = this.logicalHeight || this.canvas.height;
     if (!width || !height || !this.state) return;
 
     const offscreen = document.createElement('canvas');
