@@ -122,8 +122,23 @@ function bootstrap() {
 
     const container2d = document.getElementById('canvas-2d-container');
     if (container2d) {
+      const pKey = targetPreset === 'isometric' ? 'iso' : targetPreset;
       container2d.classList.remove('perspective-top', 'perspective-front', 'perspective-side', 'perspective-iso');
-      container2d.classList.add(targetPreset === 'isometric' ? 'perspective-iso' : `perspective-${targetPreset}`);
+      container2d.classList.add(`perspective-${pKey}`);
+
+      const title2d = container2d.querySelector('.view-title');
+      if (title2d) {
+        if (!title2d.dataset.origTitle) {
+          title2d.dataset.origTitle = title2d.innerHTML;
+        }
+        const perspectiveLabels = {
+          top: ' <span class="color-yellow font-bold">[Top View: XZ Plan]</span>',
+          front: ' <span class="color-lime font-bold">[Front View: XY Elevation]</span>',
+          side: ' <span class="color-steel font-bold">[Side View: YZ Profile]</span>',
+          iso: ' <span class="color-sky font-bold">[Isometric Perspective]</span>',
+        };
+        title2d.innerHTML = `${title2d.dataset.origTitle}${perspectiveLabels[pKey] || ''}`;
+      }
     }
   };
 

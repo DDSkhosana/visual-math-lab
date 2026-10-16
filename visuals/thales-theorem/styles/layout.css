@@ -36,26 +36,10 @@ body.header-collapsed .thales-explorer {
     min-height: 0;
 }
 
-/* Perspective synchronization between 2D and 3D */
-#canvas-2d-container {
-    perspective: 1200px;
-    perspective-origin: center center;
-}
-
+/* Unified Standard: 2D viewports remain strictly orthogonal Euclidean planes across all camera perspectives.
+   CSS 3D transforms are explicitly forbidden on the 2D canvas to preserve geometric fidelity and unskewed pointer hit-testing. */
 #canvas-2d-container #canvas2d,
 #canvas-2d-container canvas {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    transform-origin: center center;
-}
-
-#canvas-2d-container.perspective-top #canvas2d,
-#canvas-2d-container.perspective-top canvas,
-#canvas-2d-container.perspective-front #canvas2d,
-#canvas-2d-container.perspective-front canvas,
-#canvas-2d-container.perspective-side #canvas2d,
-#canvas-2d-container.perspective-side canvas,
-#canvas-2d-container.perspective-iso #canvas2d,
-#canvas-2d-container.perspective-iso canvas {
     transform: none !important;
 }
 
