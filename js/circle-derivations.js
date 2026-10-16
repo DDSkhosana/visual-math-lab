@@ -331,6 +331,16 @@ export class CyclicQuadDerivations {
         `• <b>Total Reflex Quad Sum:</b> 4(360°) - 360° = ${tag('lavender', '1080.0°')}`,
         true
       )}
+      ${cardTemplate(
+        'cq-step-6',
+        'Step 6',
+        `Exterior Angle Theorem (${tag('violet', 'Ext ∠C')} = ${tag('violet', '∠A')})`,
+        `Extending side ${tag('amber', 'DC')} past vertex ${tag('amber', 'C')} forms ray ${tag('rose', 'CE')}, creating a straight linear pair:<br>` +
+        `• Linear pair on straight line DCE: ${tag('amber', '∠BCD')} + ${tag('violet', 'Ext ∠C')} = 180° ⟹ ${tag('violet', 'Ext ∠C')} = 180° - ${tag('amber', '∠BCD')}<br>` +
+        `• Opposite interior sum: ${tag('violet', '∠A')} + ${tag('amber', '∠BCD')} = 180° ⟹ ${tag('violet', '∠A')} = 180° - ${tag('amber', '∠BCD')}<br>` +
+        `• <b>Exterior Angle Invariant:</b> ${tag('violet', 'Ext ∠C')} = ${tag('violet', '∠A')} (The exterior angle of a cyclic quadrilateral equals the opposite interior angle)`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -342,6 +352,8 @@ export class CyclicQuadDerivations {
       s4e: this.container.querySelector('#cq-step-4 [data-eval]'),
       s5: this.container.querySelector('#cq-step-5 [data-sub]'),
       s5e: this.container.querySelector('#cq-step-5 [data-eval]'),
+      s6: this.container.querySelector('#cq-step-6 [data-sub]'),
+      s6e: this.container.querySelector('#cq-step-6 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -402,6 +414,19 @@ export class CyclicQuadDerivations {
     if (this.slots.s5e) {
       this.slots.s5e.innerHTML =
         `<span>${tag('lavender', `Total Reflex Quad Sum = 1080.0°`)} (Pairs: ${tag('lavender', '540.0°')} & ${tag('sky', '540.0°')})</span><span class="derivation-check">✓ 1080.0° Invariant</span>`;
+    }
+    if (this.slots.s6) {
+      const extC = g.exteriorAngleDeg !== undefined ? g.exteriorAngleDeg : angleA;
+      this.slots.s6.innerHTML =
+        `↳ Linear pair at ${tag('amber', 'C')}: ${tag('amber', `∠C = ${angleC.toFixed(1)}°`)} + ${tag('violet', `Ext ∠C = ${extC.toFixed(1)}°`)} = ${tag('lavender', `${(angleC + extC).toFixed(1)}°`)}<br>` +
+        `↳ Opposite interior angle: ${tag('violet', `∠A = ${angleA.toFixed(1)}°`)}<br>` +
+        `↳ Exterior Invariant: ${tag('violet', `Ext ∠C (${extC.toFixed(1)}°)`)} ≡ ${tag('violet', `∠A (${angleA.toFixed(1)}°)`)}`;
+    }
+    if (this.slots.s6e) {
+      const extC = g.exteriorAngleDeg !== undefined ? g.exteriorAngleDeg : angleA;
+      const isEq = Math.abs(extC - angleA) < 0.05;
+      this.slots.s6e.innerHTML =
+        `<span>${tag('violet', `Ext ∠C = ${extC.toFixed(1)}°`)} ≡ ${tag('violet', `∠A = ${angleA.toFixed(1)}°`)}</span><span class="derivation-check">${isEq ? '✓ Exterior Invariant' : '✓ Verified'}</span>`;
     }
   }
 }

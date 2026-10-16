@@ -110,7 +110,15 @@ function bootstrap() {
   document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
   const toggleArea = document.getElementById('toggle-area');
   if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
-  document.getElementById('toggle-exterior')?.addEventListener('change', (e) => store.set({ showExterior: e.target.checked }));
+  const toggleExt = document.getElementById('toggle-exterior');
+  const toggle3dExt = document.getElementById('toggle-3d-exterior');
+  const onExtChange = (checked) => {
+    store.set({ showExterior: checked });
+    if (toggleExt) toggleExt.checked = checked;
+    if (toggle3dExt) toggle3dExt.checked = checked;
+  };
+  if (toggleExt) toggleExt.addEventListener('change', (e) => onExtChange(e.target.checked));
+  if (toggle3dExt) toggle3dExt.addEventListener('change', (e) => onExtChange(e.target.checked));
   document.getElementById('toggle-diagonals')?.addEventListener('change', (e) => store.set({ showDiagonals: e.target.checked }));
 
   document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
@@ -238,6 +246,28 @@ function bootstrap() {
     if (el3dRefAC) el3dRefAC.textContent = `${refAC.toFixed(1)}°`;
     const el3dRefBD = document.getElementById('val-3d-reflex-bd');
     if (el3dRefBD) el3dRefBD.textContent = `${refBD.toFixed(1)}°`;
+
+    // Exterior Angle Telemetry (2D & 3D)
+    const extC = g.exteriorAngleDeg !== undefined ? g.exteriorAngleDeg : g.angleADeg;
+    const isExtMatch = Math.abs(extC - g.angleADeg) < 0.05;
+    const elTelExtC = document.getElementById('tel-ext-c');
+    if (elTelExtC) elTelExtC.textContent = `${extC.toFixed(1)}°`;
+    const elTelExtMatch = document.getElementById('tel-ext-match');
+    if (elTelExtMatch) {
+      elTelExtMatch.textContent = isExtMatch ? `Equal (${g.angleADeg.toFixed(1)}°)` : `${extC.toFixed(1)}° ≠ ${g.angleADeg.toFixed(1)}°`;
+    }
+
+    const el3dExtC = document.getElementById('val-3d-ext-c');
+    if (el3dExtC) el3dExtC.textContent = `${extC.toFixed(1)}°`;
+    const el3dExtMatch = document.getElementById('val-3d-ext-match');
+    if (el3dExtMatch) {
+      el3dExtMatch.textContent = isExtMatch ? `Equal (${g.angleADeg.toFixed(1)}°)` : `${extC.toFixed(1)}° ≠ ${g.angleADeg.toFixed(1)}°`;
+    }
+
+    // Sync toggle UI with store state
+    const isExt = state.showExterior !== false;
+    if (toggleExt && toggleExt.checked !== isExt) toggleExt.checked = isExt;
+    if (toggle3dExt && toggle3dExt.checked !== isExt) toggle3dExt.checked = isExt;
 
     // Live math derivations
     derivations.render(state, g);

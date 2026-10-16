@@ -72,6 +72,10 @@ test('Cyclic Quadrilateral: opposite angles sum to 180° and total interior sum 
     close(g.sumAC, 180, 1e-4);
     close(g.sumBD, 180, 1e-4);
     close(g.sumAC + g.sumBD, 360, 1e-4);
+    // Exterior angle theorem: Ext ∠C strictly equals opposite interior angle ∠A
+    close(g.exteriorAngleDeg, g.angleADeg, 1e-4);
+    // Linear pair on straight line DCE sums to 180°
+    close(g.exteriorAngleDeg + g.angleCDeg, 180, 1e-4);
   }
 });
 
