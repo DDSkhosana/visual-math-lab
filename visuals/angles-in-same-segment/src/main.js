@@ -1,5 +1,5 @@
 import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
-import { AnglesInSameSegmentDerivations } from '../../../js/circle-derivations.js';
+import { AnglesInSameSegmentDerivations } from '../../../js/circle-derivations.js?v=20260524';
 import { loadThree, NullScene3DView, ViewModeController, AnglesInSameSegment3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
 import { CanvasView } from './canvas.js';
@@ -93,23 +93,66 @@ function bootstrap() {
   const derivations = new AnglesInSameSegmentDerivations(document.getElementById('live-derivations-content'));
   initCollapsibleSections(document);
 
-  // Playback Auto-Sweep
+  // Helper to ensure points P1 & P2 remain strictly within the circular segment defined by chord AB
+  function clampToSegmentArc(targetAngle, angleA, angleB, refAngle, margin = 0.08) {
+    const TAU = Math.PI * 2;
+    const norm = (a) => ((a % TAU) + TAU) % TAU;
+    const t = norm(targetAngle);
+    const a = norm(angleA);
+    const b = norm(angleB);
+    const ref = norm(refAngle);
+
+    const sweepCW = norm(b - a);
+    const refOffset = norm(ref - a);
+    const refInCW = (refOffset > 0 && refOffset < sweepCW);
+
+    const start = refInCW ? a : b;
+    const sweep = refInCW ? sweepCW : (TAU - sweepCW);
+    const effectiveMargin = Math.min(margin, sweep * 0.1);
+
+    const offset = norm(t - start);
+    if (offset >= effectiveMargin && offset <= sweep - effectiveMargin) {
+      return t;
+    }
+    if (offset < effectiveMargin) {
+      return norm(start + effectiveMargin);
+    }
+    if (offset <= sweep) {
+      return norm(start + sweep - effectiveMargin);
+    }
+    const distFromEnd = offset - sweep;
+    const distFromStart = TAU - offset;
+    return distFromEnd < distFromStart
+      ? norm(start + sweep - effectiveMargin)
+      : norm(start + effectiveMargin);
+  }
+
+  // Playback Auto-Sweep (oscillates smoothly within the subtended circular segment)
   const playBtn = document.getElementById('btn-playback');
-  new PlaybackController(store, playBtn, (delta, store) => {
+  let playTime = 0;
+  new PlaybackController(store, playBtn, (delta) => {
+    playTime += delta;
     const cur = store.get();
-    store.set({
-      angleP1: (cur.angleP1 + 0.4 * delta) % (Math.PI * 2),
-      angleP2: (cur.angleP2 + 0.7 * delta) % (Math.PI * 2),
-    });
+    const a = cur.angleA;
+    const b = cur.angleB;
+    const TAU = Math.PI * 2;
+    const norm = (val) => ((val % TAU) + TAU) % TAU;
+    const sweepCW = norm(b - a);
+    const refOffset = norm(cur.angleP1 - a);
+    const inCW = (refOffset > 0 && refOffset < sweepCW);
+    const start = inCW ? a : b;
+    const sweep = inCW ? sweepCW : (TAU - sweepCW);
+    const mid = norm(start + sweep / 2);
+    const halfSpan = (sweep / 2) * 0.75;
+
+    const nextP1 = norm(mid + halfSpan * Math.sin(playTime * 0.65));
+    const nextP2 = norm(mid + halfSpan * Math.sin(playTime * 1.05 + 1.3));
+    store.set({ angleP1: nextP1, angleP2: nextP2 });
   });
 
   // Controls
   const sliderRadius = document.getElementById('slider-radius');
   sliderRadius?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
-
-  document.getElementById('toggle-center')?.addEventListener('change', (e) => store.set({ showCenter: e.target.checked }));
-  document.getElementById('toggle-shading')?.addEventListener('change', (e) => store.set({ showShading: e.target.checked, showArea: e.target.checked }));
-  document.getElementById('toggle-angles')?.addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
 
   document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
@@ -161,11 +204,17 @@ function bootstrap() {
 
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
+    const cur = store.get();
 
-    if (activePoint === 'P1') store.set({ angleP1: ang });
-    else if (activePoint === 'P2') store.set({ angleP2: ang });
-    else if (activePoint === 'A') store.set({ angleA: ang });
-    else if (activePoint === 'B') store.set({ angleB: ang });
+    if (activePoint === 'P1') {
+      store.set({ angleP1: clampToSegmentArc(ang, cur.angleA, cur.angleB, cur.angleP1) });
+    } else if (activePoint === 'P2') {
+      store.set({ angleP2: clampToSegmentArc(ang, cur.angleA, cur.angleB, cur.angleP2) });
+    } else if (activePoint === 'A') {
+      store.set({ angleA: ang });
+    } else if (activePoint === 'B') {
+      store.set({ angleB: ang });
+    }
   });
 
   const stopDrag = (e) => {

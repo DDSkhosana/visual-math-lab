@@ -253,9 +253,13 @@ export class AnglesInSameSegmentDerivations {
         `↳ ${tag('blue', `∠AP₁B = ${g.angleP1Deg.toFixed(1)}°`)}, ${tag('emerald', `∠AP₂B = ${g.angleP2Deg.toFixed(1)}°`)}<br>` +
         `↳ Invariant Difference: ${tag('teal', `Δ = |${g.angleP1Deg.toFixed(1)}° - ${g.angleP2Deg.toFixed(1)}°| = ${diff}°`)}`;
     }
+    const isSameSegment = Math.abs(g.angleP1Deg - g.angleP2Deg) < 0.05;
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
-        `<span>${tag('blue', `θ₁ = ${g.angleP1Deg.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂ = ${g.angleP2Deg.toFixed(1)}°`)}</span><span class="derivation-check">✓ Same Segment Equal</span>`;
+        `<span>${tag('blue', `θ₁ = ${g.angleP1Deg.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂ = ${g.angleP2Deg.toFixed(1)}°`)}</span>` +
+        (isSameSegment
+          ? `<span class="derivation-check">✓ Same Segment Equal</span>`
+          : `<span class="derivation-check" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">⚠ Opposite Segments (θ₁ + θ₂ = 180°)</span>`);
     }
     if (this.slots.s5) {
       const ref1 = 360 - g.angleP1Deg;
@@ -268,7 +272,10 @@ export class AnglesInSameSegmentDerivations {
       const ref1 = 360 - g.angleP1Deg;
       const ref2 = 360 - g.angleP2Deg;
       this.slots.s5e.innerHTML =
-        `<span>${tag('blue', `θ₁* = ${ref1.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂* = ${ref2.toFixed(1)}°`)}</span><span class="derivation-check">✓ Reflex Invariant</span>`;
+        `<span>${tag('blue', `θ₁* = ${ref1.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂* = ${ref2.toFixed(1)}°`)}</span>` +
+        (isSameSegment
+          ? `<span class="derivation-check">✓ Reflex Invariant</span>`
+          : `<span class="derivation-check" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">⚠ Opposite Segments</span>`);
     }
   }
 }
