@@ -1,7 +1,7 @@
 import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
 import { TangentsFromPointDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, TangentsFromPoint3DView } from '../../../js/circle-3d.js';
-import { createInitialState, computeGeometry } from './model.js';
+import { createInitialState, computeGeometry, MIN_EXTERNAL_POINT_CLEARANCE } from './model.js';
 import { CanvasView } from './canvas.js';
 
 function createScene3D(container) {
@@ -101,16 +101,27 @@ function bootstrap() {
   radiusInput.addEventListener('input', (e) => {
     const r = parseFloat(e.target.value);
     const curDist = store.get().pointDist || 260;
-    const nextDist = Math.max(r + 15, curDist);
+    const nextDist = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, curDist);
     store.set({ radius: r, pointDist: nextDist });
   });
   const distInput = document.getElementById('slider-dist');
   distInput.addEventListener('input', (e) => {
     const r = store.get().radius || 120;
-    const d = Math.max(r + 15, parseFloat(e.target.value));
+    const d = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, parseFloat(e.target.value));
     store.set({ pointDist: d });
   });
-  document.getElementById('toggle-congruence').addEventListener('change', (e) => store.set({ showCongruence: e.target.checked, showArea: e.target.checked }));
+  const elCong = document.getElementById('toggle-congruence');
+  if (elCong) elCong.addEventListener('change', (e) => store.set({ showCongruence: e.target.checked, showArea: e.target.checked }));
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 120;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(220, Math.max(80, Math.round(cur * factor)));
+    const curDist = store.get().pointDist || 260;
+    const nextDist = Math.max(nextR + MIN_EXTERNAL_POINT_CLEARANCE, curDist);
+    store.set({ radius: nextR, pointDist: nextDist });
+  }, { passive: false });
 
   // Interactive Dragging of P, T1, T2
   let dragTarget = null;
@@ -159,7 +170,7 @@ function bootstrap() {
     const alpha = Math.acos(Math.min(1, Math.max(-1, g.r / g.d)));
 
     if (dragTarget === 'P') {
-      const dist = Math.max(g.r + 15, Math.hypot(dx, dy));
+      const dist = Math.max(g.r + MIN_EXTERNAL_POINT_CLEARANCE, Math.hypot(dx, dy));
       store.set({ pointDist: dist, pointAngle: rawAngle });
     } else if (dragTarget === 'T1') {
       let pAngle = rawAngle - alpha;
@@ -216,23 +227,25 @@ function bootstrap() {
     setT('label-dist', `${Math.round(g.d)}px`);
 
     // 3D telemetry
+    const R3D = ((state.radius || 120) / 120) * 8;
+    setT('val-3d-r', R3D.toFixed(1));
     const distRatio = Math.max(1.15, (state.pointDist || 260) / (state.radius || 120));
-    const d3 = 8 * distRatio;
+    const d3 = R3D * distRatio;
     const ang3 = state.pointAngle || 0;
     const px3 = (d3 * Math.cos(ang3)).toFixed(2);
     const pz3 = (d3 * Math.sin(ang3)).toFixed(2);
-    const tanLen3 = Math.sqrt(Math.max(0, d3 * d3 - 64)).toFixed(2);
-    const kiteArea3 = (8 * parseFloat(tanLen3)).toFixed(2);
-    const alpha3Rad = Math.acos(Math.min(1, 8 / d3));
+    const tanLen3 = Math.sqrt(Math.max(0, d3 * d3 - R3D * R3D)).toFixed(2);
+    const kiteArea3 = (R3D * parseFloat(tanLen3)).toFixed(2);
+    const alpha3Rad = Math.acos(Math.min(1, R3D / d3));
     const alpha3Deg = (alpha3Rad * 180 / Math.PI).toFixed(1);
     const beta3Deg = (90 - parseFloat(alpha3Deg)).toFixed(1);
-    const t1x3 = (8 * Math.cos(ang3 + alpha3Rad)).toFixed(2);
-    const t1z3 = (8 * Math.sin(ang3 + alpha3Rad)).toFixed(2);
-    const t2x3 = (8 * Math.cos(ang3 - alpha3Rad)).toFixed(2);
-    const t2z3 = (8 * Math.sin(ang3 - alpha3Rad)).toFixed(2);
-    const kx3 = ((64 / d3) * Math.cos(ang3)).toFixed(2);
-    const kz3 = ((64 / d3) * Math.sin(ang3)).toFixed(2);
-    const chord3 = (2 * (8 / d3) * parseFloat(tanLen3)).toFixed(2);
+    const t1x3 = (R3D * Math.cos(ang3 + alpha3Rad)).toFixed(2);
+    const t1z3 = (R3D * Math.sin(ang3 + alpha3Rad)).toFixed(2);
+    const t2x3 = (R3D * Math.cos(ang3 - alpha3Rad)).toFixed(2);
+    const t2z3 = (R3D * Math.sin(ang3 - alpha3Rad)).toFixed(2);
+    const kx3 = (((R3D * R3D) / d3) * Math.cos(ang3)).toFixed(2);
+    const kz3 = (((R3D * R3D) / d3) * Math.sin(ang3)).toFixed(2);
+    const chord3 = (2 * (R3D / d3) * parseFloat(tanLen3)).toFixed(2);
 
     setT('val-3d-area', kiteArea3);
     setT('val-3d-len1', tanLen3);
@@ -245,6 +258,10 @@ function bootstrap() {
     setT('val-3d-ang-p2', `${alpha3Deg}°`);
     setT('val-3d-ang-o1', `${beta3Deg}°`);
     setT('val-3d-ang-o2', `${beta3Deg}°`);
+    setT('tel-reflex-tangent', '270.0°');
+    setT('tel-reflex-kite', '1080.0°');
+    setT('val-3d-reflex-tangent', '270.0°');
+    setT('val-3d-reflex-kite', '1080.0°');
 
     setT('val-3d-p', `${px3}, ${pz3}`);
     setT('val-3d-t1', `${t1x3}, ${t1z3}`);
@@ -263,7 +280,10 @@ function bootstrap() {
 
     // Sync sliders if not actively dragging on 2D canvas
     if (!dragTarget) {
-      if (distInput) distInput.value = Math.round(state.pointDist);
+      if (distInput) {
+        distInput.min = String(state.radius + MIN_EXTERNAL_POINT_CLEARANCE);
+        distInput.value = Math.round(state.pointDist);
+      }
       if (radiusInput) radiusInput.value = Math.round(state.radius);
     }
   };

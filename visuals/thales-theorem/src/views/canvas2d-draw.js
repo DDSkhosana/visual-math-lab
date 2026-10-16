@@ -133,17 +133,17 @@ function drawAxes(ctx, state, f) {
     ctx.font = 'bold 12px monospace';
     withShadow(ctx, () => {
       let xLabel = '+X', xColor = PALETTE.amber;
-      let yLabel = '+Y', yColor = PALETTE.lime;
+      let yLabel = '+Y', yColor = PALETTE.emerald;
       if (f.plane === 'xz') {
         xLabel = '+X'; xColor = PALETTE.amber;
         yLabel = '+Z'; yColor = PALETTE.steel;
       } else if (f.plane === 'yz') {
         xLabel = '+Z'; xColor = PALETTE.steel;
-        yLabel = '+Y'; yColor = PALETTE.lime;
+        yLabel = '+Y'; yColor = PALETTE.emerald;
       } else if (f.plane === 'great-circle') {
         const isVert = Math.abs(Math.sin(f.baselineRotation || 0)) > 0.5;
         xLabel = isVert ? '+X (⟂)' : '+X (AB)'; xColor = PALETTE.amber;
-        yLabel = isVert ? '+Y (AB)' : '+Y₂D'; yColor = PALETTE.lime;
+        yLabel = isVert ? '+Y (AB)' : '+Y₂D'; yColor = PALETTE.emerald;
       }
       ctx.fillStyle = xColor;
       ctx.fillText(xLabel, f.width - (xLabel.length > 2 ? 55 : 25), f.cy - 8);
@@ -430,21 +430,21 @@ function drawAngles(ctx, state, f) {
         ctx.stroke();
         if (showLabels) {
           ctx.fillStyle = PALETTE.lime;
-          ctx.fillText(`α=${alphaDeg}°`, f.a.x + 32 * (bxA / bLenA) - 6, f.a.y + 32 * (byA / bLenA) + 4);
+          ctx.fillText(`α = ${alphaDeg}°`, f.a.x + 32 * (bxA / bLenA) - 6, f.a.y + 32 * (byA / bLenA) + 4);
         }
 
-        // Base angle beta at B (interior amber fill + stroke)
+        // Base angle beta at B (interior orange fill + stroke)
         ctx.beginPath();
         ctx.moveTo(f.b.x, f.b.y);
         ctx.arc(f.b.x, f.b.y, 24, baseBA, dirPB, crossB < 0);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.22)';
         ctx.fill();
-        ctx.strokeStyle = PALETTE.amber;
+        ctx.strokeStyle = PALETTE.orange;
         ctx.stroke();
         if (showLabels) {
-          ctx.fillStyle = PALETTE.amber;
-          ctx.fillText(`β=${betaDeg}°`, f.b.x + 32 * (bxB / bLenB) - 14, f.b.y + 32 * (byB / bLenB) + 4);
+          ctx.fillStyle = PALETTE.orange;
+          ctx.fillText(`β = ${betaDeg}°`, f.b.x + 32 * (bxB / bLenB) - 14, f.b.y + 32 * (byB / bLenB) + 4);
         }
       }
 
@@ -465,26 +465,26 @@ function drawAngles(ctx, state, f) {
         const alphaReflexDeg = (360 - Number(alphaDeg)).toFixed(0);
         if (showLabels) {
           ctx.fillStyle = PALETTE.lime;
-          ctx.fillText(`α*=${alphaReflexDeg}°`, f.a.x - 34 * (bxA / bLenA) - 18, f.a.y - 34 * (byA / bLenA) + 4);
+          ctx.fillText(`α* = ${alphaReflexDeg}°`, f.a.x - 34 * (bxA / bLenA) - 18, f.a.y - 34 * (byA / bLenA) + 4);
         }
 
-        // Reflex angle beta* at B (exterior amber dashed arc + label)
+        // Reflex angle beta* at B (exterior orange dashed arc + label)
         ctx.beginPath();
         ctx.moveTo(f.b.x, f.b.y);
         ctx.arc(f.b.x, f.b.y, 22, baseBA, dirPB, crossB > 0);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.12)';
         ctx.fill();
         ctx.save();
         ctx.setLineDash([4, 3]);
-        ctx.strokeStyle = PALETTE.amber;
+        ctx.strokeStyle = PALETTE.orange;
         ctx.stroke();
         ctx.restore();
 
         const betaReflexDeg = (360 - Number(betaDeg)).toFixed(0);
         if (showLabels) {
-          ctx.fillStyle = PALETTE.amber;
-          ctx.fillText(`β*=${betaReflexDeg}°`, f.b.x - 34 * (bxB / bLenB) - 10, f.b.y - 34 * (byB / bLenB) + 4);
+          ctx.fillStyle = PALETTE.orange;
+          ctx.fillText(`β* = ${betaReflexDeg}°`, f.b.x - 34 * (bxB / bLenB) - 18, f.b.y - 34 * (byB / bLenB) + 4);
         }
       }
 
@@ -517,9 +517,10 @@ function drawAngles(ctx, state, f) {
 
     if (showLabels) {
       const midAngle = baseO + (crossO < 0 ? -1 : 1) * (angO / 2);
+      const angODeg = Math.round(toDegrees(angO));
       ctx.fillStyle = angleColor;
       ctx.font = 'italic 13px sans-serif';
-      ctx.fillText(angleLabel, f.cx + 33 * Math.cos(midAngle) - 4, f.cy + 33 * Math.sin(midAngle) + 4);
+      ctx.fillText(`${angleLabel} = ${angODeg}°`, f.cx + 33 * Math.cos(midAngle) - 4, f.cy + 33 * Math.sin(midAngle) + 4);
     }
   }
 
@@ -541,7 +542,7 @@ function drawAngles(ctx, state, f) {
       const midReflex = baseO + (crossO < 0 ? 1 : -1) * ((Math.PI * 2 - angO) / 2);
       ctx.fillStyle = angleColor;
       ctx.font = 'italic 11px sans-serif';
-      ctx.fillText(`${angleLabel}*=${reflexDeg}°`, f.cx + 46 * Math.cos(midReflex) - 10, f.cy + 46 * Math.sin(midReflex) + 4);
+      ctx.fillText(`${angleLabel}* = ${reflexDeg}°`, f.cx + 46 * Math.cos(midReflex) - 10, f.cy + 46 * Math.sin(midReflex) + 4);
     }
   }
 }

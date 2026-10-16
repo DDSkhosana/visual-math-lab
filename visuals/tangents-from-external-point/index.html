@@ -3,9 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore why two tangents drawn from an external point to a circle are equal in length and form congruent right triangles.">
   <title>Tangents from an External Point | Visual Mathematics Lab</title>
+  <meta name="description" content="Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D Euclidean geometry.">
+  <meta name="keywords" content="tangents from external point, circle theorems, tangent theorem, Euclidean geometry, congruent triangles, 3D math proof">
+  <meta name="author" content="Dianah Delisile Skhosana">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/tangents-from-external-point-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/">
+  <meta property="og:site_name" content="Visual Mathematics Lab">
+  <meta property="og:title" content="Tangents from an External Point | Visual Mathematics Lab">
+  <meta property="og:description" content="Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D geometry.">
+  <meta property="og:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/tangents-from-external-point-thumbnail.svg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/">
+  <meta name="twitter:title" content="Tangents from an External Point | Visual Mathematics Lab">
+  <meta name="twitter:description" content="Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D geometry.">
+  <meta name="twitter:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/tangents-from-external-point-thumbnail.svg">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Tangents from an External Point Theorem | Visual Mathematics Lab",
+    "headline": "Interactive 2D & 3D Proof of Tangents Drawn from an External Point",
+    "description": "Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D geometry, congruent triangles, and live derivations.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/",
+    "image": "https://ddskhosana.github.io/visual-math-lab/assets/images/tangents-from-external-point-thumbnail.svg",
+    "inLanguage": "en",
+    "educationalLevel": "Secondary Education, High School, Higher Education",
+    "learningResourceType": "Interactive Simulation",
+    "about": [
+      { "@type": "Thing", "name": "Tangents from External Point" },
+      { "@type": "Thing", "name": "Circle Theorems" },
+      { "@type": "Thing", "name": "Congruent Triangles" }
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "Dianah Delisile Skhosana"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Visual Mathematics Lab",
+      "url": "https://ddskhosana.github.io/visual-math-lab/"
+    },
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All"
+  }
+  </script>
+
   <link rel="stylesheet" href="../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../css/visual.css?v=20260523">
   <link rel="stylesheet" href="styles/explorer.css">
@@ -44,29 +95,39 @@
         <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
           <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
         </div>
-        <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-          <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
-          <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
-          <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Collapse toolbar" aria-expanded="true" title="Collapse / expand viewport modes panel">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-orbit external point P">
+            <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span class="playback-label">Play</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
         </div>
-        <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
-        <span class="toolbar-divider"></span>
-        <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-orbit external point P">
-          <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          <span class="playback-label">Play</span>
-        </button>
-        <span class="toolbar-divider"></span>
-        <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
-          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-        </button>
       </div>
 
       <!-- View Container (Split 2D / 3D) -->
       <div class="view-container layout-split horizontal-split" id="main-view">
-        <div id="canvas-2d-container">
+        <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Tangents from External Point (<span class="color-emerald">|PT₁|</span> = <span class="color-blue">|PT₂|</span>)</div>
+          <div class="view-title">2D: Tangents from External Point (<span class="color-emerald">|PT₁|</span> = <span class="color-blue">|PT₂|</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span></div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -96,6 +157,8 @@
               <div class="stat-line"><span>Total Subtended ∠T₁PT₂ (2α):</span><strong class="color-yellow" id="tel-angle-tpt">--°</strong></div>
               <div class="stat-line"><span>Central Angle β₁ (∠T₁OP):</span><strong class="color-amber" id="tel-angle-beta1">--°</strong></div>
               <div class="stat-line"><span>Central Angle β₂ (∠T₂OP):</span><strong class="color-orange" id="tel-angle-beta2">--°</strong></div>
+              <div class="stat-line"><span>Reflex Right Angles (T₁*, T₂*):</span><strong class="color-teal" id="tel-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span>Kite Reflex Sum:</span><strong class="color-lavender" id="tel-reflex-kite">1080.0°</strong></div>
 
               <!-- 3. Circle Geometry Glyphs -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
@@ -113,10 +176,10 @@
         <div id="canvas-3d-container">
           <div class="view-title">3D: Tangent Cone from External Point P</div>
           <div class="camera-presets-bar">
-            <button type="button" data-preset="top">Top</button>
+            <button type="button" data-preset="top" class="active">Top</button>
             <button type="button" data-preset="front">Front</button>
             <button type="button" data-preset="side">Side</button>
-            <button type="button" data-preset="iso" class="active">Iso</button>
+            <button type="button" data-preset="iso">Iso</button>
           </div>
           <div id="labels-3d-container" class="labels-3d-container"></div>
 
@@ -129,6 +192,7 @@
             <div class="stats-body hidden" id="stats-3d-body" style="max-height: 380px; overflow-y: auto;">
               <!-- 1. Computations -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics</div>
+              <div class="stat-line"><span>Radius R:</span><span class="color-blue" id="val-3d-r">8.0</span></div>
               <div class="stat-line"><span>3D Kite Area:</span><strong class="color-amber" id="val-3d-area">0.00</strong></div>
               <div class="stat-line"><span>3D Tangent |PT₁|:</span><strong class="color-emerald" id="val-3d-len1">0.00</strong></div>
               <div class="stat-line"><span>3D Tangent |PT₂|:</span><strong class="color-blue" id="val-3d-len2">0.00</strong></div>
@@ -143,6 +207,8 @@
               <div class="stat-line"><span>3D Vertex Angle α₂:</span><strong class="color-fuchsia" id="val-3d-ang-p2">0.0°</strong></div>
               <div class="stat-line"><span>3D Central Angle β₁:</span><strong class="color-amber" id="val-3d-ang-o1">0.0°</strong></div>
               <div class="stat-line"><span>3D Central Angle β₂:</span><strong class="color-orange" id="val-3d-ang-o2">0.0°</strong></div>
+              <div class="stat-line"><span>3D Reflex Angles (T₁*, T₂*):</span><strong class="color-teal" id="val-3d-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span>3D Kite Reflex Sum:</span><strong class="color-lavender" id="val-3d-reflex-kite">1080.0°</strong></div>
 
               <!-- 3. Circle Geometry Glyphs -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
@@ -180,28 +246,9 @@
                 </div>
               </div>
             </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grid &amp; Axes</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
-              </div>
-            </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Congruence &amp; Shading</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-congruence" checked><span class="checkmark"></span><span class="color-emerald">Congruent Triangles &amp; Area Shading</span></label>
-              </div>
-            </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
-                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
-              </div>
+            <div class="collapsible-section" id="section-unit-converter">
+              <div class="collapsible-header" id="header-unit-converter"><span>Unit System Conversion</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" id="content-unit-converter"></div>
             </div>
           </div>
         </div>
@@ -250,6 +297,16 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Angle Arcs &amp; Right-Angle Markers</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Congruent Triangle Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Camera Perspective</span><span class="icon">▼</span></div>
+              <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                <button type="button" class="btn text-xs active" data-camera-preset="top">Top</button>
+                <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
+                <button type="button" class="btn text-xs" data-camera-preset="side">Side</button>
+                <button type="button" class="btn text-xs" data-camera-preset="iso">Iso</button>
               </div>
             </div>
             <div class="collapsible-section">
@@ -290,15 +347,16 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-teal">3D Right Angle Markers</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Congruence Cone / Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn" data-cam-preset="iso">Isometric</button>
-                <button type="button" class="btn" data-cam-preset="top">Top (+Y)</button>
-                <button type="button" class="btn" data-cam-preset="front">Front (+Z)</button>
-                <button type="button" class="btn" data-cam-preset="side">Side (+X)</button>
+                <button type="button" class="btn active" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn" data-preset="iso">Isometric</button>
+                <button type="button" class="btn" data-preset="front">Front (+Z)</button>
+                <button type="button" class="btn" data-preset="side">Side (+X)</button>
               </div>
             </div>
           </div>
@@ -311,7 +369,7 @@
       <article class="visual-page__intro" id="about-visual">
         <p class="eyebrow" data-visual-category>Geometry</p>
         <h1 data-visual-title>Tangents from an External Point</h1>
-        <p class="lede" data-visual-description>Loading visual information.</p>
+        <p class="lede" data-visual-description>Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D Euclidean geometry.</p>
         <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
       </article>
 

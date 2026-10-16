@@ -1,27 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
   <title id="title">Perpendicular Chord Bisector Theorem illustration</title>
-  <desc id="desc">A line from the centre perpendicular to a chord bisects the chord.</desc>
+  <desc id="desc">A line drawn from the centre of a circle perpendicular to a chord bisects the chord into two equal halves.</desc>
   <rect width="1200" height="800" fill="#ece9e1"/>
-  <circle cx="600" cy="380" r="250" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Shaded Congruent Triangles OMA and OMB -->
+  <polygon points="600,360 400,510 600,510" fill="rgba(59, 130, 246, 0.09)" stroke="none"/>
+  <polygon points="600,360 800,510 600,510" fill="rgba(16, 185, 129, 0.09)" stroke="none"/>
+
+  <!-- Circle -->
+  <circle cx="600" cy="360" r="250" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Radii OA and OB (dashed proof lines) -->
+  <line x1="600" y1="360" x2="400" y2="510" stroke="#6366f1" stroke-width="6" stroke-dasharray="10,8"/>
+  <line x1="600" y1="360" x2="800" y2="510" stroke="#6366f1" stroke-width="6" stroke-dasharray="10,8"/>
+
+  <!-- Chord AB (Crimson) -->
+  <line x1="400" y1="510" x2="800" y2="510" stroke="#ef4444" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Perpendicular Bisector OM (Blue) -->
+  <line x1="600" y1="360" x2="600" y2="510" stroke="#3b82f6" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- 90° Right Angle Marker Box at M -->
+  <path d="M 575 510 L 575 485 L 600 485" fill="none" stroke="#14b8a6" stroke-width="8"/>
+  <text x="540" y="475" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#14b8a6">90°</text>
+
+  <!-- Congruence Tick Marks on AM and MB -->
+  <line x1="495" y1="495" x2="505" y2="525" stroke="#ef4444" stroke-width="6"/>
+  <line x1="695" y1="495" x2="705" y2="525" stroke="#ef4444" stroke-width="6"/>
+
   <!-- Center O -->
-  <circle cx="600" cy="380" r="14" fill="#111111"/>
-  <text x="615" y="360" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">O</text>
-  <!-- Chord AB: A=(380, 520), B=(820, 520) -->
-  <line x1="380" y1="520" x2="820" y2="520" stroke="#ef4444" stroke-width="14"/>
-  <circle cx="380" cy="520" r="14" fill="#ef4444"/>
-  <text x="330" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
-  <circle cx="820" cy="520" r="14" fill="#ef4444"/>
-  <text x="845" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">B</text>
-  <!-- Midpoint M at (600, 520) -->
-  <circle cx="600" cy="520" r="12" fill="#10b981"/>
-  <text x="615" y="560" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#10b981">M</text>
-  <!-- Perpendicular line OM -->
-  <line x1="600" y1="380" x2="600" y2="520" stroke="#3b82f6" stroke-width="12"/>
-  <!-- Right angle box at M -->
-  <path d="M575 520 L575 495 L600 495" fill="none" stroke="#14b8a6" stroke-width="8"/>
-  <text x="540" y="485" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#14b8a6">90°</text>
-  <!-- Congruence tick marks on AM and MB -->
-  <line x1="485" y1="505" x2="495" y2="535" stroke="#ef4444" stroke-width="6"/>
-  <line x1="705" y1="505" x2="715" y2="535" stroke="#ef4444" stroke-width="6"/>
+  <circle cx="600" cy="360" r="14" fill="#0284c7"/>
+  <text x="618" y="340" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#0284c7">O</text>
+
+  <!-- Vertices A, B, M -->
+  <circle cx="400" cy="510" r="14" fill="#ef4444"/>
+  <text x="350" y="530" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
+
+  <circle cx="800" cy="510" r="14" fill="#ef4444"/>
+  <text x="825" y="530" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">B</text>
+
+  <circle cx="600" cy="510" r="14" fill="#10b981"/>
+  <text x="615" y="555" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#10b981">M</text>
+
+  <!-- Invariant Equation -->
+  <text x="600" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#111111">|AM| = |MB|  and  OM ⟂ AB</text>
   <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">PERPENDICULAR CHORD BISECTOR</text>
 </svg>

@@ -3,6 +3,7 @@
  * replace nested objects instead of mutating them so change detection stays shallow.
  */
 export function createStore(initialState) {
+  const initial = JSON.parse(JSON.stringify(initialState));
   let state = initialState;
   const subscribers = new Set();
 
@@ -17,6 +18,15 @@ export function createStore(initialState) {
         if (!keys || keys.some((key) => changedKeys.includes(key))) listener(state);
       }
     },
+
+    reset() {
+      state = JSON.parse(JSON.stringify(initial));
+      for (const { listener } of [...subscribers]) {
+        listener(state);
+      }
+    },
+
+    getInitial: () => JSON.parse(JSON.stringify(initial)),
 
     /** Subscribes to every change, or only changes to the listed top-level keys. Returns an unsubscribe function. */
     subscribe(listener, keys = null) {

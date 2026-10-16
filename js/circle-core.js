@@ -66,10 +66,11 @@ export function pointerToAngle(dx, dy) {
  * Minimal observable store.
  */
 export function createStore(initialState) {
+  const initial = JSON.parse(JSON.stringify(initialState));
   let state = { ...initialState };
   const subscribers = [];
 
-  return {
+  const store = {
     get: () => state,
     set: (patch) => {
       if (!patch) return;
@@ -82,6 +83,17 @@ export function createStore(initialState) {
         }
       }
     },
+    reset: () => {
+      const prev = state;
+      state = JSON.parse(JSON.stringify(initial));
+      const allKeys = Array.from(new Set([...Object.keys(prev), ...Object.keys(state)]));
+      for (const { fn, keys } of subscribers) {
+        if (!keys || keys.some((k) => allKeys.includes(k))) {
+          fn(state, prev);
+        }
+      }
+    },
+    getInitial: () => JSON.parse(JSON.stringify(initial)),
     subscribe: (fn, keys = null) => {
       const sub = { fn, keys };
       subscribers.push(sub);
@@ -91,6 +103,7 @@ export function createStore(initialState) {
       };
     },
   };
+  return store;
 }
 
 /**
@@ -246,10 +259,19 @@ export class Panel {
  */
 export class DraggableToolbar {
   constructor(toolbar, handle = null) {
+    if (!toolbar) return;
     this.toolbar = toolbar;
     this.handle = handle;
+    this.collapseBtn = toolbar.querySelector('#toolbar-collapse-btn, .toolbar-collapse-btn');
     this.compact = window.matchMedia(COMPACT_QUERY);
     this.compact.addEventListener('change', () => this.resetPosition());
+
+    if (this.collapseBtn) {
+      this.collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setCollapsed(!this.isCollapsed);
+      });
+    }
 
     window.addEventListener('resize', () => {
       if (this.toolbar.style.transform === 'none') {
@@ -290,6 +312,21 @@ export class DraggableToolbar {
           });
         }
       });
+    }
+  }
+
+  get isCollapsed() {
+    return this.toolbar.classList.contains('is-collapsed');
+  }
+
+  setCollapsed(collapsed) {
+    this.toolbar.classList.toggle('is-collapsed', collapsed);
+    if (this.collapseBtn) {
+      this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
+      const iconExpand = this.collapseBtn.querySelector('.icon-expand');
+      if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
+      if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
     }
   }
 
@@ -755,6 +792,40 @@ export function drawAngleWedge(ctx, vertex, startAngle, endAngle, radius = 28, f
 }
 
 /**
+ * Calculates the conjugate reflex angle in degrees (the explementary angle: 360° - θ).
+ */
+export function computeReflexAngle(deg) {
+  const norm = ((deg % 360) + 360) % 360;
+  return Number((360 - norm).toFixed(2));
+}
+
+/**
+ * Draws a conjugate reflex angle wedge (explementary perigon arc 360° - θ) at a vertex.
+ */
+export function drawReflexWedge(ctx, vertex, startAngle, endAngle, radius = 32, fill = 'rgba(234, 179, 8, 0.12)', stroke = null) {
+  let diff = (endAngle - startAngle) % (Math.PI * 2);
+  if (diff < 0) diff += Math.PI * 2;
+  // If interior angle is clockwise (diff <= Math.PI), reflex arc sweeps in reverse (counter-clockwise on exterior)
+  const ccw = diff <= Math.PI;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(vertex.x, vertex.y);
+  ctx.arc(vertex.x, vertex.y, radius, startAngle, endAngle, ccw);
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
  * Determines the canvas arc parameters (angA, angB, anticlockwise)
  * for the circle arc between points A and B that does NOT contain point P.
  */
@@ -928,6 +999,8 @@ export function createDefaultVisState() {
       lengths: true,
       angles: true,
       area: true,
+      quadrant: true,
+      chords: true,
     },
     vis3d: {
       gridXZ: true,
@@ -938,6 +1011,8 @@ export function createDefaultVisState() {
       coords: false,
       angles: true,
       area: true,
+      quadrant: true,
+      chords: true,
     },
   };
 }
@@ -1008,6 +1083,9 @@ export function bindStandardToggles(store, ...args) {
       syncCheck(['vis-2d-lengths', 'toggle-2d-lengths'], st.vis2d.lengths !== false);
       syncCheck(['vis-2d-angles', 'toggle-2d-angles'], st.vis2d.angles !== false);
       syncCheck(['vis-2d-area', 'toggle-2d-area'], st.vis2d.area !== false);
+      syncCheck(['vis-2d-quadrant', 'toggle-2d-quadrant'], st.vis2d.quadrant !== false);
+      syncCheck(['vis-2d-chords', 'toggle-2d-chords'], st.vis2d.chords !== false);
+      syncCheck(['vis-2d-reflex', 'toggle-2d-reflex'], Boolean(st.vis2d.reflex));
     }
     if (st.vis3d) {
       syncCheck(['vis-3d-grid', 'toggle-3d-grid', 'vis-3d-grid-xz'], st.vis3d.gridXZ !== false);
@@ -1018,6 +1096,9 @@ export function bindStandardToggles(store, ...args) {
       syncCheck(['vis-3d-coords', 'toggle-3d-coords'], Boolean(st.vis3d.coords));
       syncCheck(['vis-3d-angles', 'toggle-3d-angles'], st.vis3d.angles !== false);
       syncCheck(['vis-3d-area', 'toggle-3d-area'], st.vis3d.area !== false);
+      syncCheck(['vis-3d-quadrant', 'toggle-3d-quadrant'], st.vis3d.quadrant !== false);
+      syncCheck(['vis-3d-chords', 'toggle-3d-chords'], st.vis3d.chords !== false);
+      syncCheck(['vis-3d-reflex', 'toggle-3d-reflex'], Boolean(st.vis3d.reflex));
     }
   };
 
@@ -1048,6 +1129,15 @@ export function bindStandardToggles(store, ...args) {
   bindCheck(['vis-2d-area', 'toggle-2d-area'], (val) => {
     store.set({ vis2d: { ...(store.get().vis2d || {}), area: val }, showArea: val });
   });
+  bindCheck(['vis-2d-quadrant', 'toggle-2d-quadrant'], (val) => {
+    store.set({ vis2d: { ...(store.get().vis2d || {}), quadrant: val }, showQuadrant: val });
+  });
+  bindCheck(['vis-2d-chords', 'toggle-2d-chords'], (val) => {
+    store.set({ vis2d: { ...(store.get().vis2d || {}), chords: val } });
+  });
+  bindCheck(['vis-2d-reflex', 'toggle-2d-reflex'], (val) => {
+    store.set({ vis2d: { ...(store.get().vis2d || {}), reflex: val }, showReflex: val });
+  });
 
   bindCheck(['vis-3d-grid', 'toggle-3d-grid', 'vis-3d-grid-xz'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), gridXZ: val } });
@@ -1073,20 +1163,113 @@ export function bindStandardToggles(store, ...args) {
   bindCheck(['vis-3d-area', 'toggle-3d-area'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), area: val }, showArea: val });
   });
+  bindCheck(['vis-3d-quadrant', 'toggle-3d-quadrant'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), quadrant: val }, showQuadrant: val });
+  });
+  bindCheck(['vis-3d-chords', 'toggle-3d-chords'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), chords: val } });
+  });
+  bindCheck(['vis-3d-reflex', 'toggle-3d-reflex'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), reflex: val }, showReflex: val });
+  });
 
-  // 3D Camera Presets
-  const cameraButtons = document.querySelectorAll('#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset]');
+  // 3D & 2D Synchronized Camera Perspective Presets
+  const cameraButtons = document.querySelectorAll(
+    '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
+  );
+
+  const applyPerspective = (preset) => {
+    let p = preset;
+    if (p === 'isometric' || p === 'default') p = 'iso';
+
+    // 1. Update 3D scene camera
+    sceneTarget?.setCameraPreset(p);
+
+    // 2. Synchronize 2D container perspective
+    const container2d = document.getElementById('canvas-2d-container');
+    if (container2d) {
+      container2d.classList.remove('perspective-top', 'perspective-front', 'perspective-side', 'perspective-iso');
+      container2d.classList.add(`perspective-${p}`);
+
+      const title2d = container2d.querySelector('.view-title');
+      if (title2d) {
+        if (!title2d.dataset.origTitle) {
+          title2d.dataset.origTitle = title2d.innerHTML;
+        }
+        const perspectiveLabels = {
+          top: ' <span class="color-yellow font-bold">[Top View: XZ Plan]</span>',
+          front: ' <span class="color-lime font-bold">[Front View: XY Elevation]</span>',
+          side: ' <span class="color-steel font-bold">[Side View: YZ Profile]</span>',
+          iso: ' <span class="color-sky font-bold">[Isometric Perspective]</span>',
+        };
+        title2d.innerHTML = `${title2d.dataset.origTitle}${perspectiveLabels[p] || ''}`;
+      }
+    }
+
+    // 3. Update active classes across all buttons in 2D & 3D
+    const allButtons = document.querySelectorAll(
+      '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
+    );
+    allButtons.forEach((b) => {
+      let bPreset = b.dataset.preset || b.dataset.cameraPreset;
+      if (bPreset === 'isometric' || bPreset === 'default') bPreset = 'iso';
+      b.classList.toggle('active', bPreset === p);
+    });
+
+    // 4. Update store state
+    store.set({ cameraPerspective: p });
+  };
+
   cameraButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      let preset = btn.dataset.preset || btn.dataset.cameraPreset;
-      if (preset === 'isometric') preset = 'iso';
-      cameraButtons.forEach((b) => {
-        const p = b.dataset.preset || b.dataset.cameraPreset;
-        b.classList.toggle('active', (p === 'isometric' ? 'iso' : p) === preset);
-      });
-      sceneTarget?.setCameraPreset(preset);
+      const preset = btn.dataset.preset || btn.dataset.cameraPreset;
+      applyPerspective(preset);
     });
   });
+
+  store.subscribe((state) => {
+    if (state.cameraPerspective) {
+      const p = state.cameraPerspective;
+      const allButtons = document.querySelectorAll(
+        '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
+      );
+      allButtons.forEach((b) => {
+        let bPreset = b.dataset.preset || b.dataset.cameraPreset;
+        if (bPreset === 'isometric' || bPreset === 'default') bPreset = 'iso';
+        b.classList.toggle('active', bPreset === p);
+      });
+    }
+  }, ['cameraPerspective']);
+
+  // Reset to initial load configuration
+  const defaultPreset = opts.defaultCameraPreset || 'top';
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (typeof store.reset === 'function') {
+        store.reset();
+      } else if (opts.createInitialState) {
+        store.set(opts.createInitialState());
+      }
+      store.set({
+        playing: false,
+        viewMode: 'split',
+        splitDirection: 'horizontal',
+        splitRatio: 50,
+      });
+      applyPerspective(defaultPreset);
+      opts.onReset?.();
+    });
+  }
+
+  // Mount Unit System Converter if container is present
+  const unitConverterContainer = document.getElementById('content-unit-converter');
+  if (unitConverterContainer) {
+    new UnitSystemConverter(unitConverterContainer, store);
+  }
+
+  // Set initial camera perspective to match 2D and 3D orientation on first load
+  applyPerspective(store.get().cameraPerspective || defaultPreset);
 
   // Export buttons
   const pngButtons = document.querySelectorAll('#btn-export-png, #btn-export-png-2d, #btn-snapshot-png, #toolbar-2d-panel [id*="png"]');
@@ -1098,6 +1281,262 @@ export function bindStandardToggles(store, ...args) {
   svgButtons.forEach((btn) => {
     btn.addEventListener('click', () => viewTarget?.exportSVG?.());
   });
+}
+
+/**
+ * Unit System Conversion Controller.
+ * Supports Length units: px, cm, mm, in, u (normalized radius units).
+ * Supports Angle units: deg, rad, grad, turn.
+ * Provides live invariant metric equivalence (r, 2r, 2πr, πr²) and an interactive converter calculator.
+ */
+export class UnitSystemConverter {
+  static LENGTH_CONVERSIONS = {
+    px: { name: 'Pixels', symbol: 'px', toPx: 1, fromPx: 1 },
+    cm: { name: 'Centimeters', symbol: 'cm', toPx: 96 / 2.54, fromPx: 2.54 / 96 },
+    mm: { name: 'Millimeters', symbol: 'mm', toPx: 9.6 / 2.54, fromPx: 25.4 / 96 },
+    in: { name: 'Inches', symbol: 'in', toPx: 96, fromPx: 1 / 96 },
+  };
+
+  static ANGLE_CONVERSIONS = {
+    deg: { name: 'Degrees', symbol: '°', toDeg: 1, fromDeg: 1 },
+    rad: { name: 'Radians', symbol: 'rad', toDeg: 180 / Math.PI, fromDeg: Math.PI / 180 },
+    grad: { name: 'Gradians', symbol: 'gon', toDeg: 360 / 400, fromDeg: 400 / 360 },
+    turn: { name: 'Turns', symbol: 'turn', toDeg: 360, fromDeg: 1 / 360 },
+  };
+
+  static convertLength(value, fromUnit, toUnit, radius = 180) {
+    if (fromUnit === toUnit) return value;
+    const r = radius || 1;
+    let pxVal;
+    if (fromUnit === 'u') {
+      pxVal = value * r;
+    } else {
+      pxVal = value * (UnitSystemConverter.LENGTH_CONVERSIONS[fromUnit]?.toPx || 1);
+    }
+
+    if (toUnit === 'u') {
+      return pxVal / r;
+    }
+    return pxVal * (UnitSystemConverter.LENGTH_CONVERSIONS[toUnit]?.fromPx || 1);
+  }
+
+  static convertAngle(value, fromUnit, toUnit) {
+    if (fromUnit === toUnit) return value;
+    const degVal = value * (UnitSystemConverter.ANGLE_CONVERSIONS[fromUnit]?.toDeg || 1);
+    return degVal * (UnitSystemConverter.ANGLE_CONVERSIONS[toUnit]?.fromDeg || 1);
+  }
+
+  static formatLength(value, unit, radius = 180) {
+    const converted = UnitSystemConverter.convertLength(value, 'px', unit, radius);
+    if (unit === 'px') return `${Math.round(converted)} px`;
+    if (unit === 'u') return `${converted.toFixed(2)} u`;
+    return `${converted.toFixed(2)} ${unit}`;
+  }
+
+  static formatAngle(valueDeg, unit) {
+    const converted = UnitSystemConverter.convertAngle(valueDeg, 'deg', unit);
+    if (unit === 'deg') return `${converted.toFixed(1)}°`;
+    if (unit === 'rad') return `${converted.toFixed(3)} rad`;
+    if (unit === 'grad') return `${converted.toFixed(1)} gon`;
+    if (unit === 'turn') return `${converted.toFixed(3)} turn`;
+    return `${converted.toFixed(2)} ${unit}`;
+  }
+
+  constructor(container, store = null) {
+    if (!container) return;
+    this.container = container;
+    this.store = store;
+    this.selectedLengthUnit = 'px';
+    this.selectedAngleUnit = 'deg';
+    this.calcValue = 180;
+    this.calcUnit = 'len-px';
+
+    this.#renderDOM();
+    this.#bindEvents();
+
+    if (this.store) {
+      this.store.subscribe((state) => this.update(state), ['radius']);
+      this.update(this.store.get());
+    } else {
+      this.update({ radius: 180 });
+    }
+  }
+
+  #renderDOM() {
+    this.container.innerHTML = `
+      <div class="unit-converter-container">
+        <div class="unit-selectors-grid">
+          <div class="unit-select-group">
+            <label class="unit-label" for="select-length-unit">Length Unit</label>
+            <select id="select-length-unit" class="unit-select">
+              <option value="px" selected>Pixels (px)</option>
+              <option value="cm">Centimeters (cm)</option>
+              <option value="mm">Millimeters (mm)</option>
+              <option value="in">Inches (in)</option>
+              <option value="u">Normalized (u = r)</option>
+            </select>
+          </div>
+          <div class="unit-select-group">
+            <label class="unit-label" for="select-angle-unit">Angle Unit</label>
+            <select id="select-angle-unit" class="unit-select">
+              <option value="deg" selected>Degrees (°)</option>
+              <option value="rad">Radians (rad)</option>
+              <option value="grad">Gradians (gon)</option>
+              <option value="turn">Turns (rev)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="unit-metrics-card">
+          <div class="unit-metrics-title">
+            <span>Live Circle Invariants</span>
+            <span class="active-length-unit-tag" id="unit-tag-badge">px</span>
+          </div>
+          <div class="unit-metric-row"><span>Radius r:</span><span class="unit-metric-val" id="metric-conv-r">0.00</span></div>
+          <div class="unit-metric-row"><span>Diameter 2r:</span><span class="unit-metric-val" id="metric-conv-d">0.00</span></div>
+          <div class="unit-metric-row"><span>Circumf. 2πr:</span><span class="unit-metric-val" id="metric-conv-c">0.00</span></div>
+          <div class="unit-metric-row"><span>Circle Area πr²:</span><span class="unit-metric-val" id="metric-conv-a">0.00</span></div>
+        </div>
+
+        <div class="unit-quick-calc">
+          <div class="unit-calc-title">Interactive Value Converter</div>
+          <div class="unit-calc-inputs">
+            <input type="number" id="unit-calc-input" class="unit-calc-input" value="180" step="any" aria-label="Value to convert">
+            <select id="unit-calc-type" class="unit-calc-select" aria-label="Unit of value to convert">
+              <optgroup label="Length">
+                <option value="len-px" selected>px</option>
+                <option value="len-cm">cm</option>
+                <option value="len-mm">mm</option>
+                <option value="len-in">in</option>
+                <option value="len-u">u</option>
+              </optgroup>
+              <optgroup label="Angle">
+                <option value="ang-deg">deg (°)</option>
+                <option value="ang-rad">rad</option>
+                <option value="ang-grad">grad</option>
+                <option value="ang-turn">turn</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="unit-calc-results" id="unit-calc-results"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  #bindEvents() {
+    const selLen = this.container.querySelector('#select-length-unit');
+    const selAng = this.container.querySelector('#select-angle-unit');
+    const calcInput = this.container.querySelector('#unit-calc-input');
+    const calcSelect = this.container.querySelector('#unit-calc-type');
+
+    selLen?.addEventListener('change', (e) => {
+      this.selectedLengthUnit = e.target.value;
+      const badge = this.container.querySelector('#unit-tag-badge');
+      if (badge) badge.textContent = this.selectedLengthUnit;
+      this.update(this.store ? this.store.get() : { radius: 180 });
+    });
+
+    selAng?.addEventListener('change', (e) => {
+      this.selectedAngleUnit = e.target.value;
+      this.update(this.store ? this.store.get() : { radius: 180 });
+    });
+
+    calcInput?.addEventListener('input', (e) => {
+      this.calcValue = parseFloat(e.target.value) || 0;
+      this.#renderCalcResults();
+    });
+
+    calcSelect?.addEventListener('change', (e) => {
+      this.calcUnit = e.target.value;
+      this.#renderCalcResults();
+    });
+
+    this.#renderCalcResults();
+  }
+
+  update(state = {}) {
+    const r = state.radius || 180;
+    const lenUnit = this.selectedLengthUnit;
+    const elR = this.container.querySelector('#metric-conv-r');
+    const elD = this.container.querySelector('#metric-conv-d');
+    const elC = this.container.querySelector('#metric-conv-c');
+    const elA = this.container.querySelector('#metric-conv-a');
+
+    if (!elR || !elD || !elC || !elA) return;
+
+    const rConv = UnitSystemConverter.convertLength(r, 'px', lenUnit, r);
+    const dConv = rConv * 2;
+    const cConv = 2 * Math.PI * rConv;
+    const aConv = Math.PI * rConv * rConv;
+
+    const fmtDec = (val) => {
+      if (lenUnit === 'px') return Math.round(val).toLocaleString();
+      if (Math.abs(val) >= 1000) return val.toFixed(1);
+      if (Math.abs(val) < 0.01) return val.toExponential(2);
+      return val.toFixed(2);
+    };
+
+    elR.textContent = `${fmtDec(rConv)} ${lenUnit}`;
+    elD.textContent = `${fmtDec(dConv)} ${lenUnit}`;
+    elC.textContent = `${fmtDec(cConv)} ${lenUnit}`;
+    elA.textContent = `${fmtDec(aConv)} ${lenUnit}²`;
+
+    this.#renderCalcResults(r);
+  }
+
+  #renderCalcResults(radius = null) {
+    const resultsContainer = this.container.querySelector('#unit-calc-results');
+    if (!resultsContainer) return;
+
+    const r = radius || (this.store ? this.store.get().radius : 180) || 180;
+    const val = this.calcValue;
+    const type = this.calcUnit;
+
+    let html = '';
+    if (type.startsWith('len-')) {
+      const fromUnit = type.replace('len-', '');
+      const units = [
+        { id: 'px', label: 'px', name: 'Pixels' },
+        { id: 'cm', label: 'cm', name: 'Centimeters' },
+        { id: 'mm', label: 'mm', name: 'Millimeters' },
+        { id: 'in', label: 'in', name: 'Inches' },
+        { id: 'u', label: 'u', name: 'Radius Units' },
+      ];
+      html = units.map((u) => {
+        const conv = UnitSystemConverter.convertLength(val, fromUnit, u.id, r);
+        const isCurrent = u.id === fromUnit;
+        const formatted = u.id === 'px' ? Math.round(conv) : conv.toFixed(2);
+        return `<div class="unit-calc-res-item ${isCurrent ? 'highlight' : ''}">
+          <span>${u.name} (${u.label}):</span>
+          <strong>${formatted} ${u.label}</strong>
+        </div>`;
+      }).join('');
+    } else {
+      const fromUnit = type.replace('ang-', '');
+      const units = [
+        { id: 'deg', label: '°', name: 'Degrees' },
+        { id: 'rad', label: 'rad', name: 'Radians' },
+        { id: 'grad', label: 'gon', name: 'Gradians' },
+        { id: 'turn', label: 'turn', name: 'Turns' },
+      ];
+      html = units.map((u) => {
+        const conv = UnitSystemConverter.convertAngle(val, fromUnit, u.id);
+        const isCurrent = u.id === fromUnit;
+        let formatted;
+        if (u.id === 'deg') formatted = `${conv.toFixed(1)}°`;
+        else if (u.id === 'rad') formatted = `${conv.toFixed(3)} rad`;
+        else if (u.id === 'grad') formatted = `${conv.toFixed(1)} gon`;
+        else formatted = `${conv.toFixed(3)} turn`;
+        return `<div class="unit-calc-res-item ${isCurrent ? 'highlight' : ''}">
+          <span>${u.name}:</span>
+          <strong>${formatted}</strong>
+        </div>`;
+      }).join('');
+    }
+
+    resultsContainer.innerHTML = html;
+  }
 }
 
 /**

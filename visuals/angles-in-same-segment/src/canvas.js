@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -163,6 +163,32 @@ export class CanvasView {
       const nb2X = len2 > 0.001 ? bis2X / len2 : 0;
       const nb2Y = len2 > 0.001 ? bis2Y / len2 : 1;
       drawTextBadge(ctx, `θ₂ = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 44 * nb2X, g.P2.y + 44 * nb2Y, PALETTE.emerald);
+    }
+
+    // Conjugate Reflex Angles (Perigon 360° - θ)
+    const showReflex = Boolean(state.vis2d?.reflex);
+    if (showReflex) {
+      const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
+      const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
+      drawReflexWedge(ctx, g.P1, angP1A, angP1B, 34, 'rgba(59, 130, 246, 0.15)', PALETTE.blue);
+
+      const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
+      const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
+      drawReflexWedge(ctx, g.P2, angP2A, angP2B, 34, 'rgba(16, 185, 129, 0.15)', PALETTE.emerald);
+
+      if (showLabels) {
+        const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
+        const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
+        const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
+        const len1 = Math.hypot(bis1X, bis1Y) || 1;
+        drawTextBadge(ctx, `θ₁* = ${(360 - g.angleP1Deg).toFixed(1)}°`, g.P1.x - 48 * (bis1X / len1), g.P1.y - 48 * (bis1Y / len1), PALETTE.blue);
+
+        const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
+        const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
+        const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
+        const len2 = Math.hypot(bis2X, bis2Y) || 1;
+        drawTextBadge(ctx, `θ₂* = ${(360 - g.angleP2Deg).toFixed(1)}°`, g.P2.x - 48 * (bis2X / len2), g.P2.y - 48 * (bis2Y / len2), PALETTE.emerald);
+      }
     }
   }
 

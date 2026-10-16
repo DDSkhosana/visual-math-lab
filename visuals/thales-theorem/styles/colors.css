@@ -19,6 +19,6 @@
 .color-rose { color: #c4b5fd !important; font-weight: bold; }         /* Backward-compatible alias */
 .color-cyan { color: #06b6d4 !important; font-weight: bold; }         /* Cyan: Diameter Squared |d|² */
 .color-sky { color: #0284c7 !important; font-weight: bold; }          /* Sky Blue: Circumference (2πr), Sphere Surface Area (4πr²), Sphere Mesh & Ring */
-.color-emerald { color: #0284c7 !important; font-weight: bold; }      /* Unified with Sky Blue */
+.color-emerald { color: #10b981 !important; font-weight: bold; }      /* Emerald: Coordinate P.y (elevation) / Altitude */
 .color-purple { color: #d946ef !important; font-weight: bold; }      /* Fuchsia / Purple */
 

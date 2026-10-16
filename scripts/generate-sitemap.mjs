@@ -12,12 +12,38 @@ if (!siteUrl) {
   process.exit(0);
 }
 
-const routes = ["/", "/about.html", "/contact.html", "/privacy.html"];
+const today = new Date().toISOString().split("T")[0];
+
+const pages = [
+  { path: "/", priority: "1.0", changefreq: "weekly" },
+  { path: "/about.html", priority: "0.7", changefreq: "monthly" },
+  { path: "/contact.html", priority: "0.5", changefreq: "monthly" },
+  { path: "/privacy.html", priority: "0.3", changefreq: "yearly" },
+];
+
 for (const visual of visuals.filter((visual) => visual.published)) {
-  routes.push(`/visuals/${visual.slug}/`);
+  pages.push({
+    path: `/visuals/${visual.slug}/`,
+    priority: "0.9",
+    changefreq: "weekly",
+  });
 }
 
-const urls = routes.map((route) => `  <url><loc>${siteUrl}${route}</loc></url>`).join("\n");
-const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+const urls = pages
+  .map(
+    (p) => `  <url>
+    <loc>${siteUrl}${p.path}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`
+  )
+  .join("\n");
+
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>
+`;
 writeFileSync(resolve(root, "sitemap.xml"), sitemap);
-console.log(`Generated sitemap for ${routes.length} public routes.`);
+console.log(`Generated sitemap for ${pages.length} public routes.`);

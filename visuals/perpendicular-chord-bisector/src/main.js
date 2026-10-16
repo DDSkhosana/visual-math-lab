@@ -98,9 +98,20 @@ function bootstrap() {
 
   // Controls
   document.getElementById('slider-radius').addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
-  document.getElementById('toggle-area').addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
-  document.getElementById('toggle-radii').addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
-  document.getElementById('toggle-bisector').addEventListener('change', (e) => store.set({ showExtendedBisector: e.target.checked }));
+  const toggleArea = document.getElementById('toggle-area');
+  if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
+  const toggleRadii = document.getElementById('toggle-radii');
+  if (toggleRadii) toggleRadii.addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
+  const toggleBisector = document.getElementById('toggle-bisector');
+  if (toggleBisector) toggleBisector.addEventListener('change', (e) => store.set({ showExtendedBisector: e.target.checked }));
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 170;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(250, Math.max(100, Math.round(cur * factor)));
+    store.set({ radius: nextR });
+  }, { passive: false });
 
   // Interactive Dragging
   let activePoint = null;
@@ -165,10 +176,14 @@ function bootstrap() {
     document.getElementById('tel-len-mb').textContent = `${g.lenMB.toFixed(1)} px`;
     document.getElementById('tel-diff').textContent = `${g.midDiff.toFixed(3)} px`;
     document.getElementById('tel-angle-oma').textContent = `${g.angleOMADeg.toFixed(1)}°`;
-    document.getElementById('label-radius').textContent = `${state.radius}px`;
+    const rSlider = document.getElementById('slider-radius');
+    if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
+    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
 
     // 3D telemetry
-    const R3 = 10;
+    const R3 = ((state.radius || 170) / 170) * 10;
+    const elR3 = document.getElementById('val-3d-r');
+    if (elR3) elR3.textContent = R3.toFixed(1);
     const a3 = { x: R3 * Math.cos(state.angleA), z: R3 * Math.sin(state.angleA) };
     const b3 = { x: R3 * Math.cos(state.angleB), z: R3 * Math.sin(state.angleB) };
     const m3 = { x: (a3.x + b3.x) / 2, z: (a3.z + b3.z) / 2 };
@@ -185,6 +200,17 @@ function bootstrap() {
     if (elAngM) elAngM.textContent = '90.0°';
     const elDiff = document.getElementById('val-3d-diff');
     if (elDiff) elDiff.textContent = '0.000';
+
+    // Reflex Telemetry (2D & 3D)
+    const elTelRefM = document.getElementById('tel-reflex-m');
+    if (elTelRefM) elTelRefM.textContent = '270.0°';
+    const elTelPerigonM = document.getElementById('tel-perigon-m');
+    if (elTelPerigonM) elTelPerigonM.textContent = '360.0°';
+
+    const el3dRefM = document.getElementById('val-3d-reflex-m');
+    if (el3dRefM) el3dRefM.textContent = '270.0°';
+    const el3dPerigonM = document.getElementById('val-3d-perigon-m');
+    if (el3dPerigonM) el3dPerigonM.textContent = '360.0°';
 
     // Live math derivations
     derivations.render(state, g);

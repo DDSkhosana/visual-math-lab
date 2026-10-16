@@ -1,4 +1,4 @@
-import { PALETTE, toDegrees, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, toDegrees, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -186,6 +186,28 @@ export class CanvasView {
       const bisB = (angBO + angBP) / 2;
       drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.A.x + 32 * Math.cos(bisA), g.A.y + 32 * Math.sin(bisA), PALETTE.lime);
       drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.B.x + 32 * Math.cos(bisB), g.B.y + 32 * Math.sin(bisB), PALETTE.fuchsia);
+    }
+
+    // Conjugate Reflex Angles (Perigon 360° - θ)
+    const showReflex = Boolean(state.vis2d?.reflex);
+    if (showReflex) {
+      const angOA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
+      const angOB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
+      drawReflexWedge(ctx, g.O, angOA, angOB, 42, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      drawReflexWedge(ctx, g.P, angPA, angPB, 44, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+
+      if (showLabels) {
+        const midCentAng = -(state.angleA + state.angleB) / 2 + Math.PI;
+        drawTextBadge(ctx, `2θ* = ${(360 - g.centralDeg).toFixed(1)}°`, g.cx + 56 * Math.cos(midCentAng), g.cy + 56 * Math.sin(midCentAng), PALETTE.teal);
+
+        const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
+        const uBx = Math.cos(angPB), uBy = Math.sin(angPB);
+        const bisX = uAx + uBx, bisY = uAy + uBy;
+        const bisLen = Math.hypot(bisX, bisY);
+        const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
+        const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
+        drawTextBadge(ctx, `θ* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.P.x - 54 * nBisX, g.P.y - 54 * nBisY, PALETTE.teal);
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawArrow, withShadow, drawAngleWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawArrow, withShadow, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -53,13 +53,17 @@ export class CanvasView {
       ctx.fill();
     }
 
-    // Diagonals (optional)
+    // Diagonals (optional) - AC (Lavender) & BD (Teal) matching supplementary sums
     if (state.showDiagonals) {
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = PALETTE.lavender;
       ctx.beginPath();
       ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.C.x, g.C.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = PALETTE.sky;
+      ctx.beginPath();
       ctx.moveTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
       ctx.stroke();
       ctx.setLineDash([]);
@@ -151,6 +155,37 @@ export class CanvasView {
       const ndcx = lenDC > 0.001 ? dirDCx / lenDC : 1;
       const ndcy = lenDC > 0.001 ? dirDCy / lenDC : 0;
       drawTextBadge(ctx, `Ext = ${g.exteriorAngleDeg.toFixed(1)}°`, g.C.x + 40 * ndcx, g.C.y + 40 * ndcy, PALETTE.violet);
+    }
+
+    // Conjugate Reflex Angles (Perigon 360° - θ)
+    const showReflex = Boolean(state.vis2d?.reflex);
+    if (showReflex) {
+      const angAD = Math.atan2(g.D.y - g.A.y, g.D.x - g.A.x);
+      const angAB = Math.atan2(g.B.y - g.A.y, g.B.x - g.A.x);
+      drawReflexWedge(ctx, g.A, angAD, angAB, 32, 'rgba(168, 85, 247, 0.18)', PALETTE.violet);
+
+      const angBA = Math.atan2(g.A.y - g.B.y, g.A.x - g.B.x);
+      const angBC = Math.atan2(g.C.y - g.B.y, g.C.x - g.B.x);
+      drawReflexWedge(ctx, g.B, angBA, angBC, 32, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);
+
+      const angCB = Math.atan2(g.B.y - g.C.y, g.B.x - g.C.x);
+      const angCD = Math.atan2(g.D.y - g.C.y, g.D.x - g.C.x);
+      drawReflexWedge(ctx, g.C, angCB, angCD, 32, 'rgba(245, 158, 11, 0.18)', PALETTE.amber);
+
+      const angDC = Math.atan2(g.C.y - g.D.y, g.C.x - g.D.x);
+      const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
+      drawReflexWedge(ctx, g.D, angDC, angDA, 32, 'rgba(244, 63, 94, 0.18)', PALETTE.rose);
+
+      if (showLabels) {
+        const badgeReflexA = { x: g.A.x - 0.28 * (g.cx - g.A.x), y: g.A.y - 0.28 * (g.cy - g.A.y) };
+        const badgeReflexB = { x: g.B.x - 0.28 * (g.cx - g.B.x), y: g.B.y - 0.28 * (g.cy - g.B.y) };
+        const badgeReflexC = { x: g.C.x - 0.28 * (g.cx - g.C.x), y: g.C.y - 0.28 * (g.cy - g.C.y) };
+        const badgeReflexD = { x: g.D.x - 0.28 * (g.cx - g.D.x), y: g.D.y - 0.28 * (g.cy - g.D.y) };
+        drawTextBadge(ctx, `∠A* = ${(360 - g.angleADeg).toFixed(1)}°`, badgeReflexA.x, badgeReflexA.y, PALETTE.violet);
+        drawTextBadge(ctx, `∠B* = ${(360 - g.angleBDeg).toFixed(1)}°`, badgeReflexB.x, badgeReflexB.y, PALETTE.cyan);
+        drawTextBadge(ctx, `∠C* = ${(360 - g.angleCDeg).toFixed(1)}°`, badgeReflexC.x, badgeReflexC.y, PALETTE.amber);
+        drawTextBadge(ctx, `∠D* = ${(360 - g.angleDDeg).toFixed(1)}°`, badgeReflexD.x, badgeReflexD.y, PALETTE.rose);
+      }
     }
   }
 

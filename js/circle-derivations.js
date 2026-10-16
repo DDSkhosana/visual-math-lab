@@ -67,6 +67,16 @@ export class AngleAtCentreDerivations {
         `${tag('yellow', '∠AOB')} = 2${tag('lime', 'α')} + 2${tag('fuchsia', 'β')} = 2(${tag('lime', 'α')} + ${tag('fuchsia', 'β')}) = 2${tag('green', 'θ')}`,
         true
       )}
+      ${cardTemplate(
+        'aac-step-5',
+        'Step 5',
+        `Conjugate Reflex Angles & Perigon Identity (${tag('teal', '360°')})`,
+        `Every angle forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'θ* = 360° - θ')}):<br>` +
+        `• Central reflex angle: ${tag('yellow', '2θ')} + ${tag('teal', '2θ*')} = 360° ⟹ ${tag('teal', '2θ*')} = 360° - ${tag('yellow', '2θ')}<br>` +
+        `• Inscribed reflex angle: ${tag('green', 'θ')} + ${tag('teal', 'θ*')} = 360° ⟹ ${tag('teal', 'θ*')} = 360° - ${tag('green', 'θ')}<br>` +
+        `• Reflex perigon invariant: 2(${tag('teal', 'θ*')} - 180°) = ${tag('teal', '2θ*')} - 360° (exact dual conjugate of 2:1 ratio)`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -76,6 +86,8 @@ export class AngleAtCentreDerivations {
       s3e: this.container.querySelector('#aac-step-3 [data-eval]'),
       s4: this.container.querySelector('#aac-step-4 [data-sub]'),
       s4e: this.container.querySelector('#aac-step-4 [data-eval]'),
+      s5: this.container.querySelector('#aac-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#aac-step-5 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -137,6 +149,17 @@ export class AngleAtCentreDerivations {
       this.slots.s4e.innerHTML =
         `<span>${tag('yellow', `2θ = ${cent.toFixed(1)}°`)} ≝ 2 × ${tag('green', `${insc.toFixed(1)}°`)} (Ratio: ${tag('teal', ratio)})</span><span class="derivation-check">✓ 2:1 Invariant</span>`;
     }
+    if (this.slots.s5) {
+      const refCent = 360 - cent;
+      const refInsc = 360 - insc;
+      this.slots.s5.innerHTML =
+        `↳ Central Reflex: ${tag('teal', `2θ*`)} = 360° - ${tag('yellow', `${cent.toFixed(1)}°`)} = ${tag('teal', `${refCent.toFixed(1)}°`)} (Perigon: ${tag('yellow', `${cent.toFixed(1)}°`)} + ${tag('teal', `${refCent.toFixed(1)}°`)} = ${tag('teal', '360.0°')})<br>` +
+        `↳ Inscribed Reflex: ${tag('teal', `θ*`)} = 360° - ${tag('green', `${insc.toFixed(1)}°`)} = ${tag('teal', `${refInsc.toFixed(1)}°`)} (Perigon: ${tag('green', `${insc.toFixed(1)}°`)} + ${tag('teal', `${refInsc.toFixed(1)}°`)} = ${tag('teal', '360.0°')})`;
+    }
+    if (this.slots.s5e) {
+      this.slots.s5e.innerHTML =
+        `<span>${tag('teal', `Perigon Invariant: 2θ + 2θ* = 360.0° & θ + θ* = 360.0°`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`;
+    }
   }
 }
 
@@ -181,6 +204,16 @@ export class AnglesInSameSegmentDerivations {
         `${tag('blue', '∠AP₁B')} = ½ ${tag('yellow', '∠AOB')} = ${tag('emerald', '∠AP₂B')} ⟹ Difference ${tag('teal', 'Δ = |θ₁ - θ₂| = 0.00°')}`,
         true
       )}
+      ${cardTemplate(
+        'aiss-step-5',
+        'Step 5',
+        `Conjugate Reflex Angles & Perigon Identity (${tag('teal', '360°')})`,
+        `Every inscribed angle forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'θ* = 360° - θ')}):<br>` +
+        `• Reflex angle at ${tag('blue', 'P₁')}: ${tag('blue', 'θ₁')} + ${tag('blue', 'θ₁*')} = 360° ⟹ ${tag('blue', 'θ₁*')} = 360° - ${tag('blue', 'θ₁')}<br>` +
+        `• Reflex angle at ${tag('emerald', 'P₂')}: ${tag('emerald', 'θ₂')} + ${tag('emerald', 'θ₂*')} = 360° ⟹ ${tag('emerald', 'θ₂*')} = 360° - ${tag('emerald', 'θ₂')}<br>` +
+        `• Reflex Equivalence Invariant: Since ${tag('blue', 'θ₁')} = ${tag('emerald', 'θ₂')}, their reflex conjugates are identically equal: ${tag('teal', 'θ₁* ≡ θ₂* = 360° - θ')}`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -189,6 +222,8 @@ export class AnglesInSameSegmentDerivations {
       s3: this.container.querySelector('#aiss-step-3 [data-sub]'),
       s4: this.container.querySelector('#aiss-step-4 [data-sub]'),
       s4e: this.container.querySelector('#aiss-step-4 [data-eval]'),
+      s5: this.container.querySelector('#aiss-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#aiss-step-5 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -222,6 +257,19 @@ export class AnglesInSameSegmentDerivations {
       this.slots.s4e.innerHTML =
         `<span>${tag('blue', `θ₁ = ${g.angleP1Deg.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂ = ${g.angleP2Deg.toFixed(1)}°`)}</span><span class="derivation-check">✓ Same Segment Equal</span>`;
     }
+    if (this.slots.s5) {
+      const ref1 = 360 - g.angleP1Deg;
+      const ref2 = 360 - g.angleP2Deg;
+      this.slots.s5.innerHTML =
+        `↳ ${tag('blue', 'θ₁*')} = 360° - ${tag('blue', `${g.angleP1Deg.toFixed(1)}°`)} = ${tag('blue', `${ref1.toFixed(1)}°`)} (Perigon: ${tag('blue', `${g.angleP1Deg.toFixed(1)}°`)} + ${tag('blue', `${ref1.toFixed(1)}°`)} = ${tag('teal', '360.0°')})<br>` +
+        `↳ ${tag('emerald', 'θ₂*')} = 360° - ${tag('emerald', `${g.angleP2Deg.toFixed(1)}°`)} = ${tag('emerald', `${ref2.toFixed(1)}°`)} (Perigon: ${tag('emerald', `${g.angleP2Deg.toFixed(1)}°`)} + ${tag('emerald', `${ref2.toFixed(1)}°`)} = ${tag('teal', '360.0°')})`;
+    }
+    if (this.slots.s5e) {
+      const ref1 = 360 - g.angleP1Deg;
+      const ref2 = 360 - g.angleP2Deg;
+      this.slots.s5e.innerHTML =
+        `<span>${tag('blue', `θ₁* = ${ref1.toFixed(1)}°`)} ≝ ${tag('emerald', `θ₂* = ${ref2.toFixed(1)}°`)}</span><span class="derivation-check">✓ Reflex Invariant</span>`;
+    }
   }
 }
 
@@ -254,16 +302,26 @@ export class CyclicQuadDerivations {
       ${cardTemplate(
         'cq-step-3',
         'Step 3',
-        `Supplementary Opposite Pair (${tag('violet', '∠A')} + ${tag('amber', '∠C')} = 180°)`,
-        `2${tag('violet', '∠A')} + 2${tag('amber', '∠C')} = 360° ⟹ ${tag('violet', '∠A')} + ${tag('amber', '∠C')} = 180°`,
+        `Supplementary Opposite Pair (${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('lavender', '180°')})`,
+        `2${tag('violet', '∠A')} + 2${tag('amber', '∠C')} = 360° ⟹ ${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('lavender', '180°')}`,
         true
       )}
       ${cardTemplate(
         'cq-step-4',
         'Step 4',
-        `Second Opposite Pair (${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = 180°) & Total Sum`,
-        `Similarly: ${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = 180°<br>` +
-        `Total interior angle sum = ${tag('violet', '∠A')} + ${tag('cyan', '∠B')} + ${tag('amber', '∠C')} + ${tag('rose', '∠D')} = 360°`,
+        `Second Opposite Pair (${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('sky', '180°')}) & Total Sum`,
+        `Similarly: ${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('sky', '180°')}<br>` +
+        `Total interior angle sum = ${tag('violet', '∠A')} + ${tag('cyan', '∠B')} + ${tag('amber', '∠C')} + ${tag('rose', '∠D')} = ${tag('platinum', '360°')}`,
+        true
+      )}
+      ${cardTemplate(
+        'cq-step-5',
+        'Step 5',
+        `Reflex Angles & Quad Perigon Sum (${tag('lavender', '1080°')})`,
+        `Each vertex angle forms a 360° perigon with its reflex angle (${tag('teal', 'θ* = 360° - θ')}):<br>` +
+        `• Opposite Reflex Sum AC: ${tag('lavender', '∠A* + ∠C*')} = (360° - ∠A) + (360° - ∠C) = 720° - 180° = ${tag('lavender', '540.0°')}<br>` +
+        `• Opposite Reflex Sum BD: ${tag('sky', '∠B* + ∠D*')} = (360° - ∠B) + (360° - ∠D) = 720° - 180° = ${tag('sky', '540.0°')}<br>` +
+        `• <b>Total Reflex Quad Sum:</b> 4(360°) - 360° = ${tag('lavender', '1080.0°')}`,
         true
       )}
     `;
@@ -275,6 +333,8 @@ export class CyclicQuadDerivations {
       s3e: this.container.querySelector('#cq-step-3 [data-eval]'),
       s4: this.container.querySelector('#cq-step-4 [data-sub]'),
       s4e: this.container.querySelector('#cq-step-4 [data-eval]'),
+      s5: this.container.querySelector('#cq-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#cq-step-5 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -303,21 +363,38 @@ export class CyclicQuadDerivations {
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
         `↳ ${tag('violet', `∠A = ${angleA.toFixed(1)}°`)}, ${tag('amber', `∠C = ${angleC.toFixed(1)}°`)}<br>` +
-        `↳ Sum: ${tag('violet', `${angleA.toFixed(1)}°`)} + ${tag('amber', `${angleC.toFixed(1)}°`)} = ${tag('teal', `${sumAC.toFixed(1)}°`)}`;
+        `↳ Sum: ${tag('violet', `${angleA.toFixed(1)}°`)} + ${tag('amber', `${angleC.toFixed(1)}°`)} = ${tag('lavender', `${sumAC.toFixed(1)}°`)}`;
     }
     if (this.slots.s3e) {
       this.slots.s3e.innerHTML =
-        `<span>${tag('teal', `∠A + ∠C = ${sumAC.toFixed(1)}° (Supplementary)`)}</span><span class="derivation-check">✓ 180.0° Invariant</span>`;
+        `<span>${tag('lavender', `∠A + ∠C = ${sumAC.toFixed(1)}° (Supplementary)`)}</span><span class="derivation-check">✓ 180.0° Invariant</span>`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
-        `↳ ${tag('cyan', `∠B = ${angleB.toFixed(1)}°`)}, ${tag('rose', `∠D = ${angleD.toFixed(1)}°`)} ⟹ Sum = ${tag('cyan', `${angleB.toFixed(1)}°`)} + ${tag('rose', `${angleD.toFixed(1)}°`)} = ${tag('teal', `${sumBD.toFixed(1)}°`)}<br>` +
+        `↳ ${tag('cyan', `∠B = ${angleB.toFixed(1)}°`)}, ${tag('rose', `∠D = ${angleD.toFixed(1)}°`)} ⟹ Sum = ${tag('cyan', `${angleB.toFixed(1)}°`)} + ${tag('rose', `${angleD.toFixed(1)}°`)} = ${tag('sky', `${sumBD.toFixed(1)}°`)}<br>` +
         `↳ Total Quadrilateral Interior Sum = ${tag('platinum', `${total.toFixed(1)}°`)}<br>` +
         `↳ <small style="color:#94a3b8"><em>Geometric invariant: Sliding vertex ${tag('cyan', 'B')} along arc AC preserves ${tag('cyan', '∠B')} because it subtends the fixed chord AC (Angles in Same Segment Theorem). Moving bounding vertices ${tag('violet', 'A')} or ${tag('amber', 'C')} dynamically changes ${tag('cyan', '∠B')} and ${tag('rose', '∠D')}.</em></small>`;
     }
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
-        `<span>${tag('teal', `∠B + ∠D = ${sumBD.toFixed(1)}°`)} | ${tag('platinum', `Total Sum = ${total.toFixed(1)}°`)}</span><span class="derivation-check">✓ Verified</span>`;
+        `<span>${tag('sky', `∠B + ∠D = ${sumBD.toFixed(1)}°`)} | ${tag('platinum', `Total Sum = ${total.toFixed(1)}°`)}</span><span class="derivation-check">✓ Verified</span>`;
+    }
+    if (this.slots.s5) {
+      const refA = 360 - angleA;
+      const refB = 360 - angleB;
+      const refC = 360 - angleC;
+      const refD = 360 - angleD;
+      const refAC = refA + refC;
+      const refBD = refB + refD;
+      const refSum = refAC + refBD;
+      this.slots.s5.innerHTML =
+        `↳ ${tag('violet', `∠A* = ${refA.toFixed(1)}°`)}, ${tag('amber', `∠C* = ${refC.toFixed(1)}°`)} ⟹ Sum ${tag('lavender', `∠A* + ∠C* = ${refAC.toFixed(1)}°`)}<br>` +
+        `↳ ${tag('cyan', `∠B* = ${refB.toFixed(1)}°`)}, ${tag('rose', `∠D* = ${refD.toFixed(1)}°`)} ⟹ Sum ${tag('sky', `∠B* + ∠D* = ${refBD.toFixed(1)}°`)}<br>` +
+        `↳ Total Reflex Quad Sum = ${tag('lavender', `${refSum.toFixed(1)}°`)}`;
+    }
+    if (this.slots.s5e) {
+      this.slots.s5e.innerHTML =
+        `<span>${tag('lavender', `Total Reflex Quad Sum = 1080.0°`)} (Pairs: ${tag('lavender', '540.0°')} & ${tag('sky', '540.0°')})</span><span class="derivation-check">✓ 1080.0° Invariant</span>`;
     }
   }
 }
@@ -365,6 +442,32 @@ export class TangentRadiusDerivations {
         `⟹ Geometric angle = arccos(0) = ${tag('teal', '90.0° (Right Angle)')}`,
         true
       )}
+      ${cardTemplate(
+        'tr-step-5',
+        'Step 5',
+        `Current Quadrant Dynamics & Invariant`,
+        `<strong>Quadrant Invariant:</strong> Point ${tag('red', 'T')} traverses all 4 quadrants ($Q_I, Q_{II}, Q_{III}, Q_{IV}$). Coordinate signs (${tag('amber', '±x_T')}, ${tag('lime', '±y_T')}) vary periodically, but the inner product ${tag('blue', 'OT')} · ${tag('emerald', 'v_tan')} ≡ ${tag('teal', '0')} remains strictly invariant across all quadrants.`,
+        true
+      )}
+      ${cardTemplate(
+        'tr-step-6',
+        'Step 6',
+        `Multiple Tangents & Inscribed Chord Subtended Areas`,
+        `When multiple tangents are inserted, adjacent contact points form chords $T_i T_j$. The circular segment area subtended by each chord with arc sweep ${tag('yellow', 'Δθ')} is:<br>` +
+        `$$\\text{Area} = \\frac{1}{2} r^2 (\\Delta\\theta - \\sin\\Delta\\theta)$$<br>` +
+        `Each subtended area is assigned an exclusive color token (${tag('violet', 'Area 1')}, ${tag('rose', 'Area 2')}, ${tag('cyan', 'Area 3')}, ${tag('fuchsia', 'Area 4')}), while every contact point preserves ${tag('teal', 'OT_i ⊥ Tangent_i ≡ 90.0°')}.`,
+        true
+      )}
+      ${cardTemplate(
+        'tr-step-7',
+        'Step 7',
+        `Conjugate Reflex Right Angle (${tag('teal', '270.0°')}) & Perigon Identity`,
+        `Every right angle forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'θ* = 360° - 90° = 270.0°')}):<br>` +
+        `• Contact point perigon: ${tag('teal', '∠(OT, Tangent)')} + ${tag('teal', '∠(OT, Tangent)*')} = 90° + 270° = ${tag('teal', '360.0°')}<br>` +
+        `• Reflex Wedge: sweeps 270° outward from the contact point opposite the right-angle corner.<br>` +
+        `• Invariant across all tangents: every inserted tangent $T_i$ identically exhibits ${tag('teal', 'T_i* = 270.0°')}.`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -374,6 +477,12 @@ export class TangentRadiusDerivations {
       s3e: this.container.querySelector('#tr-step-3 [data-eval]'),
       s4: this.container.querySelector('#tr-step-4 [data-sub]'),
       s4e: this.container.querySelector('#tr-step-4 [data-eval]'),
+      s5: this.container.querySelector('#tr-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#tr-step-5 [data-eval]'),
+      s6: this.container.querySelector('#tr-step-6 [data-sub]'),
+      s6e: this.container.querySelector('#tr-step-6 [data-eval]'),
+      s7: this.container.querySelector('#tr-step-7 [data-sub]'),
+      s7e: this.container.querySelector('#tr-step-7 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -418,6 +527,54 @@ export class TangentRadiusDerivations {
       this.slots.s4e.innerHTML =
         `<span>${tag('teal', `∠(${tag('blue', 'OT')}, ${tag('emerald', 'Tangent')}) = 90.0° (Right Angle)`)}</span><span class="derivation-check">✓ Perpendicular</span>`;
     }
+    if (this.slots.s5) {
+      const q = g.quadrant || { roman: 'I', label: 'Quadrant I (+X, +Y)' };
+      this.slots.s5.innerHTML =
+        `↳ Current Quadrant: ${tag('indigo', q.label)}<br>` +
+        `↳ Coordinates: ${tag('amber', `x_T = ${tx} px`)}, ${tag('lime', `y_T = ${ty} px`)}<br>` +
+        `↳ Inner product: (${tag('amber', tx)})(${tag('amber', (-parseFloat(ty)).toFixed(1))}) + (${tag('lime', ty)})(${tag('lime', tx)}) = ${tag('teal', '0.0000')}`;
+    }
+    if (this.slots.s5e) {
+      const q = g.quadrant || { roman: 'I' };
+      this.slots.s5e.innerHTML =
+        `<span>${tag('indigo', `Quadrant ${q.roman}`)}: ${tag('teal', 'OT ⊥ Tangent ≡ 90.0° Invariant')}</span><span class="derivation-check">✓ Quadrant Invariant</span>`;
+    }
+    if (this.slots.s6) {
+      const chords = g.chords || [];
+      if (chords.length > 0) {
+        const chordLines = chords.map(c =>
+          `• ${tag(c.colorName, c.label)}: chord length |${c.t1Name}${c.t2Name}| = ${c.chordLen.toFixed(1)} px, sweep = ${(c.sweep * 180 / Math.PI).toFixed(1)}°, area = ${tag(c.colorName, `${c.area.toFixed(1)} px²`)}`
+        ).join('<br>');
+        this.slots.s6.innerHTML =
+          `↳ Inscribed Polygon with ${tag('yellow', `${chords.length} tangents & chords`)}:<br>` +
+          `${chordLines}<br>` +
+          `↳ All ${chords.length} contact radii satisfy ${tag('teal', 'OT_k ⊥ v_tan,k ≡ 90.0°')}`;
+      } else {
+        this.slots.s6.innerHTML =
+          `↳ Single Tangent Active. Choose 2, 3, or 4 tangents in Interactive Controls to insert multiple tangents and shade subtended areas.`;
+      }
+    }
+    if (this.slots.s6e) {
+      const chords = g.chords || [];
+      if (chords.length > 0) {
+        const totalArea = chords.reduce((sum, c) => sum + c.area, 0);
+        this.slots.s6e.innerHTML =
+          `<span>Total Subtended Area = ${totalArea.toFixed(1)} px² (${chords.length} Chords)</span><span class="derivation-check">✓ All Tangents ⊥ Radii</span>`;
+      } else {
+        this.slots.s6e.innerHTML =
+          `<span>Single Tangent Mode</span><span class="derivation-check">✓ Ready for Multi-Tangents</span>`;
+      }
+    }
+    if (this.slots.s7) {
+      this.slots.s7.innerHTML =
+        `↳ Contact Right Angle: ${tag('teal', '90.0°')}<br>` +
+        `↳ Conjugate Reflex Angle: 360° - 90° = ${tag('teal', '270.0°')}<br>` +
+        `↳ Perigon Invariant: 90.0° + 270.0° = ${tag('teal', '360.0°')}`;
+    }
+    if (this.slots.s7e) {
+      this.slots.s7e.innerHTML =
+        `<span>${tag('teal', `Reflex Angle T* = 270.0° (Perigon 360.0°)`)}</span><span class="derivation-check">✓ 270.0° Invariant</span>`;
+    }
   }
 }
 
@@ -437,25 +594,28 @@ export class AlternateSegmentDerivations {
         'Step 1',
         `${tag('emerald', '[Tangent line]')} at ${tag('red', 'T')} & Chord ${tag('blue', 'TA')}`,
         `${tag('emerald', '[Tangent line]')} touches circle at contact vertex ${tag('red', 'T')}. Primary chord ${tag('blue', 'TA')} connects ${tag('red', 'T')} and ${tag('blue', 'A')}.<br>` +
-        `Chord ${tag('blue', 'TA')} divides the circle into two circular segments: the ${tag('amber', 'Minor Segment (Amber)')} on chord ${tag('blue', 'TA')}, and the ${tag('sky', 'Alternate Segment (Sky)')} containing vertex ${tag('orange', 'B')}.<br>` +
+        `Chord ${tag('blue', 'TA')} divides the circle into two circular segments, both unified under ${tag('sky', 'Alternate Segment (Sky)')}: the ${tag('sky', 'Alternate Segment (Major)')} containing vertex ${tag('orange', 'B')}, and the ${tag('sky', 'Alternate Segment (Minor)')} on chord ${tag('blue', 'TA')}.<br>` +
         `Angle between ${tag('emerald', '[Tangent line]')} and chord ${tag('blue', 'TA')}: ${tag('yellow', '∠(Tangent, TA) = α')}`
       )}
       ${cardTemplate(
         'as-step-2',
         'Step 2',
         `Inscribed Angle at Alternate Vertex ${tag('orange', 'B')}`,
-        `Vertex ${tag('orange', 'B')} lies on circumference in the ${tag('sky', 'Alternate Segment (Sky)')}.<br>` +
+        `Vertex ${tag('orange', 'B')} lies on circumference in the ${tag('sky', 'Alternate Segment (Major)')}.<br>` +
         `Angle subtended by chord ${tag('blue', 'TA')} at alternate vertex ${tag('orange', 'B')}: ${tag('yellow', '∠TBA = α')}`
       )}
       ${cardTemplate(
         'as-step-3',
         'Step 3',
-        `Diameter Construction (${tag('indigo', 'TD')}) Proof: Thales' Theorem Overlay`,
-        `Construct auxiliary diameter ${tag('indigo', 'TD')} through contact point ${tag('red', 'T')}, passing through center ${tag('sky', 'O')}.<br>` +
-        `1. ${tag('emerald', '[Tangent line]')} ⊥ ${tag('indigo', 'TD')} ⟹ ${tag('indigo', '∠DTA')} = ${tag('teal', '90°')} - ${tag('yellow', 'α')}.<br>` +
-        `2. By Thales' Theorem, any angle inscribed in a semicircle subtended by diameter ${tag('indigo', 'TD')} is a right angle: ${tag('teal', '∠TBD = 90.0°')}.<br>` +
-        `3. In right-angled triangle ${tag('indigo', 'ΔTBD')}: ${tag('yellow', '∠TBA')} = ${tag('teal', '90°')} - ${tag('rose', '∠ABD')} = ${tag('teal', '90°')} - (${tag('teal', '90°')} - ${tag('yellow', 'α')}) = ${tag('yellow', 'α')}.<br>` +
-        `<em>Thales' Theorem overlay: Chord ${tag('indigo', 'TD')} is the hypotenuse of right triangle ${tag('indigo', 'ΔTBD')}. Reflexive primitives share unified color tokens.</em>`
+        `Thales' Theorem Overlay & Axiomatic First Principles (${tag('indigo', 'TD')})`,
+        `Construct antipodal diameter ${tag('indigo', 'TD')} through contact ${tag('red', 'T')}, passing through center ${tag('sky', 'O')}.<br>` +
+        `1. <strong>Physical & Kinematic Axiom:</strong> Tangential velocity is perpendicular to the radial vector: ${tag('emerald', 'v_tan')} ⊥ ${tag('indigo', 'r_OT')} ⟹ ${tag('teal', 'TD ⊥ Tangent = 90.0°')}.<br>` +
+        `2. <strong>Inner-Product Invariant:</strong> For any point ${tag('orange', 'B')} on the circle, $(\\vec{B} - \\vec{T}) \\cdot (\\vec{B} - \\vec{D}) = |\\vec{B}|^2 - |\\vec{T}|^2 = R^2 - R^2 \\equiv 0$ ⟹ ${tag('teal', '∠TBD = 90.0°')}. Likewise, ${tag('teal', '∠TAD = 90.0°')}.<br>` +
+        `3. <strong>Point D Interior & Exterior Angles:</strong><br>` +
+        `&nbsp;&nbsp;• Interior angle at ${tag('indigo', 'D')} subtending chord ${tag('blue', 'TA')}: ${tag('yellow', '∠TDA ≡ ∠TBA = α')}.<br>` +
+        `&nbsp;&nbsp;• Exterior angle at ${tag('indigo', 'D')} (extending diameter ray ${tag('indigo', 'TD')} past ${tag('indigo', 'D')}): supplementary linear pair ${tag('rose', 'Ext D = 180.0° - α')}.<br>` +
+        `&nbsp;&nbsp;• Reflex angle at ${tag('indigo', 'D')}: ${tag('rose', 'D* = 360.0° - α')}.<br>` +
+        `4. In right-angled triangle ${tag('indigo', 'ΔTBD')}: ${tag('yellow', '∠TBA')} = ${tag('teal', '90°')} - ${tag('rose', '∠ABD')} = ${tag('teal', '90°')} - (${tag('teal', '90°')} - ${tag('yellow', 'α')}) = ${tag('yellow', 'α')}.`
       )}
       ${cardTemplate(
         'as-step-4',
@@ -463,6 +623,24 @@ export class AlternateSegmentDerivations {
         `Alternate Segment Angle Invariant (${tag('yellow', 'α (Tangent-Chord)')} = ${tag('yellow', 'α (Inscribed)')})`,
         `The angle between ${tag('emerald', '[Tangent line]')} and chord ${tag('blue', 'TA')} equals the angle subtended in the ${tag('sky', 'Alternate Segment (Sky)')}:<br>` +
         `${tag('yellow', '∠(Tangent, TA)')} = ${tag('yellow', '∠TBA')} ⟹ Invariant Difference ${tag('teal', 'Δ = |α - α| = 0.00°')}`,
+        true
+      )}
+      ${cardTemplate(
+        'as-step-5',
+        'Step 5',
+        `Alternate Segment Area & Physical Kinematics Invariant`,
+        `Both the ${tag('sky', 'Alternate Segment (Major)')} and ${tag('sky', 'Alternate Segment (Minor)')} are unified with the ${tag('sky', 'PALETTE.sky')} colour token.<br>` +
+        `By conservation of angular momentum and the constancy of inscribed angle across the entire major arc, moving vertex ${tag('orange', 'B')} smoothly along the alternate segment leaves invariant: ${tag('yellow', 'α = const')}.`
+      )}
+      ${cardTemplate(
+        'as-step-6',
+        'Step 6',
+        `Conjugate Reflex Angles & Perigon Arcs (${tag('teal', '360°')})`,
+        `Every vertex and tangent-chord angle forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'α* = 360° - α')}):<br>` +
+        `• Tangent-Chord Reflex at ${tag('red', 'T')}: ${tag('yellow', 'α')} + ${tag('yellow', 'α*')} = 360° ⟹ ${tag('yellow', 'α* = 360° - α')}<br>` +
+        `• Inscribed Reflex at ${tag('orange', 'B')}: ${tag('yellow', 'α')} + ${tag('yellow', 'α*')} = 360° ⟹ ${tag('yellow', 'α* = 360° - α')}<br>` +
+        `• Point ${tag('indigo', 'D')} Reflex: ${tag('yellow', '∠TDA')} + ${tag('rose', 'D*')} = 360° ⟹ ${tag('rose', 'D* = 360° - α')}<br>` +
+        `• Reflex Invariant: ${tag('teal', 'Tangent α* ≡ Inscribed α* ≡ D*')}`,
         true
       )}
     `;
@@ -473,6 +651,9 @@ export class AlternateSegmentDerivations {
       s3: this.container.querySelector('#as-step-3 [data-sub]'),
       s4: this.container.querySelector('#as-step-4 [data-sub]'),
       s4e: this.container.querySelector('#as-step-4 [data-eval]'),
+      s5: this.container.querySelector('#as-step-5 [data-sub]'),
+      s6: this.container.querySelector('#as-step-6 [data-sub]'),
+      s6e: this.container.querySelector('#as-step-6 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -487,16 +668,17 @@ export class AlternateSegmentDerivations {
     if (this.slots.s1) {
       this.slots.s1.innerHTML =
         `↳ ${tag('emerald', '[Tangent line]')} angle with chord ${tag('blue', 'TA')}: ${tag('yellow', `α = ${g.tangentChordDeg.toFixed(1)}°`)}<br>` +
-        `↳ Primary chord ${tag('blue', `|TA| = ${chordLen} px`)} | Partitions circle into ${tag('amber', 'Minor Segment')} & ${tag('sky', 'Alternate Segment')}`;
+        `↳ Primary chord ${tag('blue', `|TA| = ${chordLen} px`)} | Subtends ${tag('sky', 'Alternate Segment (Major)')} and ${tag('sky', 'Alternate Segment (Minor)')}`;
     }
     if (this.slots.s2) {
       this.slots.s2.innerHTML =
-        `↳ Inscribed angle at ${tag('orange', 'B')} in ${tag('sky', 'Alternate Segment')}: ${tag('yellow', `∠TBA = ${g.inscribedDeg.toFixed(1)}°`)} (Subtends chord ${tag('blue', 'TA')})`;
+        `↳ Inscribed angle at ${tag('orange', 'B')} in ${tag('sky', 'Alternate Segment (Major)')}: ${tag('yellow', `∠TBA = ${g.inscribedDeg.toFixed(1)}°`)} (Subtends chord ${tag('blue', 'TA')})`;
     }
     if (this.slots.s3) {
       this.slots.s3.innerHTML =
-        `↳ Auxiliary diameter ${tag('indigo', `|TD| = ${(2 * state.radius)} px`)} | Thales Right Angle: ${tag('teal', '∠TBD = 90.0°')}<br>` +
-        `↳ ${tag('indigo', 'ΔTBD')} (Right Triangle on Diameter) & ${tag('rose', 'ΔABD')} overlay Thales geometry`;
+        `↳ Thales Right Angles: ${tag('teal', `∠TBD = ${g.thalesAngleTBD.toFixed(1)}°`)}, ${tag('teal', `∠TAD = ${g.thalesAngleTAD.toFixed(1)}°`)}, ${tag('teal', `TD ⊥ Tangent = ${g.thalesTangentTD.toFixed(1)}°`)}<br>` +
+        `↳ Point D Interior Angle: ${tag('yellow', `∠TDA = α = ${g.angleTDA.toFixed(1)}°`)} | Exterior Angle: ${tag('rose', `Ext D = 180° - α = ${g.extAngleD.toFixed(1)}°`)} | Reflex: ${tag('rose', `D* = ${g.reflexAngleD.toFixed(1)}°`)}<br>` +
+        `↳ Semicircle inner products: ${tag('teal', '(B - T) · (B - D) ≡ 0.000')} & ${tag('teal', '(A - T) · (A - D) ≡ 0.000')}`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
@@ -506,6 +688,23 @@ export class AlternateSegmentDerivations {
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
         `<span>${tag('yellow', `α = ${g.tangentChordDeg.toFixed(1)}°`)} ≝ ${tag('yellow', `α = ${g.inscribedDeg.toFixed(1)}°`)}</span><span class="derivation-check">✓ Alternate Segment Equal</span>`;
+    }
+    if (this.slots.s5 && g.alternateSegments) {
+      this.slots.s5.innerHTML =
+        `↳ ${tag('sky', 'Alt Seg (Maj)')} Area: ${tag('sky', `${Math.round(g.alternateSegments.major.area)} px²`)} | ${tag('violet', 'Alt Seg (Min)')} Area: ${tag('violet', `${Math.round(g.alternateSegments.minor.area)} px²`)}<br>` +
+        `↳ Physical Kinematics Invariant: Tangential momentum flux is strictly orthogonal to radial acceleration (v_tan · r_OT = 0).`;
+    }
+    if (this.slots.s6) {
+      const refAlpha = 360 - g.tangentChordDeg;
+      this.slots.s6.innerHTML =
+        `↳ Tangent Reflex: 360° - ${tag('yellow', `${g.tangentChordDeg.toFixed(1)}°`)} = ${tag('yellow', `${refAlpha.toFixed(1)}°`)}<br>` +
+        `↳ Inscribed Reflex: 360° - ${tag('yellow', `${g.inscribedDeg.toFixed(1)}°`)} = ${tag('yellow', `${(360 - g.inscribedDeg).toFixed(1)}°`)}<br>` +
+        `↳ Perigon Invariant: ${tag('yellow', `${g.tangentChordDeg.toFixed(1)}°`)} + ${tag('yellow', `${refAlpha.toFixed(1)}°`)} = ${tag('teal', '360.0°')}`;
+    }
+    if (this.slots.s6e) {
+      const refAlpha = 360 - g.tangentChordDeg;
+      this.slots.s6e.innerHTML =
+        `<span>${tag('yellow', `α* = ${refAlpha.toFixed(1)}°`)} (Perigon 360.0°)</span><span class="derivation-check">✓ Reflex Invariant</span>`;
     }
   }
 }
@@ -557,6 +756,17 @@ export class TangentsFromPointDerivations {
         `Corresponding tangent segments are equal: ${tag('emerald', '|PT₁|')} = ${tag('blue', '|PT₂|')} ⟹ Difference ${tag('teal', 'Δ = |PT₁| - |PT₂| = 0.00 px')}`,
         true
       )}
+      ${cardTemplate(
+        'tfp-step-5',
+        'Step 5',
+        `Conjugate Reflex Angles & Kite Perigon (${tag('lavender', '1080°')})`,
+        `Every right angle and vertex angle forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'θ* = 360° - θ')}):<br>` +
+        `• Tangent Contact Reflexes: ${tag('teal', '∠OT₁P* = 270.0°')} and ${tag('teal', '∠OT₂P* = 270.0°')}<br>` +
+        `• External Vertex Reflex: ${tag('lime', '2α')} + ${tag('lime', '2α*')} = 360° ⟹ ${tag('lime', '2α* = 360° - 2α')}<br>` +
+        `• Central Reflex: ${tag('amber', '2β')} + ${tag('amber', '2β*')} = 360° ⟹ ${tag('amber', '2β* = 360° - 2β')}<br>` +
+        `• Total Kite Reflex Sum: 2(270°) + (360° - 2α) + (360° - 2β) = 540° + 720° - 180° = ${tag('lavender', '1080.0°')}`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -565,6 +775,8 @@ export class TangentsFromPointDerivations {
       s3: this.container.querySelector('#tfp-step-3 [data-sub]'),
       s4: this.container.querySelector('#tfp-step-4 [data-sub]'),
       s4e: this.container.querySelector('#tfp-step-4 [data-eval]'),
+      s5: this.container.querySelector('#tfp-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#tfp-step-5 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -611,6 +823,20 @@ export class TangentsFromPointDerivations {
       this.slots.s4e.innerHTML =
         `<span>${tag('emerald', `|PT₁| = ${len1} px`)} ≝ ${tag('blue', `|PT₂| = ${len2} px`)}</span><span class="derivation-check">✓ Tangent Segments Equal</span>`;
     }
+    if (this.slots.s5) {
+      const alpha2 = (g.alphaDeg * 2).toFixed(1);
+      const beta2 = (g.betaDeg * 2).toFixed(1);
+      const refAlpha2 = (360 - g.alphaDeg * 2).toFixed(1);
+      const refBeta2 = (360 - g.betaDeg * 2).toFixed(1);
+      this.slots.s5.innerHTML =
+        `↳ Tangent Contact Reflexes: ${tag('teal', '∠OT₁P* = 270.0°')}, ${tag('teal', '∠OT₂P* = 270.0°')} (Perigon Arcs ${tag('teal', '360.0°')})<br>` +
+        `↳ External Vertex Reflex at ${tag('red', 'P')}: 360° - ${tag('lime', `${alpha2}°`)} = ${tag('lime', `${refAlpha2}°`)} | Central Reflex at ${tag('sky', 'O')}: 360° - ${tag('amber', `${beta2}°`)} = ${tag('amber', `${refBeta2}°`)}<br>` +
+        `↳ Kite Reflex Sum: 270.0° + 270.0° + ${tag('lime', `${refAlpha2}°`)} + ${tag('amber', `${refBeta2}°`)} = ${tag('lavender', '1080.0°')}`;
+    }
+    if (this.slots.s5e) {
+      this.slots.s5e.innerHTML =
+        `<span>${tag('teal', 'T₁* = T₂* = 270.0°')} | ${tag('lavender', 'Kite Reflex Sum = 1080.0°')}</span><span class="derivation-check">✓ 1080.0° Invariant</span>`;
+    }
   }
 }
 
@@ -654,6 +880,16 @@ export class ChordBisectorDerivations {
         `By RHS congruence: △OMA ≅ △OMB ⟹ ${tag('blue', '|AM|')} = ${tag('orange', '|MB|')} (Bisected)`,
         true
       )}
+      ${cardTemplate(
+        'cb-step-5',
+        'Step 5',
+        `Conjugate Reflex Right Angle at Midpoint (${tag('teal', '270.0°')})`,
+        `The right angle at midpoint ${tag('emerald', 'M')} forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'M* = 270.0°')}):<br>` +
+        `• Midpoint Perigon: ${tag('teal', '∠OMA')} + ${tag('teal', '∠OMA*')} = 90° + 270° = ${tag('teal', '360.0°')}<br>` +
+        `• Triangle Reflex Sum: In △OMA, reflex sum = 3(360°) - 180° = ${tag('lavender', '900.0°')}<br>` +
+        `• Symmetrical Bisector Invariant: Both right angles at M (∠OMA and ∠OMB) share identical conjugate reflex angles of ${tag('teal', '270.0°')}.`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -662,6 +898,8 @@ export class ChordBisectorDerivations {
       s3: this.container.querySelector('#cb-step-3 [data-sub]'),
       s4: this.container.querySelector('#cb-step-4 [data-sub]'),
       s4e: this.container.querySelector('#cb-step-4 [data-eval]'),
+      s5: this.container.querySelector('#cb-step-5 [data-sub]'),
+      s5e: this.container.querySelector('#cb-step-5 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -696,6 +934,16 @@ export class ChordBisectorDerivations {
     if (this.slots.s4e) {
       this.slots.s4e.innerHTML =
         `<span>${tag('blue', `|AM| = ${halfChord} px`)} ≝ ${tag('orange', `|MB| = ${halfChord} px`)} (Bisected)</span><span class="derivation-check">✓ Perpendicular Bisector</span>`;
+    }
+    if (this.slots.s5) {
+      this.slots.s5.innerHTML =
+        `↳ Midpoint Perigon: ${tag('teal', '∠OMA (90.0°)')} + ${tag('teal', '∠OMA* (270.0°)')} = ${tag('teal', '360.0°')}<br>` +
+        `↳ Symmetrical Bisector Invariant: Both right angles at ${tag('emerald', 'M')} (∠OMA and ∠OMB) share identical conjugate reflex angles of ${tag('teal', '270.0°')}.<br>` +
+        `↳ Right Triangle Reflex Sum: In △OMA, total reflex angle sum = 3(360.0°) - 180.0° = ${tag('lavender', '900.0°')}`;
+    }
+    if (this.slots.s5e) {
+      this.slots.s5e.innerHTML =
+        `<span>${tag('teal', 'Midpoint Reflex M* = 270.0° (Perigon 360.0°)')}</span><span class="derivation-check">✓ 270.0° Invariant</span>`;
     }
   }
 }

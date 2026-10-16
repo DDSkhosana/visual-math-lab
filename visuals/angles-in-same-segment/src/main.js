@@ -101,6 +101,14 @@ function bootstrap() {
   document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
 
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 180;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(260, Math.max(100, Math.round(cur * factor)));
+    store.set({ radius: nextR });
+  }, { passive: false });
+
   // Dragging Points
   let activePoint = null;
   function hit(x, y, pt, radius = 20) {
@@ -166,25 +174,51 @@ function bootstrap() {
     // 2D telemetry
     document.getElementById('tel-p1-angle').textContent = `${g.angleP1Deg.toFixed(1)}°`;
     document.getElementById('tel-p2-angle').textContent = `${g.angleP2Deg.toFixed(1)}°`;
+    const p1c2d = document.getElementById('tel-p1-coords');
+    if (p1c2d) p1c2d.innerHTML = `<span class="color-amber">${(g.P1.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P1.y - g.cy)).toFixed(1)}</span>`;
+    const p2c2d = document.getElementById('tel-p2-coords');
+    if (p2c2d) p2c2d.innerHTML = `<span class="color-amber">${(g.P2.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P2.y - g.cy)).toFixed(1)}</span>`;
     document.getElementById('tel-diff').textContent = `${g.diffDeg.toFixed(3)}°`;
     document.getElementById('tel-central-angle').textContent = `${g.centralDeg.toFixed(1)}°`;
-    document.getElementById('label-radius').textContent = `${state.radius}px`;
+    const rSlider = document.getElementById('slider-radius');
+    if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
+    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
 
     // 3D telemetry
-    const p1x = (10 * Math.cos(state.angleP1)).toFixed(2);
-    const p1z = (10 * Math.sin(state.angleP1)).toFixed(2);
-    const p2x = (10 * Math.cos(state.angleP2)).toFixed(2);
-    const p2z = (10 * Math.sin(state.angleP2)).toFixed(2);
+    const R3D = ((state.radius || 180) / 180) * 10;
+    const elR3D = document.getElementById('val-3d-r');
+    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    const p1x = (R3D * Math.cos(state.angleP1)).toFixed(2);
+    const p1z = (R3D * Math.sin(state.angleP1)).toFixed(2);
+    const p2x = (R3D * Math.cos(state.angleP2)).toFixed(2);
+    const p2z = (R3D * Math.sin(state.angleP2)).toFixed(2);
     const elP1 = document.getElementById('val-3d-p1');
-    if (elP1) elP1.textContent = `${p1x}, ${p1z}`;
+    if (elP1) elP1.innerHTML = `<span class="color-amber">${p1x}</span>, <span class="color-steel">${p1z}</span>`;
     const elP2 = document.getElementById('val-3d-p2');
-    if (elP2) elP2.textContent = `${p2x}, ${p2z}`;
+    if (elP2) elP2.innerHTML = `<span class="color-amber">${p2x}</span>, <span class="color-steel">${p2z}</span>`;
     const elAng1 = document.getElementById('val-3d-ang1');
     if (elAng1) elAng1.textContent = `${g.angleP1Deg.toFixed(1)}°`;
     const elAng2 = document.getElementById('val-3d-ang2');
     if (elAng2) elAng2.textContent = `${g.angleP2Deg.toFixed(1)}°`;
     const elDiff = document.getElementById('val-3d-diff');
     if (elDiff) elDiff.textContent = `${g.diffDeg.toFixed(3)}°`;
+
+    // Reflex Telemetry (2D & 3D)
+    const refP1 = 360 - g.angleP1Deg;
+    const refP2 = 360 - g.angleP2Deg;
+    const elTelRefP1 = document.getElementById('tel-reflex-p1');
+    if (elTelRefP1) elTelRefP1.textContent = `${refP1.toFixed(1)}°`;
+    const elTelRefP2 = document.getElementById('tel-reflex-p2');
+    if (elTelRefP2) elTelRefP2.textContent = `${refP2.toFixed(1)}°`;
+    const elTelRefSame = document.getElementById('tel-reflex-same');
+    if (elTelRefSame) elTelRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Invariant' : `${Math.abs(refP1 - refP2).toFixed(3)}°`;
+
+    const el3dRefP1 = document.getElementById('val-3d-reflex-p1');
+    if (el3dRefP1) el3dRefP1.textContent = `${refP1.toFixed(1)}°`;
+    const el3dRefP2 = document.getElementById('val-3d-reflex-p2');
+    if (el3dRefP2) el3dRefP2.textContent = `${refP2.toFixed(1)}°`;
+    const el3dRefSame = document.getElementById('val-3d-reflex-same');
+    if (el3dRefSame) el3dRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Match' : 'Mismatch';
 
     // Live math derivations
     derivations.render(state, g);

@@ -1,28 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
   <title id="title">Angles in the Same Segment Theorem illustration</title>
-  <desc id="desc">Two inscribed angles subtended by the same chord are equal.</desc>
+  <desc id="desc">Two inscribed angles subtended by the same chord in the same circular segment are equal.</desc>
   <rect width="1200" height="800" fill="#ece9e1"/>
-  <circle cx="600" cy="400" r="260" fill="none" stroke="#111111" stroke-width="16"/>
-  <!-- Base chord AB -->
-  <line x1="360" y1="500" x2="840" y2="500" stroke="#ef4444" stroke-width="14"/>
-  <!-- Point P1 at (480, 168) -->
-  <line x1="360" y1="500" x2="480" y2="168" stroke="#3b82f6" stroke-width="10"/>
-  <line x1="840" y1="500" x2="480" y2="168" stroke="#3b82f6" stroke-width="10"/>
-  <!-- Point P2 at (720, 168) -->
-  <line x1="360" y1="500" x2="720" y2="168" stroke="#10b981" stroke-width="10"/>
-  <line x1="840" y1="500" x2="720" y2="168" stroke="#10b981" stroke-width="10"/>
-  <!-- Points -->
-  <circle cx="360" cy="500" r="14" fill="#ef4444"/>
-  <text x="310" y="525" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
-  <circle cx="840" cy="500" r="14" fill="#ef4444"/>
-  <text x="865" y="525" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">B</text>
-  <circle cx="480" cy="168" r="14" fill="#3b82f6"/>
-  <text x="460" y="135" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#3b82f6">P₁</text>
-  <circle cx="720" cy="168" r="14" fill="#10b981"/>
-  <text x="710" y="135" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#10b981">P₂</text>
-  <!-- Angles alpha and alpha -->
-  <text x="480" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#3b82f6">α</text>
-  <text x="720" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#10b981">α</text>
-  <!-- Title -->
+
+  <!-- Shaded Common Circular Segment -->
+  <path d="M 384 515 A 250 250 0 1 1 816 515 Z" fill="rgba(59, 130, 246, 0.09)" stroke="none"/>
+
+  <!-- Inscribed Triangles fill -->
+  <polygon points="384,515 475,174 816,515" fill="rgba(59, 130, 246, 0.08)" stroke="none"/>
+  <polygon points="384,515 725,174 816,515" fill="rgba(16, 185, 129, 0.08)" stroke="none"/>
+
+  <!-- Circle -->
+  <circle cx="600" cy="390" r="250" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Base Chord AB (Crimson) -->
+  <line x1="384" y1="515" x2="816" y2="515" stroke="#ef4444" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Triangle AP1B (Blue) -->
+  <line x1="384" y1="515" x2="475" y2="174" stroke="#3b82f6" stroke-width="10" stroke-linecap="round"/>
+  <line x1="816" y1="515" x2="475" y2="174" stroke="#3b82f6" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Triangle AP2B (Emerald) -->
+  <line x1="384" y1="515" x2="725" y2="174" stroke="#10b981" stroke-width="10" stroke-linecap="round"/>
+  <line x1="816" y1="515" x2="725" y2="174" stroke="#10b981" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Equal Angle Arcs at P1 and P2 -->
+  <path d="M 460 220 A 55 55 0 0 0 515 220" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/>
+  <text x="488" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#3b82f6">α</text>
+
+  <path d="M 685 220 A 55 55 0 0 0 740 220" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+  <text x="712" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#10b981">α</text>
+
+  <!-- Vertices -->
+  <circle cx="384" cy="515" r="14" fill="#ef4444"/>
+  <text x="330" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
+
+  <circle cx="816" cy="515" r="14" fill="#ef4444"/>
+  <text x="840" y="540" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">B</text>
+
+  <circle cx="475" cy="174" r="14" fill="#3b82f6"/>
+  <text x="440" y="145" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#3b82f6">P₁</text>
+
+  <circle cx="725" cy="174" r="14" fill="#10b981"/>
+  <text x="735" y="145" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#10b981">P₂</text>
+
+  <text x="600" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#111111">∠AP₁B = ∠AP₂B = α</text>
   <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">ANGLES IN THE SAME SEGMENT</text>
 </svg>

@@ -1,17 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
   <title id="title">Thales' Theorem illustration</title>
-  <desc id="desc">A semicircle, its diameter, and a right-angled triangle.</desc>
+  <desc id="desc">A circle with diameter AB subtending a strictly 90-degree right angle at point P on the circumference.</desc>
   <rect width="1200" height="800" fill="#ece9e1"/>
-  <path d="M180 580 A420 420 0 0 1 1020 580" fill="none" stroke="#111111" stroke-width="18"/>
-  <line x1="180" y1="580" x2="1020" y2="580" stroke="#111111" stroke-width="18"/>
-  <line x1="180" y1="580" x2="625" y2="194" stroke="#d75a34" stroke-width="14"/>
-  <line x1="625" y1="194" x2="1020" y2="580" stroke="#2d5f86" stroke-width="14"/>
-  <path d="M602 218 L624 239 L646 218" fill="none" stroke="#111111" stroke-width="10"/>
-  <circle cx="180" cy="580" r="15" fill="#111111"/>
-  <circle cx="1020" cy="580" r="15" fill="#111111"/>
-  <circle cx="625" cy="194" r="15" fill="#111111"/>
-  <text x="140" y="650" font-family="Arial, sans-serif" font-size="48" fill="#111111">A</text>
-  <text x="1030" y="650" font-family="Arial, sans-serif" font-size="48" fill="#111111">B</text>
-  <text x="645" y="175" font-family="Arial, sans-serif" font-size="48" fill="#111111">P</text>
+
+  <!-- Semicircle -->
+  <path d="M 240 520 A 360 360 0 0 1 960 520" fill="none" stroke="#111111" stroke-width="16" stroke-linecap="round"/>
+  <!-- Subtended Right Triangle APB -->
+  <polygon points="240,520 394,225 960,520" fill="rgba(2, 132, 199, 0.12)" stroke="none"/>
+
+  <!-- Diameter AB (Amber) -->
+  <line x1="240" y1="520" x2="960" y2="520" stroke="#fbbf24" stroke-width="14" stroke-linecap="round"/>
+  <!-- Side s = AP (Steel Blue) -->
+  <line x1="240" y1="520" x2="394" y2="225" stroke="#6488b0" stroke-width="12" stroke-linecap="round"/>
+  <!-- Side t = BP (Orange) -->
+  <line x1="960" y1="520" x2="394" y2="225" stroke="#f97316" stroke-width="12" stroke-linecap="round"/>
+  <!-- Radius / Median OP (Sky Blue, dashed) -->
+  <line x1="600" y1="520" x2="394" y2="225" stroke="#0284c7" stroke-width="6" stroke-dasharray="10,8"/>
+
+  <!-- 90° Right Angle Marker at P -->
+  <path d="M 382 248 L 405 260 L 417 237" fill="none" stroke="#ef4444" stroke-width="7"/>
+  <text x="430" y="275" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ef4444">90°</text>
+
+  <!-- Vertices -->
+  <!-- A -->
+  <circle cx="240" cy="520" r="14" fill="#6488b0"/>
+  <text x="195" y="535" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">A</text>
+  <!-- B -->
+  <circle cx="960" cy="520" r="14" fill="#f97316"/>
+  <text x="985" y="535" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">B</text>
+  <!-- O (Center) -->
+  <circle cx="600" cy="520" r="13" fill="#0284c7"/>
+  <text x="590" y="570" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#0284c7">O</text>
+  <!-- P -->
+  <circle cx="394" cy="225" r="14" fill="#ef4444"/>
+  <text x="380" y="185" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">P</text>
+
+  <!-- Dimension Labels -->
+  <text x="290" y="360" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#6488b0">s</text>
+  <text x="700" y="360" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#f97316">t</text>
+  <text x="600" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="bold" fill="#0284c7">r</text>
   <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">THALES' THEOREM</text>
 </svg>

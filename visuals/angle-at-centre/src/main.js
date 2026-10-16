@@ -115,6 +115,14 @@ function bootstrap() {
   document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
 
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 180;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(260, Math.max(100, Math.round(cur * factor)));
+    store.set({ radius: nextR });
+  }, { passive: false });
+
   // Interactive Drag on Canvas
   let activeDragPoint = null;
 
@@ -206,10 +214,13 @@ function bootstrap() {
     document.getElementById('tel-arc').textContent = `${g.arcLength.toFixed(1)} px`;
 
     // Update 3D telemetry
+    const R3D = ((state.radius || 180) / 180) * 10;
+    const el3dR = document.getElementById('val-3d-r');
+    if (el3dR) el3dR.textContent = R3D.toFixed(1);
     const elPx = document.getElementById('val-3d-px');
-    if (elPx) elPx.textContent = (10 * Math.cos(state.angleP)).toFixed(2);
+    if (elPx) elPx.textContent = (R3D * Math.cos(state.angleP)).toFixed(2);
     const elPz = document.getElementById('val-3d-pz');
-    if (elPz) elPz.textContent = (10 * Math.sin(state.angleP)).toFixed(2);
+    if (elPz) elPz.textContent = (R3D * Math.sin(state.angleP)).toFixed(2);
     const elCentral = document.getElementById('val-3d-central');
     if (elCentral) elCentral.textContent = `${g.centralDeg.toFixed(1)}°`;
     const elInscribed = document.getElementById('val-3d-inscribed');
@@ -221,9 +232,27 @@ function bootstrap() {
     const elRatio = document.getElementById('val-3d-ratio');
     if (elRatio) elRatio.textContent = g.ratio.toFixed(3);
 
+    // Reflex Telemetry (2D & 3D)
+    const reflexCentral = 360 - g.centralDeg;
+    const reflexInscribed = 360 - g.inscribedDeg;
+    const elTelReflexCent = document.getElementById('tel-reflex-central');
+    if (elTelReflexCent) elTelReflexCent.textContent = `${reflexCentral.toFixed(1)}°`;
+    const elTelReflexInsc = document.getElementById('tel-reflex-inscribed');
+    if (elTelReflexInsc) elTelReflexInsc.textContent = `${reflexInscribed.toFixed(1)}°`;
+    const elTelPerigonCent = document.getElementById('tel-perigon-central');
+    if (elTelPerigonCent) elTelPerigonCent.textContent = `${(g.centralDeg + reflexCentral).toFixed(1)}°`;
+
+    const el3dReflexCent = document.getElementById('val-3d-reflex-central');
+    if (el3dReflexCent) el3dReflexCent.textContent = `${reflexCentral.toFixed(1)}°`;
+    const el3dReflexInsc = document.getElementById('val-3d-reflex-inscribed');
+    if (el3dReflexInsc) el3dReflexInsc.textContent = `${reflexInscribed.toFixed(1)}°`;
+    const el3dPerigon = document.getElementById('val-3d-perigon');
+    if (el3dPerigon) el3dPerigon.textContent = `${(g.centralDeg + reflexCentral).toFixed(1)}°`;
+
     // Update live math derivations
     derivations.render(state, g);
-    radiusLabel.textContent = `${state.radius}px`;
+    if (radiusInput && document.activeElement !== radiusInput) radiusInput.value = state.radius;
+    radiusLabel.textContent = `${Math.round(state.radius)}px`;
 
     // Sync Play button state
     const isPlaying = Boolean(state.playing);

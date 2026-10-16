@@ -1,8 +1,6 @@
 User-agent: *
-
 Allow: /
 
-Disallow: /config/
 Disallow: /tests/
 Disallow: /node_modules/
 

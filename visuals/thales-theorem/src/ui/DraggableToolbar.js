@@ -11,13 +11,37 @@ export class DraggableToolbar {
    * @param {HTMLElement|null} [handle=null] The drag grip handle element
    */
   constructor(toolbar, handle = null) {
+    if (!toolbar) return;
     this.toolbar = toolbar;
     this.handle = handle;
+    this.collapseBtn = toolbar.querySelector('#toolbar-collapse-btn, .toolbar-collapse-btn');
     this.compact = window.matchMedia(COMPACT_QUERY);
     this.compact.addEventListener('change', () => this.resetPosition());
 
+    if (this.collapseBtn) {
+      this.collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setCollapsed(!this.isCollapsed);
+      });
+    }
+
     window.addEventListener('resize', () => this.#handleWindowResize());
     this.#initEvents();
+  }
+
+  get isCollapsed() {
+    return this.toolbar.classList.contains('is-collapsed');
+  }
+
+  setCollapsed(collapsed) {
+    this.toolbar.classList.toggle('is-collapsed', collapsed);
+    if (this.collapseBtn) {
+      this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
+      const iconExpand = this.collapseBtn.querySelector('.icon-expand');
+      if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
+      if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
+    }
   }
 
   /**

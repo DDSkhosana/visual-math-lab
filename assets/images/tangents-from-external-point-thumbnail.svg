@@ -1,29 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
   <title id="title">Tangents from an External Point Theorem illustration</title>
-  <desc id="desc">Two tangents to a circle from an external point are equal in length.</desc>
+  <desc id="desc">Two tangents drawn from an external point to a circle are equal in length and perpendicular to the radii at points of contact.</desc>
   <rect width="1200" height="800" fill="#ece9e1"/>
-  <circle cx="480" cy="400" r="220" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Kite Quadrilateral OT1PT2 fill -->
+  <polygon points="460,400 549,221 910,400 549,579" fill="rgba(16, 185, 129, 0.1)" stroke="none"/>
+
+  <!-- Circle -->
+  <circle cx="460" cy="400" r="200" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Axis OP (dashed) -->
+  <line x1="460" y1="400" x2="910" y2="400" stroke="#94a3b8" stroke-width="5" stroke-dasharray="10,8"/>
+  <!-- Chord T1T2 (dashed) -->
+  <line x1="549" y1="221" x2="549" y2="579" stroke="#94a3b8" stroke-width="5" stroke-dasharray="10,8"/>
+
+  <!-- Radii OT1 and OT2 (Indigo) -->
+  <line x1="460" y1="400" x2="549" y2="221" stroke="#6366f1" stroke-width="12" stroke-linecap="round"/>
+  <line x1="460" y1="400" x2="549" y2="579" stroke="#6366f1" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Tangents PT1 and PT2 (Emerald) -->
+  <line x1="910" y1="400" x2="549" y2="221" stroke="#10b981" stroke-width="14" stroke-linecap="round"/>
+  <line x1="910" y1="400" x2="549" y2="579" stroke="#10b981" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- 90° Right Angle Marker at T1 -->
+  <path d="M 539 241 L 559 251 L 569 231" fill="none" stroke="#14b8a6" stroke-width="7"/>
+  <text x="515" y="270" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#14b8a6">90°</text>
+
+  <!-- 90° Right Angle Marker at T2 -->
+  <path d="M 539 559 L 559 549 L 569 569" fill="none" stroke="#14b8a6" stroke-width="7"/>
+  <text x="515" y="545" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#14b8a6">90°</text>
+
+  <!-- Equal Length Tick Marks on PT1 and PT2 -->
+  <line x1="720" y1="300" x2="738" y2="318" stroke="#10b981" stroke-width="5"/>
+  <line x1="720" y1="500" x2="738" y2="482" stroke="#10b981" stroke-width="5"/>
+
   <!-- Center O -->
-  <circle cx="480" cy="400" r="14" fill="#111111"/>
-  <text x="440" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#111111">O</text>
-  <!-- External point P at (980, 400) -->
-  <circle cx="980" cy="400" r="14" fill="#a855f7"/>
-  <text x="1005" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#a855f7">P</text>
-  <!-- Tangent points A(610, 222) and B(610, 578) -->
-  <circle cx="610" cy="222" r="14" fill="#ef4444"/>
-  <text x="615" y="190" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">A</text>
-  <circle cx="610" cy="578" r="14" fill="#f97316"/>
-  <text x="615" y="630" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#f97316">B</text>
-  <!-- Tangent lines PA, PB -->
-  <line x1="980" y1="400" x2="610" y2="222" stroke="#10b981" stroke-width="12"/>
-  <line x1="980" y1="400" x2="610" y2="578" stroke="#10b981" stroke-width="12"/>
-  <!-- Radii OA, OB -->
-  <line x1="480" y1="400" x2="610" y2="222" stroke="#6366f1" stroke-width="10"/>
-  <line x1="480" y1="400" x2="610" y2="578" stroke="#6366f1" stroke-width="10"/>
-  <!-- Axis OP -->
-  <line x1="480" y1="400" x2="980" y2="400" stroke="#94a3b8" stroke-width="6" stroke-dasharray="12,12"/>
-  <!-- Label PA = PB -->
-  <text x="820" y="275" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#10b981">PA</text>
-  <text x="820" y="555" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#10b981">PB</text>
+  <circle cx="460" cy="400" r="14" fill="#0284c7"/>
+  <text x="420" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#0284c7">O</text>
+
+  <!-- Tangency points T1 and T2 -->
+  <circle cx="549" cy="221" r="14" fill="#ef4444"/>
+  <text x="555" y="190" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#ef4444">T₁</text>
+
+  <circle cx="549" cy="579" r="14" fill="#f97316"/>
+  <text x="555" y="625" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#f97316">T₂</text>
+
+  <!-- External Point P -->
+  <circle cx="910" cy="400" r="14" fill="#a855f7"/>
+  <text x="935" y="415" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#a855f7">P</text>
+
+  <!-- Equality Theorem Statement -->
+  <text x="760" y="275" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#10b981">|PT₁|</text>
+  <text x="760" y="555" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#10b981">|PT₂|</text>
+  <text x="600" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#111111">|PT₁| = |PT₂|</text>
+
   <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">TANGENTS FROM AN EXTERNAL POINT</text>
 </svg>

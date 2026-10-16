@@ -3,9 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore why the angle between a tangent and chord equals the angle subtended in the alternate segment.">
   <title>Alternate Segment Theorem | Visual Mathematics Lab</title>
+  <meta name="description" content="Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D Euclidean geometry.">
+  <meta name="keywords" content="alternate segment theorem, tangent chord theorem, inscribed angle, circle theorems, Euclidean geometry, 3D math proof">
+  <meta name="author" content="Dianah Delisile Skhosana">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/alternate-segment-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/">
+  <meta property="og:site_name" content="Visual Mathematics Lab">
+  <meta property="og:title" content="Alternate Segment Theorem | Visual Mathematics Lab">
+  <meta property="og:description" content="Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D geometry.">
+  <meta property="og:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/alternate-segment-thumbnail.svg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/">
+  <meta name="twitter:title" content="Alternate Segment Theorem | Visual Mathematics Lab">
+  <meta name="twitter:description" content="Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D geometry.">
+  <meta name="twitter:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/alternate-segment-thumbnail.svg">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Alternate Segment Theorem | Visual Mathematics Lab",
+    "headline": "Interactive 2D & 3D Proof of Alternate Segment Theorem",
+    "description": "Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D geometry, Thales' overlay, and live telemetry.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/",
+    "image": "https://ddskhosana.github.io/visual-math-lab/assets/images/alternate-segment-thumbnail.svg",
+    "inLanguage": "en",
+    "educationalLevel": "Secondary Education, High School, Higher Education",
+    "learningResourceType": "Interactive Simulation",
+    "about": [
+      { "@type": "Thing", "name": "Alternate Segment Theorem" },
+      { "@type": "Thing", "name": "Circle Theorems" },
+      { "@type": "Thing", "name": "Tangent and Chord" }
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "Dianah Delisile Skhosana"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Visual Mathematics Lab",
+      "url": "https://ddskhosana.github.io/visual-math-lab/"
+    },
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All"
+  }
+  </script>
+
   <link rel="stylesheet" href="../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../css/visual.css?v=20260523">
   <link rel="stylesheet" href="styles/explorer.css">
@@ -44,29 +95,39 @@
         <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
           <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
         </div>
-        <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-          <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
-          <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
-          <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Collapse toolbar" aria-expanded="true" title="Collapse / expand viewport modes panel">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep vertex B continuously">
+            <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span class="playback-label">Play</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
         </div>
-        <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
-        <span class="toolbar-divider"></span>
-        <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep vertex B continuously">
-          <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          <span class="playback-label">Play</span>
-        </button>
-        <span class="toolbar-divider"></span>
-        <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
-          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-        </button>
       </div>
 
       <!-- View Container (Split 2D / 3D) -->
       <div class="view-container layout-split horizontal-split" id="main-view">
-        <div id="canvas-2d-container">
+        <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Alternate Segment (<span class="color-yellow">∠(Tangent, TA)</span> = <span class="color-yellow">∠TBA</span> = <span class="color-yellow">α</span>)</div>
+          <div class="view-title">2D: Alternate Segment (<span class="color-yellow">∠(Tangent, TA)</span> = <span class="color-yellow">∠TBA</span> = <span class="color-yellow">α</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span></div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -80,6 +141,19 @@
               <div class="stat-line"><span>Primary Chord |TA|:</span><strong class="color-blue" id="tel-chord-ta">0.0 px</strong></div>
               <div class="stat-line"><span>Invariant Difference Δ:</span><strong class="color-teal" id="tel-diff">0.000°</strong></div>
               <div class="stat-line"><span>Radius r:</span><span class="color-indigo" id="tel-radius">180 px</span></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                <span>Thales ∠TBD:</span><strong class="color-teal" id="tel-thales-tbd">90.0°</strong>
+              </div>
+              <div class="stat-line"><span>Thales ∠TAD:</span><strong class="color-teal" id="tel-thales-tad">90.0°</strong></div>
+              <div class="stat-line"><span>Tangent ⊥ TD:</span><strong class="color-teal" id="tel-thales-tan">90.0°</strong></div>
+              <div class="stat-line"><span>Point D Interior (∠TDA = α):</span><strong class="color-yellow" id="tel-angle-tda">60.0°</strong></div>
+              <div class="stat-line"><span>Point D Exterior (Ext D):</span><strong class="color-rose" id="tel-ext-d">120.0°</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                <span>Alt Seg (Maj):</span><strong class="color-sky" id="tel-seg-major">0 px²</strong>
+              </div>
+              <div class="stat-line"><span>Alt Seg (Min):</span><strong class="color-violet" id="tel-seg-minor">0 px²</strong></div>
+              <div class="stat-line"><span>Reflex α* (360° − α):</span><strong class="color-yellow" id="tel-reflex-alpha">300.0°</strong></div>
+              <div class="stat-line"><span>Perigon Arc (α + α*):</span><strong class="color-teal" id="tel-perigon-alpha">360.0°</strong></div>
             </div>
           </div>
         </div>
@@ -89,10 +163,10 @@
         <div id="canvas-3d-container">
           <div class="view-title">3D: Great-Circle Tangent &amp; Alternate Triangle</div>
           <div class="camera-presets-bar">
-            <button type="button" data-preset="top">Top</button>
+            <button type="button" data-preset="top" class="active">Top</button>
             <button type="button" data-preset="front">Front</button>
             <button type="button" data-preset="side">Side</button>
-            <button type="button" data-preset="iso" class="active">Iso</button>
+            <button type="button" data-preset="iso">Iso</button>
           </div>
           <div id="labels-3d-container" class="labels-3d-container"></div>
 
@@ -103,14 +177,22 @@
               <button type="button" class="btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false">+</button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span>Radius R:</span><span class="color-blue" id="val-3d-r">10.0</span></div>
               <div class="stat-line"><span>Contact T (x, z):</span><span class="color-red" id="val-3d-t">0.00, 0.00</span></div>
               <div class="stat-line"><span>Vertex A (x, z):</span><span class="color-blue" id="val-3d-a">0.00, 0.00</span></div>
               <div class="stat-line"><span>Vertex B (x, z):</span><span class="color-orange" id="val-3d-b">0.00, 0.00</span></div>
+              <div class="stat-line"><span>Antipodal D (x, z):</span><span class="color-indigo" id="val-3d-d">0.00, 0.00</span></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span>3D Tangent Angle (α):</span><strong class="color-yellow" id="val-3d-ang-tan">60.0°</strong>
               </div>
               <div class="stat-line"><span>3D Alternate ∠TBA:</span><strong class="color-yellow" id="val-3d-ang-tba">60.0°</strong></div>
               <div class="stat-line"><span>3D Invariant Δ:</span><strong class="color-teal" id="val-3d-diff">0.000°</strong></div>
+              <div class="stat-line"><span>3D Thales ∠TBD:</span><strong class="color-teal" id="val-3d-thales-tbd">90.0°</strong></div>
+              <div class="stat-line"><span>3D Thales ∠TAD:</span><strong class="color-teal" id="val-3d-thales-tad">90.0°</strong></div>
+              <div class="stat-line"><span>3D Point D Interior (α):</span><strong class="color-yellow" id="val-3d-ang-int-d">60.0°</strong></div>
+              <div class="stat-line"><span>3D Point D Exterior:</span><strong class="color-rose" id="val-3d-ang-ext-d">120.0°</strong></div>
+              <div class="stat-line"><span>3D Reflex α*:</span><strong class="color-yellow" id="val-3d-reflex-alpha">300.0°</strong></div>
+              <div class="stat-line"><span>3D Perigon Invariant:</span><strong class="color-teal" id="val-3d-perigon-alpha">360.0°</strong></div>
             </div>
           </div>
         </div>
@@ -136,29 +218,15 @@
                 </div>
               </div>
             </div>
-
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grid &amp; Axes</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
+              <div class="collapsible-header"><span>Axiomatic First Principles</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="font-size:0.82rem; color:#94a3b8; line-height:1.45;">
+                <em>Physical &amp; Kinematic Foundations: Orthogonal velocity (&nu;<sub>tan</sub> &perp; r<sub>OT</sub>), inner product (B - T) &middot; (B - D) = 0, and conservation of subtended angle &ang;TDA &equiv; &ang;TBA = &alpha;. Display overlays are managed in the 2D and 3D Controls panels below.</em>
               </div>
             </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Visual Overlays</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-area" checked><span class="checkmark"></span><span class="color-blue">Relevant Area Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-proof" checked><span class="checkmark"></span><span class="color-lavender">Diameter TD &amp; Right Triangle</span></label>
-              </div>
-            </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
-                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
-              </div>
+            <div class="collapsible-section" id="section-unit-converter">
+              <div class="collapsible-header" id="header-unit-converter"><span>Unit System Conversion</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" id="content-unit-converter"></div>
             </div>
           </div>
         </div>
@@ -207,6 +275,18 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-yellow">Angle Arcs &amp; Wedges</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-yellow">Alternate Segment &amp; Triangle</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-proof" checked><span class="checkmark"></span><span class="color-lavender">Diameter TD &amp; Right Triangle</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-d-angles" checked><span class="checkmark"></span><span class="color-indigo">Point D Interior &amp; Exterior Angles</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Camera Perspective</span><span class="icon">▼</span></div>
+              <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                <button type="button" class="btn text-xs active" data-camera-preset="top">Top</button>
+                <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
+                <button type="button" class="btn text-xs" data-camera-preset="side">Side</button>
+                <button type="button" class="btn text-xs" data-camera-preset="iso">Iso</button>
               </div>
             </div>
             <div class="collapsible-section">
@@ -249,13 +329,16 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-yellow">3D Angle Arcs &amp; Wedges</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-yellow">3D Area Meshes</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-3d-proof" checked><span class="checkmark"></span><span class="color-lavender">3D Thales' Overlay (TD)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-3d-d-angles" checked><span class="checkmark"></span><span class="color-indigo">Point D 3D Angles</span></label>
               </div>
             </div>
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn active" data-preset="iso">Isometric</button>
-                <button type="button" class="btn" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn active" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn" data-preset="iso">Isometric</button>
                 <button type="button" data-preset="front">Front (+Z)</button>
                 <button type="button" data-preset="side">Side (+X)</button>
               </div>
@@ -270,7 +353,7 @@
       <article class="visual-page__intro" id="about-visual">
         <p class="eyebrow" data-visual-category>Geometry</p>
         <h1 data-visual-title>Alternate Segment Theorem</h1>
-        <p class="lede" data-visual-description>Loading visual information.</p>
+        <p class="lede" data-visual-description>Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D Euclidean geometry.</p>
         <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
       </article>
 

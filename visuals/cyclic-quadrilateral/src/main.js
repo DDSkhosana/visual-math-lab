@@ -103,6 +103,14 @@ function bootstrap() {
   document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
 
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 180;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(260, Math.max(100, Math.round(cur * factor)));
+    store.set({ radius: nextR });
+  }, { passive: false });
+
   // Interactive Dragging
   let activeVertex = null;
   function hit(x, y, pt, radius = 22) {
@@ -172,9 +180,14 @@ function bootstrap() {
     document.getElementById('tel-angle-b').textContent = `${g.angleBDeg.toFixed(1)}°`;
     document.getElementById('tel-angle-d').textContent = `${g.angleDDeg.toFixed(1)}°`;
     document.getElementById('tel-sum-bd').textContent = `${g.sumBD.toFixed(1)}°`;
-    document.getElementById('label-radius').textContent = `${state.radius}px`;
+    const rSlider = document.getElementById('slider-radius');
+    if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
+    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
 
     // 3D telemetry
+    const R3D = ((state.radius || 180) / 180) * 10;
+    const elR3D = document.getElementById('val-3d-r');
+    if (elR3D) elR3D.textContent = R3D.toFixed(1);
     const el3dA = document.getElementById('val-3d-a');
     if (el3dA) el3dA.textContent = `${g.angleADeg.toFixed(1)}°`;
     const el3dB = document.getElementById('val-3d-b');
@@ -187,6 +200,29 @@ function bootstrap() {
     if (elSum1) elSum1.textContent = `${g.sumAC.toFixed(1)}°`;
     const elSum2 = document.getElementById('val-3d-sum2');
     if (elSum2) elSum2.textContent = `${g.sumBD.toFixed(1)}°`;
+
+    // Reflex Telemetry (2D & 3D)
+    const refA = 360 - g.angleADeg;
+    const refB = 360 - g.angleBDeg;
+    const refC = 360 - g.angleCDeg;
+    const refD = 360 - g.angleDDeg;
+    const refSum = refA + refB + refC + refD;
+    const refAC = refA + refC;
+    const refBD = refB + refD;
+
+    const elTelRefSum = document.getElementById('tel-reflex-sum');
+    if (elTelRefSum) elTelRefSum.textContent = `${refSum.toFixed(1)}°`;
+    const elTelRefAC = document.getElementById('tel-reflex-ac');
+    if (elTelRefAC) elTelRefAC.textContent = `${refAC.toFixed(1)}°`;
+    const elTelRefBD = document.getElementById('tel-reflex-bd');
+    if (elTelRefBD) elTelRefBD.textContent = `${refBD.toFixed(1)}°`;
+
+    const el3dRefSum = document.getElementById('val-3d-reflex-sum');
+    if (el3dRefSum) el3dRefSum.textContent = `${refSum.toFixed(1)}°`;
+    const el3dRefAC = document.getElementById('val-3d-reflex-ac');
+    if (el3dRefAC) el3dRefAC.textContent = `${refAC.toFixed(1)}°`;
+    const el3dRefBD = document.getElementById('val-3d-reflex-bd');
+    if (el3dRefBD) el3dRefBD.textContent = `${refBD.toFixed(1)}°`;
 
     // Live math derivations
     derivations.render(state, g);

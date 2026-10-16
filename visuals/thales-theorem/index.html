@@ -3,9 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactively explore Thales' Theorem in two and three dimensions.">
   <title>Thales' Theorem | Visual Mathematics Lab</title>
+  <meta name="description" content="Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live derivations, and real-time invariants.">
+  <meta name="keywords" content="Thales' theorem, circle theorems, Euclidean geometry, right triangle, semicircle angle, 3D geometry proof, interactive math">
+  <meta name="author" content="Dianah Delisile Skhosana">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/">
+  <meta property="og:site_name" content="Visual Mathematics Lab">
+  <meta property="og:title" content="Thales' Theorem | Visual Mathematics Lab">
+  <meta property="og:description" content="Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live derivations, and real-time invariants.">
+  <meta property="og:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/thales-thumbnail.svg">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/">
+  <meta name="twitter:title" content="Thales' Theorem | Visual Mathematics Lab">
+  <meta name="twitter:description" content="Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live derivations, and real-time invariants.">
+  <meta name="twitter:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/thales-thumbnail.svg">
+
+  <!-- JSON-LD Structured Data for Google Indexing -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Thales' Theorem | Visual Mathematics Lab",
+    "headline": "Interactive 2D & 3D Proof of Thales' Theorem",
+    "description": "Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live algebraic derivations, and real-time invariants.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/",
+    "image": "https://ddskhosana.github.io/visual-math-lab/assets/images/thales-thumbnail.svg",
+    "inLanguage": "en",
+    "educationalLevel": "Secondary Education, High School, Higher Education",
+    "learningResourceType": "Interactive Simulation",
+    "about": [
+      { "@type": "Thing", "name": "Thales' Theorem" },
+      { "@type": "Thing", "name": "Circle Theorems" },
+      { "@type": "Thing", "name": "Euclidean Geometry" },
+      { "@type": "Thing", "name": "Right Triangle" }
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "Dianah Delisile Skhosana"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Visual Mathematics Lab",
+      "url": "https://ddskhosana.github.io/visual-math-lab/"
+    },
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All"
+  }
+  </script>
+
   <link rel="stylesheet" href="../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../css/visual.css?v=20260523">
   <link rel="stylesheet" href="styles/explorer.css?v=2">
@@ -55,27 +110,37 @@
           <circle cx="10" cy="13" r="1.5"/>
         </svg>
       </div>
-      <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-        <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
-        <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
-        <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+      <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Collapse toolbar" aria-expanded="true" title="Collapse / expand viewport modes panel">
+        <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
+      <div class="toolbar-content" id="toolbar-content">
+        <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+          <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+          <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+          <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+        </div>
+        <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+        <button type="button" class="btn-toolbar" id="btn-flip-baseline" title="Flip baseline diameter AB between X and Y axes (90° Z-rotation)">Flip Baseline (X⟷Y)</button>
+        <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Reset</span>
+        </button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep Point P continuously" aria-label="Auto-sweep playback" aria-pressed="false">
+          <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span class="playback-label">Play</span>
+        </button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
       </div>
-      <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
-      <button type="button" class="btn-toolbar" id="btn-flip-baseline" title="Flip baseline diameter AB between X and Y axes (90° Z-rotation)">Flip Baseline (X⟷Y)</button>
-      <span class="toolbar-divider" aria-hidden="true"></span>
-      <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep Point P continuously" aria-label="Auto-sweep playback" aria-pressed="false">
-        <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-        <span class="playback-label">Play</span>
-      </button>
-      <span class="toolbar-divider" aria-hidden="true"></span>
-      <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-      </button>
     </div>
 
     <div class="view-container layout-split horizontal-split" id="main-view">
-        <div id="canvas-2d-container">
+        <div id="canvas-2d-container" class="perspective-front">
             <canvas id="canvas2d"></canvas>
             <div class="view-title" id="view-title-2d">2D: Great-Circle Section (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)</div>
 
@@ -88,6 +153,7 @@
                     <div class="stat-line"><span class="color-indigo">Radius r:</span> <span class="stat-value color-indigo" id="val-2d-r">0.00</span></div>
                     <div class="stat-line"><span class="color-red">Diameter |d|:</span> <span class="stat-value color-red" id="val-2d-d">0.00</span></div>
                     <div class="stat-line"><span class="color-sky">Circumf. 2πr:</span> <span class="stat-value color-sky" id="val-2d-circ">0.00</span></div>
+                    <div class="stat-line"><span class="color-yellow">Polar Angle θ:</span> <span class="stat-value color-yellow" id="val-2d-theta">0.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-blue">Side s (P to A):</span> <span class="stat-value color-blue" id="val-s">0.00</span>
                     </div>
@@ -102,12 +168,12 @@
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-lime">Angle α at A:</span> <span class="stat-value color-lime" id="val-2d-alpha">0.00°</span>
                     </div>
-                    <div class="stat-line"><span class="color-amber">Angle β at B:</span> <span class="stat-value color-amber" id="val-2d-beta">0.00°</span></div>
+                    <div class="stat-line"><span class="color-orange">Angle β at B:</span> <span class="stat-value color-orange" id="val-2d-beta">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">Sum α + β:</span> <span class="stat-value color-teal" id="val-2d-sum-ab">90.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-lime">Reflex α* (360°-α):</span> <span class="stat-value color-lime" id="val-2d-alpha-reflex">0.00°</span>
                     </div>
-                    <div class="stat-line"><span class="color-amber">Reflex β* (360°-β):</span> <span class="stat-value color-amber" id="val-2d-beta-reflex">0.00°</span></div>
+                    <div class="stat-line"><span class="color-orange">Reflex β* (360°-β):</span> <span class="stat-value color-orange" id="val-2d-beta-reflex">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">Reflex ∠P* (360°-90°):</span> <span class="stat-value color-teal" id="val-2d-p-reflex">270.00°</span></div>
                     <div class="stat-line"><span class="color-lavender">Total Reflex Sum:</span> <span class="stat-value color-lavender" id="val-2d-reflex-sum">900.00°</span></div>
                 </div>
@@ -119,6 +185,12 @@
         <div id="canvas-3d-container">
             <div id="labels-3d-container"></div>
             <div class="view-title">3D: Spherical Extension (<span class="color-sky">Sphere</span> &amp; <span class="color-violet">Volume</span>)</div>
+            <div class="camera-presets-bar">
+                <button type="button" data-preset="top">Top</button>
+                <button type="button" data-preset="front" class="active">Front</button>
+                <button type="button" data-preset="side">Side</button>
+                <button type="button" data-preset="isometric">Iso</button>
+            </div>
 
             <div class="stats-overlay collapsed" id="stats-3d">
                 <div class="stats-header" id="stats-3d-header">
@@ -129,10 +201,12 @@
                     <div class="stat-line"><span class="color-indigo">Radius r:</span> <span class="stat-value color-indigo" id="val-3d-r">0.00</span></div>
                     <div class="stat-line"><span class="color-red">Diameter |d|:</span> <span class="stat-value color-red" id="val-3d-d">0.00</span></div>
                     <div class="stat-line"><span class="color-sky">Circumf. 2πr:</span> <span class="stat-value color-sky" id="val-3d-circ">0.00</span></div>
+                    <div class="stat-line"><span class="color-yellow">Colatitude θ:</span> <span class="stat-value color-yellow" id="val-3d-theta">0.00°</span></div>
+                    <div class="stat-line"><span class="color-fuchsia">Longitude φ:</span> <span class="stat-value color-fuchsia" id="val-3d-phi">0.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-amber">P.x (diameter axis):</span> <span class="stat-value color-amber" id="val-3d-x">0.00</span>
                     </div>
-                    <div class="stat-line"><span class="color-lime">P.y (elevation):</span> <span class="stat-value color-lime" id="val-3d-y">0.00</span></div>
+                    <div class="stat-line"><span class="color-emerald">P.y (elevation):</span> <span class="stat-value color-emerald" id="val-3d-y">0.00</span></div>
                     <div class="stat-line"><span class="color-steel">P.z (depth):</span> <span class="stat-value color-steel" id="val-3d-z">0.00</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-platinum">Coord Sum (x²+y²+z²):</span> <span class="stat-value color-platinum" id="val-3d-sum-sq">0.00</span>
@@ -147,12 +221,12 @@
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-lime">3D Angle α at A:</span> <span class="stat-value color-lime" id="val-3d-alpha">0.00°</span>
                     </div>
-                    <div class="stat-line"><span class="color-amber">3D Angle β at B:</span> <span class="stat-value color-amber" id="val-3d-beta">0.00°</span></div>
+                    <div class="stat-line"><span class="color-orange">3D Angle β at B:</span> <span class="stat-value color-orange" id="val-3d-beta">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">3D Sum α + β:</span> <span class="stat-value color-teal" id="val-3d-sum-ab">90.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-lime">3D Reflex α*:</span> <span class="stat-value color-lime" id="val-3d-alpha-reflex">0.00°</span>
                     </div>
-                    <div class="stat-line"><span class="color-amber">3D Reflex β*:</span> <span class="stat-value color-amber" id="val-3d-beta-reflex">0.00°</span></div>
+                    <div class="stat-line"><span class="color-orange">3D Reflex β*:</span> <span class="stat-value color-orange" id="val-3d-beta-reflex">0.00°</span></div>
                     <div class="stat-line"><span class="color-lavender">3D Total Reflex Sum:</span> <span class="stat-value color-lavender" id="val-3d-reflex-sum">900.00°</span></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-sky">Sphere Area (4πr²):</span> <span class="stat-value color-sky" id="val-surf">0.00</span>
@@ -234,6 +308,14 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Section: Unit System Conversion -->
+                <div class="collapsible-section" id="section-unit-converter">
+                    <div class="collapsible-header" id="header-unit-converter">
+                        <span>3. Unit System Conversion</span><span class="icon">▼</span>
+                    </div>
+                    <div class="collapsible-content" id="content-unit-converter"></div>
+                </div>
             </div>
         </div>
         <div class="resize-handle" id="panel-resize-handle"></div>
@@ -276,7 +358,7 @@
                     <div class="collapsible-content">
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid-x" checked><span class="checkmark"></span><span class="color-amber">X Grid</span></label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid-y" checked><span class="checkmark"></span><span class="color-lime">Y Grid</span></label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid-y" checked><span class="checkmark"></span><span class="color-emerald">Y Grid</span></label>
                         </div>
                     </div>
                 </div>
@@ -288,10 +370,10 @@
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-orange">B</span>, <span class="color-violet">P</span>, <span class="color-indigo">O</span>, <span class="color-teal">90°</span>, <span class="color-yellow">θ</span>)</label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Length Labels (<span class="color-blue">s</span>, <span class="color-orange">t</span>, <span class="color-red">|d|</span>, <span class="color-indigo">r</span>)</label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-emerald">y</span>)</label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-green">Inscribed Area (½st)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-yellow">Angle Arcs &amp;</span> <span class="color-teal">Right-Angle Square</span></label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Angles</span> (<span class="color-lime">α*</span>, <span class="color-amber">β*</span>, <span class="color-teal">270°</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Angles</span> (<span class="color-lime">α*</span>, <span class="color-orange">β*</span>, <span class="color-teal">270°</span>)</label>
                         </div>
                     </div>
                 </div>
@@ -331,9 +413,9 @@
                     <div class="collapsible-content">
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-xz" checked><span class="checkmark"></span>XZ Plane (<span class="color-amber">X</span> / <span class="color-steel">Z</span>)</label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-xy"><span class="checkmark"></span>XY Plane (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-yz"><span class="checkmark"></span>YZ Plane (<span class="color-lime">Y</span> / <span class="color-steel">Z</span>)</label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-axes" checked><span class="checkmark"></span>XYZ Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span> / <span class="color-steel">Z</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-xy"><span class="checkmark"></span>XY Plane (<span class="color-amber">X</span> / <span class="color-emerald">Y</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid-yz"><span class="checkmark"></span>YZ Plane (<span class="color-emerald">Y</span> / <span class="color-steel">Z</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-axes" checked><span class="checkmark"></span>XYZ Axes (<span class="color-amber">X</span> / <span class="color-emerald">Y</span> / <span class="color-steel">Z</span>)</label>
                         </div>
                     </div>
                 </div>
@@ -346,11 +428,11 @@
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span><span class="color-sky">Sphere Mesh (4πr²)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-circle-wire" checked><span class="checkmark"></span><span class="color-sky">Great Circle Wire</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-violet">P</span>, <span class="color-red">A</span>, <span class="color-orange">B</span>, <span class="color-indigo">O</span>, <span class="color-blue">s</span>, <span class="color-orange">t</span>, <span class="color-red">|d|</span>, <span class="color-indigo">r</span>)</label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-emerald">y</span>, <span class="color-steel">z</span>)</label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-volume" checked><span class="checkmark"></span><span class="color-violet">Volume Box (|xyz|)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="toggle-3d-area" checked><span class="checkmark"></span><span class="color-green">Area Triangle (½st)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="toggle-3d-angles" checked><span class="checkmark"></span><span class="color-yellow">3D Angle Wedges &amp;</span> <span class="color-teal">Right-Angle Mesh</span></label>
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Sectors</span> (<span class="color-lime">360°-α</span>, <span class="color-amber">360°-β</span>, <span class="color-teal">270°</span>)</label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-lime">Reflex Sectors</span> (<span class="color-lime">360°-α</span>, <span class="color-orange">360°-β</span>, <span class="color-teal">270°</span>)</label>
                         </div>
                     </div>
                 </div>
@@ -361,9 +443,9 @@
                     <div class="collapsible-content">
                         <p class="text-xs text-slate-400 mb-2">Align 3D perspective to standard axes:</p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                            <button type="button" class="btn active" id="btn-cam-iso" data-preset="isometric" title="Standard 3D perspective">Isometric</button>
+                            <button type="button" class="btn" id="btn-cam-iso" data-preset="isometric" title="Standard 3D perspective">Isometric</button>
                             <button type="button" class="btn" id="btn-cam-top" data-preset="top" title="Top-down view (+Y plane)">Top (+Y)</button>
-                            <button type="button" class="btn" id="btn-cam-front" data-preset="front" title="Front elevation view (+Z plane)">Front (+Z)</button>
+                            <button type="button" class="btn active" id="btn-cam-front" data-preset="front" title="Front elevation view (+Z plane)">Front (+Z)</button>
                             <button type="button" class="btn" id="btn-cam-side" data-preset="side" title="Side profile view (+X plane)">Side (+X)</button>
                         </div>
                     </div>
@@ -408,7 +490,7 @@
       <article class="visual-page__intro" id="about-visual">
         <p class="eyebrow" data-visual-category>Geometry</p>
         <h1 data-visual-title>Thales' Theorem</h1>
-        <p class="lede" data-visual-description>Loading visual information.</p>
+        <p class="lede" data-visual-description>Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live derivations, and real-time invariants.</p>
         <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
       </article>
 

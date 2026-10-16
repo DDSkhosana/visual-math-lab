@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawSubtendedSegment, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawReflexWedge, drawSubtendedSegment, drawDoubleArrow, withShadow, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -153,11 +153,26 @@ export class CanvasView {
       const degAOM = Math.abs(((angA - angM + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * (180 / Math.PI);
       const degBOM = Math.abs(((angB - angM + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * (180 / Math.PI);
 
-      const bisAOM = (angA + angM) / 2;
-      const bisBOM = (angB + angM) / 2;
-      drawTextBadge(ctx, `∠AOM = ${degAOM.toFixed(1)}°`, g.cx + 42 * Math.cos(bisAOM), g.cy + 42 * Math.sin(bisAOM), PALETTE.blue);
-      drawTextBadge(ctx, `∠BOM = ${degBOM.toFixed(1)}°`, g.cx + 42 * Math.cos(bisBOM), g.cy + 42 * Math.sin(bisBOM), PALETTE.orange);
-      drawTextBadge(ctx, '90.0°', g.M.x - 24 * uOMx, g.M.y - 24 * uOMy, PALETTE.teal);
+      // Robust Euclidean unit vector bisectors (eliminates branch-cut wrap and scalar average jumps)
+      const uOAx = (g.A.x - g.cx) / (Math.hypot(g.A.x - g.cx, g.A.y - g.cy) || 1);
+      const uOAy = (g.A.y - g.cy) / (Math.hypot(g.A.x - g.cx, g.A.y - g.cy) || 1);
+      const uOMx = (g.M.x - g.cx) / (Math.hypot(g.M.x - g.cx, g.M.y - g.cy) || 1);
+      const uOMy = (g.M.y - g.cy) / (Math.hypot(g.M.x - g.cx, g.M.y - g.cy) || 1);
+      const uOBx = (g.B.x - g.cx) / (Math.hypot(g.B.x - g.cx, g.B.y - g.cy) || 1);
+      const uOBy = (g.B.y - g.cy) / (Math.hypot(g.B.x - g.cx, g.B.y - g.cy) || 1);
+
+      const bisAOMx = uOAx + uOMx, bisAOMy = uOAy + uOMy;
+      const lenAOM = Math.hypot(bisAOMx, bisAOMy) || 1;
+      const nbAOMx = bisAOMx / lenAOM, nbAOMy = bisAOMy / lenAOM;
+
+      const bisBOMx = uOBx + uOMx, bisBOMy = uOBy + uOMy;
+      const lenBOM = Math.hypot(bisBOMx, bisBOMy) || 1;
+      const nbBOMx = bisBOMx / lenBOM, nbBOMy = bisBOMy / lenBOM;
+
+      // Position badges snugly right outside the 28px angle wedges (34px from center O)
+      drawTextBadge(ctx, `∠AOM = ${degAOM.toFixed(1)}°`, g.cx + 34 * nbAOMx, g.cy + 34 * nbAOMy, PALETTE.blue);
+      drawTextBadge(ctx, `∠BOM = ${degBOM.toFixed(1)}°`, g.cx + 34 * nbBOMx, g.cy + 34 * nbBOMy, PALETTE.orange);
+      drawTextBadge(ctx, '90.0°', g.M.x - 20 * uOMx, g.M.y - 20 * uOMy, PALETTE.teal);
     }
 
     // Length text on chord halves with protective badge pills offset perpendicular to chord
@@ -171,6 +186,18 @@ export class CanvasView {
       const midMB = { x: (g.B.x + g.M.x) / 2, y: (g.B.y + g.M.y) / 2 };
       drawTextBadge(ctx, `|AM| = ${g.lenAM.toFixed(1)}px`, midAM.x + 16 * nABx, midAM.y + 16 * nABy, PALETTE.blue);
       drawTextBadge(ctx, `|MB| = ${g.lenMB.toFixed(1)}px`, midMB.x + 16 * nABx, midMB.y + 16 * nABy, PALETTE.orange);
+    }
+
+    // Conjugate Reflex Angles (270° at M)
+    const showReflex = Boolean(state.vis2d?.reflex);
+    if (showReflex) {
+      const angMA = Math.atan2(g.A.y - g.M.y, g.A.x - g.M.x);
+      const angMO = Math.atan2(g.cy - g.M.y, g.cx - g.M.x);
+      drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+
+      if (showLabels) {
+        drawTextBadge(ctx, '270° (M*)', g.M.x + 24 * uOMx, g.M.y + 24 * uOMy, PALETTE.teal);
+      }
     }
   }
 

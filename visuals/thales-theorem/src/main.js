@@ -19,6 +19,7 @@ import { TelemetryPanel } from './ui/TelemetryPanel.js';
 import { DraggableToolbar } from './ui/DraggableToolbar.js';
 import { TooltipController } from './ui/TooltipController.js';
 import { bindFullscreen } from './ui/fullscreen.js';
+import { UnitSystemConverter } from '../../../js/circle-core.js';
 
 const byId = (id) => {
   const element = document.getElementById(id);
@@ -69,16 +70,78 @@ function bootstrap() {
   if (exportSvgBtn) {
     exportSvgBtn.addEventListener('click', () => view2d.exportSVG());
   }
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({
+        playing: false,
+        viewMode: 'split',
+        splitDirection: 'horizontal',
+        splitRatio: 50,
+        plane2D: 'great-circle',
+      });
+      syncCameraAndPlanes('great-circle');
+    });
+  }
 
-  const cameraPresetButtons = document.querySelectorAll('#toolbar-3d-panel [data-preset]');
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
+
+  const planeToPreset = {
+    'great-circle': 'front',
+    'xy': 'front',
+    'xz': 'top',
+    'yz': 'side',
+  };
+  const presetToPlane = {
+    'isometric': 'great-circle',
+    'default': 'great-circle',
+    'iso': 'great-circle',
+    'front': 'xy',
+    'top': 'xz',
+    'side': 'yz',
+  };
+
+  const syncCameraAndPlanes = (plane) => {
+    const targetPreset = planeToPreset[plane] || 'front';
+    scene3d.setCameraPreset(targetPreset);
+
+    const cameraButtons = document.querySelectorAll('#toolbar-3d-panel [data-preset], .camera-presets-bar [data-preset]');
+    cameraButtons.forEach((b) => {
+      const bp = b.getAttribute('data-preset');
+      b.classList.toggle('active', bp === targetPreset || (targetPreset === 'isometric' && bp === 'default'));
+    });
+
+    const planeButtons = document.querySelectorAll('[data-plane]');
+    planeButtons.forEach((b) => {
+      b.classList.toggle('active', b.getAttribute('data-plane') === plane);
+    });
+
+    const container2d = document.getElementById('canvas-2d-container');
+    if (container2d) {
+      container2d.classList.remove('perspective-top', 'perspective-front', 'perspective-side', 'perspective-iso');
+      container2d.classList.add(targetPreset === 'isometric' ? 'perspective-iso' : `perspective-${targetPreset}`);
+    }
+  };
+
+  syncCameraAndPlanes(store.get().plane2D || 'great-circle');
+
+  const cameraPresetButtons = document.querySelectorAll('#toolbar-3d-panel [data-preset], .camera-presets-bar [data-preset]');
   cameraPresetButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      cameraPresetButtons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
       const preset = btn.getAttribute('data-preset');
-      scene3d.setCameraPreset(preset);
+      const targetPlane = presetToPlane[preset] || 'great-circle';
+      store.set(setPlane2D(targetPlane));
     });
   });
+
+  store.subscribe((state) => {
+    const curPlane = state.plane2D ?? 'great-circle';
+    syncCameraAndPlanes(curPlane);
+  }, ['plane2D']);
 
   const accordion = new Accordion(explorer);
   new Panel(byId('ui-panel-container'), {

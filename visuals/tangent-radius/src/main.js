@@ -90,23 +90,63 @@ function bootstrap() {
   if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
   document.getElementById('toggle-secant').addEventListener('change', (e) => store.set({ showSecant: e.target.checked }));
 
+  // Multiple Tangents Count buttons
+  const countBtns = document.querySelectorAll('#tangent-count-group button');
+  countBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const cnt = parseInt(btn.dataset.count, 10);
+      store.set({ tangentCount: cnt });
+    });
+  });
+
+  // Dynamic Quadrant Shading toggle in Controls Panel
+  const toggleQuad = document.getElementById('toggle-quadrant-shading');
+  if (toggleQuad) {
+    toggleQuad.addEventListener('change', (e) => {
+      store.set({
+        showQuadrant: e.target.checked,
+        vis2d: { ...(store.get().vis2d || {}), quadrant: e.target.checked },
+        vis3d: { ...(store.get().vis3d || {}), quadrant: e.target.checked },
+      });
+    });
+  }
+
+  // Chord Area Mode buttons (Segment vs Sector)
+  const btnSegment = document.getElementById('btn-mode-segment');
+  const btnSector = document.getElementById('btn-mode-sector');
+  if (btnSegment && btnSector) {
+    btnSegment.addEventListener('click', () => store.set({ chordAreaMode: 'segment' }));
+    btnSector.addEventListener('click', () => store.set({ chordAreaMode: 'sector' }));
+  }
+
   document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
 
-  // Interactive Drag on Point T
-  let dragging = false;
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const cur = store.get().radius || 180;
+    const factor = e.deltaY > 0 ? 0.95 : 1.05;
+    const nextR = Math.min(260, Math.max(100, Math.round(cur * factor)));
+    store.set({ radius: nextR });
+  }, { passive: false });
+
+  // Interactive Drag on any active Tangent Contact Point
+  let dragTargetId = null;
   canvas.addEventListener('pointerdown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const g = computeGeometry(store.get(), view.width, view.height);
 
-    if (Math.hypot(x - g.T.x, y - g.T.y) < 26) {
-      dragging = true;
-      if (store.get().playing) {
-        store.set({ playing: false });
+    for (const t of g.tangents) {
+      if (Math.hypot(x - t.pt.x, y - t.pt.y) < 26) {
+        dragTargetId = t.id;
+        if (store.get().playing) {
+          store.set({ playing: false });
+        }
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+        break;
       }
-      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
     }
   });
 
@@ -116,21 +156,35 @@ function bootstrap() {
     const y = e.clientY - rect.top;
     const g = computeGeometry(store.get(), view.width, view.height);
 
-    if (!dragging) {
-      const hover = Math.hypot(x - g.T.x, y - g.T.y) < 26;
+    if (!dragTargetId) {
+      let hover = false;
+      for (const t of g.tangents) {
+        if (Math.hypot(x - t.pt.x, y - t.pt.y) < 26) {
+          hover = true;
+          break;
+        }
+      }
       canvas.style.cursor = hover ? 'pointer' : 'default';
       return;
     }
 
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
-    store.set({ angleT: ang });
+    if (dragTargetId === 'T') {
+      store.set({ angleT: ang });
+    } else if (dragTargetId === 'T2') {
+      store.set({ angleT2: ang });
+    } else if (dragTargetId === 'T3') {
+      store.set({ angleT3: ang });
+    } else if (dragTargetId === 'T4') {
+      store.set({ angleT4: ang });
+    }
   });
 
   const stopDrag = (e) => {
-    if (dragging) {
+    if (dragTargetId) {
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-      dragging = false;
+      dragTargetId = null;
       canvas.style.cursor = 'default';
     }
   };
@@ -149,11 +203,34 @@ function bootstrap() {
     if (elVtan2D) elVtan2D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, ${(Math.cos(state.angleT)).toFixed(2)})`;
     document.getElementById('tel-angle').textContent = '90.0°';
     document.getElementById('tel-dot').textContent = `${Math.abs(g.dotProduct).toFixed(4)}`;
-    document.getElementById('label-radius').textContent = `${state.radius}px`;
+    const telQuad = document.getElementById('tel-quadrant');
+    if (telQuad && g.quadrant) telQuad.textContent = g.quadrant.label;
+    const elTelRefTan = document.getElementById('tel-reflex-tangent');
+    if (elTelRefTan) elTelRefTan.textContent = '270.0°';
+    const elTelPerigonTan = document.getElementById('tel-perigon-tangent');
+    if (elTelPerigonTan) elTelPerigonTan.textContent = '360.0°';
+
+    const telChords = document.getElementById('tel-chords-container');
+    if (telChords) {
+      if (g.chords && g.chords.length > 0) {
+        telChords.innerHTML = g.chords.map(c =>
+          `<div class="stat-line"><span>${c.label}:</span><strong class="color-${c.colorName}">${Math.round(c.area)} px²</strong></div>`
+        ).join('');
+      } else {
+        telChords.innerHTML = '';
+      }
+    }
+
+    const rSlider = document.getElementById('slider-radius');
+    if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
+    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
 
     // 3D telemetry
-    const tx = (10 * Math.cos(state.angleT)).toFixed(2);
-    const tz = (10 * Math.sin(state.angleT)).toFixed(2);
+    const R3D = ((state.radius || 180) / 180) * 10;
+    const elR3D = document.getElementById('val-3d-r');
+    if (elR3D) elR3D.textContent = R3D.toFixed(1);
+    const tx = (R3D * Math.cos(state.angleT)).toFixed(2);
+    const tz = (R3D * Math.sin(state.angleT)).toFixed(2);
     const elT = document.getElementById('val-3d-t');
     if (elT) elT.textContent = `${tx}, ${tz}`;
     const elVtan3D = document.getElementById('val-3d-vtan');
@@ -162,6 +239,44 @@ function bootstrap() {
     if (elAngle) elAngle.textContent = '90.0°';
     const elDot = document.getElementById('val-3d-dot');
     if (elDot) elDot.textContent = Math.abs(g.dotProduct).toFixed(4);
+
+    const val3dQuad = document.getElementById('val-3d-quadrant');
+    if (val3dQuad && g.quadrant) {
+      const qSign3D = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'][g.quadrant.index];
+      val3dQuad.textContent = `Quadrant ${g.quadrant.roman} ${qSign3D}`;
+    }
+    const el3dRefTan = document.getElementById('val-3d-reflex-tangent');
+    if (el3dRefTan) el3dRefTan.textContent = '270.0°';
+    const el3dPerigonTan = document.getElementById('val-3d-perigon-tangent');
+    if (el3dPerigonTan) el3dPerigonTan.textContent = '360.0°';
+
+    const val3dChords = document.getElementById('val-3d-chords-container');
+    if (val3dChords) {
+      if (g.chords && g.chords.length > 0) {
+        val3dChords.innerHTML = g.chords.map(c => {
+          const u2 = (c.area / (g.r * g.r)) * (R3D * R3D);
+          return `<div class="stat-line"><span>3D ${c.label}:</span><strong class="color-${c.colorName}">${u2.toFixed(1)} u²</strong></div>`;
+        }).join('');
+      } else {
+        val3dChords.innerHTML = '';
+      }
+    }
+
+    // Sync button states
+    const curCount = state.tangentCount ?? 1;
+    countBtns.forEach((btn) => {
+      btn.classList.toggle('active', parseInt(btn.dataset.count, 10) === curCount);
+    });
+
+    if (btnSegment && btnSector) {
+      const isSec = state.chordAreaMode === 'sector';
+      btnSegment.classList.toggle('active', !isSec);
+      btnSector.classList.toggle('active', isSec);
+    }
+
+    if (toggleQuad) {
+      toggleQuad.checked = (state.showQuadrant !== false);
+    }
 
     // Live math derivations
     derivations.render(state, g);

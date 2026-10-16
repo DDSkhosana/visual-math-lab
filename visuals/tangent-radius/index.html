@@ -3,9 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore why a tangent to a circle is always perpendicular to the radius at the point of contact.">
-  <title>Tangent-Radius Theorem | Visual Mathematics Lab</title>
+  <title>Tangent-Radius Perpendicularity | Visual Mathematics Lab</title>
+  <meta name="description" content="Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D Euclidean geometry.">
+  <meta name="keywords" content="tangent radius perpendicularity, tangent theorem, circle theorems, Euclidean geometry, orthogonality, 3D math proof">
+  <meta name="author" content="Dianah Delisile Skhosana">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/tangent-radius-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/">
+  <meta property="og:site_name" content="Visual Mathematics Lab">
+  <meta property="og:title" content="Tangent-Radius Perpendicularity | Visual Mathematics Lab">
+  <meta property="og:description" content="Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D geometry.">
+  <meta property="og:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/tangent-radius-thumbnail.svg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/">
+  <meta name="twitter:title" content="Tangent-Radius Perpendicularity | Visual Mathematics Lab">
+  <meta name="twitter:description" content="Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D geometry.">
+  <meta name="twitter:image" content="https://ddskhosana.github.io/visual-math-lab/assets/images/tangent-radius-thumbnail.svg">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Tangent-Radius Perpendicularity Theorem | Visual Mathematics Lab",
+    "headline": "Interactive 2D & 3D Proof of Tangent-Radius Perpendicularity",
+    "description": "Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D geometry, dynamic quadrant shading, and live telemetry.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/",
+    "image": "https://ddskhosana.github.io/visual-math-lab/assets/images/tangent-radius-thumbnail.svg",
+    "inLanguage": "en",
+    "educationalLevel": "Secondary Education, High School, Higher Education",
+    "learningResourceType": "Interactive Simulation",
+    "about": [
+      { "@type": "Thing", "name": "Tangent-Radius Theorem" },
+      { "@type": "Thing", "name": "Circle Theorems" },
+      { "@type": "Thing", "name": "Perpendicularity" }
+    ],
+    "author": {
+      "@type": "Person",
+      "name": "Dianah Delisile Skhosana"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Visual Mathematics Lab",
+      "url": "https://ddskhosana.github.io/visual-math-lab/"
+    },
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All"
+  }
+  </script>
+
   <link rel="stylesheet" href="../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../css/visual.css?v=20260523">
   <link rel="stylesheet" href="styles/explorer.css">
@@ -43,29 +94,39 @@
         <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
           <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
         </div>
-        <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-          <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
-          <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
-          <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Collapse toolbar" aria-expanded="true" title="Collapse / expand viewport modes panel">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep contact point T">
+            <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span class="playback-label">Play</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
         </div>
-        <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout">Flip Split</button>
-        <span class="toolbar-divider"></span>
-        <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep contact point T">
-          <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          <span class="playback-label">Play</span>
-        </button>
-        <span class="toolbar-divider"></span>
-        <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
-          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-        </button>
       </div>
 
       <!-- View Container (Split 2D / 3D) -->
       <div class="view-container layout-split horizontal-split" id="main-view">
-        <div id="canvas-2d-container">
+        <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Tangent-Radius Theorem (<span class="color-blue">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90°</span>)</div>
+          <div class="view-title">2D: Tangent-Radius Theorem (<span class="color-blue">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90°</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span></div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -78,6 +139,12 @@
               <div class="stat-line"><span>Tangent Vector (v_tan):</span><strong class="color-emerald" id="tel-vtan">(-0.00, 0.00)</strong></div>
               <div class="stat-line"><span>Angle at Contact T:</span><strong class="color-teal" id="tel-angle">90.0°</strong></div>
               <div class="stat-line"><span>Vector Dot Product (r · t):</span><strong class="color-emerald" id="tel-dot">0.0000</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                <span>Active Quadrant:</span><strong class="color-indigo" id="tel-quadrant">Quadrant I (+X, +Y)</strong>
+              </div>
+              <div class="stat-line"><span>Reflex Right Angle (T*):</span><strong class="color-teal" id="tel-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span>Perigon Arc (90° + 270°):</span><strong class="color-teal" id="tel-perigon-tangent">360.0°</strong></div>
+              <div id="tel-chords-container"></div>
             </div>
           </div>
         </div>
@@ -87,10 +154,10 @@
         <div id="canvas-3d-container">
           <div class="view-title">3D: Spherical Great-Circle Tangent</div>
           <div class="camera-presets-bar">
-            <button type="button" data-preset="top">Top</button>
+            <button type="button" data-preset="top" class="active">Top</button>
             <button type="button" data-preset="front">Front</button>
             <button type="button" data-preset="side">Side</button>
-            <button type="button" data-preset="iso" class="active">Iso</button>
+            <button type="button" data-preset="iso">Iso</button>
           </div>
           <div id="labels-3d-container" class="labels-3d-container"></div>
 
@@ -102,12 +169,16 @@
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
               <div class="stat-line"><span>Contact T (x, z):</span><span class="color-amber" id="val-3d-t">0.00, 0.00</span></div>
-              <div class="stat-line"><span>Radius R:</span><span class="color-blue">10.0</span></div>
+              <div class="stat-line"><span>Radius R:</span><span class="color-blue" id="val-3d-r">10.0</span></div>
               <div class="stat-line"><span>Tangent Vector (v_tan):</span><strong class="color-emerald" id="val-3d-vtan">(-0.00, 0.00, 0.00)</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span>3D Normal Angle:</span><strong class="color-teal" id="val-3d-angle">90.0°</strong>
               </div>
               <div class="stat-line"><span>3D Dot Product (r · t):</span><strong class="color-emerald" id="val-3d-dot">0.0000</strong></div>
+              <div class="stat-line"><span>Active Quadrant:</span><strong class="color-indigo" id="val-3d-quadrant">Quadrant I (+X, +Z)</strong></div>
+              <div class="stat-line"><span>3D Reflex Angle T*:</span><strong class="color-teal" id="val-3d-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span>3D Perigon Invariant:</span><strong class="color-teal" id="val-3d-perigon-tangent">360.0°</strong></div>
+              <div id="val-3d-chords-container"></div>
             </div>
           </div>
         </div>
@@ -132,29 +203,28 @@
                 </div>
               </div>
             </div>
-
             <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grid &amp; Axes</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-grid" checked><span class="checkmark"></span>Cartesian Grid</label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
+              <div class="collapsible-header"><span>Multiple Tangents &amp; Chords</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.6rem;">
+                <label class="text-xs text-slate-300">Number of Tangents:</label>
+                <div class="viewmode-segmented-group" id="tangent-count-group" role="group" aria-label="Number of Tangents">
+                  <button type="button" class="btn active" id="btn-tangents-1" data-count="1">1</button>
+                  <button type="button" class="btn" id="btn-tangents-2" data-count="2">2</button>
+                  <button type="button" class="btn" id="btn-tangents-3" data-count="3">3</button>
+                  <button type="button" class="btn" id="btn-tangents-4" data-count="4">4</button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                  <span class="text-xs text-slate-300">Subtended Area Mode:</span>
+                  <div class="viewmode-segmented-group" id="chord-mode-group" role="group" aria-label="Chord Area Mode" style="scale:0.9; transform-origin:right;">
+                    <button type="button" class="btn active" id="btn-mode-segment">Segment</button>
+                    <button type="button" class="btn" id="btn-mode-sector">Sector</button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Visual Overlays</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="toggle-area" checked><span class="checkmark"></span><span class="color-teal">Relevant Area Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-secant"><span class="checkmark"></span><span class="color-yellow">Show Secant Line (Q → T)</span></label>
-              </div>
-            </div>
-
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
-              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
-                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
-              </div>
+            <div class="collapsible-section" id="section-unit-converter">
+              <div class="collapsible-header" id="header-unit-converter"><span>Unit System Conversion</span><span class="icon">▼</span></div>
+              <div class="collapsible-content" id="content-unit-converter"></div>
             </div>
           </div>
         </div>
@@ -203,6 +273,19 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Right Angle 90° Marker Square</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Right-Angle / Triangle Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-quadrant" checked><span class="checkmark"></span><span class="color-indigo">Dynamic Quadrant Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-chords" checked><span class="checkmark"></span><span class="color-violet">Tangent Chords &amp; Areas</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-secant"><span class="checkmark"></span><span class="color-yellow">Show Secant Line (Q → T)</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section">
+              <div class="collapsible-header"><span>Camera Perspective</span><span class="icon">▼</span></div>
+              <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                <button type="button" class="btn text-xs active" data-camera-preset="top">Top</button>
+                <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
+                <button type="button" class="btn text-xs" data-camera-preset="side">Side</button>
+                <button type="button" class="btn text-xs" data-camera-preset="iso">Iso</button>
               </div>
             </div>
             <div class="collapsible-section">
@@ -245,13 +328,16 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-teal">3D Right Angle 90° Marker</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Area Meshes</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-quadrant" checked><span class="checkmark"></span><span class="color-indigo">3D Quadrant Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-chords" checked><span class="checkmark"></span><span class="color-violet">3D Tangent Chords &amp; Areas</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn active" data-preset="iso">Isometric</button>
-                <button type="button" class="btn" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn active" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn" data-preset="iso">Isometric</button>
                 <button type="button" class="btn" data-preset="front">Front (+Z)</button>
                 <button type="button" class="btn" data-preset="side">Side (+X)</button>
               </div>
@@ -265,7 +351,7 @@
       <article class="visual-page__intro" id="about-visual">
         <p class="eyebrow" data-visual-category>Geometry</p>
         <h1 data-visual-title>Tangent-Radius Theorem</h1>
-        <p class="lede" data-visual-description>Loading visual information.</p>
+        <p class="lede" data-visual-description>Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D Euclidean geometry.</p>
         <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
       </article>
 

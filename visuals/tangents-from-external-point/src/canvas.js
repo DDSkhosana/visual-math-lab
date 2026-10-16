@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, withShadow, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, drawRightAngle, drawAngleWedge, drawReflexWedge, withShadow, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -194,6 +194,36 @@ export class CanvasView {
       const bisO2 = (angOP + angOT2) / 2;
       drawTextBadge(ctx, `β₁ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO1), g.cy + 38 * Math.sin(bisO1), PALETTE.amber);
       drawTextBadge(ctx, `β₂ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO2), g.cy + 38 * Math.sin(bisO2), PALETTE.orange);
+    }
+
+    // Conjugate Reflex Angles (270° at T1, T2)
+    const showReflex = Boolean(state.vis2d?.reflex);
+    if (showReflex) {
+      const angT1O = Math.atan2(g.cy - g.T1.y, g.cx - g.T1.x);
+      const angT1P = Math.atan2(g.P.y - g.T1.y, g.P.x - g.T1.x);
+      drawReflexWedge(ctx, g.T1, angT1O, angT1P, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+
+      const angT2O = Math.atan2(g.cy - g.T2.y, g.cx - g.T2.x);
+      const angT2P = Math.atan2(g.P.y - g.T2.y, g.P.x - g.T2.x);
+      drawReflexWedge(ctx, g.T2, angT2O, angT2P, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+
+      if (showLabels) {
+        const uT1Ox = (g.cx - g.T1.x) / (Math.hypot(g.cx - g.T1.x, g.cy - g.T1.y) || 1);
+        const uT1Oy = (g.cy - g.T1.y) / (Math.hypot(g.cx - g.T1.x, g.cy - g.T1.y) || 1);
+        const uT1Px = (g.P.x - g.T1.x) / (Math.hypot(g.P.x - g.T1.x, g.P.y - g.T1.y) || 1);
+        const uT1Py = (g.P.y - g.T1.y) / (Math.hypot(g.P.x - g.T1.x, g.P.y - g.T1.y) || 1);
+        const bis1X = uT1Ox + uT1Px, bis1Y = uT1Oy + uT1Py;
+        const l1 = Math.hypot(bis1X, bis1Y) || 1;
+        drawTextBadge(ctx, '270° (T₁*)', g.T1.x - 28 * (bis1X / l1), g.T1.y - 28 * (bis1Y / l1), PALETTE.teal);
+
+        const uT2Ox = (g.cx - g.T2.x) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
+        const uT2Oy = (g.cy - g.T2.y) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
+        const uT2Px = (g.P.x - g.T2.x) / (Math.hypot(g.P.x - g.T2.x, g.P.y - g.T2.y) || 1);
+        const uT2Py = (g.P.y - g.T2.y) / (Math.hypot(g.P.x - g.T2.x, g.P.y - g.T2.y) || 1);
+        const bis2X = uT2Ox + uT2Px, bis2Y = uT2Oy + uT2Py;
+        const l2 = Math.hypot(bis2X, bis2Y) || 1;
+        drawTextBadge(ctx, '270° (T₂*)', g.T2.x - 28 * (bis2X / l2), g.T2.y - 28 * (bis2Y / l2), PALETTE.teal);
+      }
     }
   }
 

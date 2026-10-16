@@ -13,6 +13,17 @@ export function createInitialState() {
   };
 }
 
+/**
+ * Minimum radial clearance buffer (in px) between circle perimeter and external point P.
+ * Rationale:
+ * 1. Geometric Singularities: Prevents d <= r where tangent length sqrt(d^2 - r^2)
+ *    and contact angle alpha = arccos(r/d) degenerate into imaginary or NaN values.
+ * 2. Hit-Target Separation: Point P (hit radius 26px) does not collide with contact points
+ *    T1 and T2 (hit radius 24px) or the circle perimeter stroke during pointer interaction.
+ * 3. Typography Clearance: Prevents vertex label 'P' from occluding tangent right-angle markers.
+ */
+export const MIN_EXTERNAL_POINT_CLEARANCE = 15;
+
 export function computeGeometry(state, width, height) {
   const cx = width / 2;
   const cy = height / 2;
@@ -26,8 +37,8 @@ export function computeGeometry(state, width, height) {
   const maxSafeY = Math.max(50, height / 2 - padding);
   const cosP = Math.abs(Math.cos(angP)) || 0.001;
   const sinP = Math.abs(Math.sin(angP)) || 0.001;
-  const maxAllowedDist = Math.max(r + 15, Math.min(maxSafeX / cosP, maxSafeY / sinP));
-  const d = Math.min(Math.max(r + 15, state.pointDist), maxAllowedDist);
+  const maxAllowedDist = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, Math.min(maxSafeX / cosP, maxSafeY / sinP));
+  const d = Math.min(Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, state.pointDist), maxAllowedDist);
   // In Cartesian coordinates: +X right, +Y up (canvas y = cy - d*sin(angP))
   const P = {
     x: cx + d * Math.cos(angP),

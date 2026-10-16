@@ -209,3 +209,95 @@ test('Reflex Angle Features: TOGGLES configuration and Derivation Step 7 grammar
   assert.ok(flatEl.innerHTML.includes('900.0°'), 'Total reflex sum 900.0° must be present');
 });
 
+test('Camera Perspective Synchronization: 2D plane and 3D camera presets align bidirectionally', async () => {
+  const { setPlane2D } = await import('../visuals/thales-theorem/src/model/actions.js');
+  
+  const planeToPreset = {
+    'great-circle': 'isometric',
+    'xy': 'front',
+    'xz': 'top',
+    'yz': 'side',
+  };
+  const presetToPlane = {
+    'isometric': 'great-circle',
+    'default': 'great-circle',
+    'iso': 'great-circle',
+    'front': 'xy',
+    'top': 'xz',
+    'side': 'yz',
+  };
+
+  for (const [plane, preset] of Object.entries(planeToPreset)) {
+    assert.strictEqual(presetToPlane[preset], plane);
+    const patch = setPlane2D(plane);
+    assert.strictEqual(patch.plane2D, plane);
+  }
+});
+
+test('Thales Grammar Decoupling & Dynamic Angle Annotations', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  // 1. LabelOverlayView checks
+  const { LabelOverlayView } = await import('../visuals/thales-theorem/src/views/LabelOverlayView.js');
+  const overlayCode = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  assert.ok(overlayCode.includes("key: 'diam'"), 'LabelOverlayView must define diam label');
+  assert.ok(overlayCode.includes('|d| = ${(2 * r).toFixed(1)}'), 'LabelOverlayView must format dynamic 3D diameter');
+  assert.ok(overlayCode.includes("key: 'axis-y'") && overlayCode.includes("color: 'color-emerald'"), 'axis-y must be color-emerald');
+  assert.ok(overlayCode.includes("key: 'alt3d'") && overlayCode.includes("color: 'color-emerald'"), '3D altitude must be color-emerald');
+
+  // 2. DerivationView checks: P.y / elevation is Emerald, alpha is Lime, theta is Yellow, beta is Orange
+  class MockElement {
+    constructor(id = '') {
+      this.id = id;
+      this.innerHTML = '';
+      this.children = [];
+    }
+    get firstElementChild() {
+      return this.children[0] || (this.innerHTML ? new MockElement() : null);
+    }
+    querySelector() {
+      return new MockElement();
+    }
+    querySelectorAll() {
+      return [];
+    }
+  }
+
+  const flatEl = new MockElement('flat');
+  const solidEl = new MockElement('solid');
+  const view = new DerivationView(flatEl, solidEl);
+  view.render({ radius: 10, angle2D: Math.PI / 4, lat3D: Math.PI / 4, lon3D: Math.PI / 2 });
+
+  // P.y and elevation in emerald
+  assert.ok(flatEl.innerHTML.includes('class="color-emerald">y (elevation)</span>'), '2D Derivations: y (elevation) must be emerald');
+  assert.ok(flatEl.innerHTML.includes('class="color-emerald">y²</span>'), '2D Derivations: y² must be emerald');
+  assert.ok(solidEl.innerHTML.includes('class="color-emerald">y</span>'), '3D Derivations: y must be emerald');
+  assert.ok(solidEl.innerHTML.includes('class="color-emerald">y²</span>'), '3D Derivations: y² must be emerald');
+  assert.ok(solidEl.innerHTML.includes('class="color-emerald">+Y</span>'), '3D Derivations: +Y pole must be emerald');
+
+  // alpha and alpha* in lime
+  assert.ok(flatEl.innerHTML.includes('class="color-lime">α</span>'), '2D Derivations: α must be lime');
+  assert.ok(flatEl.innerHTML.includes('class="color-lime">α*'), '2D Derivations: α* must be lime');
+
+  // theta in yellow
+  assert.ok(flatEl.innerHTML.includes('class="color-yellow">θ</span>') || flatEl.innerHTML.includes('class="color-yellow">Polar angle θ</span>'), '2D Derivations: θ must be yellow');
+  assert.ok(solidEl.innerHTML.includes('class="color-yellow">Colatitude θ</span>'), '3D Derivations: Colatitude θ must be yellow');
+
+  // beta in orange
+  assert.ok(flatEl.innerHTML.includes('class="color-orange">β</span>'), '2D Derivations: β must be orange');
+  assert.ok(flatEl.innerHTML.includes('class="color-orange">β*'), '2D Derivations: β* must be orange');
+
+  // 3. index.html checks
+  const html = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/index.html'), 'utf8');
+  assert.ok(html.includes('id="val-2d-theta"'), 'index.html must have val-2d-theta');
+  assert.ok(html.includes('id="val-3d-theta"'), 'index.html must have val-3d-theta');
+  assert.ok(html.includes('id="val-3d-phi"'), 'index.html must have val-3d-phi');
+  assert.ok(html.includes('id="val-3d-y"'), 'index.html must have val-3d-y');
+  assert.ok(html.includes('class="color-emerald">Y Grid</span>'), 'index.html must use color-emerald for Y Grid');
+  assert.ok(html.includes('class="color-orange">β*</span>'), 'index.html must use color-orange for β* reflex in 2D overlays');
+  assert.ok(html.includes('class="color-orange">360°-β</span>'), 'index.html must use color-orange for 360°-β in 3D overlays');
+});
