@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { AngleAtCentreDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AngleAtCentre3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -25,6 +25,19 @@ function bootstrap() {
   // Floating Toolbar & Fullscreen
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   // View Mode Controller (Split, 2D, 3D)
   new ViewModeController(store, {
@@ -91,10 +104,10 @@ function bootstrap() {
   // Slider bindings
   const radiusInput = document.getElementById('slider-radius');
   const radiusLabel = document.getElementById('label-radius');
-  radiusInput.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  radiusInput?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
 
   const pPosInput = document.getElementById('slider-p');
-  pPosInput.addEventListener('input', (e) => store.set({ angleP: toRadians(parseFloat(e.target.value)) }));
+  pPosInput?.addEventListener('input', (e) => store.set({ angleP: toRadians(parseFloat(e.target.value)) }));
 
   // Checkbox bindings
   const toggleArea = document.getElementById('toggle-area');
@@ -103,17 +116,23 @@ function bootstrap() {
   }
 
   const toggleRadii = document.getElementById('toggle-radii');
-  toggleRadii.addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
+  if (toggleRadii) {
+    toggleRadii.addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
+  }
 
   const toggleSplit = document.getElementById('toggle-split');
-  toggleSplit.addEventListener('change', (e) => store.set({ showSplit: e.target.checked }));
+  if (toggleSplit) {
+    toggleSplit.addEventListener('change', (e) => store.set({ showSplit: e.target.checked }));
+  }
 
   const toggleAngles = document.getElementById('toggle-angles');
-  toggleAngles.addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
+  if (toggleAngles) {
+    toggleAngles.addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
+  }
 
   // Snapshot Exports
-  document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
-  document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
+  document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
+  document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -203,15 +222,20 @@ function bootstrap() {
     const betaDeg = diffBeta * (180 / Math.PI);
 
     // Update 2D telemetry
-    document.getElementById('tel-central-angle').textContent = `${g.centralDeg.toFixed(1)}°`;
-    document.getElementById('tel-inscribed-angle').textContent = `${g.inscribedDeg.toFixed(1)}°`;
+    const elCentralAngle = document.getElementById('tel-central-angle');
+    if (elCentralAngle) elCentralAngle.textContent = `${g.centralDeg.toFixed(1)}°`;
+    const elInscribedAngle = document.getElementById('tel-inscribed-angle');
+    if (elInscribedAngle) elInscribedAngle.textContent = `${g.inscribedDeg.toFixed(1)}°`;
     const elTelAlpha = document.getElementById('tel-alpha');
     if (elTelAlpha) elTelAlpha.textContent = `${alphaDeg.toFixed(1)}°`;
     const elTelBeta = document.getElementById('tel-beta');
     if (elTelBeta) elTelBeta.textContent = `${betaDeg.toFixed(1)}°`;
-    document.getElementById('tel-ratio').textContent = `${g.ratio.toFixed(3)}`;
-    document.getElementById('tel-radius').textContent = `${state.radius} px`;
-    document.getElementById('tel-arc').textContent = `${g.arcLength.toFixed(1)} px`;
+    const elTelRatio = document.getElementById('tel-ratio');
+    if (elTelRatio) elTelRatio.textContent = `${g.ratio.toFixed(3)}`;
+    const elTelRadius = document.getElementById('tel-radius');
+    if (elTelRadius) elTelRadius.textContent = `${state.radius} px`;
+    const elTelArc = document.getElementById('tel-arc');
+    if (elTelArc) elTelArc.textContent = `${g.arcLength.toFixed(1)} px`;
 
     // Update 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;
@@ -252,7 +276,7 @@ function bootstrap() {
     // Update live math derivations
     derivations.render(state, g);
     if (radiusInput && document.activeElement !== radiusInput) radiusInput.value = state.radius;
-    radiusLabel.textContent = `${Math.round(state.radius)}px`;
+    if (radiusLabel) radiusLabel.textContent = `${Math.round(state.radius)}px`;
 
     // Sync Play button state
     const isPlaying = Boolean(state.playing);

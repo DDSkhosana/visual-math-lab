@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { TangentsFromPointDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, TangentsFromPoint3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry, MIN_EXTERNAL_POINT_CLEARANCE } from './model.js';
@@ -24,6 +24,19 @@ function bootstrap() {
 
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   const toolbar2d = document.getElementById('toolbar-2d-panel');
   const toolbar3d = document.getElementById('toolbar-3d-panel');
@@ -98,14 +111,14 @@ function bootstrap() {
 
   // Controls
   const radiusInput = document.getElementById('slider-radius');
-  radiusInput.addEventListener('input', (e) => {
+  radiusInput?.addEventListener('input', (e) => {
     const r = parseFloat(e.target.value);
     const curDist = store.get().pointDist || 260;
     const nextDist = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, curDist);
     store.set({ radius: r, pointDist: nextDist });
   });
   const distInput = document.getElementById('slider-dist');
-  distInput.addEventListener('input', (e) => {
+  distInput?.addEventListener('input', (e) => {
     const r = store.get().radius || 120;
     const d = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, parseFloat(e.target.value));
     store.set({ pointDist: d });

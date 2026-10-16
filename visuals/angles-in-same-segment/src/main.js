@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { AnglesInSameSegmentDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AnglesInSameSegment3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -24,6 +24,19 @@ function bootstrap() {
 
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   new ViewModeController(store, {
     mainView: document.getElementById('main-view'),
@@ -92,14 +105,14 @@ function bootstrap() {
 
   // Controls
   const sliderRadius = document.getElementById('slider-radius');
-  sliderRadius.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  sliderRadius?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
 
-  document.getElementById('toggle-center').addEventListener('change', (e) => store.set({ showCenter: e.target.checked }));
-  document.getElementById('toggle-shading').addEventListener('change', (e) => store.set({ showShading: e.target.checked, showArea: e.target.checked }));
-  document.getElementById('toggle-angles').addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
+  document.getElementById('toggle-center')?.addEventListener('change', (e) => store.set({ showCenter: e.target.checked }));
+  document.getElementById('toggle-shading')?.addEventListener('change', (e) => store.set({ showShading: e.target.checked, showArea: e.target.checked }));
+  document.getElementById('toggle-angles')?.addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
 
-  document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
-  document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
+  document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
+  document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -172,17 +185,22 @@ function bootstrap() {
     const g = computeGeometry(state, view.width, view.height);
 
     // 2D telemetry
-    document.getElementById('tel-p1-angle').textContent = `${g.angleP1Deg.toFixed(1)}°`;
-    document.getElementById('tel-p2-angle').textContent = `${g.angleP2Deg.toFixed(1)}°`;
+    const telP1Angle = document.getElementById('tel-p1-angle');
+    if (telP1Angle) telP1Angle.textContent = `${g.angleP1Deg.toFixed(1)}°`;
+    const telP2Angle = document.getElementById('tel-p2-angle');
+    if (telP2Angle) telP2Angle.textContent = `${g.angleP2Deg.toFixed(1)}°`;
     const p1c2d = document.getElementById('tel-p1-coords');
     if (p1c2d) p1c2d.innerHTML = `<span class="color-amber">${(g.P1.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P1.y - g.cy)).toFixed(1)}</span>`;
     const p2c2d = document.getElementById('tel-p2-coords');
     if (p2c2d) p2c2d.innerHTML = `<span class="color-amber">${(g.P2.x - g.cx).toFixed(1)}</span>, <span class="color-lime">${(-(g.P2.y - g.cy)).toFixed(1)}</span>`;
-    document.getElementById('tel-diff').textContent = `${g.diffDeg.toFixed(3)}°`;
-    document.getElementById('tel-central-angle').textContent = `${g.centralDeg.toFixed(1)}°`;
+    const telDiff = document.getElementById('tel-diff');
+    if (telDiff) telDiff.textContent = `${g.diffDeg.toFixed(3)}°`;
+    const telCentral = document.getElementById('tel-central-angle');
+    if (telCentral) telCentral.textContent = `${g.centralDeg.toFixed(1)}°`;
     const rSlider = document.getElementById('slider-radius');
     if (rSlider && document.activeElement !== rSlider) rSlider.value = state.radius;
-    document.getElementById('label-radius').textContent = `${Math.round(state.radius)}px`;
+    const labelRadius = document.getElementById('label-radius');
+    if (labelRadius) labelRadius.textContent = `${Math.round(state.radius)}px`;
 
     // 3D telemetry
     const R3D = ((state.radius || 180) / 180) * 10;

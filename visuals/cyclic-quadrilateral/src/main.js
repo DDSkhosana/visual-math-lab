@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { CyclicQuadDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, CyclicQuad3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -24,6 +24,19 @@ function bootstrap() {
 
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   new ViewModeController(store, {
     mainView: document.getElementById('main-view'),
@@ -94,14 +107,14 @@ function bootstrap() {
   });
 
   // Controls
-  document.getElementById('slider-radius').addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
   const toggleArea = document.getElementById('toggle-area');
   if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
-  document.getElementById('toggle-exterior').addEventListener('change', (e) => store.set({ showExterior: e.target.checked }));
-  document.getElementById('toggle-diagonals').addEventListener('change', (e) => store.set({ showDiagonals: e.target.checked }));
+  document.getElementById('toggle-exterior')?.addEventListener('change', (e) => store.set({ showExterior: e.target.checked }));
+  document.getElementById('toggle-diagonals')?.addEventListener('change', (e) => store.set({ showDiagonals: e.target.checked }));
 
-  document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
-  document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
+  document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
+  document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();

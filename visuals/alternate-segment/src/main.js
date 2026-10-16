@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { AlternateSegmentDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AlternateSegment3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -24,6 +24,19 @@ function bootstrap() {
 
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   new ViewModeController(store, {
     mainView: document.getElementById('main-view'),
@@ -85,7 +98,7 @@ function bootstrap() {
   new PlaybackController(store, playBtn, { field: 'angleB', speed: 0.5 });
 
   // Controls
-  document.getElementById('slider-radius').addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
   
   const toggleProof = document.getElementById('toggle-proof');
   const toggle3dProof = document.getElementById('toggle-3d-proof');
@@ -109,8 +122,8 @@ function bootstrap() {
     if (toggleDAngles) toggleDAngles.checked = e.target.checked;
   });
 
-  document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
-  document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
+  document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
+  document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();

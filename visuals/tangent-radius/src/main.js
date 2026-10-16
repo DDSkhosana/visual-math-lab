@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { TangentRadiusDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, TangentRadius3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -24,6 +24,19 @@ function bootstrap() {
 
   new DraggableToolbar(document.getElementById('viewport-toolbar'), document.getElementById('toolbar-drag-handle'));
   bindFullscreen(document.getElementById('fullscreen-btn'), document.querySelector('.circle-explorer'));
+
+  const resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      store.reset();
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+    });
+  }
+
+  const unitContainer = document.getElementById('content-unit-converter');
+  if (unitContainer) {
+    new UnitSystemConverter(unitContainer, store);
+  }
 
   new ViewModeController(store, {
     mainView: document.getElementById('main-view'),
@@ -85,10 +98,10 @@ function bootstrap() {
   new PlaybackController(store, playBtn, { field: 'angleT', speed: 0.5 });
 
   // Controls
-  document.getElementById('slider-radius').addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
+  document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
   const toggleArea = document.getElementById('toggle-area');
   if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
-  document.getElementById('toggle-secant').addEventListener('change', (e) => store.set({ showSecant: e.target.checked }));
+  document.getElementById('toggle-secant')?.addEventListener('change', (e) => store.set({ showSecant: e.target.checked }));
 
   // Multiple Tangents Count buttons
   const countBtns = document.querySelectorAll('#tangent-count-group button');
@@ -119,8 +132,8 @@ function bootstrap() {
     btnSector.addEventListener('click', () => store.set({ chordAreaMode: 'sector' }));
   }
 
-  document.getElementById('btn-export-png').addEventListener('click', () => view.exportPNG());
-  document.getElementById('btn-export-svg').addEventListener('click', () => view.exportSVG());
+  document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
+  document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
