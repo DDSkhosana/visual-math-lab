@@ -25,6 +25,7 @@ export class Scene3DView {
     this.controls.dampingFactor = 0.05;
 
     new ResizeObserver(() => this.resize()).observe(container);
+    this.resize();
   }
 
   get domElement() {
@@ -244,6 +245,7 @@ export class Scene3DView {
   setCameraPreset(presetName) {
     const presets = {
       default: { pos: new this.THREE.Vector3(30, 20, 30), up: new this.THREE.Vector3(0, 1, 0) },
+      isometric: { pos: new this.THREE.Vector3(30, 20, 30), up: new this.THREE.Vector3(0, 1, 0) },
       top: { pos: new this.THREE.Vector3(0, 48, 0), up: new this.THREE.Vector3(0, 0, -1) },
       front: { pos: new this.THREE.Vector3(0, 0, 48), up: new this.THREE.Vector3(0, 1, 0) },
       side: { pos: new this.THREE.Vector3(48, 0, 0), up: new this.THREE.Vector3(0, 1, 0) },

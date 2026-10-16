@@ -531,9 +531,12 @@ function mountControlsToggle() {
   const header = section.querySelector('.collapsible-header');
   const content = section.querySelector('.collapsible-content');
   header?.addEventListener('click', () => {
-    content?.classList.toggle('hidden');
+    if (!content) return;
+    const isCurrentlyHidden = content.classList.contains('hidden') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
+    content.classList.toggle('hidden', !isCurrentlyHidden);
+    content.classList.toggle('open', isCurrentlyHidden);
     const icon = header.querySelector('.icon');
-    if (icon) icon.textContent = content?.classList.contains('hidden') ? '▶' : '▼';
+    if (icon) icon.textContent = isCurrentlyHidden ? '▼' : '▶';
   });
 
   const popoutBtn = section.querySelector('#btn-popout-legend');

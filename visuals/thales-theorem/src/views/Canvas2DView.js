@@ -11,6 +11,7 @@ export class Canvas2DView {
     this.ctx = canvas.getContext('2d');
     this.state = null;
     new ResizeObserver(() => this.resize()).observe(container);
+    this.resize();
   }
 
   resize() {

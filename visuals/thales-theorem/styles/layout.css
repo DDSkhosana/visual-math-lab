@@ -49,23 +49,14 @@ body.header-collapsed .thales-explorer {
 }
 
 #canvas-2d-container.perspective-top #canvas2d,
-#canvas-2d-container.perspective-top canvas {
-    transform: none;
-}
-
+#canvas-2d-container.perspective-top canvas,
 #canvas-2d-container.perspective-front #canvas2d,
-#canvas-2d-container.perspective-front canvas {
-    transform: rotateX(72deg) scale(0.92);
-}
-
+#canvas-2d-container.perspective-front canvas,
 #canvas-2d-container.perspective-side #canvas2d,
-#canvas-2d-container.perspective-side canvas {
-    transform: rotateX(72deg) rotateZ(90deg) scale(0.92);
-}
-
+#canvas-2d-container.perspective-side canvas,
 #canvas-2d-container.perspective-iso #canvas2d,
 #canvas-2d-container.perspective-iso canvas {
-    transform: rotateX(42deg) rotateZ(-28deg) scale(0.9);
+    transform: none !important;
 }
 
 .layout-split #canvas-2d-container, .layout-split #canvas-3d-container { width: 50%; display: block; }

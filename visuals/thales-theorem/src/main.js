@@ -1,11 +1,11 @@
 import { createInitialState } from './config/defaults.js';
 import { createStore } from './model/store.js';
-import { setViewMode } from './model/actions.js';
+import { setViewMode, setPlane2D } from './model/actions.js';
 import { loadThree } from './platform/three.js';
 import { Canvas2DView } from './views/Canvas2DView.js';
 import { Scene3DView } from './views/Scene3DView.js';
 import { NullScene3DView } from './views/NullScene3DView.js';
-import { LabelOverlayView } from './views/LabelOverlayView.js?v=3';
+import { LabelOverlayView } from './views/LabelOverlayView.js';
 import { StatsView } from './views/StatsView.js';
 import { DerivationView } from './views/DerivationView.js';
 import { ControlsController } from './controllers/ControlsController.js';
@@ -91,7 +91,7 @@ function bootstrap() {
   }
 
   const planeToPreset = {
-    'great-circle': 'front',
+    'great-circle': 'isometric',
     'xy': 'front',
     'xz': 'top',
     'yz': 'side',
@@ -106,7 +106,7 @@ function bootstrap() {
   };
 
   const syncCameraAndPlanes = (plane) => {
-    const targetPreset = planeToPreset[plane] || 'front';
+    const targetPreset = planeToPreset[plane] || 'isometric';
     scene3d.setCameraPreset(targetPreset);
 
     const cameraButtons = document.querySelectorAll('#toolbar-3d-panel [data-preset], .camera-presets-bar [data-preset]');
