@@ -711,6 +711,26 @@ test('Shared Navigation: components.js includes Home link and dropdown with all 
   for (const slug of visualSlugs) {
     assert.ok(componentsCode.includes(slug), `components.js default visuals must include slug: ${slug}`);
   }
+
+  // Must include dynamic fixed positioning and resize/scroll listeners for dropdown clipping prevention
+  assert.ok(componentsCode.includes('updateMenuPosition'), 'components.js must include updateMenuPosition');
+  assert.ok(componentsCode.includes('menu.style.position = "fixed"'), 'components.js must use fixed positioning for dropdown menu');
+  assert.ok(componentsCode.includes('trigger.getBoundingClientRect()'), 'components.js must anchor menu using getBoundingClientRect');
+
+  // Verify responsive navigation styling in visual.css and site.css
+  const visualCssPath = path.join(rootDir, 'css', 'visual.css');
+  const visualCss = fs.readFileSync(visualCssPath, 'utf8');
+  assert.ok(visualCss.includes('overflow-x: auto'), 'visual.css site-header must have overflow-x: auto');
+  assert.ok(visualCss.includes('white-space: nowrap'), 'visual.css site-header must have white-space: nowrap');
+  assert.ok(visualCss.includes('-webkit-overflow-scrolling: touch'), 'visual.css must support touch momentum scrolling');
+  assert.ok(visualCss.includes('@media (max-width: 48rem)'), 'visual.css must have 48rem responsive breakpoint');
+  assert.ok(visualCss.includes('@media (max-width: 36rem)'), 'visual.css must have 36rem responsive breakpoint');
+  assert.ok(visualCss.includes('@media (max-width: 25rem)'), 'visual.css must have 25rem responsive breakpoint');
+
+  const siteCssPath = path.join(rootDir, 'css', 'site.css');
+  const siteCss = fs.readFileSync(siteCssPath, 'utf8');
+  assert.ok(siteCss.includes('overflow-x: auto'), 'site.css site-header must have overflow-x: auto');
+  assert.ok(siteCss.includes('white-space: nowrap'), 'site.css site-header must have white-space: nowrap');
 });
 
 test('Reflex Angle System: HTML toggles, 2D/3D telemetry, and perigon invariants across all 8 visuals', () => {

@@ -97,9 +97,38 @@ export function mountSharedChrome() {
     const count = header.querySelector("#nav-visuals-count");
 
     if (dropdown && trigger && menu) {
+      const updateMenuPosition = () => {
+        if (menu.hidden) return;
+        if (typeof window === "undefined" || !trigger.getBoundingClientRect) return;
+        const rect = trigger.getBoundingClientRect();
+        if (!rect.width && !rect.height && !rect.top) return;
+
+        const viewportWidth = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 1024);
+
+        // If trigger has been scrolled off-screen horizontally, close menu
+        if (rect.right < 0 || rect.left > viewportWidth) {
+          closeMenu();
+          return;
+        }
+
+        menu.style.position = "fixed";
+        menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+        const menuWidth = menu.offsetWidth || 280;
+
+        // Align right edge of menu to right edge of trigger button when possible
+        const rightEdge = rect.right;
+        const leftCandidate = rightEdge - menuWidth;
+        const maxLeft = viewportWidth - menuWidth - 8;
+        const finalLeft = Math.max(8, Math.min(leftCandidate, maxLeft));
+
+        menu.style.left = `${Math.round(finalLeft)}px`;
+        menu.style.right = "auto";
+      };
+
       const openMenu = () => {
         menu.hidden = false;
         trigger.setAttribute("aria-expanded", "true");
+        updateMenuPosition();
       };
 
       const closeMenu = () => {
@@ -122,6 +151,20 @@ export function mountSharedChrome() {
           closeMenu();
         }
       });
+
+      if (typeof window !== "undefined") {
+        window.addEventListener("resize", () => {
+          if (!menu.hidden) updateMenuPosition();
+        }, { passive: true });
+
+        window.addEventListener("scroll", () => {
+          if (!menu.hidden) updateMenuPosition();
+        }, { passive: true });
+
+        header.addEventListener("scroll", () => {
+          if (!menu.hidden) updateMenuPosition();
+        }, { passive: true });
+      }
 
       // Keyboard navigation
       dropdown.addEventListener("keydown", (e) => {
