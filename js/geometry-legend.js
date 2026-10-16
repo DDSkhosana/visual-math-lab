@@ -58,7 +58,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Lines & Distances',
     name: 'Chord',
     symbol: 'AB',
-    formula: '|AB| = 2r \\sin(\\theta / 2)',
+    formula: '|AB| = 2r \\sin\\left(\\frac{\\theta}{2}\\right)',
     definition: 'A straight line segment joining two distinct points on the circumference without necessarily passing through the centre.',
     colorToken: 'PALETTE.amber (#fbbf24)',
     svg: `
@@ -80,7 +80,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Lines & Distances',
     name: 'Secant Line',
     symbol: 'Line AB',
-    formula: 'Intersects at 2 pts',
+    formula: '\\text{Secant cuts circle at 2 points: } A, B',
     definition: 'An extended straight line that cuts the circle at two distinct points. A chord is the finite segment bounded between the secant intersection points.',
     colorToken: 'PALETTE.steel (#6488b0)',
     svg: `
@@ -99,7 +99,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Lines & Distances',
     name: 'Tangent Line',
     symbol: 't, OT ⊥ t',
-    formula: 'OT \\cdot v_{tan} = 0',
+    formula: 'OT \\perp t \\implies OT \\cdot \\mathbf{v}_{\\text{tan}} = 0',
     definition: 'A coplanar line that touches the circle at exactly one point of contact T. The tangent is strictly perpendicular (90°) to the radius OT at point T.',
     colorToken: 'PALETTE.emerald (#10b981)',
     svg: `
@@ -125,7 +125,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Regions & Arcs',
     name: 'Arc (Minor / Major)',
     symbol: '⌒AB',
-    formula: 's = r\\theta',
+    formula: 's = r\\theta \\quad (\\theta \\text{ in rad})',
     definition: 'A connected curved segment of the circumference. The minor arc is the shorter curve between two points; the major arc is the longer curve.',
     colorToken: 'PALETTE.yellow (#eab308)',
     svg: `
@@ -146,7 +146,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Regions & Arcs',
     name: 'Circular Sector',
     symbol: 'Sector OAB',
-    formula: 'Area = \\frac{1}{2} r^2 \\theta',
+    formula: '\\text{Area} = \\frac{1}{2} r^2 \\theta',
     definition: 'The wedge-shaped region enclosed by two radii and the arc between them (similar to a pizza slice). Area is proportional to central angle θ.',
     colorToken: 'PALETTE.amber (#fbbf24)',
     svg: `
@@ -164,7 +164,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Regions & Arcs',
     name: 'Circular Segment',
     symbol: 'Segment on AB',
-    formula: 'Area = \\frac{1}{2} r^2 (\\theta - \\sin\\theta)',
+    formula: '\\text{Area} = \\frac{1}{2} r^2 (\\theta - \\sin\\theta)',
     definition: 'The region enclosed between a straight chord and the circular arc subtended by it. Can be Major (greater than semicircle) or Minor (less than semicircle).',
     colorToken: 'Major: Sky Blue (#0284c7) | Minor: Violet (#a855f7)',
     svg: `
@@ -182,7 +182,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Regions & Arcs',
     name: 'Alternate Segment',
     symbol: 'Alt Seg (Maj / Min)',
-    formula: '∠(t, Chord) = Inscribed ∠',
+    formula: '\\angle(t, \\text{chord}) = \\angle(\\text{inscribed})',
     definition: 'The segment of the circle containing the interior of the subtended angle opposite to the angle formed between a tangent and a chord.',
     colorToken: 'PALETTE.sky (#0284c7) & PALETTE.violet (#a855f7)',
     svg: `
@@ -204,7 +204,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Angles & Theorems',
     name: 'Inscribed Angle',
     symbol: '∠APB',
-    formula: 'θ = \\frac{1}{2} \\text{Central ∠}',
+    formula: '\\theta = \\frac{1}{2} \\angle\\text{AOB} = \\frac{1}{2} \\times \\text{Central } \\angle',
     definition: 'An angle whose vertex P lies on the circle circumference and whose legs contain chords subtending arc AB.',
     colorToken: 'PALETTE.yellow (#eab308) / PALETTE.emerald (#10b981)',
     svg: `
@@ -225,7 +225,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Angles & Theorems',
     name: 'Central Angle',
     symbol: '∠AOB',
-    formula: 'Central ∠ = 2 \\times Inscribed ∠',
+    formula: '\\angle\\text{AOB} = 2\\angle\\text{APB} = 2\\theta',
     definition: 'An angle whose apex is at the circle centre O, subtending the same arc as an inscribed angle. It is always exactly twice the measure of the inscribed angle.',
     colorToken: 'PALETTE.indigo (#6366f1) / PALETTE.amber (#fbbf24)',
     svg: `
@@ -246,7 +246,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Angles & Theorems',
     name: 'Reflex Angle & Perigon',
     symbol: 'θ*, θ + θ* = 360°',
-    formula: 'θ^* = 360^\\circ - \\theta',
+    formula: '\\theta^* = 360^\\circ - \\theta, \\quad \\theta + \\theta^* = 360^\\circ',
     definition: 'A reflex angle is an angle greater than 180° and less than 360°. Together with its interior conjugate angle, it forms an exact 360° perigon (full circle).',
     colorToken: 'PALETTE.lime (#84cc16) / PALETTE.teal (#14b8a6)',
     svg: `
@@ -266,7 +266,7 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Angles & Theorems',
     name: 'Cyclic Quadrilateral',
     symbol: 'ABCD on circle',
-    formula: '∠A + ∠C = 180°, \\; ∠B + ∠D = 180°',
+    formula: '\\angle A + \\angle C = 180^\\circ, \\quad \\angle B + \\angle D = 180^\\circ',
     definition: 'A quadrilateral whose four vertices all lie on a single common circle. Opposite interior angles are strictly supplementary (sum to 180°).',
     colorToken: 'A: Violet, B: Cyan, C: Amber, D: Rose',
     svg: `
@@ -300,11 +300,137 @@ export const COLOR_GRAMMAR_TOKENS = [
 ];
 
 let legendOverlay = null;
+let katexPromise = null;
+
+/**
+ * Dynamically loads KaTeX script and CSS if not present.
+ * @returns {Promise<any>}
+ */
+export function loadKaTeX() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.resolve(null);
+  }
+  if (window.katex && typeof window.katex.renderToString === 'function') {
+    return Promise.resolve(window.katex);
+  }
+  if (katexPromise) {
+    return katexPromise;
+  }
+
+  katexPromise = new Promise((resolve) => {
+    try {
+      if (!document.querySelector('link[href*="katex"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+      }
+
+      if (window.katex) {
+        resolve(window.katex);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';
+      script.crossOrigin = 'anonymous';
+      script.defer = true;
+      script.onload = () => resolve(window.katex || null);
+      script.onerror = () => {
+        console.warn('KaTeX CDN failed to load; using mathematical typography fallback.');
+        resolve(null);
+      };
+      document.head.appendChild(script);
+    } catch {
+      resolve(null);
+    }
+  });
+
+  return katexPromise;
+}
+
+/**
+ * Clean fallback mathematical formatter converting common LaTeX tokens to clean Unicode symbols.
+ * @param {string} latex
+ * @returns {string} HTML code block
+ */
+export function formatLatexFallback(latex) {
+  if (!latex) return '';
+  const clean = latex
+    .replace(/\\left|\\right/g, '')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)')
+    .replace(/\\sin/g, 'sin')
+    .replace(/\\cos/g, 'cos')
+    .replace(/\\tan/g, 'tan')
+    .replace(/\\theta\^?\*/g, 'θ*')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\alpha\^?\*/g, 'α*')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\beta\^?\*/g, 'β*')
+    .replace(/\\beta/g, 'β')
+    .replace(/\\circ/g, '°')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\times/g, '×')
+    .replace(/\\perp/g, '⊥')
+    .replace(/\\implies/g, '⟹')
+    .replace(/\\iff/g, '⟺')
+    .replace(/\\quad/g, '   ')
+    .replace(/\\;/g, ' ')
+    .replace(/\\,/g, ' ')
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+    .replace(/\\vec\{([^}]+)\}/g, '$1')
+    .replace(/\^2/g, '²')
+    .replace(/\\angle/g, '∠');
+  return `<code>${clean}</code>`;
+}
+
+/**
+ * Renders LaTeX into HTML using KaTeX if available, or fallback mathematical typography.
+ * @param {string} latex
+ * @returns {string} HTML string
+ */
+export function renderLatex(latex) {
+  if (typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function') {
+    try {
+      return window.katex.renderToString(latex, {
+        throwOnError: false,
+        displayMode: false
+      });
+    } catch {
+      // Fallback
+    }
+  }
+  return formatLatexFallback(latex);
+}
+
+/**
+ * Iterates through all formula containers in the DOM and upgrades them to KaTeX once loaded.
+ */
+export function renderAllFormulasInDOM() {
+  if (typeof document === 'undefined' || typeof window === 'undefined' || !window.katex) return;
+  const formulaElements = document.querySelectorAll('.legend-card-formula[data-formula]');
+  formulaElements.forEach((el) => {
+    const rawFormula = decodeURIComponent(el.getAttribute('data-formula') || '');
+    if (rawFormula) {
+      try {
+        el.innerHTML = window.katex.renderToString(rawFormula, {
+          throwOnError: false,
+          displayMode: false
+        });
+      } catch {
+        // preserve existing HTML
+      }
+    }
+  });
+}
 
 /**
  * Initializes and mounts the Geometry Notation Legend Modal and its Controls Panel toggle.
  */
 export function initGeometryLegend() {
+  loadKaTeX();
   mountLegendModal();
   mountControlsToggle();
 
@@ -356,25 +482,28 @@ function mountLegendModal() {
         </div>
       </div>
 
-      <!-- Content Body: Cards Grid -->
-      <div class="geometry-legend-body" id="legend-body-grid">
-        ${renderLegendCards(GEOMETRY_ELEMENTS)}
-      </div>
+      <!-- Unified Scrollable Content Area: contains cards grid and colour grammar tokens -->
+      <div class="geometry-legend-scroll-container" id="legend-scroll-container">
+        <!-- Content Body: Cards Grid -->
+        <div class="geometry-legend-body" id="legend-body-grid">
+          ${renderLegendCards(GEOMETRY_ELEMENTS)}
+        </div>
 
-      <!-- Colour Grammar Section (Rendered when grammar tab is selected or all) -->
-      <div class="geometry-legend-grammar" id="legend-grammar-section">
-        <h3 class="grammar-title">Unified Lab Colour Grammar Tokens</h3>
-        <p class="grammar-desc">Standard color-coding tokens synchronized between 2D canvas vertices, 3D spatial models, telemetry panels, and algebraic derivation steps:</p>
-        <div class="grammar-tokens-grid">
-          ${COLOR_GRAMMAR_TOKENS.map((t) => `
-            <div class="grammar-token-card">
-              <span class="token-swatch" style="background-color: ${t.hex};"></span>
-              <div class="token-info">
-                <strong>${t.token} <span class="token-hex">(${t.hex})</span></strong>
-                <span>${t.role}</span>
+        <!-- Colour Grammar Section (Rendered when grammar tab is selected or all) -->
+        <div class="geometry-legend-grammar" id="legend-grammar-section">
+          <h3 class="grammar-title">Unified Lab Colour Grammar Tokens</h3>
+          <p class="grammar-desc">Standard color-coding tokens synchronized between 2D canvas vertices, 3D spatial models, telemetry panels, and algebraic derivation steps:</p>
+          <div class="grammar-tokens-grid">
+            ${COLOR_GRAMMAR_TOKENS.map((t) => `
+              <div class="grammar-token-card">
+                <span class="token-swatch" style="background-color: ${t.hex};"></span>
+                <div class="token-info">
+                  <strong>${t.token} <span class="token-hex">(${t.hex})</span></strong>
+                  <span>${t.role}</span>
+                </div>
               </div>
-            </div>
-          `).join('')}
+            `).join('')}
+          </div>
         </div>
       </div>
 
@@ -387,6 +516,11 @@ function mountLegendModal() {
 
   document.body.appendChild(overlay);
   legendOverlay = overlay;
+
+  // Preload and render formulas once KaTeX loads
+  loadKaTeX().then(() => {
+    renderAllFormulasInDOM();
+  });
 
   // Event handlers
   const closeBtn = overlay.querySelector('#geometry-legend-close');
@@ -442,7 +576,7 @@ function renderLegendCards(elements) {
           </div>
           <div class="legend-card-details">
             <h4 class="legend-card-title">${el.name}</h4>
-            <div class="legend-card-formula"><code>${el.formula}</code></div>
+            <div class="legend-card-formula" data-formula="${encodeURIComponent(el.formula)}">${renderLatex(el.formula)}</div>
             <p class="legend-card-definition">${el.definition}</p>
             <div class="legend-card-token">
               <span class="token-label">Token:</span> ${el.colorToken}
@@ -457,6 +591,7 @@ function renderLegendCards(elements) {
 function applyFilter(category, query) {
   const cards = document.querySelectorAll('.legend-card');
   const grammarSection = document.getElementById('legend-grammar-section');
+  const scrollContainer = document.getElementById('legend-scroll-container');
   const q = query.trim().toLowerCase();
 
   cards.forEach((card) => {
@@ -481,6 +616,12 @@ function applyFilter(category, query) {
       grammarSection.style.display = 'none';
     }
   }
+
+  if (scrollContainer) {
+    scrollContainer.scrollTop = 0;
+  }
+
+  renderAllFormulasInDOM();
 }
 
 /**
@@ -555,6 +696,7 @@ export function openLegendModal() {
   if (legendOverlay) {
     legendOverlay.hidden = false;
     legendOverlay.querySelector('.geometry-legend-close')?.focus({ preventScroll: true });
+    renderAllFormulasInDOM();
   }
 }
 

@@ -1265,10 +1265,11 @@ body.interaction-tips-disabled .walkthrough-popover {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 3rem 1rem 2rem;
-  overflow-y: auto;
+  padding: 1.5rem 1rem;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .geometry-legend-overlay[hidden] {
@@ -1277,19 +1278,24 @@ body.interaction-tips-disabled .walkthrough-popover {
 
 .geometry-legend-modal-card {
   width: min(100%, 64rem);
-  max-height: calc(100vh - 4.5rem);
+  max-height: calc(100vh - 3rem);
+  height: min(92vh, 58rem);
   background: #1e293b;
   border: 1px solid #475569;
   border-radius: 1rem;
-  padding: 1.5rem 1.75rem;
+  padding: 1.5rem 1.75rem 1.25rem;
   color: #f8fafc;
   box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
   animation: visual-info-fade-in 0.2s ease-out;
+  position: relative;
 }
 
 .geometry-legend-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -1337,11 +1343,12 @@ body.interaction-tips-disabled .walkthrough-popover {
 
 /* Toolbar & Filter Tabs */
 .geometry-legend-toolbar {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
@@ -1392,14 +1399,39 @@ body.interaction-tips-disabled .walkthrough-popover {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
 
+/* Scroll Container that hosts both Body Grid and Grammar section */
+.geometry-legend-scroll-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #1e293b;
+}
+
+.geometry-legend-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.geometry-legend-scroll-container::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+.geometry-legend-scroll-container::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
 /* Body Cards Grid */
 .geometry-legend-body {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(18.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18.5rem), 1fr));
   gap: 0.85rem;
-  overflow-y: auto;
-  max-height: 52vh;
-  padding-right: 0.35rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .legend-card {
@@ -1410,6 +1442,8 @@ body.interaction-tips-disabled .walkthrough-popover {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
+  box-sizing: border-box;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1427,6 +1461,7 @@ body.interaction-tips-disabled .walkthrough-popover {
   color: #94a3b8;
   border-bottom: 1px solid rgba(51, 65, 85, 0.6);
   padding-bottom: 0.3rem;
+  min-width: 0;
 }
 
 .legend-card-category {
@@ -1434,18 +1469,23 @@ body.interaction-tips-disabled .walkthrough-popover {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #818cf8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .legend-card-symbol {
   font-family: monospace;
   font-weight: 600;
   color: #38bdf8;
+  flex-shrink: 0;
 }
 
 .legend-card-main {
   display: flex;
   gap: 0.85rem;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .legend-card-visual {
@@ -1468,28 +1508,48 @@ body.interaction-tips-disabled .walkthrough-popover {
 }
 
 .legend-card-details {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .legend-card-title {
   font-size: 0.95rem;
   font-weight: 700;
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.25rem;
   color: #f8fafc;
+  word-break: break-word;
 }
 
 .legend-card-formula {
-  font-size: 0.75rem;
-  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.45rem;
   color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
+}
+
+.legend-card-formula .katex {
+  font-size: 0.98em;
+  color: #7dd3fc;
+  line-height: 1.25;
 }
 
 .legend-card-formula code {
-  background: rgba(56, 189, 248, 0.1);
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   font-family: monospace;
+  font-size: 0.78rem;
+  color: #38bdf8;
 }
 
 .legend-card-definition {
@@ -1497,12 +1557,14 @@ body.interaction-tips-disabled .walkthrough-popover {
   line-height: 1.45;
   color: #cbd5e1;
   margin: 0 0 0.4rem;
+  word-break: break-word;
 }
 
 .legend-card-token {
   font-size: 0.7rem;
   color: #94a3b8;
   line-height: 1.35;
+  word-break: break-word;
 }
 
 .legend-card-token .token-label {
@@ -1512,11 +1574,13 @@ body.interaction-tips-disabled .walkthrough-popover {
 
 /* Colour Grammar Section */
 .geometry-legend-grammar {
-  margin-top: 1rem;
-  padding: 1rem;
+  padding: 1rem 1.15rem;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid #334155;
   border-radius: 0.625rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .grammar-title {
@@ -1535,8 +1599,10 @@ body.interaction-tips-disabled .walkthrough-popover {
 
 .grammar-tokens-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5rem), 1fr));
   gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .grammar-token-card {
@@ -1547,6 +1613,8 @@ body.interaction-tips-disabled .walkthrough-popover {
   border: 1px solid #334155;
   border-radius: 0.375rem;
   padding: 0.4rem 0.65rem;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .token-swatch {
@@ -1562,10 +1630,13 @@ body.interaction-tips-disabled .walkthrough-popover {
   flex-direction: column;
   font-size: 0.75rem;
   line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .token-info strong {
   color: #f8fafc;
+  word-break: break-word;
 }
 
 .token-hex {
@@ -1577,17 +1648,19 @@ body.interaction-tips-disabled .walkthrough-popover {
 .token-info span {
   color: #cbd5e1;
   font-size: 0.7rem;
+  word-break: break-word;
 }
 
 /* Footer */
 .geometry-legend-footer {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
   border-top: 1px solid #334155;
   padding-top: 0.85rem;
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -1603,6 +1676,40 @@ body.interaction-tips-disabled .walkthrough-popover {
   padding: 0.1rem 0.35rem;
   font-size: 0.7rem;
   color: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .geometry-legend-overlay {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .geometry-legend-modal-card {
+    padding: 1rem;
+    max-height: calc(100vh - 1rem);
+    height: 96vh;
+    border-radius: 0.75rem;
+  }
+
+  .geometry-legend-title {
+    font-size: 1.15rem;
+  }
+
+  .geometry-legend-body {
+    grid-template-columns: 1fr;
+  }
+
+  .grammar-tokens-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .legend-search-box {
+    width: 100%;
+  }
+
+  .legend-search-box input {
+    min-width: 100%;
+    width: 100%;
+  }
 }
 
 

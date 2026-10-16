@@ -30,6 +30,9 @@ test('Geometry Legend: CSS contains styles for pop-out modal, cards, tabs, and h
   assert.ok(css.includes('.legend-svg'), 'Must include .legend-svg');
   assert.ok(css.includes('.legend-card-formula'), 'Must include .legend-card-formula');
 
+  // Unified scroll container to prevent panel overflow
+  assert.ok(css.includes('.geometry-legend-scroll-container'), 'Must include .geometry-legend-scroll-container');
+
   // Colour grammar
   assert.ok(css.includes('.geometry-legend-grammar'), 'Must include .geometry-legend-grammar');
   assert.ok(css.includes('.grammar-token-card'), 'Must include .grammar-token-card');
@@ -44,11 +47,20 @@ test('Geometry Legend: visual-page.js imports and initializes legend modal and h
   assert.ok(js.includes('visual-legend-btn'), 'visual-page.js must render #visual-legend-btn in header');
 });
 
-test('Geometry Legend: geometry-legend.js exports all notation elements with valid formulas and SVG diagrams', async () => {
+test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX rendering utilities', async () => {
   const modPath = path.join(rootDir, 'js', 'geometry-legend.js');
   assert.ok(fs.existsSync(modPath), 'js/geometry-legend.js must exist');
 
-  const { GEOMETRY_ELEMENTS, COLOR_GRAMMAR_TOKENS, openLegendModal, closeLegendModal, toggleLegendModal } = await import('../js/geometry-legend.js');
+  const {
+    GEOMETRY_ELEMENTS,
+    COLOR_GRAMMAR_TOKENS,
+    openLegendModal,
+    closeLegendModal,
+    toggleLegendModal,
+    renderLatex,
+    formatLatexFallback,
+    loadKaTeX
+  } = await import('../js/geometry-legend.js');
 
   assert.ok(Array.isArray(GEOMETRY_ELEMENTS), 'GEOMETRY_ELEMENTS must be an array');
   assert.ok(GEOMETRY_ELEMENTS.length >= 10, 'Must have at least 10 geometric notation elements');
@@ -77,6 +89,10 @@ test('Geometry Legend: geometry-legend.js exports all notation elements with val
     assert.ok(el.formula && el.formula.length > 0, `${id}: must have formula`);
     assert.ok(el.definition && el.definition.length > 10, `${id}: must have definition`);
     assert.ok(el.svg.includes('<svg') && el.svg.includes('</svg>'), `${id}: must have valid SVG markup`);
+
+    // Verify mathematical rendering does not crash and produces non-empty output
+    const rendered = renderLatex(el.formula);
+    assert.ok(rendered && rendered.length > 0, `${id}: rendered formula must be non-empty`);
   }
 
   assert.ok(Array.isArray(COLOR_GRAMMAR_TOKENS), 'COLOR_GRAMMAR_TOKENS must be an array');
@@ -85,5 +101,17 @@ test('Geometry Legend: geometry-legend.js exports all notation elements with val
   assert.strictEqual(typeof openLegendModal, 'function');
   assert.strictEqual(typeof closeLegendModal, 'function');
   assert.strictEqual(typeof toggleLegendModal, 'function');
+  assert.strictEqual(typeof renderLatex, 'function');
+  assert.strictEqual(typeof formatLatexFallback, 'function');
+  assert.strictEqual(typeof loadKaTeX, 'function');
+
+  // Verify LaTeX fallback converts syntax to clean Unicode symbols
+  const testFormula = '\\text{Area} = \\frac{1}{2} r^2 (\\theta - \\sin\\theta)';
+  const formatted = formatLatexFallback(testFormula);
+  assert.ok(!formatted.includes('\\frac'), 'Fallback must resolve \\frac');
+  assert.ok(!formatted.includes('\\theta'), 'Fallback must resolve \\theta to θ');
+  assert.ok(!formatted.includes('\\sin'), 'Fallback must resolve \\sin to sin');
+  assert.ok(formatted.includes('²'), 'Fallback must format exponent to ²');
+  assert.ok(formatted.includes('θ'), 'Fallback must include Greek letter θ');
 });
 
