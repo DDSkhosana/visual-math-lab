@@ -875,3 +875,54 @@ test('Visual Thumbnails: all 8 SVG thumbnails exist, have valid viewBox, and con
     }
   }
 });
+
+test('Interactive Canvas Protection: all circle visual canvas containers enforce touch-action none and user-select none', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'layout.css'), 'utf8');
+
+  assert.ok(css.includes('#canvas-2d-container') && css.includes('touch-action: none;'), 'circle-visual.css must style #canvas-2d-container with touch-action: none;');
+  assert.ok(css.includes('#canvas-3d-container') && css.includes('touch-action: none;'), 'circle-visual.css must style #canvas-3d-container with touch-action: none;');
+  assert.ok(thalesCss.includes('.thales-explorer canvas') && thalesCss.includes('touch-action: none;'), 'Thales layout.css must style .thales-explorer canvas with touch-action: none;');
+});
+
+test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dragging invariants', () => {
+  // 1. Alternate Segment: Dragging Point D updates Point T (antipodal D = -T)
+  const altState = AlternateSegment.createInitialState();
+  const TAU = Math.PI * 2;
+  for (const angD of [0.2 * Math.PI, 0.7 * Math.PI, 1.3 * Math.PI, 1.8 * Math.PI]) {
+    const derivedAngT = (angD - Math.PI + TAU * 2) % TAU;
+    const g = AlternateSegment.computeGeometry({ ...altState, angleT: derivedAngT }, 800, 600);
+    // Inscribed angle at B and tangent angle must remain strictly equal
+    close(g.tangentChordDeg, g.inscribedDeg, 1e-4);
+    // Point D must be antipodal to T
+    const dxT = g.T.x - g.cx;
+    const dyT = g.T.y - g.cy;
+    const dxD = g.D.x - g.cx;
+    const dyD = g.D.y - g.cy;
+    close(dxT + dxD, 0, 1e-4);
+    close(dyT + dyD, 0, 1e-4);
+  }
+
+  // 2. Chord Bisector: Dragging Midpoint M rigidly rotates chord AB
+  const bisState = ChordBisector.createInitialState();
+  const initG = ChordBisector.computeGeometry(bisState, 800, 600);
+  const initialChordLen = initG.lenChord;
+
+  for (const angM of [0, Math.PI / 3, Math.PI / 2, Math.PI, (4 * Math.PI) / 3]) {
+    const dAngle = Math.atan2(Math.sin(bisState.angleB - bisState.angleA), Math.cos(bisState.angleB - bisState.angleA));
+    const nextA = (angM - dAngle / 2 + TAU * 2) % TAU;
+    const nextB = (angM + dAngle / 2 + TAU * 2) % TAU;
+    const g = ChordBisector.computeGeometry({ ...bisState, angleA: nextA, angleB: nextB }, 800, 600);
+
+    // Chord length strictly invariant
+    close(g.lenChord, initialChordLen, 1e-4);
+    // AM = MB
+    close(g.lenAM, g.lenMB, 1e-4);
+    // OM perpendicular to AB (dot product is 0, angle is 90°)
+    close(g.dot, 0, 1e-4);
+    close(g.angleOMADeg, 90.0, 1e-4);
+  }
+});
+

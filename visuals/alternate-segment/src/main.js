@@ -145,9 +145,11 @@ function bootstrap() {
     const y = e.clientY - rect.top;
     const g = computeGeometry(store.get(), view.width, view.height);
 
+    const isProof = Boolean(store.get().showProofConstruction || store.get().showThalesOverlay);
     if (hit(x, y, g.T)) activePoint = 'T';
     else if (hit(x, y, g.A)) activePoint = 'A';
     else if (hit(x, y, g.B)) activePoint = 'B';
+    else if (isProof && g.D && hit(x, y, g.D)) activePoint = 'D';
 
     if (activePoint) {
       if (store.get().playing) {
@@ -164,7 +166,8 @@ function bootstrap() {
     const g = computeGeometry(store.get(), view.width, view.height);
 
     if (!activePoint) {
-      const hover = hit(x, y, g.T) || hit(x, y, g.A) || hit(x, y, g.B);
+      const isProof = Boolean(store.get().showProofConstruction || store.get().showThalesOverlay);
+      const hover = hit(x, y, g.T) || hit(x, y, g.A) || hit(x, y, g.B) || (isProof && g.D && hit(x, y, g.D));
       canvas.style.cursor = hover ? 'pointer' : 'default';
       return;
     }
@@ -175,6 +178,10 @@ function bootstrap() {
     if (activePoint === 'T') store.set({ angleT: ang });
     else if (activePoint === 'A') store.set({ angleA: ang });
     else if (activePoint === 'B') store.set({ angleB: ang });
+    else if (activePoint === 'D') {
+      const TAU = Math.PI * 2;
+      store.set({ angleT: (ang - Math.PI + TAU * 2) % TAU });
+    }
   });
 
   const stopDrag = (e) => {
@@ -186,6 +193,8 @@ function bootstrap() {
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
+  window.addEventListener('pointerup', stopDrag);
+  window.addEventListener('pointercancel', stopDrag);
 
   // Store Subscribe & Initial Render
   const update = (state) => {

@@ -140,6 +140,7 @@ function bootstrap() {
 
     if (hit(x, y, g.A)) activePoint = 'A';
     else if (hit(x, y, g.B)) activePoint = 'B';
+    else if (hit(x, y, g.M)) activePoint = 'M';
 
     if (activePoint) {
       if (store.get().playing) {
@@ -156,7 +157,7 @@ function bootstrap() {
     const g = computeGeometry(store.get(), view.width, view.height);
 
     if (!activePoint) {
-      const hover = hit(x, y, g.A) || hit(x, y, g.B);
+      const hover = hit(x, y, g.A) || hit(x, y, g.B) || hit(x, y, g.M);
       canvas.style.cursor = hover ? 'pointer' : 'default';
       return;
     }
@@ -164,8 +165,18 @@ function bootstrap() {
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
 
-    if (activePoint === 'A') store.set({ angleA: ang });
-    else if (activePoint === 'B') store.set({ angleB: ang });
+    if (activePoint === 'A') {
+      store.set({ angleA: ang });
+    } else if (activePoint === 'B') {
+      store.set({ angleB: ang });
+    } else if (activePoint === 'M') {
+      const st = store.get();
+      const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
+      const TAU = Math.PI * 2;
+      const nextA = (ang - dAngle / 2 + TAU * 2) % TAU;
+      const nextB = (ang + dAngle / 2 + TAU * 2) % TAU;
+      store.set({ angleA: nextA, angleB: nextB });
+    }
   });
 
   const stopDrag = (e) => {
@@ -177,6 +188,8 @@ function bootstrap() {
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
+  window.addEventListener('pointerup', stopDrag);
+  window.addEventListener('pointercancel', stopDrag);
 
   // Store Subscribe & Initial Render
   const update = (state) => {

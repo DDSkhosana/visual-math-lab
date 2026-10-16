@@ -205,6 +205,8 @@ function bootstrap() {
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
+  window.addEventListener('pointerup', stopDrag);
+  window.addEventListener('pointercancel', stopDrag);
 
   // Subscribe view, 3d, and telemetry to store changes
   const update = (state) => {

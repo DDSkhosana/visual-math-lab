@@ -205,6 +205,8 @@ function bootstrap() {
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
+  window.addEventListener('pointerup', stopDrag);
+  window.addEventListener('pointercancel', stopDrag);
 
   // Store Subscribe & Initial Render
   const update = (state) => {

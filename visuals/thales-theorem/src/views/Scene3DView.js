@@ -75,6 +75,8 @@ export class Scene3DView {
     o.pointA.position.set(-r * cosR, -r * sinR, 0);
     o.pointB.position.set(r * cosR, r * sinR, 0);
     o.pointP.material = state.hoverP3D ? o.materials.markerHover : o.materials.markerHidden;
+    o.pointA.material = state.hoverA3D ? o.materials.markerHover : o.materials.markerHidden;
+    o.pointB.material = state.hoverB3D ? o.materials.markerHover : o.materials.markerHidden;
 
     const toA = new THREE.Vector3().subVectors(o.pointA.position, o.pointP.position);
     const toB = new THREE.Vector3().subVectors(o.pointB.position, o.pointP.position);
@@ -204,12 +206,38 @@ export class Scene3DView {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(ndc, this.camera);
+    this.lastPointerCoords = { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
-  /** Both pick methods use the ray from the latest pointerToRay call. */
+  /** Pick methods use the ray and screen-space proximity from latest pointerToRay call. */
   hitsPointP() {
+    if (!this.objects?.pointP) return false;
     if (this.raycaster.intersectObject(this.objects.pointP).length > 0) return true;
-    return this.raycaster.ray.distanceToPoint(this.objects.pointP.position) < 2.0;
+    const screenPt = this.project(this.objects.pointP.position);
+    if (screenPt && this.lastPointerCoords) {
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+    }
+    return this.raycaster.ray.distanceToPoint(this.objects.pointP.position) < 2.2;
+  }
+
+  hitsPointA() {
+    if (!this.objects?.pointA) return false;
+    if (this.raycaster.intersectObject(this.objects.pointA).length > 0) return true;
+    const screenPt = this.project(this.objects.pointA.position);
+    if (screenPt && this.lastPointerCoords) {
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+    }
+    return this.raycaster.ray.distanceToPoint(this.objects.pointA.position) < 2.2;
+  }
+
+  hitsPointB() {
+    if (!this.objects?.pointB) return false;
+    if (this.raycaster.intersectObject(this.objects.pointB).length > 0) return true;
+    const screenPt = this.project(this.objects.pointB.position);
+    if (screenPt && this.lastPointerCoords) {
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+    }
+    return this.raycaster.ray.distanceToPoint(this.objects.pointB.position) < 2.2;
   }
 
   pickSphere(baselineRotation = 0) {

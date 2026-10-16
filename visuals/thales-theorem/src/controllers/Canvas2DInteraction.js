@@ -14,6 +14,8 @@ export class Canvas2DInteraction {
     canvas.addEventListener('pointermove', (e) => this.#move(e));
     canvas.addEventListener('pointerup', (e) => this.#up(e));
     canvas.addEventListener('pointercancel', (e) => this.#up(e));
+    window.addEventListener('pointerup', (e) => this.#up(e));
+    window.addEventListener('pointercancel', (e) => this.#up(e));
     canvas.addEventListener('pointerleave', () => !this.mode && store.set({ hoverP2D: false }));
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();

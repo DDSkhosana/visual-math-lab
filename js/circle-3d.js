@@ -360,18 +360,39 @@ export class BaseScene3DView {
       return null;
     };
 
+    const projectToScreen = (pos) => {
+      if (!pos || !this.camera) return null;
+      const v = pos.clone().project(this.camera);
+      if (v.z > 1) return null;
+      const rect = element.getBoundingClientRect();
+      return {
+        x: (v.x * 0.5 + 0.5) * rect.width,
+        y: (v.y * -0.5 + 0.5) * rect.height,
+      };
+    };
+
     element.addEventListener('pointerdown', (e) => {
       if (e.button && e.button !== 0) return;
       const ray = pointerToRay(e);
       const targets = customTargets || this.draggableTargets || [];
+      const rect = element.getBoundingClientRect();
+      const ptrX = e.clientX - rect.left;
+      const ptrY = e.clientY - rect.top;
+
       let closest = null;
-      let minDistance = 1.6;
+      let minScore = Infinity;
       for (const tgt of targets) {
         if (!tgt.mesh || tgt.mesh.visible === false) continue;
-        const dist = ray.ray.distanceToPoint(tgt.mesh.position);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closest = tgt;
+        const dist3d = ray.ray.distanceToPoint(tgt.mesh.position);
+        const screenPt = projectToScreen(tgt.mesh.position);
+        const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
+
+        if (dist3d < 2.2 || distPx < 26) {
+          const score = Math.min(dist3d, distPx / 12);
+          if (score < minScore) {
+            minScore = score;
+            closest = tgt;
+          }
         }
       }
 
@@ -407,10 +428,16 @@ export class BaseScene3DView {
         e.stopPropagation();
       } else {
         const targets = customTargets || this.draggableTargets || [];
+        const rect = element.getBoundingClientRect();
+        const ptrX = e.clientX - rect.left;
+        const ptrY = e.clientY - rect.top;
         let hover = false;
         for (const tgt of targets) {
           if (!tgt.mesh || tgt.mesh.visible === false) continue;
-          if (ray.ray.distanceToPoint(tgt.mesh.position) < 1.6) {
+          const dist3d = ray.ray.distanceToPoint(tgt.mesh.position);
+          const screenPt = projectToScreen(tgt.mesh.position);
+          const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
+          if (dist3d < 2.2 || distPx < 26) {
             hover = true;
             break;
           }
@@ -424,11 +451,15 @@ export class BaseScene3DView {
         activeTarget = null;
         this.controls.enabled = true;
         element.style.cursor = '';
-        try { element.releasePointerCapture(e.pointerId); } catch (_) {}
+        if (e && element.hasPointerCapture?.(e.pointerId)) {
+          try { element.releasePointerCapture(e.pointerId); } catch (_) {}
+        }
       }
     };
     element.addEventListener('pointerup', endDrag);
     element.addEventListener('pointercancel', endDrag);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
   }
 
   dispose() {
@@ -1754,6 +1785,19 @@ export class AlternateSegment3DView extends BaseScene3DView {
       { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
       { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
       { id: 'T', mesh: this.markerT, field: 'angleT', latField: 'latT' },
+      {
+        id: 'D',
+        mesh: this.markerD,
+        onDrag: (angle, hit, store, lat) => {
+          const TAU = Math.PI * 2;
+          const angleT = (angle - Math.PI + TAU * 2) % TAU;
+          if (lat !== undefined) {
+            store.set({ angleT, latT: Math.PI - lat });
+          } else {
+            store.set({ angleT });
+          }
+        },
+      },
     ];
   }
 
@@ -2157,6 +2201,18 @@ export class ChordBisector3DView extends BaseScene3DView {
     this.draggableTargets = [
       { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
       { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
+      {
+        id: 'M',
+        mesh: this.markerM,
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
+          const TAU = Math.PI * 2;
+          const nextA = (angle - dAngle / 2 + TAU * 2) % TAU;
+          const nextB = (angle + dAngle / 2 + TAU * 2) % TAU;
+          store.set({ angleA: nextA, angleB: nextB });
+        },
+      },
     ];
   }
 
