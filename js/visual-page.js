@@ -249,26 +249,6 @@ async function initializeVisualPage() {
     toolbarContent.appendChild(tipsToolbarBtn);
   }
 
-  // Inject brief concise indemnifying disclaimer footnote in editorial content
-  const editorial = document.querySelector(".visual-page__content");
-  if (editorial && !editorial.querySelector(".visual-disclaimer-footnote")) {
-    const fn = document.createElement("aside");
-    fn.className = "visual-disclaimer-footnote";
-    fn.setAttribute("role", "note");
-    fn.setAttribute("aria-label", "Disclaimer");
-    fn.innerHTML = `<p><strong>Disclaimer:</strong> Use of this product is at your own discretion. Neither the authors, contributors, nor Visual Mathematics Lab shall be held liable or responsible for any material loss associated with the use of the app. The product may contain occasional inconsistencies in the colour grammar to visual canvas component mapping; users should interpret all figures, measurements, and derivations with discretion.</p>`;
-    editorial.appendChild(fn);
-  }
-
-  // Inject disclaimer in the info modal card
-  const modalDesc = document.querySelector(".visual-info-card .visual-info-desc");
-  if (modalDesc && !document.querySelector(".visual-info-disclaimer")) {
-    const modalDisclaimer = document.createElement("p");
-    modalDisclaimer.className = "visual-info-disclaimer";
-    modalDisclaimer.innerHTML = `<strong>Disclaimer:</strong> Neither the authors, contributors, nor Visual Mathematics Lab shall be held liable for any material loss associated with the use of the app. Graphical elements may have minor inconsistencies in colour grammar to canvas mapping; interpret with discretion.`;
-    modalDesc.parentNode.insertBefore(modalDisclaimer, modalDesc.nextSibling);
-  }
-
   trackEvent("visual_view", { visual: visual.slug });
 }
 
