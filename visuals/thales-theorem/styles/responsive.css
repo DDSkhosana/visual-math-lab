@@ -143,4 +143,9 @@
     max-width: calc(100% - 4rem);
     font-size: 0.65rem;
   }
+
+  .thales-explorer .camera-presets-bar {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
 }

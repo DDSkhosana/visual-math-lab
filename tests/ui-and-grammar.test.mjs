@@ -476,5 +476,32 @@ test('Performance: Multi-origin preconnects and deferred Three.js/OrbitControls 
   }
 });
 
+test('Camera Presets Bar: Vertically oriented and right-margin aligned across all visualizers', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
 
+  const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
 
+  for (const [name, css] of [['circle-visual.css', circleCss], ['overlays.css', thalesCss]]) {
+    assert.ok(
+      css.includes('.camera-presets-bar'),
+      `${name} must define .camera-presets-bar`
+    );
+    assert.ok(
+      /flex-direction:\s*column/.test(css),
+      `${name} .camera-presets-bar must be vertically oriented (flex-direction: column)`
+    );
+    assert.ok(
+      /\.camera-presets-bar\s*\{[^}]*right:\s*1rem/s.test(css),
+      `${name} .camera-presets-bar must be aligned along the right margin (right: 1rem)`
+    );
+    assert.ok(
+      /\.camera-mode-toggle\s*\{[^}]*border-top/s.test(css),
+      `${name} .camera-mode-toggle must use a top border divider in vertical layout`
+    );
+  }
+});
