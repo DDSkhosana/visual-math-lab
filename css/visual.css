@@ -281,6 +281,84 @@ html, body {
   display: none;
 }
 
+/* ==========================================================================
+   Panel Header Action Controls & Expand/Collapse Chevrons
+   ========================================================================== */
+.panel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.panel-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+}
+
+.panel-expand-btn:hover {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #64748b;
+  transform: translateY(-0.5px);
+}
+
+.panel-expand-btn:active {
+  transform: translateY(0.5px) scale(0.98);
+}
+
+.panel-expand-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.panel-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+}
+
+.panel-expand-icon svg {
+  display: block;
+}
+
+.panel-expand-btn:hover .panel-expand-icon {
+  color: #7dd3fc;
+}
+
+.panel-expand-btn[aria-expanded="true"] .panel-expand-icon {
+  color: #fbbf24;
+}
+
+.panel-expand-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 36rem) {
+  .panel-expand-btn .panel-expand-label {
+    display: none;
+  }
+  .panel-expand-btn {
+    padding: 0.2rem 0.35rem;
+  }
+}
+
 /* Fullscreen app main container */
 .visual-page-body .visual-page {
   width: 100%;

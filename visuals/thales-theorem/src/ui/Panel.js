@@ -1,5 +1,6 @@
 import { COMPACT_QUERY, LIMITS } from '../config/defaults.js';
 import { clamp } from '../model/thales-math.js';
+import { setExpandButtonUI } from './Accordion.js';
 
 /**
  * A floating panel that can be dragged, resized and minimised with Pointer Events (mouse, touch, pen).
@@ -25,6 +26,9 @@ export class Panel {
     minimizeButton?.addEventListener('click', () => this.setMinimized(!this.minimized));
     expandButton?.addEventListener('click', () => this.#toggleAll());
     this.#syncMinimizeButton();
+    if (expandButton) {
+      setExpandButtonUI(expandButton, false);
+    }
   }
 
   get minimized() {
@@ -40,16 +44,20 @@ export class Panel {
     if (!this.minimizeButton) return;
     this.minimizeButton.textContent = this.minimized ? '+' : '−';
     this.minimizeButton.setAttribute('aria-expanded', String(!this.minimized));
+    if (this.expandButton && this.minimized) {
+      setExpandButtonUI(this.expandButton, false);
+    }
   }
 
   #toggleAll() {
     if (!this.accordion || !this.body) return;
-    const shouldCollapse = this.expandButton?.textContent === 'Collapse All' ||
+    const shouldCollapse = this.expandButton?.getAttribute('aria-expanded') === 'true' ||
+      this.expandButton?.textContent.includes('Collapse') ||
       (!this.minimized && this.accordion.allOpen(this.body));
     this.setMinimized(false);
     this.accordion.setAll(this.body, !shouldCollapse);
     if (this.expandButton) {
-      this.expandButton.textContent = shouldCollapse ? 'Expand All' : 'Collapse All';
+      setExpandButtonUI(this.expandButton, !shouldCollapse);
     }
   }
 

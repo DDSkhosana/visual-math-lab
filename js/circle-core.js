@@ -106,6 +106,30 @@ export function createStore(initialState) {
   return store;
 }
 
+export const CHEVRON_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg>`;
+export const CHEVRON_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 11 12 6 17 11"></polyline><polyline points="7 16 12 11 17 16"></polyline></svg>`;
+
+export function setExpandButtonUI(btn, isExpanded) {
+  if (!btn) return;
+  btn.setAttribute('aria-expanded', String(isExpanded));
+  btn.title = isExpanded ? 'Collapse all sections' : 'Expand all sections';
+
+  let icon = btn.querySelector('.panel-expand-icon');
+  let label = btn.querySelector('.panel-expand-label');
+
+  if (!icon || !label) {
+    btn.classList.add('panel-expand-btn');
+    btn.innerHTML = `
+      <span class="panel-expand-icon" aria-hidden="true">${isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG}</span>
+      <span class="panel-expand-label">${isExpanded ? 'Collapse All' : 'Expand All'}</span>
+    `;
+    return;
+  }
+
+  icon.innerHTML = isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG;
+  label.textContent = isExpanded ? 'Collapse All' : 'Expand All';
+}
+
 /**
  * Reusable draggable floating panel.
  */
@@ -128,6 +152,9 @@ export class Panel {
     minimizeButton?.addEventListener('click', () => this.setMinimized(!this.minimized));
     expandButton?.addEventListener('click', () => this.#toggleAll());
     this.#syncMinimizeButton();
+    if (expandButton) {
+      setExpandButtonUI(expandButton, false);
+    }
   }
 
   get minimized() {
@@ -145,7 +172,7 @@ export class Panel {
     this.minimizeButton.textContent = this.minimized ? '+' : '−';
     this.minimizeButton.setAttribute('aria-expanded', String(!this.minimized));
     if (this.expandButton && this.minimized) {
-      this.expandButton.textContent = 'Expand All';
+      setExpandButtonUI(this.expandButton, false);
     }
   }
 
@@ -153,7 +180,8 @@ export class Panel {
     if (!this.body) return;
     const sections = Array.from(this.body.querySelectorAll('.collapsible-section'));
     const cards = Array.from(this.body.querySelectorAll('.derivation-card'));
-    const isCollapse = this.expandButton?.textContent === 'Collapse All' || (
+    const isCollapse = this.expandButton?.getAttribute('aria-expanded') === 'true' ||
+      this.expandButton?.textContent.includes('Collapse') || (
       !this.minimized && (
         (sections.length > 0 && sections.every((s) => !s.classList.contains('collapsed'))) &&
         (cards.length === 0 || cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open')))
@@ -173,7 +201,7 @@ export class Panel {
       content?.classList.toggle('open', !isCollapse);
     });
     if (this.expandButton) {
-      this.expandButton.textContent = isCollapse ? 'Expand All' : 'Collapse All';
+      setExpandButtonUI(this.expandButton, !isCollapse);
     }
   }
 
@@ -459,7 +487,7 @@ function _syncPanelExpandButton(header) {
   const allSectionsOpen = sections.length === 0 || sections.every((s) => !s.classList.contains('collapsed'));
   const allCardsOpen = cards.length === 0 || cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open'));
 
-  expandBtn.textContent = (allSectionsOpen && allCardsOpen) ? 'Collapse All' : 'Expand All';
+  setExpandButtonUI(expandBtn, allSectionsOpen && allCardsOpen);
 }
 
 /**

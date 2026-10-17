@@ -12,7 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { get3DAngleBisector, get3DAngleDegrees } from '../js/circle-3d.js';
-import { PALETTE, UnitSystemConverter, createStore } from '../js/circle-core.js';
+import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI } from '../js/circle-core.js';
+import { setExpandButtonUI as thalesSetExpandButtonUI } from '../visuals/thales-theorem/src/ui/Accordion.js';
 
 const close = (actual, expected, eps = 1e-6) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
@@ -947,6 +948,107 @@ test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dra
     // OM perpendicular to AB (dot product is 0, angle is 90°)
     close(g.dot, 0, 1e-4);
     close(g.angleOMADeg, 90.0, 1e-4);
+  }
+});
+
+test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels, and UI state synchronization', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+
+  // Verify CSS affordance styling
+  assert.ok(css.includes('.panel-header-actions'), 'visual.css must define .panel-header-actions');
+  assert.ok(css.includes('.panel-expand-btn'), 'visual.css must define .panel-expand-btn');
+  assert.ok(css.includes('.panel-expand-icon'), 'visual.css must define .panel-expand-icon');
+  assert.ok(css.includes('.panel-expand-label'), 'visual.css must define .panel-expand-label');
+  assert.ok(css.includes('.panel-expand-btn[aria-expanded="true"]'), 'visual.css must define active expanded state styling');
+
+  // Verify exports and behavior in js/circle-core.js
+  assert.ok(typeof setExpandButtonUI === 'function', 'circle-core.js must export setExpandButtonUI');
+  assert.ok(typeof CHEVRON_DOWN_SVG === 'string' && CHEVRON_DOWN_SVG.includes('<svg'), 'CHEVRON_DOWN_SVG must be valid SVG string');
+  assert.ok(typeof CHEVRON_UP_SVG === 'string' && CHEVRON_UP_SVG.includes('<svg'), 'CHEVRON_UP_SVG must be valid SVG string');
+
+  // Verify mock DOM behavior
+  function createMockBtn() {
+    let attrs = {};
+    let classes = new Set();
+    let innerHTML = '';
+    const btn = {
+      title: '',
+      setAttribute(k, v) { attrs[k] = String(v); },
+      getAttribute(k) { return attrs[k]; },
+      classList: {
+        add(c) { classes.add(c); },
+        contains(c) { return classes.has(c); },
+      },
+      get innerHTML() { return innerHTML; },
+      set innerHTML(val) {
+        innerHTML = val;
+        this._icon = val.includes('panel-expand-icon') ? {
+          _html: '',
+          set innerHTML(h) { this._html = h; },
+          get innerHTML() { return this._html; }
+        } : null;
+        this._label = val.includes('panel-expand-label') ? {
+          _text: '',
+          set textContent(t) { this._text = t; },
+          get textContent() { return this._text; }
+        } : null;
+      },
+      querySelector(selector) {
+        if (selector === '.panel-expand-icon') return this._icon;
+        if (selector === '.panel-expand-label') return this._label;
+        return null;
+      }
+    };
+    return btn;
+  }
+
+  // Test setExpandButtonUI auto-upgrade and toggle
+  const btn = createMockBtn();
+  setExpandButtonUI(btn, false);
+  assert.equal(btn.getAttribute('aria-expanded'), 'false');
+  assert.equal(btn.title, 'Expand all sections');
+  assert.ok(btn.classList.contains('panel-expand-btn'));
+  assert.ok(btn.innerHTML.includes('Expand All'));
+  assert.ok(btn.innerHTML.includes(CHEVRON_DOWN_SVG));
+
+  setExpandButtonUI(btn, true);
+  assert.equal(btn.getAttribute('aria-expanded'), 'true');
+  assert.equal(btn.title, 'Collapse all sections');
+  assert.equal(btn._label.textContent, 'Collapse All');
+  assert.equal(btn._icon.innerHTML, CHEVRON_UP_SVG);
+
+  // Verify Thales Accordion.js exports and behaves identically
+  assert.ok(typeof thalesSetExpandButtonUI === 'function', 'Thales Accordion.js must export setExpandButtonUI');
+  const thalesBtn = createMockBtn();
+  thalesSetExpandButtonUI(thalesBtn, false);
+  assert.equal(thalesBtn.getAttribute('aria-expanded'), 'false');
+  thalesSetExpandButtonUI(thalesBtn, true);
+  assert.equal(thalesBtn.getAttribute('aria-expanded'), 'true');
+  assert.equal(thalesBtn._label.textContent, 'Collapse All');
+
+  // Verify all 8 visual index.html files have .panel-header-actions and .panel-expand-btn
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    assert.ok(fs.existsSync(htmlPath), `File must exist: ${htmlPath}`);
+    const html = fs.readFileSync(htmlPath, 'utf8');
+
+    assert.ok(html.includes('class="panel-header-actions"'), `${slug}/index.html must contain .panel-header-actions container`);
+    assert.ok(html.includes('class="panel-expand-btn"'), `${slug}/index.html must contain .panel-expand-btn buttons`);
+    assert.ok(html.includes('class="panel-expand-icon"'), `${slug}/index.html must contain .panel-expand-icon span`);
+    assert.ok(html.includes('class="panel-expand-label"'), `${slug}/index.html must contain .panel-expand-label span`);
   }
 });
 
