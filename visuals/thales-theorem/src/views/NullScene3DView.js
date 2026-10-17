@@ -17,5 +17,6 @@ export class NullScene3DView {
   hitsCircumference() { return false; }
   pickCircumferenceRadius() { return null; }
   pickSphere() { return null; }
+  pickBaselinePlane() { return null; }
   setCameraPreset() {}
 }

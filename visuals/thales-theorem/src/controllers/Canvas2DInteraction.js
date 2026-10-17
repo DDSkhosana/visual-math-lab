@@ -1,22 +1,24 @@
 import { LIMITS } from '../config/defaults.js';
-import { setAngle2D, setPlaying, setRadius, setSpherePoint } from '../model/actions.js';
+import { setAngle2D, setBaselineRotation, setPlaying, setRadius, setSpherePoint } from '../model/actions.js';
 import { cartesianToSpherical, clamp, pointerToAngle } from '../model/thales-math.js';
 
-/** Pointer Events on the 2D canvas: drag point P, pan the background, wheel-zoom. */
+/** Pointer Events on the 2D canvas: drag point P, pan the background, wheel-zoom, spin baseline A/B. */
 export class Canvas2DInteraction {
   constructor(store, view) {
     this.store = store;
     this.view = view;
-    this.mode = null; // 'point' | 'pan' | null
+    this.mode = null; // 'point' | 'baselineA' | 'baselineB' | 'radius' | 'pan' | null
     const { canvas } = view;
 
     canvas.addEventListener('pointerdown', (e) => this.#down(e));
     canvas.addEventListener('pointermove', (e) => this.#move(e));
     canvas.addEventListener('pointerup', (e) => this.#up(e));
     canvas.addEventListener('pointercancel', (e) => this.#up(e));
-    window.addEventListener('pointerup', (e) => this.#up(e));
-    window.addEventListener('pointercancel', (e) => this.#up(e));
-    canvas.addEventListener('pointerleave', () => !this.mode && store.set({ hoverP2D: false }));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pointerup', (e) => this.#up(e));
+      window.addEventListener('pointercancel', (e) => this.#up(e));
+    }
+    canvas.addEventListener('pointerleave', () => !this.mode && store.set({ hoverP2D: false, hoverA2D: false, hoverB2D: false }));
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const currentRadius = this.store.get().radius;
@@ -50,7 +52,11 @@ export class Canvas2DInteraction {
 
     if (distP < reach) {
       this.mode = 'point';
-    } else if (distA < reach || distB < reach || distCirc < 14) {
+    } else if (distA < reach) {
+      this.mode = 'baselineA';
+    } else if (distB < reach) {
+      this.mode = 'baselineB';
+    } else if (distCirc < 14) {
       this.mode = 'radius';
     } else {
       this.mode = 'pan';
@@ -92,6 +98,15 @@ export class Canvas2DInteraction {
   #move(event) {
     if (this.mode === 'point') {
       this.#updatePointPosition(event);
+    } else if (this.mode === 'baselineA' || this.mode === 'baselineB') {
+      const state = this.store.get();
+      const { x, y } = this.view.toLocal(event);
+      const { cx, cy } = this.view.frame(state);
+      const rawAng = pointerToAngle(x - cx, cy - y);
+      const TAU = Math.PI * 2;
+      let rot = this.mode === 'baselineA' ? (rawAng + Math.PI) : rawAng;
+      rot = ((rot % TAU) + TAU) % TAU;
+      this.store.set(setBaselineRotation(rot));
     } else if (this.mode === 'radius') {
       const state = this.store.get();
       const { x, y } = this.view.toLocal(event);
@@ -110,16 +125,21 @@ export class Canvas2DInteraction {
       const distCirc = this.#distanceToCircumference(event);
 
       const hoverP = distP < 25;
-      const hoverRadius = !hoverP && (distA < 22 || distB < 22 || distCirc < 14);
+      const hoverBaseline = !hoverP && (distA < 22 || distB < 22);
+      const hoverCirc = !hoverP && !hoverBaseline && distCirc < 14;
 
-      if (hoverP) {
+      if (hoverP || hoverBaseline) {
         this.view.canvas.style.cursor = 'pointer';
-      } else if (hoverRadius) {
+      } else if (hoverCirc) {
         this.view.canvas.style.cursor = 'ew-resize';
       } else {
         this.view.canvas.style.cursor = 'grab';
       }
-      this.store.set({ hoverP2D: hoverP });
+      this.store.set({
+        hoverP2D: hoverP,
+        hoverA2D: hoverBaseline && distA < 22,
+        hoverB2D: hoverBaseline && distB < 22,
+      });
     }
   }
 

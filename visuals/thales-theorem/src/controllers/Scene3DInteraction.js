@@ -88,7 +88,7 @@ export class Scene3DInteraction {
       const hit = this.scene.pickSphere(this.store.get().baselineRotation || 0);
       if (hit) this.store.set(setSpherePoint(cartesianToSpherical(hit, this.store.get().radius), this.store.get()));
     } else if (this.activeTarget === 'A' || this.activeTarget === 'B') {
-      const hit = this.scene.pickSphere(0);
+      const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(0);
       if (hit) {
         let ang = Math.atan2(hit.y, hit.x);
         if (this.activeTarget === 'A') ang += Math.PI;

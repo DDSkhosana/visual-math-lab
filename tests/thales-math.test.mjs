@@ -7,6 +7,7 @@ import {
 import { rotateBaseline90, setBaselineRotation, setPlane2D } from '../visuals/thales-theorem/src/model/actions.js';
 import { computeFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
 import { createInitialState } from '../visuals/thales-theorem/src/config/defaults.js';
+import { Canvas2DInteraction } from '../visuals/thales-theorem/src/controllers/Canvas2DInteraction.js';
 
 const close = (actual, expected, eps = 1e-9) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
@@ -308,5 +309,128 @@ test('Baseline rotation 3D: rigid rotation around Z preserves distances and orth
     }
   }
 });
+
+test('Thales: Rigid baseline spinning along perimeter preserves side lengths, 90° right angle, and base angles across continuous 360° rotation', () => {
+  const r = 10;
+  const state = createInitialState();
+  state.radius = r;
+  state.zoom = 1;
+  state.pan = { x: 0, y: 0 };
+  const width = 800, height = 600, cx = 400, cy = 300;
+
+  // Unrotated reference metrics for P at 45°
+  state.angle2D = toRadians(45);
+  state.baselineRotation = 0;
+  const refFrame = computeFrame(state, width, height);
+  const refStats = thalesStats2D(r, state.angle2D);
+
+  // Sweep baseline rotation through 360° in 5° steps
+  for (let deg = 0; deg < 360; deg += 5) {
+    const rot = toRadians(deg);
+    state.baselineRotation = rot;
+    const f = computeFrame(state, width, height);
+
+    // 1. Endpoints A and B are strictly antipodal across the center
+    const dxA = f.a.x - cx;
+    const dyA = f.a.y - cy;
+    const dxB = f.b.x - cx;
+    const dyB = f.b.y - cy;
+    close(dxA + dxB, 0, 1e-7);
+    close(dyA + dyB, 0, 1e-7);
+
+    // 2. Diameter is strictly 2r = 20
+    close(f.lenD, 2 * r, 1e-7);
+    close(Math.hypot(f.b.x - f.a.x, f.b.y - f.a.y), 2 * r, 1e-7);
+
+    // 3. Side lengths s and t are 100% invariant under rotation
+    close(f.lenS, refFrame.lenS, 1e-7);
+    close(f.lenT, refFrame.lenT, 1e-7);
+    close(f.lenS, refStats.s, 1e-7);
+    close(f.lenT, refStats.t, 1e-7);
+
+    // 4. Inscribed right angle: (P - A) · (P - B) = 0
+    const dot = (f.a.x - f.p.x) * (f.b.x - f.p.x) + (f.a.y - f.p.y) * (f.b.y - f.p.y);
+    close(dot, 0, 1e-7);
+
+    // 5. Pythagorean identity: s² + t² = d² = 400
+    close(f.lenS * f.lenS + f.lenT * f.lenT, 4 * r * r, 1e-7);
+
+    // 6. Area is 100% invariant
+    close(0.5 * f.lenS * f.lenT, refStats.area, 1e-7);
+  }
+});
+
+test('Thales 2D Interaction: Dragging A or B rigidly spins baseline, clicking P reshapes triangle, clicking rim resizes radius', () => {
+  const state = createInitialState();
+  state.zoom = 18;
+  state.radius = 10;
+  const store = {
+    _state: state,
+    get() { return this._state; },
+    set(patch) { Object.assign(this._state, patch); },
+  };
+
+  const listeners = {};
+  const mockCanvas = {
+    style: {},
+    addEventListener(name, fn) {
+      listeners[name] = listeners[name] || [];
+      listeners[name].push(fn);
+    },
+    setPointerCapture() {},
+    releasePointerCapture() {},
+  };
+
+  const mockView = {
+    canvas: mockCanvas,
+    toLocal(e) { return { x: e.clientX, y: e.clientY }; },
+    frame(st) { return computeFrame(st, 800, 600); },
+  };
+
+  const interaction = new Canvas2DInteraction(store, mockView);
+  const trigger = (name, event) => {
+    for (const fn of listeners[name] || []) fn(event);
+  };
+
+  // Frame at baselineRotation = 0, angle2D = 45°, zoom = 18, radius = 10:
+  // cx = 400, cy = 300, rPixels = 180
+  // a: (400 - 180, 300) = (220, 300)
+  // b: (400 + 180, 300) = (580, 300)
+
+  // 1. Dragging B: Click on B (580, 300)
+  trigger('pointerdown', { pointerType: 'mouse', clientX: 580, clientY: 300, pointerId: 1 });
+  assert.equal(interaction.mode, 'baselineB', 'Clicking near Point B must activate baselineB mode');
+
+  // Move pointer upwards to (400, 120) -> 90° (cy - y = 300 - 120 = 180)
+  trigger('pointermove', { pointerType: 'mouse', clientX: 400, clientY: 120, pointerId: 1 });
+  close(store.get().baselineRotation, Math.PI / 2, 1e-4);
+  trigger('pointerup', { pointerType: 'mouse', pointerId: 1 });
+  assert.equal(interaction.mode, null);
+
+  // 2. Dragging A: With baselineRotation at 90°, A is at (400, 480) (bottom, y down)
+  trigger('pointerdown', { pointerType: 'mouse', clientX: 400, clientY: 480, pointerId: 1 });
+  assert.equal(interaction.mode, 'baselineA', 'Clicking near Point A must activate baselineA mode');
+
+  // Move pointer to (580, 300) (right -> 0°) -> Since A is dragged to 0°, baselineRotation (B) becomes 180° = π
+  trigger('pointermove', { pointerType: 'mouse', clientX: 580, clientY: 300, pointerId: 1 });
+  close(store.get().baselineRotation, Math.PI, 1e-4);
+  trigger('pointerup', { pointerType: 'mouse', pointerId: 1 });
+
+  // 3. Hovering tests: At baselineRotation = π, A is at (580, 300) and top rim is at (400, 120)
+  trigger('pointermove', { pointerType: 'mouse', clientX: 580, clientY: 300 }); // at Point A (580, 300)
+  assert.equal(mockCanvas.style.cursor, 'pointer', 'Hovering Point A must set pointer cursor');
+
+  trigger('pointermove', { pointerType: 'mouse', clientX: 400, clientY: 120 }); // at rim
+  assert.equal(mockCanvas.style.cursor, 'ew-resize', 'Hovering circumference away from points must set ew-resize cursor');
+
+  // 4. Dragging circumference: Click on rim away from points (400, 120)
+  trigger('pointerdown', { pointerType: 'mouse', clientX: 400, clientY: 120, pointerId: 1 });
+  assert.equal(interaction.mode, 'radius', 'Clicking rim away from points must activate radius resizing mode');
+  // Drag outward to (400, 84) -> dist = 216px -> radius = 216 / 18 = 12
+  trigger('pointermove', { pointerType: 'mouse', clientX: 400, clientY: 84, pointerId: 1 });
+  assert.equal(store.get().radius, 12, 'Dragging circumference must resize circle radius');
+  trigger('pointerup', { pointerType: 'mouse', pointerId: 1 });
+});
+
 
 

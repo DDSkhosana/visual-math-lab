@@ -613,11 +613,25 @@ function drawAngles(ctx, state, f) {
   }
 }
 
-function drawHover(ctx, f) {
-  ctx.beginPath();
-  ctx.arc(f.p.x, f.p.y, 14, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
-  ctx.fill();
+function drawHover(ctx, f, state) {
+  if (state.hoverP2D) {
+    ctx.beginPath();
+    ctx.arc(f.p.x, f.p.y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
+    ctx.fill();
+  }
+  if (state.hoverA2D && f.plane !== 'yz') {
+    ctx.beginPath();
+    ctx.arc(f.a.x, f.a.y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+    ctx.fill();
+  }
+  if (state.hoverB2D && f.plane !== 'yz') {
+    ctx.beginPath();
+    ctx.arc(f.b.x, f.b.y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(249, 115, 22, 0.35)';
+    ctx.fill();
+  }
 }
 
 function drawLabelledPoint(ctx, at, color, label, dx = 0, dy = 0, align = null, baseline = null) {
@@ -733,7 +747,7 @@ export function drawScene(ctx, state, frame) {
     drawArrow(ctx, frame.p, { x: frame.cx, y: frame.cy }, PALETTE.blue, 3);
   }
   if (state.vis2d.angles || state.vis2d.reflex) drawAngles(ctx, state, frame);
-  if (state.hoverP2D) drawHover(ctx, frame);
+  if (state.hoverP2D || state.hoverA2D || state.hoverB2D) drawHover(ctx, frame, state);
   if (state.vis2d.points) drawPoints(ctx, state, frame);
   if (state.vis2d.lengths) drawLengthLabels(ctx, frame, state);
 }

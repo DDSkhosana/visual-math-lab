@@ -5,7 +5,7 @@ import { ArcballTrackballControls } from '../../../../js/circle-3d.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
-  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D'];
+  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D'];
 
   constructor(THREE, container) {
     this.THREE = THREE;
@@ -287,6 +287,17 @@ export class Scene3DView {
       );
     }
     return pt;
+  }
+
+  pickBaselinePlane() {
+    if (!this.raycaster?.ray) return null;
+    const planeZ0 = new this.THREE.Plane(new this.THREE.Vector3(0, 0, 1), 0);
+    const planeHit = new this.THREE.Vector3();
+    const hit = this.raycaster.ray.intersectPlane(planeZ0, planeHit);
+    if (hit && planeHit.lengthSq() > 1e-4) {
+      return planeHit;
+    }
+    return this.pickSphere(0);
   }
 
   setCameraPreset(presetName) {
