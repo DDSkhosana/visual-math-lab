@@ -122,6 +122,16 @@ function bootstrap() {
     if (toggleDAngles) toggleDAngles.checked = e.target.checked;
   });
 
+  const toggleTriangles = document.getElementById('toggle-triangles');
+  const toggle3dTriangles = document.getElementById('toggle-3d-triangles');
+  const onTrianglesChange = (checked) => {
+    store.set({ showTriangleShading: checked, showTriangles: checked });
+    if (toggleTriangles) toggleTriangles.checked = checked;
+    if (toggle3dTriangles) toggle3dTriangles.checked = checked;
+  };
+  if (toggleTriangles) toggleTriangles.addEventListener('change', (e) => onTrianglesChange(e.target.checked));
+  if (toggle3dTriangles) toggle3dTriangles.addEventListener('change', (e) => onTrianglesChange(e.target.checked));
+
   document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
 
@@ -231,6 +241,9 @@ function bootstrap() {
     const isShowDAngles = state.showDAngles !== false;
     if (toggleDAngles && toggleDAngles.checked !== isShowDAngles) toggleDAngles.checked = isShowDAngles;
     if (toggle3dDAngles && toggle3dDAngles.checked !== isShowDAngles) toggle3dDAngles.checked = isShowDAngles;
+    const isShowTri = Boolean(state.showTriangleShading || state.showTriangles);
+    if (toggleTriangles && toggleTriangles.checked !== isShowTri) toggleTriangles.checked = isShowTri;
+    if (toggle3dTriangles && toggle3dTriangles.checked !== isShowTri) toggle3dTriangles.checked = isShowTri;
 
     const angUnit = state.angleUnit || 'deg';
     const lenUnit = state.lengthUnit || 'px';

@@ -12,6 +12,8 @@ export function createInitialState() {
     showDAngles: true,
     showExteriorD: true,
     showArea: true,
+    showTriangleShading: false,
+    showTriangles: false,
     showAngles: true,
     playing: false,
     ...vis,

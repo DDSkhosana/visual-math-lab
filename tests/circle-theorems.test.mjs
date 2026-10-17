@@ -1086,6 +1086,17 @@ test('Alternate Segment: showDAngles toggle suppresses Point D interior, exterio
     circle3dCode.includes("show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false)"),
     'circle-3d.js must guard 3D reflexD label with showDAngles !== false'
   );
+
+  // 3. Dedicated Triangle Shading Toggle: only Minor & Major segments shaded by default
+  const altInit = AlternateSegment.createInitialState();
+  assert.strictEqual(altInit.showTriangleShading, false, 'AlternateSegment initial state must default showTriangleShading to false');
+  assert.ok(
+    circle3dCode.includes('const showTriangles = showArea && Boolean(state.showTriangleShading || state.showTriangles);'),
+    'circle-3d.js must guard 3D triangle meshes with showTriangles toggle'
+  );
+  const altHtml = fs.readFileSync(path.join(rootDir, 'visuals', 'alternate-segment', 'index.html'), 'utf8');
+  assert.ok(altHtml.includes('id="toggle-triangles"'), 'alternate-segment/index.html must include #toggle-triangles checkbox');
+  assert.ok(altHtml.includes('id="toggle-3d-triangles"'), 'alternate-segment/index.html must include #toggle-3d-triangles checkbox');
 });
 
 test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels, and UI state synchronization', () => {

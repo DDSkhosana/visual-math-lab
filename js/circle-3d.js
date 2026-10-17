@@ -2275,11 +2275,12 @@ export class AlternateSegment3DView extends BaseScene3DView {
     }
 
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
+    const showTriangles = showArea && Boolean(state.showTriangleShading || state.showTriangles);
     this.segmentMesh.visible = showArea;
     this.minorSegmentMesh.visible = showArea;
-    this.triMesh.visible = showArea;
-    this.proofTriMesh.visible = showProof && showArea;
-    this.triABDMesh.visible = showProof && showArea;
+    this.triMesh.visible = showTriangles;
+    this.proofTriMesh.visible = showProof && showTriangles;
+    this.triABDMesh.visible = showProof && showTriangles;
 
     // 3D Angle Wedges & Spatial Bisectors
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);

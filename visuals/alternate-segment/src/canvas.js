@@ -54,26 +54,30 @@ export class CanvasView {
       // 2. Alternate Segment (Minor) on chord TA (Violet: distinct colour token)
       drawSubtendedSegment(ctx, g.O, g.T, g.A, g.B, g.r, 'rgba(168, 85, 247, 0.18)', 'rgba(168, 85, 247, 0.45)');
 
-      // 3. Triangle TBA shading (Cyan)
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.14)';
-      ctx.beginPath();
-      ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.A.x, g.A.y);
-      ctx.closePath();
-      ctx.fill();
-
-      // 4. Diameter proof triangles TBD (Indigo) and TAD (Rose)
-      if (showThales && g.D) {
-        ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
+      // Optional Inscribed & Proof Triangles Shading (governed by dedicated toggle)
+      const showTriangles = Boolean(state.showTriangleShading || state.showTriangles);
+      if (showTriangles) {
+        // 3. Triangle TBA shading (Cyan)
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.14)';
         ctx.beginPath();
-        ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
+        ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.A.x, g.A.y);
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = 'rgba(244, 63, 94, 0.12)';
-        ctx.beginPath();
-        ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.D.x, g.D.y);
-        ctx.closePath();
-        ctx.fill();
+        // 4. Diameter proof triangles TBD (Indigo) and TAD (Rose)
+        if (showThales && g.D) {
+          ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
+          ctx.beginPath();
+          ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(244, 63, 94, 0.12)';
+          ctx.beginPath();
+          ctx.moveTo(g.T.x, g.T.y); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.D.x, g.D.y);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
     }
 
