@@ -2,6 +2,7 @@ import { initializeAnalytics, trackEvent } from "./analytics.js?v=20260523";
 import { mountSharedChrome } from "./components.js?v=20260523";
 import { initTutorialAndTips, openTutorialModal, isTipsEnabled, setTipsEnabled } from "./tutorial-walkthrough.js?v=20260523";
 import { initGeometryLegend, openLegendModal, toggleLegendModal } from "./geometry-legend.js?v=20260523";
+import { initWorkspaceDock } from "./workspace-dock.js?v=20260523";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -228,6 +229,9 @@ async function initializeVisualPage() {
 
   // Initialize Geometry Notation Legend Modal & Cheatsheet
   initGeometryLegend();
+
+  // Initialize Workspace Windowing & Dock System
+  initWorkspaceDock();
 
   // Mount quick Tips ON/OFF toggle in Viewport Modes Toolbar if present
   const toolbarContent = document.getElementById("toolbar-content");

@@ -1767,5 +1767,4 @@ export class PlaybackController {
   }
 }
 
-
-
+export { WorkspaceDockManager, initWorkspaceDock } from './workspace-dock.js';
