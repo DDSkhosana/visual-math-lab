@@ -162,7 +162,7 @@ export class CanvasView {
       const midCentAng = -(state.angleA + state.angleB) / 2;
       const centBadgeX = g.cx + 52 * Math.cos(midCentAng);
       const centBadgeY = g.cy + 52 * Math.sin(midCentAng);
-      drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, centBadgeX, centBadgeY, PALETTE.yellow);
+      drawTextBadge(ctx, `2θ\n${g.centralDeg.toFixed(1)}°`, centBadgeX, centBadgeY, PALETTE.yellow);
 
       // Inscribed Angle badges
       const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
@@ -171,21 +171,22 @@ export class CanvasView {
       const bisLen = Math.hypot(bisX, bisY);
       const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
       const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-      const inscBadgeX = g.P.x + 54 * nBisX;
-      const inscBadgeY = g.P.y + 54 * nBisY;
-      drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
+      const inscBadgeX = g.P.x + 64 * nBisX;
+      const inscBadgeY = g.P.y + 64 * nBisY;
+      drawTextBadge(ctx, `θ\n${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
 
-      // Base angle alpha and beta badges near P
+      // Base angle alpha and beta badges near P:
+      // Radially staggered (alpha at 28px, beta at 50px) and vertically oriented to prevent overlap
       const bisP_alpha = (angPO + angPA) / 2;
       const bisP_beta = (angPO + angPB) / 2;
-      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_alpha), g.P.y + 36 * Math.sin(bisP_alpha), PALETTE.lime);
-      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.P.x + 36 * Math.cos(bisP_beta), g.P.y + 36 * Math.sin(bisP_beta), PALETTE.fuchsia);
+      drawTextBadge(ctx, `α\n${alphaDeg.toFixed(1)}°`, g.P.x + 28 * Math.cos(bisP_alpha), g.P.y + 28 * Math.sin(bisP_alpha), PALETTE.lime);
+      drawTextBadge(ctx, `β\n${betaDeg.toFixed(1)}°`, g.P.x + 50 * Math.cos(bisP_beta), g.P.y + 50 * Math.sin(bisP_beta), PALETTE.fuchsia);
 
       // Badges at base vertices A and B
       const bisA = (angAO + angAP) / 2;
       const bisB = (angBO + angBP) / 2;
-      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.A.x + 32 * Math.cos(bisA), g.A.y + 32 * Math.sin(bisA), PALETTE.lime);
-      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.B.x + 32 * Math.cos(bisB), g.B.y + 32 * Math.sin(bisB), PALETTE.fuchsia);
+      drawTextBadge(ctx, `α\n${alphaDeg.toFixed(1)}°`, g.A.x + 32 * Math.cos(bisA), g.A.y + 32 * Math.sin(bisA), PALETTE.lime);
+      drawTextBadge(ctx, `β\n${betaDeg.toFixed(1)}°`, g.B.x + 32 * Math.cos(bisB), g.B.y + 32 * Math.sin(bisB), PALETTE.fuchsia);
     }
 
     // Conjugate Reflex Angles (Perigon 360° - θ)
@@ -198,7 +199,7 @@ export class CanvasView {
 
       if (showLabels) {
         const midCentAng = -(state.angleA + state.angleB) / 2 + Math.PI;
-        drawTextBadge(ctx, `2θ* = ${(360 - g.centralDeg).toFixed(1)}°`, g.cx + 56 * Math.cos(midCentAng), g.cy + 56 * Math.sin(midCentAng), PALETTE.teal);
+        drawTextBadge(ctx, `2θ*\n${(360 - g.centralDeg).toFixed(1)}°`, g.cx + 56 * Math.cos(midCentAng), g.cy + 56 * Math.sin(midCentAng), PALETTE.teal);
 
         const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
         const uBx = Math.cos(angPB), uBy = Math.sin(angPB);
@@ -206,7 +207,7 @@ export class CanvasView {
         const bisLen = Math.hypot(bisX, bisY);
         const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
         const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-        drawTextBadge(ctx, `θ* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.P.x - 54 * nBisX, g.P.y - 54 * nBisY, PALETTE.teal);
+        drawTextBadge(ctx, `θ*\n${(360 - g.inscribedDeg).toFixed(1)}°`, g.P.x - 56 * nBisX, g.P.y - 56 * nBisY, PALETTE.teal);
       }
     }
   }

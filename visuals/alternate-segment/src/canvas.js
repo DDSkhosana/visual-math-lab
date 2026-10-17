@@ -220,7 +220,7 @@ export class CanvasView {
       const lenB = Math.hypot(bisBX, bisBY);
       const nbBX = lenB > 0.001 ? bisBX / lenB : 0;
       const nbBY = lenB > 0.001 ? bisBY / lenB : 1;
-      drawTextBadge(ctx, `α = ${g.inscribedDeg.toFixed(1)}°`, g.B.x + 36 * nbBX, g.B.y + 36 * nbBY, PALETTE.yellow);
+      drawTextBadge(ctx, `α\n${g.inscribedDeg.toFixed(1)}°`, g.B.x + 36 * nbBX, g.B.y + 36 * nbBY, PALETTE.yellow);
 
       // Tangent-chord angle at T (bisects the active tangent ray and chord TA, snug at 32px wedge)
       const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
@@ -231,7 +231,7 @@ export class CanvasView {
       const lenT = Math.hypot(bisTX, bisTY);
       const nbTX = lenT > 0.001 ? bisTX / lenT : 0;
       const nbTY = lenT > 0.001 ? bisTY / lenT : 1;
-      drawTextBadge(ctx, `α = ${g.tangentChordDeg.toFixed(1)}°`, g.T.x + 36 * nbTX, g.T.y + 36 * nbTY, PALETTE.yellow);
+      drawTextBadge(ctx, `α\n${g.tangentChordDeg.toFixed(1)}°`, g.T.x + 36 * nbTX, g.T.y + 36 * nbTY, PALETTE.yellow);
 
       // Thales Badges: Right angles at B, A, T and Angles at D
       if (showThales && g.D) {
@@ -240,7 +240,7 @@ export class CanvasView {
         const bisBDX = Math.cos(angBT) + Math.cos(angBD);
         const bisBDY = Math.sin(angBT) + Math.sin(angBD);
         const lenBD = Math.hypot(bisBDX, bisBDY) || 1;
-        drawTextBadge(ctx, '∠TBD = 90.0°', g.B.x + 22 * (bisBDX / lenBD), g.B.y + 22 * (bisBDY / lenBD), PALETTE.teal);
+        drawTextBadge(ctx, '∠TBD\n90.0°', g.B.x + 22 * (bisBDX / lenBD), g.B.y + 22 * (bisBDY / lenBD), PALETTE.teal);
 
         // Right angle at A: ∠TAD = 90.0°
         const angAT = Math.atan2(g.T.y - g.A.y, g.T.x - g.A.x);
@@ -248,7 +248,7 @@ export class CanvasView {
         const bisADX = Math.cos(angAT) + Math.cos(angAD);
         const bisADY = Math.sin(angAT) + Math.sin(angAD);
         const lenAD = Math.hypot(bisADX, bisADY) || 1;
-        drawTextBadge(ctx, '∠TAD = 90.0°', g.A.x + 22 * (bisADX / lenAD), g.A.y + 22 * (bisADY / lenAD), PALETTE.teal);
+        drawTextBadge(ctx, '∠TAD\n90.0°', g.A.x + 22 * (bisADX / lenAD), g.A.y + 22 * (bisADY / lenAD), PALETTE.teal);
 
         // Point D Angles (Interior & Exterior)
         if (state.showDAngles !== false) {
@@ -258,7 +258,7 @@ export class CanvasView {
           const bisIntDX = Math.cos(angDT) + Math.cos(angDA);
           const bisIntDY = Math.sin(angDT) + Math.sin(angDA);
           const lenIntD = Math.hypot(bisIntDX, bisIntDY) || 1;
-          drawTextBadge(ctx, `∠TDA = α = ${g.angleTDA.toFixed(1)}°`, g.D.x + 34 * (bisIntDX / lenIntD), g.D.y + 34 * (bisIntDY / lenIntD), PALETTE.yellow);
+          drawTextBadge(ctx, `∠TDA = α\n${g.angleTDA.toFixed(1)}°`, g.D.x + 34 * (bisIntDX / lenIntD), g.D.y + 34 * (bisIntDY / lenIntD), PALETTE.yellow);
 
           // Point D Exterior Angle: Ext D = 180° - α (snug at the 24px wedge)
           if (g.Dext) {
@@ -266,7 +266,7 @@ export class CanvasView {
             const bisExtDX = Math.cos(angDA) + Math.cos(angDext);
             const bisExtDY = Math.sin(angDA) + Math.sin(angDext);
             const lenExtD = Math.hypot(bisExtDX, bisExtDY) || 1;
-            drawTextBadge(ctx, `Ext D = ${g.extAngleD.toFixed(1)}°`, g.D.x + 30 * (bisExtDX / lenExtD), g.D.y + 30 * (bisExtDY / lenExtD), PALETTE.rose);
+            drawTextBadge(ctx, `Ext D\n${g.extAngleD.toFixed(1)}°`, g.D.x + 30 * (bisExtDX / lenExtD), g.D.y + 30 * (bisExtDY / lenExtD), PALETTE.rose);
           }
         }
       }
@@ -290,14 +290,14 @@ export class CanvasView {
         const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
         const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
         const lenB = Math.hypot(bisBX, bisBY) || 1;
-        drawTextBadge(ctx, `α* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.B.x - 44 * (bisBX / lenB), g.B.y - 44 * (bisBY / lenB), PALETTE.yellow);
+        drawTextBadge(ctx, `α*\n${(360 - g.inscribedDeg).toFixed(1)}°`, g.B.x - 44 * (bisBX / lenB), g.B.y - 44 * (bisBY / lenB), PALETTE.yellow);
 
         const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y) || 1;
         const uTAx = (g.A.x - g.T.x) / lenTA, uTAy = (g.A.y - g.T.y) / lenTA;
         const uActX = Math.cos(angTan), uActY = Math.sin(angTan);
         const bisTX = uTAx + uActX, bisTY = uTAy + uActY;
         const lenT = Math.hypot(bisTX, bisTY) || 1;
-        drawTextBadge(ctx, `α* = ${(360 - g.tangentChordDeg).toFixed(1)}°`, g.T.x - 46 * (bisTX / lenT), g.T.y - 46 * (bisTY / lenT), PALETTE.yellow);
+        drawTextBadge(ctx, `α*\n${(360 - g.tangentChordDeg).toFixed(1)}°`, g.T.x - 46 * (bisTX / lenT), g.T.y - 46 * (bisTY / lenT), PALETTE.yellow);
 
         if (showThales && g.D && state.showDAngles !== false) {
           const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
@@ -305,7 +305,7 @@ export class CanvasView {
           const bisIntDX = Math.cos(angDT) + Math.cos(angDA);
           const bisIntDY = Math.sin(angDT) + Math.sin(angDA);
           const lenIntD = Math.hypot(bisIntDX, bisIntDY) || 1;
-          drawTextBadge(ctx, `D* = ${(360 - g.angleTDA).toFixed(1)}°`, g.D.x - 44 * (bisIntDX / lenIntD), g.D.y - 44 * (bisIntDY / lenIntD), PALETTE.yellow);
+          drawTextBadge(ctx, `D*\n${(360 - g.angleTDA).toFixed(1)}°`, g.D.x - 44 * (bisIntDX / lenIntD), g.D.y - 44 * (bisIntDY / lenIntD), PALETTE.yellow);
         }
       }
     }

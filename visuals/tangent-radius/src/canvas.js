@@ -214,7 +214,7 @@ export class CanvasView {
         if (showLabels) {
           const rbx = t.pt.x - 1.8 * (t.rightSquare.c2.x - t.pt.x);
           const rby = t.pt.y - 1.8 * (t.rightSquare.c2.y - t.pt.y);
-          drawTextBadge(ctx, `${t.name}* = 270°`, rbx, rby, PALETTE.teal);
+          drawTextBadge(ctx, `${t.name}*\n270°`, rbx, rby, PALETTE.teal);
         }
       }
 

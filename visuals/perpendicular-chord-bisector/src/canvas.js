@@ -169,9 +169,9 @@ export class CanvasView {
       const lenBOM = Math.hypot(bisBOMx, bisBOMy) || 1;
       const nbBOMx = bisBOMx / lenBOM, nbBOMy = bisBOMy / lenBOM;
 
-      // Position badges snugly right outside the 28px angle wedges (34px from center O)
-      drawTextBadge(ctx, `∠AOM = ${degAOM.toFixed(1)}°`, g.cx + 34 * nbAOMx, g.cy + 34 * nbAOMy, PALETTE.blue);
-      drawTextBadge(ctx, `∠BOM = ${degBOM.toFixed(1)}°`, g.cx + 34 * nbBOMx, g.cy + 34 * nbBOMy, PALETTE.orange);
+      // Position badges staggered outside angle wedges (30px and 52px from center O to eliminate overlap)
+      drawTextBadge(ctx, `∠AOM\n${degAOM.toFixed(1)}°`, g.cx + 30 * nbAOMx, g.cy + 30 * nbAOMy, PALETTE.blue);
+      drawTextBadge(ctx, `∠BOM\n${degBOM.toFixed(1)}°`, g.cx + 52 * nbBOMx, g.cy + 52 * nbBOMy, PALETTE.orange);
       drawTextBadge(ctx, '90.0°', g.M.x - 20 * uOMx, g.M.y - 20 * uOMy, PALETTE.teal);
     }
 
@@ -196,7 +196,7 @@ export class CanvasView {
       drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
 
       if (showLabels) {
-        drawTextBadge(ctx, '270° (M*)', g.M.x + 24 * uOMx, g.M.y + 24 * uOMy, PALETTE.teal);
+        drawTextBadge(ctx, '270°\n(M*)', g.M.x + 24 * uOMx, g.M.y + 24 * uOMy, PALETTE.teal);
       }
     }
   }

@@ -112,10 +112,10 @@ export class CanvasView {
         const badgeB = { x: g.B.x + 0.24 * (g.cx - g.B.x), y: g.B.y + 0.24 * (g.cy - g.B.y) };
         const badgeC = { x: g.C.x + 0.24 * (g.cx - g.C.x), y: g.C.y + 0.24 * (g.cy - g.C.y) };
         const badgeD = { x: g.D.x + 0.24 * (g.cx - g.D.x), y: g.D.y + 0.24 * (g.cy - g.D.y) };
-        drawTextBadge(ctx, `∠A = ${g.angleADeg.toFixed(1)}°`, badgeA.x, badgeA.y, PALETTE.violet);
-        drawTextBadge(ctx, `∠B = ${g.angleBDeg.toFixed(1)}°`, badgeB.x, badgeB.y, PALETTE.cyan);
-        drawTextBadge(ctx, `∠C = ${g.angleCDeg.toFixed(1)}°`, badgeC.x, badgeC.y, PALETTE.amber);
-        drawTextBadge(ctx, `∠D = ${g.angleDDeg.toFixed(1)}°`, badgeD.x, badgeD.y, PALETTE.rose);
+        drawTextBadge(ctx, `∠A\n${g.angleADeg.toFixed(1)}°`, badgeA.x, badgeA.y, PALETTE.violet);
+        drawTextBadge(ctx, `∠B\n${g.angleBDeg.toFixed(1)}°`, badgeB.x, badgeB.y, PALETTE.cyan);
+        drawTextBadge(ctx, `∠C\n${g.angleCDeg.toFixed(1)}°`, badgeC.x, badgeC.y, PALETTE.amber);
+        drawTextBadge(ctx, `∠D\n${g.angleDDeg.toFixed(1)}°`, badgeD.x, badgeD.y, PALETTE.rose);
       }
     }
 
@@ -154,7 +154,7 @@ export class CanvasView {
       const lenDC = Math.hypot(dirDCx, dirDCy);
       const ndcx = lenDC > 0.001 ? dirDCx / lenDC : 1;
       const ndcy = lenDC > 0.001 ? dirDCy / lenDC : 0;
-      drawTextBadge(ctx, `Ext = ${g.exteriorAngleDeg.toFixed(1)}°`, g.C.x + 40 * ndcx, g.C.y + 40 * ndcy, PALETTE.violet);
+      drawTextBadge(ctx, `Ext\n${g.exteriorAngleDeg.toFixed(1)}°`, g.C.x + 40 * ndcx, g.C.y + 40 * ndcy, PALETTE.violet);
     }
 
     // Conjugate Reflex Angles (Perigon 360° - θ)
@@ -181,10 +181,10 @@ export class CanvasView {
         const badgeReflexB = { x: g.B.x - 0.28 * (g.cx - g.B.x), y: g.B.y - 0.28 * (g.cy - g.B.y) };
         const badgeReflexC = { x: g.C.x - 0.28 * (g.cx - g.C.x), y: g.C.y - 0.28 * (g.cy - g.C.y) };
         const badgeReflexD = { x: g.D.x - 0.28 * (g.cx - g.D.x), y: g.D.y - 0.28 * (g.cy - g.D.y) };
-        drawTextBadge(ctx, `∠A* = ${(360 - g.angleADeg).toFixed(1)}°`, badgeReflexA.x, badgeReflexA.y, PALETTE.violet);
-        drawTextBadge(ctx, `∠B* = ${(360 - g.angleBDeg).toFixed(1)}°`, badgeReflexB.x, badgeReflexB.y, PALETTE.cyan);
-        drawTextBadge(ctx, `∠C* = ${(360 - g.angleCDeg).toFixed(1)}°`, badgeReflexC.x, badgeReflexC.y, PALETTE.amber);
-        drawTextBadge(ctx, `∠D* = ${(360 - g.angleDDeg).toFixed(1)}°`, badgeReflexD.x, badgeReflexD.y, PALETTE.rose);
+        drawTextBadge(ctx, `∠A*\n${(360 - g.angleADeg).toFixed(1)}°`, badgeReflexA.x, badgeReflexA.y, PALETTE.violet);
+        drawTextBadge(ctx, `∠B*\n${(360 - g.angleBDeg).toFixed(1)}°`, badgeReflexB.x, badgeReflexB.y, PALETTE.cyan);
+        drawTextBadge(ctx, `∠C*\n${(360 - g.angleCDeg).toFixed(1)}°`, badgeReflexC.x, badgeReflexC.y, PALETTE.amber);
+        drawTextBadge(ctx, `∠D*\n${(360 - g.angleDDeg).toFixed(1)}°`, badgeReflexD.x, badgeReflexD.y, PALETTE.rose);
       }
     }
   }

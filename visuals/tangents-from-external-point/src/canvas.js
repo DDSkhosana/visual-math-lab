@@ -183,17 +183,17 @@ export class CanvasView {
 
     // 2D Canvas Angle Badges with distinct tokens
     if (showAngles && showLabels) {
-      // Angles at P (alpha1 Lime, alpha2 Fuchsia)
+      // Angles at P (alpha1 Lime, alpha2 Fuchsia) - staggered radial distances (32px / 56px) to eliminate overlap
       const bisP1 = (angPO + angPT1) / 2;
       const bisP2 = (angPO + angPT2) / 2;
-      drawTextBadge(ctx, `α₁ = ${g.alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP1), g.P.y + 44 * Math.sin(bisP1), PALETTE.lime);
-      drawTextBadge(ctx, `α₂ = ${g.alphaDeg.toFixed(1)}°`, g.P.x + 44 * Math.cos(bisP2), g.P.y + 44 * Math.sin(bisP2), PALETTE.fuchsia);
+      drawTextBadge(ctx, `α₁\n${g.alphaDeg.toFixed(1)}°`, g.P.x + 32 * Math.cos(bisP1), g.P.y + 32 * Math.sin(bisP1), PALETTE.lime);
+      drawTextBadge(ctx, `α₂\n${g.alphaDeg.toFixed(1)}°`, g.P.x + 56 * Math.cos(bisP2), g.P.y + 56 * Math.sin(bisP2), PALETTE.fuchsia);
 
-      // Angles at O (beta1 Amber, beta2 Orange)
+      // Angles at O (beta1 Amber, beta2 Orange) - staggered radial distances (30px / 52px)
       const bisO1 = (angOP + angOT1) / 2;
       const bisO2 = (angOP + angOT2) / 2;
-      drawTextBadge(ctx, `β₁ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO1), g.cy + 38 * Math.sin(bisO1), PALETTE.amber);
-      drawTextBadge(ctx, `β₂ = ${g.betaDeg.toFixed(1)}°`, g.cx + 38 * Math.cos(bisO2), g.cy + 38 * Math.sin(bisO2), PALETTE.orange);
+      drawTextBadge(ctx, `β₁\n${g.betaDeg.toFixed(1)}°`, g.cx + 30 * Math.cos(bisO1), g.cy + 30 * Math.sin(bisO1), PALETTE.amber);
+      drawTextBadge(ctx, `β₂\n${g.betaDeg.toFixed(1)}°`, g.cx + 52 * Math.cos(bisO2), g.cy + 52 * Math.sin(bisO2), PALETTE.orange);
     }
 
     // Conjugate Reflex Angles (270° at T1, T2)
@@ -214,7 +214,7 @@ export class CanvasView {
         const uT1Py = (g.P.y - g.T1.y) / (Math.hypot(g.P.x - g.T1.x, g.P.y - g.T1.y) || 1);
         const bis1X = uT1Ox + uT1Px, bis1Y = uT1Oy + uT1Py;
         const l1 = Math.hypot(bis1X, bis1Y) || 1;
-        drawTextBadge(ctx, '270° (T₁*)', g.T1.x - 28 * (bis1X / l1), g.T1.y - 28 * (bis1Y / l1), PALETTE.teal);
+        drawTextBadge(ctx, '270°\n(T₁*)', g.T1.x - 28 * (bis1X / l1), g.T1.y - 28 * (bis1Y / l1), PALETTE.teal);
 
         const uT2Ox = (g.cx - g.T2.x) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
         const uT2Oy = (g.cy - g.T2.y) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
@@ -222,7 +222,7 @@ export class CanvasView {
         const uT2Py = (g.P.y - g.T2.y) / (Math.hypot(g.P.x - g.T2.x, g.P.y - g.T2.y) || 1);
         const bis2X = uT2Ox + uT2Px, bis2Y = uT2Oy + uT2Py;
         const l2 = Math.hypot(bis2X, bis2Y) || 1;
-        drawTextBadge(ctx, '270° (T₂*)', g.T2.x - 28 * (bis2X / l2), g.T2.y - 28 * (bis2Y / l2), PALETTE.teal);
+        drawTextBadge(ctx, '270°\n(T₂*)', g.T2.x - 28 * (bis2X / l2), g.T2.y - 28 * (bis2Y / l2), PALETTE.teal);
       }
     }
   }

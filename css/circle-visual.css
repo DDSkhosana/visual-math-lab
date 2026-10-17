@@ -978,8 +978,9 @@ input[type=range] {
   font-size: 12px;
   font-weight: 800;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  white-space: nowrap;
-  line-height: 1;
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.15;
   opacity: 0;
   transition: opacity 0.15s ease;
   pointer-events: none;
@@ -992,6 +993,16 @@ input[type=range] {
      0 0 4px rgba(15, 23, 42, 0.95),
      0 0 8px rgba(15, 23, 42, 0.85);
   z-index: 10;
+}
+
+.label-3d.is-angle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+  white-space: pre-line;
 }
 
 .label-3d.visible {

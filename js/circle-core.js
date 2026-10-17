@@ -519,16 +519,32 @@ export function withShadow(ctx, paint, blur = 4) {
  * Draws text with a dark protective halo stroke so that underlying lines,
  * arcs, and fills never obstruct or get obstructed by the text.
  */
-export function drawHaloText(ctx, text, x, y, color, font = 'bold 13px monospace') {
+export function drawHaloText(ctx, text, x, y, color, font = 'bold 13px monospace', align = 'center') {
   ctx.save();
   ctx.font = font;
   ctx.lineJoin = 'round';
   ctx.miterLimit = 2;
+  if (align) ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
   ctx.lineWidth = 4.5;
-  ctx.strokeText(text, x, y);
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
+
+  const str = String(text);
+  const lines = str.split('\n');
+  if (lines.length === 1) {
+    ctx.strokeText(lines[0], x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(lines[0], x, y);
+  } else {
+    const lineHeight = 13;
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    for (let i = 0; i < lines.length; i++) {
+      const lineY = startY + i * lineHeight;
+      ctx.strokeText(lines[i], x, lineY);
+      ctx.fillStyle = color;
+      ctx.fillText(lines[i], x, lineY);
+    }
+  }
   ctx.restore();
 }
 
@@ -537,7 +553,16 @@ export function drawHaloText(ctx, text, x, y, color, font = 'bold 13px monospace
  * Replaces heavy rectangular black badge backgrounds to eliminate visual clutter.
  */
 export function drawTextBadge(ctx, text, x, y, color, font = 'bold 12px monospace') {
-  drawHaloText(ctx, text, x, y, color, font);
+  drawHaloText(ctx, text, x, y, color, font, 'center');
+}
+
+/**
+ * Standardized vertical angle label badge helper:
+ * Stacks angle symbol above degree value (e.g. "α" over "22.5°") to prevent horizontal overlap.
+ */
+export function drawVerticalAngleBadge(ctx, symbol, valStr, x, y, color, font = 'bold 12px monospace') {
+  const text = (valStr !== undefined && valStr !== null) ? `${symbol}\n${valStr}` : symbol;
+  drawHaloText(ctx, text, x, y, color, font, 'center');
 }
 
 /**
