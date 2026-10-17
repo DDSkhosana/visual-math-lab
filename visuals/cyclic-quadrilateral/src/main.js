@@ -108,8 +108,6 @@ function bootstrap() {
 
   // Controls
   document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
-  const toggleArea = document.getElementById('toggle-area');
-  if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
   const toggleExt = document.getElementById('toggle-exterior');
   const toggle3dExt = document.getElementById('toggle-3d-exterior');
   const onExtChange = (checked) => {

@@ -99,8 +99,6 @@ function bootstrap() {
 
   // Controls
   document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
-  const toggleArea = document.getElementById('toggle-area');
-  if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
   document.getElementById('toggle-secant')?.addEventListener('change', (e) => store.set({ showSecant: e.target.checked }));
 
   // Multiple Tangents Count buttons
@@ -111,18 +109,6 @@ function bootstrap() {
       store.set({ tangentCount: cnt });
     });
   });
-
-  // Dynamic Quadrant Shading toggle in Controls Panel
-  const toggleQuad = document.getElementById('toggle-quadrant-shading');
-  if (toggleQuad) {
-    toggleQuad.addEventListener('change', (e) => {
-      store.set({
-        showQuadrant: e.target.checked,
-        vis2d: { ...(store.get().vis2d || {}), quadrant: e.target.checked },
-        vis3d: { ...(store.get().vis3d || {}), quadrant: e.target.checked },
-      });
-    });
-  }
 
   // Chord Area Mode buttons (Segment vs Sector)
   const btnSegment = document.getElementById('btn-mode-segment');

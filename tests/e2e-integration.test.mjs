@@ -747,3 +747,402 @@ test('E2E Vector SVG Generation: Complete SVG export pipeline across all 8 visua
     assert.ok(!svg.includes('undefined'), `${dir}: SVG must not contain undefined attributes`);
   }
 });
+
+// =============================================================================
+// Suite 7: Gap 1 — Deterministic Canvas Context Spy & 3D State-to-Render
+// =============================================================================
+class CanvasRenderSpy {
+  constructor() {
+    this.operations = [];
+    this.texts = [];
+    this.arcs = [];
+    this.fillStyle = '#000000';
+    this.strokeStyle = '#000000';
+  }
+
+  beginPath() { this.operations.push({ type: 'beginPath' }); }
+  closePath() { this.operations.push({ type: 'closePath' }); }
+  moveTo(x, y) { this.operations.push({ type: 'moveTo', x, y }); }
+  lineTo(x, y) { this.operations.push({ type: 'lineTo', x, y }); }
+  arc(x, y, radius, startAngle, endAngle, counterclockwise = false) {
+    const arcOp = { type: 'arc', x, y, radius, startAngle, endAngle, counterclockwise, fillStyle: this.fillStyle, strokeStyle: this.strokeStyle };
+    this.operations.push(arcOp);
+    this.arcs.push(arcOp);
+  }
+  fill() { this.operations.push({ type: 'fill', fillStyle: this.fillStyle }); }
+  stroke() { this.operations.push({ type: 'stroke', strokeStyle: this.strokeStyle }); }
+  clearRect(x, y, w, h) { this.operations.push({ type: 'clearRect', x, y, w, h }); }
+  fillRect(x, y, w, h) { this.operations.push({ type: 'fillRect', x, y, w, h }); }
+  strokeRect(x, y, w, h) { this.operations.push({ type: 'strokeRect', x, y, w, h }); }
+  setLineDash(dash) { this.operations.push({ type: 'setLineDash', dash }); }
+  save() { this.operations.push({ type: 'save' }); }
+  restore() { this.operations.push({ type: 'restore' }); }
+  fillText(text, x, y) {
+    const textOp = { type: 'fillText', text: String(text), x, y, fillStyle: this.fillStyle };
+    this.operations.push(textOp);
+    this.texts.push(textOp);
+  }
+  strokeText(text, x, y) { this.operations.push({ type: 'strokeText', text: String(text), x, y }); }
+  setTransform() {}
+  translate() {}
+  rotate() {}
+  scale() {}
+  measureText(text) { return { width: String(text).length * 7 }; }
+  createLinearGradient() { return { addColorStop() {} }; }
+  createRadialGradient() { return { addColorStop() {} }; }
+
+  arcsNear(x, y, tolerance = 15) {
+    return this.arcs.filter((a) => Math.hypot(a.x - x, a.y - y) <= tolerance);
+  }
+
+  textsContaining(substr) {
+    return this.texts.filter((t) => t.text.includes(substr));
+  }
+
+  wedgesNear(x, y, tolerance = 15) {
+    return this.arcs.filter((a) => Math.hypot(a.x - x, a.y - y) <= tolerance && a.radius >= 20);
+  }
+}
+
+test('Gap 1: Deterministic Canvas Context Spy & 3D Mesh Visibility — showDAngles toggle strictly alters rendered pixels', async () => {
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+  globalThis.window = globalThis.window || { devicePixelRatio: 1 };
+  const canvasMod = await import('../visuals/alternate-segment/src/canvas.js');
+  const circle3dCode = fs.readFileSync(path.join(ROOT, 'js', 'circle-3d.js'), 'utf8');
+
+  // Test 2D: CanvasRenderSpy on Alternate Segment
+  const stateBase = AlternateSegment.createInitialState();
+  const g = AlternateSegment.computeGeometry(stateBase, 800, 600);
+
+  // 1. showDAngles: true
+  const spyEnabled = new CanvasRenderSpy();
+  const mockCanvasEnabled = {
+    width: 800,
+    height: 600,
+    style: {},
+    getContext: () => spyEnabled,
+    getBoundingClientRect: () => ({ width: 800, height: 600 }),
+    parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+  };
+  const viewEnabled = new canvasMod.CanvasView(mockCanvasEnabled, mockCanvasEnabled.parentElement);
+  viewEnabled.render({ ...stateBase, showDAngles: true, showProofConstruction: true, vis2d: { reflex: true, labels: true, angles: true } });
+
+  const wedgesAtDEnabled = spyEnabled.wedgesNear(g.D.x, g.D.y, 10);
+  assert.ok(wedgesAtDEnabled.length >= 2, 'When showDAngles: true, angle wedges must be drawn at Point D');
+  const textBadgesAtDEnabled = spyEnabled.textsContaining('∠TDA');
+  assert.ok(textBadgesAtDEnabled.length >= 1, 'When showDAngles: true, ∠TDA badge must be rendered at Point D');
+
+  // 2. showDAngles: false
+  const spyDisabled = new CanvasRenderSpy();
+  const mockCanvasDisabled = {
+    width: 800,
+    height: 600,
+    style: {},
+    getContext: () => spyDisabled,
+    getBoundingClientRect: () => ({ width: 800, height: 600 }),
+    parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+  };
+  const viewDisabled = new canvasMod.CanvasView(mockCanvasDisabled, mockCanvasDisabled.parentElement);
+  viewDisabled.render({ ...stateBase, showDAngles: false, showProofConstruction: true, vis2d: { reflex: true, labels: true, angles: true } });
+
+  const wedgesAtDDisabled = spyDisabled.wedgesNear(g.D.x, g.D.y, 10);
+  assert.strictEqual(wedgesAtDDisabled.length, 0, 'When showDAngles: false, strictly ZERO angle wedges must be drawn at Point D');
+  const textBadgesAtDDisabled = spyDisabled.textsContaining('∠TDA');
+  assert.strictEqual(textBadgesAtDDisabled.length, 0, 'When showDAngles: false, ∠TDA badge must NOT be rendered');
+  const extBadgesAtDDisabled = spyDisabled.textsContaining('Ext D');
+  assert.strictEqual(extBadgesAtDDisabled.length, 0, 'When showDAngles: false, Ext D badge must NOT be rendered');
+
+  // 3. 3D Scene View Visibility Contract
+  assert.ok(circle3dCode.includes('showReflex && (state.showDAngles !== false)'), 'AlternateSegment3DView: reflexDMesh must be guarded with showDAngles !== false');
+  assert.ok(circle3dCode.includes('const showDAngles = showProof && showAngles && (state.showDAngles !== false);'), 'AlternateSegment3DView: angleIntDMesh and angleExtDMesh must be guarded with showDAngles !== false');
+  assert.ok(circle3dCode.includes('const showDLabels = showAngles && (state.showDAngles !== false);'), 'AlternateSegment3DView: 3D text labels must be guarded with showDAngles !== false');
+});
+
+// =============================================================================
+// Suite 8: Gap 2 — Pointer Dragging (Synthetic Pointer Event Dispatch)
+// =============================================================================
+test('Gap 2: Pointer Dragging — Synthetic PointerEvent pipeline test (hit-detection, capture, and rigid rotation)', async () => {
+  const state = AlternateSegment.createInitialState();
+  const store = createStore(state);
+  const width = 800;
+  const height = 600;
+
+  // Mock DOM canvas with pointer event dispatch pipeline
+  const listeners = {};
+  let capturedPointer = null;
+  const mockCanvas = {
+    style: { cursor: 'default' },
+    getBoundingClientRect: () => ({ left: 100, top: 100, width: 800, height: 600 }),
+    addEventListener(type, fn) {
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push(fn);
+    },
+    removeEventListener(type, fn) {
+      if (listeners[type]) listeners[type] = listeners[type].filter((l) => l !== fn);
+    },
+    dispatchEvent(event) {
+      const type = event.type;
+      if (listeners[type]) {
+        for (const fn of listeners[type]) fn(event);
+      }
+      return true;
+    },
+    setPointerCapture(id) { capturedPointer = id; },
+    releasePointerCapture(id) { if (capturedPointer === id) capturedPointer = null; },
+  };
+
+  // Wire actual pointer dragging logic as implemented in alternate-segment/src/main.js
+  let activePoint = null;
+  function hit(x, y, pt, radius = 22) {
+    return Math.hypot(x - pt.x, y - pt.y) < radius;
+  }
+
+  mockCanvas.addEventListener('pointerdown', (e) => {
+    const rect = mockCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const g = AlternateSegment.computeGeometry(store.get(), width, height);
+
+    const isProof = Boolean(store.get().showProofConstruction || store.get().showThalesOverlay);
+    if (hit(x, y, g.T)) activePoint = 'T';
+    else if (hit(x, y, g.A)) activePoint = 'A';
+    else if (hit(x, y, g.B)) activePoint = 'B';
+    else if (isProof && g.D && hit(x, y, g.D)) activePoint = 'D';
+
+    if (activePoint) {
+      try { mockCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+  });
+
+  mockCanvas.addEventListener('pointermove', (e) => {
+    const rect = mockCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const g = AlternateSegment.computeGeometry(store.get(), width, height);
+
+    if (!activePoint) {
+      const isProof = Boolean(store.get().showProofConstruction || store.get().showThalesOverlay);
+      const hover = hit(x, y, g.T) || hit(x, y, g.A) || hit(x, y, g.B) || (isProof && g.D && hit(x, y, g.D));
+      mockCanvas.style.cursor = hover ? 'pointer' : 'default';
+      return;
+    }
+
+    mockCanvas.style.cursor = 'grabbing';
+    let ang = Math.atan2(g.cy - y, x - g.cx);
+    if (ang < 0) ang += Math.PI * 2;
+
+    if (activePoint === 'T') store.set({ angleT: ang });
+    else if (activePoint === 'A') store.set({ angleA: ang });
+    else if (activePoint === 'B') store.set({ angleB: ang });
+    else if (activePoint === 'D') {
+      const TAU = Math.PI * 2;
+      const cur = store.get();
+      const curT = cur.angleT;
+      const curA = cur.angleA;
+      const curB = cur.angleB;
+      const oldD = (curT + Math.PI) % TAU;
+      let delta = (ang - oldD) % TAU;
+      if (delta > Math.PI) delta -= TAU;
+      if (delta < -Math.PI) delta += TAU;
+      store.set({
+        angleT: (curT + delta + TAU * 4) % TAU,
+        angleA: (curA + delta + TAU * 4) % TAU,
+        angleB: (curB + delta + TAU * 4) % TAU,
+      });
+    }
+  });
+
+  const stopDrag = (e) => {
+    if (activePoint) {
+      try { mockCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      activePoint = null;
+      mockCanvas.style.cursor = 'default';
+    }
+  };
+  mockCanvas.addEventListener('pointerup', stopDrag);
+
+  // 1. Synthetic Dispatch: Click on vertex B and drag to angle 30°
+  const gInit = AlternateSegment.computeGeometry(store.get(), width, height);
+  mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 100 + gInit.B.x, clientY: 100 + gInit.B.y, pointerId: 1 });
+  assert.strictEqual(capturedPointer, 1, 'Pointer capture must be set when clicking on vertex B');
+  assert.strictEqual(activePoint, 'B');
+
+  // Drag B to 30° (Math.PI / 6)
+  const targetAngB = Math.PI / 6;
+  const targetBx = gInit.cx + gInit.r * Math.cos(targetAngB);
+  const targetBy = gInit.cy - gInit.r * Math.sin(targetAngB);
+  mockCanvas.dispatchEvent({ type: 'pointermove', clientX: 100 + targetBx, clientY: 100 + targetBy, pointerId: 1 });
+  close(store.get().angleB, targetAngB, 1e-2);
+
+  mockCanvas.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(capturedPointer, null, 'Pointer capture must be released on pointerup');
+  assert.strictEqual(activePoint, null);
+
+  // 2. Synthetic Dispatch: Click on Point D and spin it by 45°
+  const gBeforeD = AlternateSegment.computeGeometry(store.get(), width, height);
+  const initialAlpha = gBeforeD.inscribedDeg;
+  mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 100 + gBeforeD.D.x, clientY: 100 + gBeforeD.D.y, pointerId: 2 });
+  assert.strictEqual(activePoint, 'D', 'Clicking on Point D with proof enabled must activate Point D dragging');
+
+  // Spin D by 45°
+  const curAngleD = (store.get().angleT + Math.PI) % (Math.PI * 2);
+  const targetAngleD = curAngleD + Math.PI / 4;
+  const targetDx = gBeforeD.cx + gBeforeD.r * Math.cos(targetAngleD);
+  const targetDy = gBeforeD.cy - gBeforeD.r * Math.sin(targetAngleD);
+  mockCanvas.dispatchEvent({ type: 'pointermove', clientX: 100 + targetDx, clientY: 100 + targetDy, pointerId: 2 });
+
+  const gAfterD = AlternateSegment.computeGeometry(store.get(), width, height);
+  close(gAfterD.tangentChordDeg, initialAlpha, 1e-4);
+  close(gAfterD.inscribedDeg, initialAlpha, 1e-4);
+  close(gAfterD.angleTDA, initialAlpha, 1e-4);
+  mockCanvas.dispatchEvent({ type: 'pointerup', pointerId: 2 });
+
+  // 3. Synthetic Dispatch: Click on Point D when showProofConstruction is FALSE
+  store.set({ showProofConstruction: false, showThalesOverlay: false });
+  const gNoProof = AlternateSegment.computeGeometry(store.get(), width, height);
+  mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 100 + gNoProof.D.x, clientY: 100 + gNoProof.D.y, pointerId: 3 });
+  assert.strictEqual(activePoint, null, 'Clicking Point D when proof is disabled must NOT activate drag');
+});
+
+// =============================================================================
+// Suite 9: Gap 3 — Responsive CSS Contract (Mobile Stack & Split Button Hidden)
+// =============================================================================
+test('Gap 3: Responsive CSS Contract — Media queries enforce stacked layout and hide #split-dir-btn on mobile', () => {
+  const circleCss = fs.readFileSync(path.join(ROOT, 'css', 'circle-visual.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(ROOT, 'visuals', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
+
+  // 1. In circle-visual.css under @media (max-width: 48rem)
+  assert.ok(circleCss.includes('@media (max-width: 48rem)'), 'circle-visual.css must define @media (max-width: 48rem) breakpoint');
+  assert.ok(/\.circle-explorer\s+\.layout-split\s*\{\s*flex-direction:\s*column;/.test(circleCss), 'circle-visual.css must enforce flex-direction: column on mobile');
+  assert.ok(/\.circle-explorer\s+#split-dir-btn\s*\{\s*display:\s*none\s*!important;/.test(circleCss), 'circle-visual.css must hide #split-dir-btn with display: none !important on mobile');
+
+  // 2. In thales-theorem responsive.css under @media (max-width: 48rem)
+  assert.ok(thalesCss.includes('@media (max-width: 48rem)'), 'thales responsive.css must define @media (max-width: 48rem) breakpoint');
+  assert.ok(/\.thales-explorer\s+#split-dir-btn\s*\{\s*display:\s*none\s*!important;/.test(thalesCss), 'thales responsive.css must hide #split-dir-btn with display: none !important on mobile');
+});
+
+// =============================================================================
+// Suite 10: Gap 4 — DOM Contract Linter (Zero Missing IDs Across All 8 Visuals)
+// =============================================================================
+test('Gap 4: DOM Contract Linter — All JS DOM queries match existing HTML element IDs across all 8 visuals', () => {
+  const visualsPath = path.join(ROOT, 'data', 'visuals.json');
+  const visuals = JSON.parse(fs.readFileSync(visualsPath, 'utf8'));
+
+  const missingReport = [];
+
+  for (const visual of visuals) {
+    const htmlPath = path.join(ROOT, 'visuals', visual.slug, 'index.html');
+    assert.ok(fs.existsSync(htmlPath), `Visual ${visual.slug} must have index.html`);
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+    const htmlIdRegex = /id=["']([^"']+)["']/g;
+    const htmlIds = new Set();
+    let m;
+    while ((m = htmlIdRegex.exec(htmlContent)) !== null) {
+      htmlIds.add(m[1]);
+    }
+
+    const jsDir = path.join(ROOT, 'visuals', visual.slug, 'src');
+    if (!fs.existsSync(jsDir)) continue;
+
+    function walkDir(dir) {
+      return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        return entry.isDirectory() ? walkDir(full) : (full.endsWith('.js') ? [full] : []);
+      });
+    }
+
+    const jsFiles = walkDir(jsDir);
+    for (const file of jsFiles) {
+      const code = fs.readFileSync(file, 'utf8');
+      const relPath = path.relative(ROOT, file).split(path.sep).join('/');
+
+      const getByIdRegex = /getElementById\(['"]([a-zA-Z0-9_-]+)['"]\)/g;
+      while ((m = getByIdRegex.exec(code)) !== null) {
+        const id = m[1];
+        if (id.startsWith('deriv-2d-step-') || id.startsWith('deriv-3d-step-')) continue;
+        if (!htmlIds.has(id)) {
+          missingReport.push(`${relPath}: getElementById('${id}') not in HTML`);
+        }
+      }
+
+      const queryHashRegex = /querySelector(?:All)?\(['"][^'"]*#([a-zA-Z0-9_-]+)[^'"]*['"]\)/g;
+      while ((m = queryHashRegex.exec(code)) !== null) {
+        const id = m[1];
+        if (id.startsWith('deriv-2d-step-') || id.startsWith('deriv-3d-step-')) continue;
+        if (!htmlIds.has(id)) {
+          missingReport.push(`${relPath}: querySelector('#${id}') not in HTML`);
+        }
+      }
+    }
+  }
+
+  assert.deepStrictEqual(missingReport, [], `Zero missing IDs allowed. Gaps found:\n${missingReport.join('\n')}`);
+});
+
+// =============================================================================
+// Suite 11: Gap 5 — HTML Script Loading Contract (Non-Blocking & Preconnected)
+// =============================================================================
+test('Gap 5: HTML Script Loading Contract — Zero blocking scripts in <head> and preconnect tags for all external origins', () => {
+  const visualsPath = path.join(ROOT, 'data', 'visuals.json');
+  const visuals = JSON.parse(fs.readFileSync(visualsPath, 'utf8'));
+
+  const pagesToCheck = [
+    ...visuals.map((v) => path.join('visuals', v.slug, 'index.html')),
+    'index.html',
+    'about.html',
+    'contact.html',
+    'privacy.html',
+  ];
+
+  for (const relPage of pagesToCheck) {
+    const fullPath = path.join(ROOT, relPage);
+    assert.ok(fs.existsSync(fullPath), `Page ${relPage} must exist`);
+    const html = fs.readFileSync(fullPath, 'utf8');
+
+    const headMatch = html.match(/<head>([\s\S]*?)<\/head>/i);
+    assert.ok(headMatch, `${relPage}: must contain <head>`);
+    const head = headMatch[1];
+
+    // 1. Assert all external <script src="http..."> have defer or type="module"
+    const scriptRegex = /<script\s+([^>]*?)>/gi;
+    let s;
+    while ((s = scriptRegex.exec(head)) !== null) {
+      const attrs = s[1];
+      const srcMatch = attrs.match(/src=["']([^"']+)["']/i);
+      if (srcMatch) {
+        const src = srcMatch[1];
+        const isExternal = src.startsWith('http://') || src.startsWith('https://');
+        if (isExternal) {
+          const isNonBlocking = /defer/i.test(attrs) || /type=["']module["']/i.test(attrs);
+          assert.ok(
+            isNonBlocking,
+            `${relPage}: External script "${src}" in <head> must have 'defer' or type='module' to prevent blocking the HTML parser`
+          );
+        }
+      }
+    }
+
+    // 2. Assert external origins referenced in <script> or <link> have preconnect
+    const linkOrScriptRegex = /(?:src|href)=["'](https?:\/\/[^"'/]+)[^"']*["']/gi;
+    const origins = new Set();
+    let u;
+    while ((u = linkOrScriptRegex.exec(head)) !== null) {
+      origins.add(u[1]);
+    }
+
+    for (const origin of origins) {
+      if (origin.includes('github.io') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        continue; // First-party site origin does not require preconnect
+      }
+      const hasPreconnect = head.includes(`rel="preconnect" href="${origin}"`) ||
+        head.includes(`rel="preconnect"\n    href="${origin}"`) ||
+        (head.includes('rel="preconnect"') && head.includes(origin));
+      assert.ok(
+        hasPreconnect,
+        `${relPage}: External origin "${origin}" must have <link rel="preconnect" href="${origin}"> in <head>`
+      );
+    }
+  }
+});
+

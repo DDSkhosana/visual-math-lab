@@ -123,8 +123,6 @@ function bootstrap() {
     const d = Math.max(r + MIN_EXTERNAL_POINT_CLEARANCE, parseFloat(e.target.value));
     store.set({ pointDist: d });
   });
-  const elCong = document.getElementById('toggle-congruence');
-  if (elCong) elCong.addEventListener('change', (e) => store.set({ showCongruence: e.target.checked, showArea: e.target.checked }));
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();

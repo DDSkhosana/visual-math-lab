@@ -134,7 +134,7 @@
   }
 
   .thales-explorer #split-dir-btn {
-    display: none;
+    display: none !important;
   }
 
   .thales-explorer .view-title {

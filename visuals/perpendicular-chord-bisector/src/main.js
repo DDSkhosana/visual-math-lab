@@ -111,8 +111,6 @@ function bootstrap() {
 
   // Controls
   document.getElementById('slider-radius')?.addEventListener('input', (e) => store.set({ radius: parseFloat(e.target.value) }));
-  const toggleArea = document.getElementById('toggle-area');
-  if (toggleArea) toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
   const toggleRadii = document.getElementById('toggle-radii');
   if (toggleRadii) toggleRadii.addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
   const toggleBisector = document.getElementById('toggle-bisector');

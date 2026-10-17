@@ -87,6 +87,41 @@ for (const visual of visuals) {
   const visualIndex = resolve(root, "visuals", visual.slug, "index.html");
   report(existsSync(visualIndex), `Visual "${visual.slug}" is missing visuals/${visual.slug}/index.html.`);
   report(typeof visual.thumbnail === "string" && !visual.thumbnail.startsWith("/") && existsSync(resolve(root, visual.thumbnail)), `Visual "${visual.slug}" references a missing thumbnail "${visual.thumbnail}".`);
+
+  // DOM Contract Linter: Validate that all static element IDs queried by JS exist in index.html
+  if (existsSync(visualIndex)) {
+    const htmlContent = readFileSync(visualIndex, "utf8");
+    const htmlIdRegex = /id=["']([^"']+)["']/g;
+    const htmlIds = new Set();
+    let idMatch;
+    while ((idMatch = htmlIdRegex.exec(htmlContent)) !== null) {
+      htmlIds.add(idMatch[1]);
+    }
+
+    const jsDir = resolve(root, "visuals", visual.slug, "src");
+    if (existsSync(jsDir)) {
+      const jsFiles = walk(jsDir).filter((file) => file.endsWith(".js"));
+      for (const jsFile of jsFiles) {
+        const code = readFileSync(jsFile, "utf8");
+        const relPath = relative(root, jsFile).split(sep).join("/");
+
+        const getByIdRegex = /getElementById\(['"]([a-zA-Z0-9_-]+)['"]\)/g;
+        let m;
+        while ((m = getByIdRegex.exec(code)) !== null) {
+          const id = m[1];
+          if (id.startsWith("deriv-2d-step-") || id.startsWith("deriv-3d-step-")) continue;
+          report(htmlIds.has(id), `Visual "${visual.slug}" (${relPath}): getElementById('${id}') references missing DOM ID #${id} in index.html`);
+        }
+
+        const queryHashRegex = /querySelector(?:All)?\(['"][^'"]*#([a-zA-Z0-9_-]+)[^'"]*['"]\)/g;
+        while ((m = queryHashRegex.exec(code)) !== null) {
+          const id = m[1];
+          if (id.startsWith("deriv-2d-step-") || id.startsWith("deriv-3d-step-")) continue;
+          report(htmlIds.has(id), `Visual "${visual.slug}" (${relPath}): querySelector('#${id}') references missing DOM ID #${id} in index.html`);
+        }
+      }
+    }
+  }
 }
 
 const visualDirectory = resolve(root, "visuals");

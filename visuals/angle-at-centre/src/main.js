@@ -110,11 +110,6 @@ function bootstrap() {
   pPosInput?.addEventListener('input', (e) => store.set({ angleP: toRadians(parseFloat(e.target.value)) }));
 
   // Checkbox bindings
-  const toggleArea = document.getElementById('toggle-area');
-  if (toggleArea) {
-    toggleArea.addEventListener('change', (e) => store.set({ showArea: e.target.checked }));
-  }
-
   const toggleRadii = document.getElementById('toggle-radii');
   if (toggleRadii) {
     toggleRadii.addEventListener('change', (e) => store.set({ showRadii: e.target.checked }));
@@ -123,11 +118,6 @@ function bootstrap() {
   const toggleSplit = document.getElementById('toggle-split');
   if (toggleSplit) {
     toggleSplit.addEventListener('change', (e) => store.set({ showSplit: e.target.checked }));
-  }
-
-  const toggleAngles = document.getElementById('toggle-angles');
-  if (toggleAngles) {
-    toggleAngles.addEventListener('change', (e) => store.set({ showAngles: e.target.checked }));
   }
 
   // Snapshot Exports
