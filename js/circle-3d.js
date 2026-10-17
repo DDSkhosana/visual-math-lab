@@ -636,7 +636,7 @@ function makeTriMesh(THREE, color, opacity = 0.16) {
   return mesh;
 }
 
-export function makeAngleWedgeMesh(THREE, color, opacity = 0.65) {
+export function makeAngleWedgeMesh(THREE, color, opacity = 0.28) {
   const geom = new THREE.BufferGeometry();
   const mat = new THREE.MeshBasicMaterial({
     color,
@@ -907,14 +907,14 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.sectorMesh = makeTriMesh(THREE, PALETTE.yellow, 0.16);
     this.triOPAMesh = makeTriMesh(THREE, PALETTE.blue, 0.16);
     this.triOPBMesh = makeTriMesh(THREE, PALETTE.orange, 0.16);
-    this.centralAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
-    this.inscribedAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.green, 0.65);
+    this.centralAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.28);
+    this.inscribedAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.green, 0.28);
     this.centralReflexMesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
     this.inscribedReflexMesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
-    this.angleAlphaPMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
-    this.angleBetaPMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
-    this.angleAlphaAMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
-    this.angleBetaBMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
+    this.angleAlphaPMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28);
+    this.angleBetaPMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28);
+    this.angleAlphaAMesh = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28);
+    this.angleBetaBMesh = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28);
 
     this.scene.add(
       this.markerO, this.markerA, this.markerB, this.markerP,
@@ -1066,9 +1066,9 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     this.tri1Mesh = makeTriMesh(THREE, PALETTE.blue, 0.16);
     this.tri2Mesh = makeTriMesh(THREE, PALETTE.emerald, 0.16);
     this.segmentMesh = makeTriMesh(THREE, PALETTE.sky, 0.12);
-    this.centralAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
-    this.angleP1Mesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.65);
-    this.angleP2Mesh = makeAngleWedgeMesh(THREE, PALETTE.emerald, 0.65);
+    this.centralAngleMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.28);
+    this.angleP1Mesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.28);
+    this.angleP2Mesh = makeAngleWedgeMesh(THREE, PALETTE.emerald, 0.28);
     this.reflexP1Mesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.25);
     this.reflexP2Mesh = makeAngleWedgeMesh(THREE, PALETTE.emerald, 0.25);
 
@@ -1230,11 +1230,11 @@ export class CyclicQuad3DView extends BaseScene3DView {
 
     this.quadMesh1 = makeTriMesh(THREE, PALETTE.indigo, 0.14);
     this.quadMesh2 = makeTriMesh(THREE, PALETTE.indigo, 0.14);
-    this.angleAMesh = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.65);
-    this.angleBMesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.65);
-    this.angleCMesh = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.65);
-    this.angleDMesh = makeAngleWedgeMesh(THREE, PALETTE.rose, 0.65);
-    this.angleExtMesh = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.65);
+    this.angleAMesh = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.28);
+    this.angleBMesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.28);
+    this.angleCMesh = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
+    this.angleDMesh = makeAngleWedgeMesh(THREE, PALETTE.rose, 0.28);
+    this.angleExtMesh = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.28);
     this.reflexAMesh = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.22);
     this.reflexBMesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.22);
     this.reflexCMesh = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.22);
@@ -1761,10 +1761,10 @@ export class AlternateSegment3DView extends BaseScene3DView {
     this.rightAngleBMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngleAMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngleTMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
-    this.angleTanMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
-    this.angleBMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
-    this.angleIntDMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65);
-    this.angleExtDMesh = makeAngleWedgeMesh(THREE, PALETTE.rose, 0.65);
+    this.angleTanMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.28);
+    this.angleBMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.28);
+    this.angleIntDMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.28);
+    this.angleExtDMesh = makeAngleWedgeMesh(THREE, PALETTE.rose, 0.28);
     this.reflexTanMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.22);
     this.reflexBMesh = makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.22);
     this.reflexDMesh = makeAngleWedgeMesh(THREE, PALETTE.rose, 0.22);
@@ -2185,8 +2185,8 @@ export class ChordBisector3DView extends BaseScene3DView {
     this.tri2Mesh = makeTriMesh(THREE, PALETTE.orange, 0.16);
     this.segmentMesh = makeTriMesh(THREE, PALETTE.sky, 0.12);
     this.rightAngleMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
-    this.angleAOMMesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.65);
-    this.angleBOMMesh = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.65);
+    this.angleAOMMesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.28);
+    this.angleBOMMesh = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.28);
     this.reflexRightMesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
 
     this.scene.add(

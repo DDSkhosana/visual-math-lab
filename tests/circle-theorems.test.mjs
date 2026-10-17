@@ -1068,9 +1068,11 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   assert.ok(!circle3d.includes("dist3d < 2.2"), 'circle-3d.js must not hijack pointer events with loose 2.2 unit 3D cylinder');
   assert.ok(!thales3d.includes("distanceToPoint(this.objects.pointP.position) < 2.2"), 'Thales Scene3DView.js must not hijack pointer events with loose 2.2 unit distance');
 
-  // Verify Tangents From External Point translucent 0.28 angle shading
+  // Verify translucent 0.28 angle shading harmonized with 2D across all 3D circle theorems
+  assert.ok(circle3d.includes("export function makeAngleWedgeMesh(THREE, color, opacity = 0.28)"), 'makeAngleWedgeMesh default opacity must be 0.28');
   assert.ok(circle3d.includes("this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28)"), 'TangentsFromPoint3DView alpha1 must use 0.28 opacity');
   assert.ok(circle3d.includes("this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28)"), 'TangentsFromPoint3DView alpha2 must use 0.28 opacity');
+  assert.ok(!circle3d.includes("makeAngleWedgeMesh(THREE, PALETTE.yellow, 0.65)"), 'circle-3d.js must not use opaque 0.65 opacity for angle wedges');
 
   // Verify all 3D canvases load in isometric view by default
   const circleCore = fs.readFileSync(path.join(rootDir, 'js', 'circle-core.js'), 'utf8');
