@@ -43,15 +43,25 @@ export class Canvas2DView {
       ? (px >= 0 ? 'Quadrant I (+X, +Y)' : 'Quadrant II (-X, +Y)')
       : (px < 0 ? 'Quadrant III (-X, -Y)' : 'Quadrant IV (+X, -Y)');
 
+    let baseTitle = '';
     if (plane === 'xy') {
-      title.innerHTML = `2D: XY Plane Projection — <span class="color-yellow">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-lime">Y: Elevation</span>)`;
+      baseTitle = `2D: XY Plane Projection — <span class="color-yellow">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-lime">Y: Elevation</span>)`;
     } else if (plane === 'xz') {
-      title.innerHTML = `2D: XZ Plane Projection — <span class="color-fuchsia">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-steel">Z: Depth</span>)`;
+      baseTitle = `2D: XZ Plane Projection — <span class="color-fuchsia">${qStr}</span> (<span class="color-amber">X: Diameter</span>, <span class="color-steel">Z: Depth</span>)`;
     } else if (plane === 'yz') {
-      title.innerHTML = `2D: YZ Plane Projection — <span class="color-steel">${qStr}</span> (<span class="color-steel">Z: Depth</span>, <span class="color-lime">Y: Elevation</span>, <span class="color-red">AB ⟂</span>)`;
+      baseTitle = `2D: YZ Plane Projection — <span class="color-steel">${qStr}</span> (<span class="color-steel">Z: Depth</span>, <span class="color-lime">Y: Elevation</span>, <span class="color-red">AB ⟂</span>)`;
     } else {
-      title.innerHTML = `2D: Great-Circle Section — <span class="color-yellow">${qStr}</span> (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)`;
+      baseTitle = `2D: Great-Circle Section — <span class="color-yellow">${qStr}</span> (<span class="color-teal">Right Angle 90°</span> at <span class="color-violet">P</span>)`;
     }
+
+    const perspectiveBadges = {
+      'great-circle': ' <span class="perspective-badge color-sky font-bold">[Isometric Perspective]</span>',
+      'xz': ' <span class="perspective-badge color-yellow font-bold">[Top View: XZ Plan]</span>',
+      'xy': ' <span class="perspective-badge color-lime font-bold">[Front View: XY Elevation]</span>',
+      'yz': ' <span class="perspective-badge color-steel font-bold">[Side View: YZ Profile]</span>',
+    };
+    title.dataset.origTitle = baseTitle;
+    title.innerHTML = `${baseTitle}${perspectiveBadges[plane] || perspectiveBadges['great-circle']}`;
   }
 
   draw() {
