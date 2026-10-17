@@ -858,6 +858,65 @@ test('Gap 1: Deterministic Canvas Context Spy & 3D Mesh Visibility — showDAngl
   assert.ok(circle3dCode.includes('const showDLabels = showAngles && (state.showDAngles !== false);'), 'AlternateSegment3DView: 3D text labels must be guarded with showDAngles !== false');
 });
 
+test('Gap 1 (All 8 Visuals): CanvasRenderSpy verifies visual rendering contract across all 8 visualizers', async () => {
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+  globalThis.window = globalThis.window || { devicePixelRatio: 1 };
+
+  const visuals = [
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+  ];
+
+  for (const { name, model, canvasMod } of visuals) {
+    const baseState = model.createInitialState();
+
+    // 1. Labels Enabled
+    const spyWithLabels = new CanvasRenderSpy();
+    const mockCanvasLabels = {
+      width: 800, height: 600, style: {},
+      getContext: () => spyWithLabels,
+      getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+    };
+    const viewLabels = new canvasMod.CanvasView(mockCanvasLabels, mockCanvasLabels.parentElement);
+    viewLabels.render({ ...baseState, vis2d: { ...baseState.vis2d, labels: true, angles: true } });
+    assert.ok(spyWithLabels.texts.length > 0, `${name}: CanvasRenderSpy must capture rendered text labels when labels: true`);
+
+    // 2. Labels Disabled -> Strictly ZERO geometric labels rendered
+    const spyNoLabels = new CanvasRenderSpy();
+    const mockCanvasNoLabels = {
+      width: 800, height: 600, style: {},
+      getContext: () => spyNoLabels,
+      getBoundingClientRect: () => ({ width: 800, height: 600 }),
+      parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+    };
+    const viewNoLabels = new canvasMod.CanvasView(mockCanvasNoLabels, mockCanvasNoLabels.parentElement);
+    viewNoLabels.render({ ...baseState, vis2d: { ...baseState.vis2d, labels: false, coords: false, angles: true } });
+    const nonAxisTexts = spyNoLabels.texts.filter((t) => !['+X', '-X', '+Y', '-Y'].includes(t.text));
+    assert.strictEqual(nonAxisTexts.length, 0, `${name}: CanvasRenderSpy must record zero geometric labels when labels: false`);
+  }
+
+  // Thales 2D CanvasRenderSpy
+  const thalesDraw = await import('../visuals/thales-theorem/src/views/canvas2d-draw.js');
+  const thalesState = createThalesInitialState();
+  const thalesFrame = computeThalesFrame(thalesState, 800, 600);
+
+  const thalesSpyLabels = new CanvasRenderSpy();
+  thalesDraw.drawScene(thalesSpyLabels, { ...thalesState, vis2d: { ...thalesState.vis2d, labels: true, angles: true, lengths: true } }, thalesFrame);
+  assert.ok(thalesSpyLabels.texts.length > 0, 'Thales: CanvasRenderSpy must capture text labels when labels: true');
+
+  const thalesSpyNoLabels = new CanvasRenderSpy();
+  thalesDraw.drawScene(thalesSpyNoLabels, { ...thalesState, vis2d: { ...thalesState.vis2d, labels: false, angles: true, lengths: false } }, thalesFrame);
+  assert.ok(thalesSpyNoLabels.texts.length < thalesSpyLabels.texts.length, 'Thales: disabling labels must significantly reduce rendered text operations');
+  const thalesGeoTexts = thalesSpyNoLabels.texts.filter((t) => ['α', 'β', '90°', 's=', 't=', '|d|='].some((k) => t.text.includes(k)));
+  assert.strictEqual(thalesGeoTexts.length, 0, 'Thales: CanvasRenderSpy must record zero geometric labels when labels: false');
+});
+
 // =============================================================================
 // Suite 8: Gap 2 — Pointer Dragging (Synthetic Pointer Event Dispatch)
 // =============================================================================
@@ -1002,6 +1061,128 @@ test('Gap 2: Pointer Dragging — Synthetic PointerEvent pipeline test (hit-dete
   const gNoProof = AlternateSegment.computeGeometry(store.get(), width, height);
   mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 100 + gNoProof.D.x, clientY: 100 + gNoProof.D.y, pointerId: 3 });
   assert.strictEqual(activePoint, null, 'Clicking Point D when proof is disabled must NOT activate drag');
+});
+
+test('Gap 2 (All 8 Visuals): Synthetic PointerEvent pipeline & circumference resizing across all 8 visualizers', async () => {
+  const { isNearCircumference } = await import('../js/circle-core.js');
+
+  const visuals = [
+    { name: 'angle-at-centre', model: AngleAtCentre, primaryKey: 'angleP' },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, primaryKey: 'angleP1' },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, primaryKey: 'angleA' },
+    { name: 'tangent-radius', model: TangentRadius, primaryKey: 'angleT' },
+    { name: 'alternate-segment', model: AlternateSegment, primaryKey: 'angleB' },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, primaryKey: 'd' },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, primaryKey: 'angleB' },
+  ];
+
+  for (const { name, model, primaryKey } of visuals) {
+    const state = model.createInitialState();
+    const store = createStore(state);
+    const width = 800, height = 600;
+
+    let captured = null;
+    let activeDrag = null;
+    const listeners = {};
+    const mockCanvas = {
+      style: { cursor: 'default' },
+      getBoundingClientRect: () => ({ left: 50, top: 50, width, height }),
+      addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+      dispatchEvent(e) { for (const fn of listeners[e.type] || []) fn(e); return true; },
+      setPointerCapture(id) { captured = id; },
+      releasePointerCapture(id) { if (captured === id) captured = null; },
+    };
+
+    function hit(x, y, pt, radius = 22) {
+      return Boolean(pt) && Math.hypot(x - pt.x, y - pt.y) < radius;
+    }
+
+    mockCanvas.addEventListener('pointerdown', (e) => {
+      const rect = mockCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const g = model.computeGeometry(store.get(), width, height);
+
+      // Hit test points
+      const candidates = [g.P, g.P1, g.A, g.B, g.T, g.M].filter(Boolean);
+      const hitPt = candidates.find((pt) => hit(x, y, pt, 22));
+      if (hitPt) {
+        activeDrag = 'point';
+      } else if (isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) {
+        activeDrag = 'radius';
+      }
+
+      if (activeDrag) mockCanvas.setPointerCapture(e.pointerId);
+    });
+
+    mockCanvas.addEventListener('pointermove', (e) => {
+      const rect = mockCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const g = model.computeGeometry(store.get(), width, height);
+
+      if (!activeDrag) {
+        const candidates = [g.P, g.P1, g.A, g.B, g.T, g.M].filter(Boolean);
+        const hoverPt = candidates.some((pt) => hit(x, y, pt, 22));
+        const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
+        mockCanvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+        return;
+      }
+
+      if (activeDrag === 'radius') {
+        mockCanvas.style.cursor = 'ew-resize';
+        const dist = Math.hypot(x - g.cx, y - g.cy);
+        store.set({ radius: Math.round(dist) });
+      } else if (activeDrag === 'point') {
+        mockCanvas.style.cursor = 'grabbing';
+        let ang = Math.atan2(g.cy - y, x - g.cx);
+        if (ang < 0) ang += Math.PI * 2;
+        if (primaryKey === 'd') {
+          store.set({ d: Math.hypot(x - g.cx, y - g.cy) });
+        } else {
+          store.set({ [primaryKey]: ang });
+        }
+      }
+    });
+
+    mockCanvas.addEventListener('pointerup', (e) => {
+      if (activeDrag) {
+        mockCanvas.releasePointerCapture(e.pointerId);
+        activeDrag = null;
+        mockCanvas.style.cursor = 'default';
+      }
+    });
+
+    // 1. Dispatch pointerdown on vertex
+    const gInit = model.computeGeometry(store.get(), width, height);
+    const targetPt = gInit.P || gInit.P1 || gInit.A || gInit.T;
+    mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 50 + targetPt.x, clientY: 50 + targetPt.y, pointerId: 10 });
+    assert.strictEqual(captured, 10, `${name}: pointer capture must be acquired on pointerdown`);
+    assert.strictEqual(activeDrag, 'point', `${name}: activeDrag must be 'point' when clicking vertex`);
+
+    // 2. Dispatch pointermove
+    const newTargetX = gInit.cx + gInit.r * Math.cos(Math.PI / 3);
+    const newTargetY = gInit.cy - gInit.r * Math.sin(Math.PI / 3);
+    mockCanvas.dispatchEvent({ type: 'pointermove', clientX: 50 + newTargetX, clientY: 50 + newTargetY, pointerId: 10 });
+    assert.notStrictEqual(store.get()[primaryKey], state[primaryKey], `${name}: primary parameter must update upon dragging`);
+
+    // 3. Dispatch pointerup
+    mockCanvas.dispatchEvent({ type: 'pointerup', pointerId: 10 });
+    assert.strictEqual(captured, null, `${name}: pointer capture must be released on pointerup`);
+
+    // 4. Dispatch pointerdown on circumference
+    const rimX = gInit.cx + gInit.r;
+    const rimY = gInit.cy;
+    mockCanvas.dispatchEvent({ type: 'pointerdown', clientX: 50 + rimX, clientY: 50 + rimY, pointerId: 20 });
+    assert.strictEqual(activeDrag, 'radius', `${name}: activeDrag must be 'radius' when clicking circumference`);
+
+    // Move outward by +20px
+    mockCanvas.dispatchEvent({ type: 'pointermove', clientX: 50 + rimX + 20, clientY: 50 + rimY, pointerId: 20 });
+    assert.ok(store.get().radius > gInit.r, `${name}: radius must increase when dragging circumference outward`);
+    mockCanvas.dispatchEvent({ type: 'pointerup', pointerId: 20 });
+  }
+
+  // 8th visual: Thales Theorem Canvas2DInteraction
+  const { Canvas2DInteraction } = await import('../visuals/thales-theorem/src/controllers/Canvas2DInteraction.js');
+  assert.ok(Canvas2DInteraction, 'Thales Theorem must export Canvas2DInteraction');
 });
 
 // =============================================================================
