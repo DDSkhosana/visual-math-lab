@@ -432,5 +432,26 @@ test('Thales 2D Interaction: Dragging A or B rigidly spins baseline, clicking P 
   trigger('pointerup', { pointerType: 'mouse', pointerId: 1 });
 });
 
+test('Thales: Viewport Dimension Adaptation & Collapsible Modes Panel Contract', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  // 1. Verify computeFrame scales r to fit within narrow viewport bounds without overflow
+  const state = createInitialState();
+  state.radius = 10;
+  state.zoom = 18; // default rawR = 180px
+  const narrowFrame = computeFrame(state, 300, 200);
+  assert.ok(narrowFrame.r <= 200 / 2, 'In narrow viewport, circle radius must be bounded to prevent canvas overflow');
+  assert.ok(narrowFrame.cx - narrowFrame.r >= 0, 'Left rim must remain inside canvas');
+  assert.ok(narrowFrame.cx + narrowFrame.r <= 300, 'Right rim must remain inside canvas');
+
+  // 2. Verify controls.css contains collapsible modes toolbar styles
+  const controlsCssPath = path.resolve('visuals/thales-theorem/styles/controls.css');
+  const controlsCss = fs.readFileSync(controlsCssPath, 'utf8');
+  assert.ok(controlsCss.includes('.toolbar-collapse-btn'), 'controls.css must style .toolbar-collapse-btn');
+  assert.ok(controlsCss.includes('.viewport-header-toolbar.is-collapsed .toolbar-content'), 'controls.css must hide .toolbar-content when collapsed');
+  assert.ok(controlsCss.includes('display: none !important'), 'Collapsed toolbar content must have display: none !important');
+});
+
 
 

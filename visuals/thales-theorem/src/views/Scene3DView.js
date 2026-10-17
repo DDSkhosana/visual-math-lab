@@ -36,7 +36,16 @@ export class Scene3DView {
   resize() {
     const { clientWidth: width, clientHeight: height } = this.container;
     if (!width || !height) return;
-    this.camera.aspect = width / height;
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+    if (aspect < 1.0) {
+      const defaultFov = 45;
+      const fovRad = (defaultFov * Math.PI) / 180;
+      const targetHalfWidth = Math.tan(fovRad / 2);
+      this.camera.fov = (2 * Math.atan(targetHalfWidth / aspect) * 180) / Math.PI;
+    } else {
+      this.camera.fov = 45;
+    }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
   }

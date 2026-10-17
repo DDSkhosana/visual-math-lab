@@ -46,8 +46,9 @@
   .thales-explorer .layout-split #canvas-2d-container,
   .thales-explorer .layout-split #canvas-3d-container {
     width: 100%;
-    height: auto;
+    height: 50% !important;
     min-height: 0;
+    flex: 1 1 50%;
   }
 
   .thales-explorer .layout-split .viewport-resizer {

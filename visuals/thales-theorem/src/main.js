@@ -47,6 +47,11 @@ function bootstrap() {
   const derivations = new DerivationView(byId('live-math-2d'), byId('live-math-3d'));
   const stats = new StatsView(document);
   const controls = new ControlsController(store, document);
+  const onResize = () => {
+    view2d.resize();
+    scene3d.resize();
+  };
+
   const viewMode = new ViewModeController(store, {
     mainView: byId('main-view'),
     container2d: byId('canvas-2d-container'),
@@ -56,7 +61,11 @@ function bootstrap() {
     buttons: { split: byId('btn-split'), '2d': byId('btn-2d'), '3d': byId('btn-3d') },
     flipButton: byId('split-dir-btn'),
     resizer: byId('viewport-resizer'),
+    onResize,
   });
+
+  window.addEventListener('resize', onResize);
+  document.addEventListener('fullscreenchange', onResize);
 
   new Canvas2DInteraction(store, view2d);
   new Scene3DInteraction(store, scene3d);

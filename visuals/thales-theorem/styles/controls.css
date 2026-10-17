@@ -89,6 +89,61 @@ input:checked + .toggle-slider:before { transform: translateX(14px); }
     border-color: rgba(99, 102, 241, 0.8);
 }
 
+/* Viewport Header Toolbar: Collapsible Mode & Buttons */
+.toolbar-collapse-btn {
+    background: transparent;
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    color: #94a3b8;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 0.375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.toolbar-collapse-btn:hover {
+    background: rgba(51, 65, 85, 0.6);
+    color: #f8fafc;
+    border-color: #6366f1;
+}
+
+.toolbar-collapse-btn:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+}
+
+.toolbar-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: opacity 0.2s ease;
+}
+
+.viewport-header-toolbar.is-collapsed {
+    gap: 0.25rem;
+    padding: 0.25rem 0.35rem;
+}
+
+.viewport-header-toolbar.is-collapsed .toolbar-content {
+    display: none !important;
+}
+
+.viewport-header-toolbar.is-collapsed::after {
+    content: "Modes";
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    padding-right: 0.25rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
 .toolbar-drag-handle {
     display: inline-flex;
     align-items: center;

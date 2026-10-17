@@ -5,7 +5,11 @@ import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2
 export function computeFrame(state, width, height) {
   const cx = width / 2 + state.pan.x;
   const cy = height / 2 + state.pan.y;
-  const r = state.radius * state.zoom;
+  const maxSafeRadius = Math.max(40, Math.min(width, height) / 2 - 30);
+  const baseZoom = state.zoom || 18;
+  const rawR = state.radius * baseZoom;
+  const r = Math.min(rawR, maxSafeRadius);
+  const zoom = r / (state.radius || 10);
   const plane = state.plane2D ?? 'great-circle';
   const rot = state.baselineRotation || 0;
   const cosR = Math.cos(rot);
@@ -22,9 +26,9 @@ export function computeFrame(state, width, height) {
     aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
     bCoords = { x: state.radius * cosR, y: state.radius * sinR };
     pCoords = { x: rx, y: ry };
-    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
-    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
-    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
+    a = { x: cx + aCoords.x * zoom, y: cy - aCoords.y * zoom };
+    b = { x: cx + bCoords.x * zoom, y: cy - bCoords.y * zoom };
+    p = { x: cx + pCoords.x * zoom, y: cy - pCoords.y * zoom };
     angle = Math.atan2(ry, rx);
     if (angle < 0) angle += Math.PI * 2;
     outOfPlane = {
@@ -42,9 +46,9 @@ export function computeFrame(state, width, height) {
     aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
     bCoords = { x: state.radius * cosR, y: state.radius * sinR };
     pCoords = { x: rx, y: rz };
-    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
-    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
-    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
+    a = { x: cx + aCoords.x * zoom, y: cy - aCoords.y * zoom };
+    b = { x: cx + bCoords.x * zoom, y: cy - bCoords.y * zoom };
+    p = { x: cx + pCoords.x * zoom, y: cy - pCoords.y * zoom };
     angle = Math.atan2(rz, rx);
     if (angle < 0) angle += Math.PI * 2;
     outOfPlane = {
@@ -60,9 +64,9 @@ export function computeFrame(state, width, height) {
     aCoords = { x: 0, y: -state.radius * sinR };
     bCoords = { x: 0, y: state.radius * sinR };
     pCoords = { x: pz, y: py };
-    a = { x: cx, y: cy - aCoords.y * state.zoom };
-    b = { x: cx, y: cy - bCoords.y * state.zoom };
-    p = { x: cx + pz * state.zoom, y: cy - py * state.zoom };
+    a = { x: cx, y: cy - aCoords.y * zoom };
+    b = { x: cx, y: cy - bCoords.y * zoom };
+    p = { x: cx + pz * zoom, y: cy - py * zoom };
     angle = Math.atan2(py, pz);
     if (angle < 0) angle += Math.PI * 2;
     outOfPlane = {
@@ -80,9 +84,9 @@ export function computeFrame(state, width, height) {
     aCoords = { x: -state.radius * cosR, y: -state.radius * sinR };
     bCoords = { x: state.radius * cosR, y: state.radius * sinR };
     pCoords = { x: rx, y: ry };
-    a = { x: cx + aCoords.x * state.zoom, y: cy - aCoords.y * state.zoom };
-    b = { x: cx + bCoords.x * state.zoom, y: cy - bCoords.y * state.zoom };
-    p = { x: cx + pCoords.x * state.zoom, y: cy - pCoords.y * state.zoom };
+    a = { x: cx + aCoords.x * zoom, y: cy - aCoords.y * zoom };
+    b = { x: cx + bCoords.x * zoom, y: cy - bCoords.y * zoom };
+    p = { x: cx + pCoords.x * zoom, y: cy - pCoords.y * zoom };
     angle = state.angle2D;
     const { psi } = point3DToGreatCircle(p3d, state.radius);
     const psiDeg = (psi * 180) / Math.PI;
@@ -95,13 +99,13 @@ export function computeFrame(state, width, height) {
     };
   }
 
-  const lenS = Math.hypot(p.x - a.x, p.y - a.y) / (state.zoom || 1);
-  const lenT = Math.hypot(p.x - b.x, p.y - b.y) / (state.zoom || 1);
-  const lenD = Math.hypot(b.x - a.x, b.y - a.y) / (state.zoom || 1);
-  const lenR = Math.hypot(p.x - cx, p.y - cy) / (state.zoom || 1);
+  const lenS = Math.hypot(p.x - a.x, p.y - a.y) / (zoom || 1);
+  const lenT = Math.hypot(p.x - b.x, p.y - b.y) / (zoom || 1);
+  const lenD = Math.hypot(b.x - a.x, b.y - a.y) / (zoom || 1);
+  const lenR = Math.hypot(p.x - cx, p.y - cy) / (zoom || 1);
 
   return {
-    width, height, cx, cy, r, plane, baselineRotation: rot, zoom: state.zoom,
+    width, height, cx, cy, r, plane, baselineRotation: rot, zoom: zoom,
     a, b, p, angle, pCoords, aCoords, bCoords,
     lenS, lenT, lenD, lenR, outOfPlane,
   };
@@ -110,7 +114,7 @@ export function computeFrame(state, width, height) {
 const line = (ctx, from, to) => { ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); };
 
 function drawGrid(ctx, state, f) {
-  const size = 5 * state.zoom;
+  const size = 5 * (f.zoom || state.zoom);
   const startX = (state.pan.x % size) - size;
   const startY = (state.pan.y % size) - size;
   ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';

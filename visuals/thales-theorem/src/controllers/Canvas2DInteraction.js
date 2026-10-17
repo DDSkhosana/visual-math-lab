@@ -109,10 +109,11 @@ export class Canvas2DInteraction {
       this.store.set(setBaselineRotation(rot));
     } else if (this.mode === 'radius') {
       const state = this.store.get();
+      const frame = this.view.frame(state);
       const { x, y } = this.view.toLocal(event);
-      const { cx, cy } = this.view.frame(state);
-      const distFromCenter = Math.hypot(x - cx, y - cy);
-      const newRadius = clamp(Math.round((distFromCenter / state.zoom) * 2) / 2, 5, 15);
+      const distFromCenter = Math.hypot(x - frame.cx, y - frame.cy);
+      const zoom = frame.zoom || state.zoom || 18;
+      const newRadius = clamp(Math.round((distFromCenter / zoom) * 2) / 2, 5, 15);
       this.store.set(setRadius(newRadius));
     } else if (this.mode === 'pan') {
       this.store.set({ pan: { x: event.clientX - this.panOrigin.x, y: event.clientY - this.panOrigin.y } });

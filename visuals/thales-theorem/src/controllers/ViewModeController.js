@@ -6,7 +6,7 @@ import { setSplitRatio, setViewMode, toggleSplitDirection } from '../model/actio
 export class ViewModeController {
   static stateKeys = ['viewMode', 'splitDirection', 'splitRatio'];
 
-  constructor(store, { mainView, container2d, container3d, toolbar2d, toolbar3d, buttons, flipButton, resizer }) {
+  constructor(store, { mainView, container2d, container3d, toolbar2d, toolbar3d, buttons, flipButton, resizer, onResize }) {
     this.store = store;
     this.mainView = mainView;
     this.container2d = container2d;
@@ -15,6 +15,7 @@ export class ViewModeController {
     this.toolbar3d = toolbar3d;
     this.buttons = buttons;
     this.flipButton = flipButton;
+    this.onResize = onResize;
 
     for (const [mode, button] of Object.entries(buttons)) {
       button.addEventListener('click', () => store.set(setViewMode(mode)));
@@ -45,6 +46,8 @@ export class ViewModeController {
 
     if (this.toolbar2d) this.toolbar2d.style.display = viewMode === '3d' ? 'none' : '';
     if (this.toolbar3d) this.toolbar3d.style.display = viewMode === '2d' ? 'none' : '';
+
+    this.onResize?.();
   }
 
   #enableDividerDrag(resizer) {
@@ -60,6 +63,7 @@ export class ViewModeController {
           ? ((e.clientX - rect.left) / rect.width) * 100
           : ((e.clientY - rect.top) / rect.height) * 100;
         this.store.set(setSplitRatio(clamp(ratio, LIMITS.splitRatio.min, LIMITS.splitRatio.max)));
+        this.onResize?.();
       };
       const end = () => {
         try {
@@ -69,6 +73,7 @@ export class ViewModeController {
         resizer.removeEventListener('pointermove', move);
         resizer.removeEventListener('pointerup', end);
         resizer.removeEventListener('pointercancel', end);
+        this.onResize?.();
       };
       resizer.addEventListener('pointermove', move);
       resizer.addEventListener('pointerup', end);
