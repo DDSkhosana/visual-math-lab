@@ -241,6 +241,24 @@ export class Scene3DView {
     return false;
   }
 
+  hitsCircumference(radius = 10) {
+    if (!this.raycaster?.ray) return false;
+    const vOrigin = this.raycaster.ray.origin;
+    const vDir = this.raycaster.ray.direction;
+    const b = vOrigin.dot(vDir);
+    const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+    return Math.abs(distRayToOrigin - radius) < 1.4;
+  }
+
+  pickCircumferenceRadius(min = 5, max = 15) {
+    if (!this.raycaster?.ray) return null;
+    const vOrigin = this.raycaster.ray.origin;
+    const vDir = this.raycaster.ray.direction;
+    const b = vOrigin.dot(vDir);
+    const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+    return Math.min(max, Math.max(min, Math.round(distRayToOrigin * 2) / 2));
+  }
+
   pickSphere(baselineRotation = 0) {
     const hits = this.raycaster.intersectObject(this.objects.sphere);
     let pt = hits.length ? hits[0].point : null;

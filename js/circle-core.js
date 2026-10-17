@@ -63,6 +63,21 @@ export function pointerToAngle(dx, dy) {
 }
 
 /**
+ * Detects if a pointer coordinate (x, y) is on or very close to the circle circumference,
+ * allowing direct click-and-drag radius resizing.
+ * @param {number} x - Pointer x in local canvas pixels
+ * @param {number} y - Pointer y in local canvas pixels
+ * @param {number} cx - Circle center x
+ * @param {number} cy - Circle center y
+ * @param {number} r - Circle radius
+ * @param {number} [tolerance=14] - Proximity threshold in pixels
+ * @returns {boolean}
+ */
+export function isNearCircumference(x, y, cx, cy, r, tolerance = 14) {
+  return Math.abs(Math.hypot(x - cx, y - cy) - r) <= tolerance;
+}
+
+/**
  * Minimal observable store.
  */
 export function createStore(initialState) {

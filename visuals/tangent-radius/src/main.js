@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { TangentRadiusDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, TangentRadius3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -140,12 +140,18 @@ function bootstrap() {
     for (const t of g.tangents) {
       if (Math.hypot(x - t.pt.x, y - t.pt.y) < 26) {
         dragTargetId = t.id;
-        if (store.get().playing) {
-          store.set({ playing: false });
-        }
-        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
         break;
       }
+    }
+    if (!dragTargetId && isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) {
+      dragTargetId = 'radius';
+    }
+
+    if (dragTargetId) {
+      if (store.get().playing) {
+        store.set({ playing: false });
+      }
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
     }
   });
 
@@ -156,14 +162,23 @@ function bootstrap() {
     const g = computeGeometry(store.get(), view.width, view.height);
 
     if (!dragTargetId) {
-      let hover = false;
+      let hoverPt = false;
       for (const t of g.tangents) {
         if (Math.hypot(x - t.pt.x, y - t.pt.y) < 26) {
-          hover = true;
+          hoverPt = true;
           break;
         }
       }
-      canvas.style.cursor = hover ? 'pointer' : 'default';
+      const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      return;
+    }
+
+    if (dragTargetId === 'radius') {
+      canvas.style.cursor = 'ew-resize';
+      const dist = Math.hypot(x - g.cx, y - g.cy);
+      const nextR = Math.min(260, Math.max(100, Math.round(dist)));
+      store.set({ radius: nextR });
       return;
     }
 

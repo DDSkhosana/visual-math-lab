@@ -696,12 +696,59 @@ export class BaseScene3DView {
         element.style.cursor = 'grabbing';
         try { element.setPointerCapture(e.pointerId); } catch (_) {}
         e.stopPropagation();
+      } else {
+        // Direct click-and-drag radius resizing from 3D sphere circumference/silhouette
+        const r3d = this.R || 10;
+        const rayObj = ray.ray || ray;
+        const vOrigin = rayObj.origin;
+        const vDir = rayObj.direction;
+        const b = vOrigin.dot(vDir);
+        const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+        if (Math.abs(distRayToOrigin - r3d) < 1.4) {
+          const st = store.get();
+          const isTangentExt = Boolean(st.pointDist);
+          const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
+          const default2D = isTangentExt ? 120 : (isChordBisector ? 170 : 180);
+          activeTarget = {
+            isRadius: true,
+            initialDist: distRayToOrigin,
+            initialR: st.radius || default2D,
+            base3D: isTangentExt ? 8 : 10,
+            default2D,
+            isTangentExt,
+            isChordBisector,
+          };
+          this.controls.enabled = false;
+          element.style.cursor = 'ew-resize';
+          try { element.setPointerCapture(e.pointerId); } catch (_) {}
+          e.stopPropagation();
+        }
       }
     }, { capture: true });
 
     element.addEventListener('pointermove', (e) => {
       const ray = pointerToRay(e);
       if (activeTarget) {
+        if (activeTarget.isRadius) {
+          const rayObj = ray.ray || ray;
+          const vOrigin = rayObj.origin;
+          const vDir = rayObj.direction;
+          const b = vOrigin.dot(vDir);
+          const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+          const minR = activeTarget.isTangentExt ? 80 : 100;
+          const maxR = activeTarget.isTangentExt ? 220 : (activeTarget.isChordBisector ? 250 : 260);
+          const scaleRatio = distRayToOrigin / (activeTarget.initialDist || activeTarget.base3D || 10);
+          const nextR = Math.min(maxR, Math.max(minR, Math.round(activeTarget.initialR * scaleRatio)));
+          const updates = { radius: nextR };
+          if (activeTarget.isTangentExt) {
+            updates.pointDist = Math.max(nextR + 35, store.get().pointDist);
+          }
+          store.set(updates);
+          element.style.cursor = 'ew-resize';
+          e.stopPropagation();
+          return;
+        }
+
         const hit = pickSphere(ray);
         if (hit) {
           let angle = Math.atan2(hit.z, hit.x);
@@ -736,6 +783,18 @@ export class BaseScene3DView {
             break;
           }
         }
+        if (!hover) {
+          const r3d = this.R || 10;
+          const rayObj = ray.ray || ray;
+          const vOrigin = rayObj.origin;
+          const vDir = rayObj.direction;
+          const b = vOrigin.dot(vDir);
+          const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+          if (Math.abs(distRayToOrigin - r3d) < 1.4) {
+            element.style.cursor = 'ew-resize';
+            return;
+          }
+        }
         element.style.cursor = hover ? 'pointer' : '';
       }
     }, { capture: true });
@@ -754,6 +813,27 @@ export class BaseScene3DView {
     element.addEventListener('pointercancel', endDrag);
     window.addEventListener('pointerup', endDrag);
     window.addEventListener('pointercancel', endDrag);
+
+    // 3D Mouse Wheel Resizing (synchronized with 2D Canvas and slider)
+    element.addEventListener('wheel', (e) => {
+      if (e.shiftKey) return; // Shift + wheel retains camera dolly zoom
+      e.preventDefault();
+      e.stopPropagation();
+      const st = store.get();
+      const isTangentExt = Boolean(st.pointDist);
+      const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
+      const defaultR = isTangentExt ? 120 : (isChordBisector ? 170 : 180);
+      const cur = st.radius || defaultR;
+      const factor = e.deltaY > 0 ? 0.95 : 1.05;
+      const minR = isTangentExt ? 80 : 100;
+      const maxR = isTangentExt ? 220 : (isChordBisector ? 250 : 260);
+      const nextR = Math.min(maxR, Math.max(minR, Math.round(cur * factor)));
+      const updates = { radius: nextR };
+      if (isTangentExt) {
+        updates.pointDist = Math.max(nextR + 35, st.pointDist);
+      }
+      store.set(updates);
+    }, { capture: true, passive: false });
   }
 
   dispose() {
@@ -2545,7 +2625,7 @@ export class ChordBisector3DView extends BaseScene3DView {
 
   render(state) {
     this.applyCommonVis(state);
-    const default2D = 180;
+    const default2D = 170;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);

@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { AlternateSegmentDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AlternateSegment3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -150,6 +150,7 @@ function bootstrap() {
     else if (hit(x, y, g.A)) activePoint = 'A';
     else if (hit(x, y, g.B)) activePoint = 'B';
     else if (isProof && g.D && hit(x, y, g.D)) activePoint = 'D';
+    else if (isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) activePoint = 'radius';
 
     if (activePoint) {
       if (store.get().playing) {
@@ -167,8 +168,17 @@ function bootstrap() {
 
     if (!activePoint) {
       const isProof = Boolean(store.get().showProofConstruction || store.get().showThalesOverlay);
-      const hover = hit(x, y, g.T) || hit(x, y, g.A) || hit(x, y, g.B) || (isProof && g.D && hit(x, y, g.D));
-      canvas.style.cursor = hover ? 'pointer' : 'default';
+      const hoverPt = hit(x, y, g.T) || hit(x, y, g.A) || hit(x, y, g.B) || (isProof && g.D && hit(x, y, g.D));
+      const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      return;
+    }
+
+    if (activePoint === 'radius') {
+      canvas.style.cursor = 'ew-resize';
+      const dist = Math.hypot(x - g.cx, y - g.cy);
+      const nextR = Math.min(260, Math.max(100, Math.round(dist)));
+      store.set({ radius: nextR });
       return;
     }
 

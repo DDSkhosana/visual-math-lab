@@ -1251,3 +1251,72 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   }
 });
 
+test('Radius Resizing: click-and-drag circumference and mouse wheel resizing with 2D/3D canvas synchronization across all modules', async () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  // 1. Verify isNearCircumference export and behavior in circle-core.js
+  const { isNearCircumference } = await import('../js/circle-core.js');
+  assert.strictEqual(typeof isNearCircumference, 'function', 'circle-core.js must export isNearCircumference');
+
+  // Exact rim hit
+  assert.strictEqual(isNearCircumference(200, 100, 100, 100, 100, 14), true);
+  // Within 14px tolerance
+  assert.strictEqual(isNearCircumference(210, 100, 100, 100, 100, 14), true);
+  assert.strictEqual(isNearCircumference(190, 100, 100, 100, 100, 14), true);
+  // Outside tolerance
+  assert.strictEqual(isNearCircumference(220, 100, 100, 100, 100, 14), false);
+  assert.strictEqual(isNearCircumference(100, 100, 100, 100, 100, 14), false);
+
+  // 2. Verify all 7 circle theorem main.js files implement circumference dragging and wheel resizing
+  const circleTheorems = [
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of circleTheorems) {
+    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'src', 'main.js'), 'utf8');
+    assert.ok(
+      mainJs.includes('isNearCircumference'),
+      `${slug}/src/main.js must import and use isNearCircumference`
+    );
+    assert.ok(
+      mainJs.includes("canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default')") ||
+      mainJs.includes("canvas.style.cursor = 'ew-resize'"),
+      `${slug}/src/main.js must set ew-resize cursor when hovering or dragging circumference`
+    );
+    assert.ok(
+      mainJs.includes("canvas.addEventListener('wheel'") || mainJs.includes('addEventListener("wheel"'),
+      `${slug}/src/main.js must have mouse wheel event listener on 2D canvas`
+    );
+    assert.ok(
+      mainJs.includes('store.set({ radius:'),
+      `${slug}/src/main.js must update store radius upon circumference drag or wheel`
+    );
+  }
+
+  // 3. Verify Thales 2D and 3D implementations
+  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
+  assert.ok(thales2D.includes("distCirc < 14"), 'Thales Canvas2DInteraction.js must allow circumference click to enter radius resizing mode');
+  assert.ok(thales2D.includes("this.mode = 'radius'"), 'Thales Canvas2DInteraction.js must activate radius resizing mode');
+  assert.ok(thales2D.includes("ew-resize"), 'Thales Canvas2DInteraction.js must show ew-resize cursor on circumference hover');
+  assert.ok(thales2D.includes("canvas.addEventListener('wheel'"), 'Thales Canvas2DInteraction.js must have wheel listener for 2D canvas');
+
+  const thales3D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Scene3DInteraction.js'), 'utf8');
+  assert.ok(thales3D.includes("hitsCircumference"), 'Thales Scene3DInteraction.js must check hitsCircumference');
+  assert.ok(thales3D.includes("activeTarget = 'radius'"), 'Thales Scene3DInteraction.js must set activeTarget to radius upon circumference click');
+  assert.ok(thales3D.includes("element.addEventListener('wheel'"), 'Thales Scene3DInteraction.js must have 3D mouse wheel listener');
+
+  // 4. Verify 3D Scene View in circle-3d.js implements direct circumference dragging and 3D mouse wheel resizing
+  const circle3D = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+  assert.ok(circle3D.includes('isRadius: true'), 'circle-3d.js enableInteraction must detect direct circumference dragging');
+  assert.ok(circle3D.includes("element.addEventListener('wheel'"), 'circle-3d.js enableInteraction must have 3D mouse wheel listener');
+  assert.ok(circle3D.includes('store.set(updates)'), 'circle-3d.js 3D wheel must dispatch radius updates to store');
+});
+
+

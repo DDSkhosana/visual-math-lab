@@ -48,12 +48,9 @@ export class Canvas2DInteraction {
     const distB = this.#distanceTo(event, frame.b);
     const distCirc = this.#distanceToCircumference(event);
 
-    if (distP < reach || distCirc < 16) {
+    if (distP < reach) {
       this.mode = 'point';
-      if (distP >= reach) {
-        this.#updatePointPosition(event);
-      }
-    } else if (distA < reach || distB < reach) {
+    } else if (distA < reach || distB < reach || distCirc < 14) {
       this.mode = 'radius';
     } else {
       this.mode = 'pan';
@@ -112,8 +109,8 @@ export class Canvas2DInteraction {
       const distB = this.#distanceTo(event, frame.b);
       const distCirc = this.#distanceToCircumference(event);
 
-      const hoverP = distP < 25 || distCirc < 12;
-      const hoverRadius = distA < 22 || distB < 22;
+      const hoverP = distP < 25;
+      const hoverRadius = !hoverP && (distA < 22 || distB < 22 || distCirc < 14);
 
       if (hoverP) {
         this.view.canvas.style.cursor = 'pointer';

@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../js/circle-core.js';
 import { AngleAtCentreDerivations } from '../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AngleAtCentre3DView } from '../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -151,6 +151,8 @@ function bootstrap() {
       activeDragPoint = 'A';
     } else if (hitTest(x, y, g.B, 20)) {
       activeDragPoint = 'B';
+    } else if (isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) {
+      activeDragPoint = 'radius';
     }
 
     if (activeDragPoint) {
@@ -168,8 +170,17 @@ function bootstrap() {
     const g = computeGeometry(store.get(), view.width, view.height);
 
     if (!activeDragPoint) {
-      const hover = hitTest(x, y, g.P, 24) || hitTest(x, y, g.A, 20) || hitTest(x, y, g.B, 20);
-      canvas.style.cursor = hover ? 'pointer' : 'default';
+      const hoverPt = hitTest(x, y, g.P, 24) || hitTest(x, y, g.A, 20) || hitTest(x, y, g.B, 20);
+      const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      return;
+    }
+
+    if (activeDragPoint === 'radius') {
+      canvas.style.cursor = 'ew-resize';
+      const dist = Math.hypot(x - g.cx, y - g.cy);
+      const nextR = Math.min(260, Math.max(100, Math.round(dist)));
+      store.set({ radius: nextR });
       return;
     }
 

@@ -12,6 +12,10 @@ export class NullScene3DView {
   setOrbitEnabled() {}
   pointerToRay() {}
   hitsPointP() { return false; }
+  hitsPointA() { return false; }
+  hitsPointB() { return false; }
+  hitsCircumference() { return false; }
+  pickCircumferenceRadius() { return null; }
   pickSphere() { return null; }
   setCameraPreset() {}
 }
