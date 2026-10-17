@@ -128,6 +128,32 @@ test('Colour Grammar: Derivations comply with theorem point identities and line 
   assert.ok(c7Flat.innerHTML.includes('class="color-orange">B</span>'), 'Thales B must be orange and uppercase');
   assert.ok(c7Flat.innerHTML.includes('class="color-indigo">Center O</span>'), 'Thales center must be Center O and uppercase');
   assert.ok(c7Flat.innerHTML.includes('class="color-violet">P</span>'), 'Thales P must be violet and uppercase');
+
+  // Verify graphical primitive colours for coordinates and angles across modules
+  assert.ok(c1.innerHTML.includes('class="color-amber"'), 'AngleAtCentre: x coordinates must use amber');
+  assert.ok(c1.innerHTML.includes('class="color-lime"'), 'AngleAtCentre: y coordinates must use lime');
+  assert.ok(c1.innerHTML.includes('class="color-teal"'), 'AngleAtCentre: perigon invariants must use teal');
+
+  assert.ok(c3.innerHTML.includes('class="color-amber"'), 'CyclicQuad: x coordinates must use amber');
+  assert.ok(c3.innerHTML.includes('class="color-lime"'), 'CyclicQuad: y coordinates must use lime');
+  assert.ok(c3.innerHTML.includes('class="color-lavender"'), 'CyclicQuad: 180/1080 angle sums must use lavender');
+
+  assert.ok(c4.innerHTML.includes('class="color-amber"'), 'TangentRadius: x coordinates must use amber');
+  assert.ok(c4.innerHTML.includes('class="color-lime"'), 'TangentRadius: y coordinates must use lime');
+  assert.ok(c4.innerHTML.includes('class="color-teal"'), 'TangentRadius: 90/270/360 angles must use teal');
+
+  assert.ok(c5.innerHTML.includes('class="color-amber"'), 'TangentsFromPoint: x coordinates must use amber');
+  assert.ok(c5.innerHTML.includes('class="color-lime"'), 'TangentsFromPoint: y coordinates must use lime');
+  assert.ok(c5.innerHTML.includes('class="color-teal"'), 'TangentsFromPoint: 90/270/360 angles must use teal');
+
+  assert.ok(c6.innerHTML.includes('class="color-amber"'), 'ChordBisector: x coordinates must use amber');
+  assert.ok(c6.innerHTML.includes('class="color-lime"'), 'ChordBisector: y coordinates must use lime');
+  assert.ok(c6.innerHTML.includes('class="color-teal"'), 'ChordBisector: 90/270 angles must use teal');
+
+  assert.ok(c7Flat.innerHTML.includes('class="color-amber"'), 'Thales 2D: x coordinates must use amber');
+  assert.ok(c7Flat.innerHTML.includes('class="color-emerald"'), 'Thales 2D: y coordinates must use emerald');
+  assert.ok(c7Flat.innerHTML.includes('class="color-teal"'), 'Thales 2D: 90/270/360 angles must use teal');
+  assert.ok(c7Solid.innerHTML.includes('class="color-steel"'), 'Thales 3D: z depth coordinates must use steel');
 });
 
 test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independently toggled', () => {
