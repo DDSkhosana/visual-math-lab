@@ -143,7 +143,7 @@ export class ArcballTrackballControls {
     this.target = new THREE.Vector3(0, 0, 0);
 
     this.enabled = true;
-    this.mode = 'trackball'; // 'trackball' (unconstrained 360°) | 'orbit' (turntable)
+    this.mode = 'arcball'; // 'arcball' (unconstrained 360° 6-DOF) | 'orbit' (turntable)
     this.enableDamping = true;
     this.dampingFactor = 0.05;
     this.screenSpacePanning = true;
@@ -181,11 +181,15 @@ export class ArcballTrackballControls {
     this.domElement.addEventListener('contextmenu', this._onContextMenu);
   }
 
+  get isArcball() {
+    return this.mode === 'arcball' || this.mode === 'trackball';
+  }
+
   setMode(mode) {
-    if (mode === 'trackball' || mode === 'orbit') {
-      this.mode = mode;
+    if (mode === 'arcball' || mode === 'trackball' || mode === 'orbit') {
+      this.mode = mode === 'orbit' ? 'orbit' : 'arcball';
       this.angularVelocity.angle = 0;
-      if (mode === 'orbit') {
+      if (this.mode === 'orbit') {
         this.camera.up.set(0, 1, 0);
         this.camera.lookAt(this.target);
       }
@@ -307,7 +311,7 @@ export class ArcballTrackballControls {
       const curX = event.clientX - rect.left;
       const curY = event.clientY - rect.top;
 
-      if (this.mode === 'trackball') {
+      if (this.isArcball) {
         const curSpherePoint = this.projectOnVirtualSphere(curX, curY, rect.width, rect.height);
         const axisScreen = new this.THREE.Vector3().crossVectors(this.prevSpherePoint, curSpherePoint);
         const dot = Math.max(-1, Math.min(1, this.prevSpherePoint.dot(curSpherePoint)));
@@ -378,7 +382,7 @@ export class ArcballTrackballControls {
 
   update() {
     if (this.enableDamping && this.state === 'none' && this.angularVelocity.angle > 1e-4) {
-      if (this.mode === 'trackball') {
+      if (this.isArcball) {
         this.rotateCameraByAxisAngle(this.angularVelocity.axis, this.angularVelocity.angle);
       }
       this.angularVelocity.angle *= (1 - this.dampingFactor);

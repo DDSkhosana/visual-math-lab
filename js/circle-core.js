@@ -1021,6 +1021,7 @@ export function createDefaultVisState() {
   return {
     lengthUnit: 'px',
     angleUnit: 'deg',
+    cameraMode: 'arcball',
     vis2d: {
       grid: true,
       axes: true,
@@ -1287,21 +1288,21 @@ export function bindStandardToggles(store, ...args) {
       const modeBtn = document.createElement('button');
       modeBtn.type = 'button';
       modeBtn.className = 'camera-mode-toggle';
-      modeBtn.dataset.cameraMode = 'trackball';
-      modeBtn.title = 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.';
-      modeBtn.innerHTML = '🔄 360°';
+      modeBtn.dataset.cameraMode = 'arcball';
+      modeBtn.title = 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.';
+      modeBtn.innerHTML = '🔄 Arcball';
       bar.appendChild(modeBtn);
 
       modeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const curMode = sceneTarget?.controls?.mode || 'trackball';
-        const nextMode = curMode === 'trackball' ? 'orbit' : 'trackball';
+        const curMode = sceneTarget?.controls?.mode || 'arcball';
+        const nextMode = (curMode === 'arcball' || curMode === 'trackball') ? 'orbit' : 'arcball';
         sceneTarget?.controls?.setMode?.(nextMode);
         modeBtn.dataset.cameraMode = nextMode;
-        modeBtn.innerHTML = nextMode === 'trackball' ? '🔄 360°' : '🌐 Orbit';
-        modeBtn.title = nextMode === 'trackball'
-          ? 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.'
-          : 'Current: Constrained Turntable (level horizon). Click for Free 360° Trackball.';
+        modeBtn.innerHTML = (nextMode === 'arcball' || nextMode === 'trackball') ? '🔄 Arcball' : '🌐 Orbit';
+        modeBtn.title = (nextMode === 'arcball' || nextMode === 'trackball')
+          ? 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.'
+          : 'Current: Constrained Orbit (turntable with level horizon). Click for Arcball.';
         store.set({ cameraMode: nextMode });
       });
     }
@@ -1322,6 +1323,16 @@ export function bindStandardToggles(store, ...args) {
         viewMode: 'split',
         splitDirection: 'horizontal',
         splitRatio: 50,
+        cameraMode: 'arcball',
+      });
+      sceneTarget?.controls?.setMode?.('arcball');
+      presetBars.forEach((bar) => {
+        const btn = bar.querySelector('.camera-mode-toggle');
+        if (btn) {
+          btn.dataset.cameraMode = 'arcball';
+          btn.innerHTML = '🔄 Arcball';
+          btn.title = 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.';
+        }
       });
       applyPerspective(defaultPreset);
       opts.onReset?.();

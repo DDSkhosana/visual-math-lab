@@ -21,6 +21,7 @@ export function createInitialState() {
     baselineRotation: 0,
     lengthUnit: 'px',
     angleUnit: 'deg',
+    cameraMode: 'arcball',
     playing: false,
     hoverP2D: false,
     hoverP3D: false,

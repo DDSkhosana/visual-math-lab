@@ -80,6 +80,17 @@ function bootstrap() {
         splitDirection: 'horizontal',
         splitRatio: 50,
         plane2D: 'great-circle',
+        cameraMode: 'arcball',
+      });
+      scene3d?.controls?.setMode?.('arcball');
+      const thalesPresetBars = document.querySelectorAll('.camera-presets-bar');
+      thalesPresetBars.forEach((bar) => {
+        const btn = bar.querySelector('.camera-mode-toggle');
+        if (btn) {
+          btn.dataset.cameraMode = 'arcball';
+          btn.innerHTML = '🔄 Arcball';
+          btn.title = 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.';
+        }
       });
       syncCameraAndPlanes('great-circle');
     });
@@ -166,28 +177,28 @@ function bootstrap() {
     syncCameraAndPlanes(curPlane);
   }, ['plane2D']);
 
-  // 3D Camera Rotation Mode (Free 360° Trackball vs Constrained Turntable Orbit)
+  // 3D Camera Rotation Mode (Free 360° Arcball vs Constrained Turntable Orbit)
   const thalesPresetBars = document.querySelectorAll('.camera-presets-bar');
   thalesPresetBars.forEach((bar) => {
     if (!bar.querySelector('.camera-mode-toggle')) {
       const modeBtn = document.createElement('button');
       modeBtn.type = 'button';
       modeBtn.className = 'camera-mode-toggle';
-      modeBtn.dataset.cameraMode = 'trackball';
-      modeBtn.title = 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.';
-      modeBtn.innerHTML = '🔄 360°';
+      modeBtn.dataset.cameraMode = 'arcball';
+      modeBtn.title = 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.';
+      modeBtn.innerHTML = '🔄 Arcball';
       bar.appendChild(modeBtn);
 
       modeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const curMode = scene3d?.controls?.mode || 'trackball';
-        const nextMode = curMode === 'trackball' ? 'orbit' : 'trackball';
+        const curMode = scene3d?.controls?.mode || 'arcball';
+        const nextMode = (curMode === 'arcball' || curMode === 'trackball') ? 'orbit' : 'arcball';
         scene3d?.controls?.setMode?.(nextMode);
         modeBtn.dataset.cameraMode = nextMode;
-        modeBtn.innerHTML = nextMode === 'trackball' ? '🔄 360°' : '🌐 Orbit';
-        modeBtn.title = nextMode === 'trackball'
-          ? 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.'
-          : 'Current: Constrained Turntable (level horizon). Click for Free 360° Trackball.';
+        modeBtn.innerHTML = (nextMode === 'arcball' || nextMode === 'trackball') ? '🔄 Arcball' : '🌐 Orbit';
+        modeBtn.title = (nextMode === 'arcball' || nextMode === 'trackball')
+          ? 'Current: Arcball (unconstrained 360° 6-DOF tumbling). Click for Constrained Orbit.'
+          : 'Current: Constrained Orbit (turntable with level horizon). Click for Arcball.';
         store.set({ cameraMode: nextMode });
       });
     }
