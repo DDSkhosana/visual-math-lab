@@ -68,6 +68,7 @@ export class Panel {
   #enableDrag(header) {
     header.addEventListener('pointerdown', (event) => {
       if (this.compact.matches || event.target.closest('button')) return;
+      if (this.element.closest('.workspace-dock-body')) return;
       const parent = this.element.offsetParent.getBoundingClientRect();
       const box = this.element.getBoundingClientRect();
       const offsetX = event.clientX - box.left;

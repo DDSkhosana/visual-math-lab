@@ -224,6 +224,30 @@
   box-sizing: border-box;
 }
 
+/* Docked Panels In-Flow Layout */
+.workspace-dock-body > .ui-panel {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(51, 65, 85, 0.75) !important;
+  border-radius: 0.5rem !important;
+}
+
+.workspace-dock-body > .ui-panel .omni-handle,
+.ui-panel:not(.is-floating) .omni-handle,
+.workspace-dock-body > .ui-panel .resize-handle,
+.workspace-dock-body > .ui-panel .resize-handle-left {
+  display: none !important;
+}
+
 /* Horizontal Dock Body for Top/Bottom edges */
 .circle-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock-body,
 .circle-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock-body,
@@ -612,3 +636,4 @@
     display: none !important;
   }
 }
+

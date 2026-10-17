@@ -205,7 +205,7 @@ function bootstrap() {
     // Sync toggle UI with store state
     const isProof = state.showProofConstruction !== false;
     if (toggleProof && toggleProof.checked !== isProof) toggleProof.checked = isProof;
-    if (toggleProofMain && toggleProofMain.checked !== isProof) toggleProofMain.checked = isProof;
+    if (toggle3dProof && toggle3dProof.checked !== isProof) toggle3dProof.checked = isProof;
     if (toggleDAngles && toggleDAngles.checked !== (state.showDAngles !== false)) toggleDAngles.checked = (state.showDAngles !== false);
 
     const angUnit = state.angleUnit || 'deg';

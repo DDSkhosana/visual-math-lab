@@ -1,5 +1,5 @@
 import { PALETTE } from '../config/palette.js';
-import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D } from '../model/thales-math.js';
+import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D, toDegrees } from '../model/thales-math.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -243,7 +243,7 @@ function drawDiameter(ctx, f) {
   ctx.stroke();
 }
 
-function drawArea(ctx, f) {
+function drawArea(ctx, state, f) {
   ctx.beginPath();
   ctx.moveTo(f.a.x, f.a.y);
   ctx.lineTo(f.p.x, f.p.y);
@@ -659,7 +659,7 @@ export function drawScene(ctx, state, frame) {
   drawQuadrantOverlay(ctx, state, frame);
   drawCircleAndRadius(ctx, state, frame);
   drawDiameter(ctx, frame);
-  if (state.vis2d.area && frame.plane !== 'yz') drawArea(ctx, frame);
+  if (state.vis2d.area && frame.plane !== 'yz') drawArea(ctx, state, frame);
   if (frame.plane !== 'yz') {
     drawArrow(ctx, frame.p, frame.a, PALETTE.blue, 3);
     drawArrow(ctx, frame.p, frame.b, PALETTE.orange, 3);

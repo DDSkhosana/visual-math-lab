@@ -213,6 +213,7 @@ export class Panel {
     if (!header) return;
     header.addEventListener('pointerdown', (event) => {
       if (this.compact.matches || event.target.closest('button, input, a, select')) return;
+      if (this.element.closest('.workspace-dock-body')) return;
       const parentEl = this.element.offsetParent ?? document.body;
       const parent = parentEl.getBoundingClientRect();
       const box = this.element.getBoundingClientRect();
