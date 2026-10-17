@@ -2080,11 +2080,40 @@ export class AlternateSegment3DView extends BaseScene3DView {
         mesh: this.markerD,
         onDrag: (angle, hit, store, lat) => {
           const TAU = Math.PI * 2;
-          const angleT = (angle - Math.PI + TAU * 2) % TAU;
+          const cur = store.get();
+          const curT = cur.angleT;
+          const curA = cur.angleA;
+          const curB = cur.angleB;
+          const oldD = (curT + Math.PI) % TAU;
+          let delta = (angle - oldD) % TAU;
+          if (delta > Math.PI) delta -= TAU;
+          if (delta < -Math.PI) delta += TAU;
+          const nextT = (curT + delta + TAU * 4) % TAU;
+          const nextA = (curA + delta + TAU * 4) % TAU;
+          const nextB = (curB + delta + TAU * 4) % TAU;
+
           if (lat !== undefined) {
-            store.set({ angleT, latT: Math.PI - lat });
+            const curLatT = cur.latT ?? (Math.PI / 2);
+            const nextLatT = Math.PI - lat;
+            const deltaLat = nextLatT - curLatT;
+            const curLatA = cur.latA ?? (Math.PI / 2);
+            const curLatB = cur.latB ?? (Math.PI / 2);
+            const nextLatA = Math.max(0.05, Math.min(Math.PI - 0.05, curLatA + deltaLat));
+            const nextLatB = Math.max(0.05, Math.min(Math.PI - 0.05, curLatB + deltaLat));
+            store.set({
+              angleT: nextT,
+              angleA: nextA,
+              angleB: nextB,
+              latT: nextLatT,
+              latA: nextLatA,
+              latB: nextLatB,
+            });
           } else {
-            store.set({ angleT });
+            store.set({
+              angleT: nextT,
+              angleA: nextA,
+              angleB: nextB,
+            });
           }
         },
       },
@@ -2195,15 +2224,16 @@ export class AlternateSegment3DView extends BaseScene3DView {
       setAngleWedgeVertices3D(this.angleIntDMesh, D, T, A, 2.4);
       setAngleWedgeVertices3D(this.angleExtDMesh, D, A, Dext, 2.2);
       setAngleWedgeVertices3D(this.reflexDMesh, D, T, A, 3.0, 32, THREE, true);
-      this.reflexDMesh.visible = showReflex;
+      this.reflexDMesh.visible = showReflex && (state.showDAngles !== false);
     } else {
       this.reflexDMesh.visible = false;
     }
     this.rightAngleBMesh.visible = showProof && showAngles;
     this.rightAngleAMesh.visible = showProof && showAngles;
     this.rightAngleTMesh.visible = showProof && showAngles;
-    this.angleIntDMesh.visible = showProof && showAngles;
-    this.angleExtDMesh.visible = showProof && showAngles;
+    const showDAngles = showProof && showAngles && (state.showDAngles !== false);
+    this.angleIntDMesh.visible = showDAngles;
+    this.angleExtDMesh.visible = showDAngles;
 
     const angTPos = get3DAngleBisector(T, activeTan, A, 3.2, THREE);
     const angBPos = get3DAngleBisector(B, T, A, 3.2, THREE);
@@ -2240,13 +2270,14 @@ export class AlternateSegment3DView extends BaseScene3DView {
       const rightAngleTAt = get3DAngleBisector(T, D, activeTan, 2.6, THREE);
       const intDAt = get3DAngleBisector(D, T, A, 3.4, THREE);
       const extDAt = get3DAngleBisector(D, A, Dext, 3.2, THREE);
+      const showDLabels = showAngles && (state.showDAngles !== false);
       this.currentLabels.push(
         { key: 'rightB', at: rightAngleBAt, text: '∠TBD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
         { key: 'rightA', at: rightAngleAAt, text: '∠TAD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
         { key: 'rightT', at: rightAngleTAt, text: 'TD ⊥ Tan (90.0°)', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'angIntD', at: intDAt, text: `∠TDA = α = ${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-        { key: 'angExtD', at: extDAt, text: `Ext D = ${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showAngles },
-        { key: 'reflexD', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D* = ${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) },
+        { key: 'angIntD', at: intDAt, text: `∠TDA = α = ${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showDLabels },
+        { key: 'angExtD', at: extDAt, text: `Ext D = ${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showDLabels },
+        { key: 'reflexD', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D* = ${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false) },
       );
     }
     this.overlay.render(this.currentLabels, state.vis3d);

@@ -178,15 +178,18 @@ export class CanvasView {
         // Right angle at T: TD ⊥ Tangent (90.0°)
         drawRightAngle(ctx, g.T, g.D, activeTanPt, 14, PALETTE.teal, 'rgba(20, 184, 166, 0.28)');
 
-        // Point D Interior Angle: ∠TDA = α (yellow)
-        const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
-        const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
-        drawAngleWedge(ctx, g.D, angDT, angDA, 28, 'rgba(234, 179, 8, 0.28)', PALETTE.yellow);
+        // Point D Interior and Exterior Angles
+        if (state.showDAngles !== false) {
+          // Point D Interior Angle: ∠TDA = α (yellow)
+          const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
+          const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
+          drawAngleWedge(ctx, g.D, angDT, angDA, 28, 'rgba(234, 179, 8, 0.28)', PALETTE.yellow);
 
-        // Point D Exterior Angle: Ext D = 180° - α (rose)
-        if (g.Dext) {
-          const angDext = Math.atan2(g.Dext.y - g.D.y, g.Dext.x - g.D.x);
-          drawAngleWedge(ctx, g.D, angDA, angDext, 24, 'rgba(244, 63, 94, 0.28)', PALETTE.rose);
+          // Point D Exterior Angle: Ext D = 180° - α (rose)
+          if (g.Dext) {
+            const angDext = Math.atan2(g.Dext.y - g.D.y, g.Dext.x - g.D.x);
+            drawAngleWedge(ctx, g.D, angDA, angDext, 24, 'rgba(244, 63, 94, 0.28)', PALETTE.rose);
+          }
         }
       }
     }
@@ -247,21 +250,24 @@ export class CanvasView {
         const lenAD = Math.hypot(bisADX, bisADY) || 1;
         drawTextBadge(ctx, '∠TAD = 90.0°', g.A.x + 22 * (bisADX / lenAD), g.A.y + 22 * (bisADY / lenAD), PALETTE.teal);
 
-        // Point D Interior Angle: ∠TDA = α (snug at the 28px wedge)
-        const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
-        const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
-        const bisIntDX = Math.cos(angDT) + Math.cos(angDA);
-        const bisIntDY = Math.sin(angDT) + Math.sin(angDA);
-        const lenIntD = Math.hypot(bisIntDX, bisIntDY) || 1;
-        drawTextBadge(ctx, `∠TDA = α = ${g.angleTDA.toFixed(1)}°`, g.D.x + 34 * (bisIntDX / lenIntD), g.D.y + 34 * (bisIntDY / lenIntD), PALETTE.yellow);
+        // Point D Angles (Interior & Exterior)
+        if (state.showDAngles !== false) {
+          // Point D Interior Angle: ∠TDA = α (snug at the 28px wedge)
+          const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
+          const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
+          const bisIntDX = Math.cos(angDT) + Math.cos(angDA);
+          const bisIntDY = Math.sin(angDT) + Math.sin(angDA);
+          const lenIntD = Math.hypot(bisIntDX, bisIntDY) || 1;
+          drawTextBadge(ctx, `∠TDA = α = ${g.angleTDA.toFixed(1)}°`, g.D.x + 34 * (bisIntDX / lenIntD), g.D.y + 34 * (bisIntDY / lenIntD), PALETTE.yellow);
 
-        // Point D Exterior Angle: Ext D = 180° - α (snug at the 24px wedge)
-        if (g.Dext) {
-          const angDext = Math.atan2(g.Dext.y - g.D.y, g.Dext.x - g.D.x);
-          const bisExtDX = Math.cos(angDA) + Math.cos(angDext);
-          const bisExtDY = Math.sin(angDA) + Math.sin(angDext);
-          const lenExtD = Math.hypot(bisExtDX, bisExtDY) || 1;
-          drawTextBadge(ctx, `Ext D = ${g.extAngleD.toFixed(1)}°`, g.D.x + 30 * (bisExtDX / lenExtD), g.D.y + 30 * (bisExtDY / lenExtD), PALETTE.rose);
+          // Point D Exterior Angle: Ext D = 180° - α (snug at the 24px wedge)
+          if (g.Dext) {
+            const angDext = Math.atan2(g.Dext.y - g.D.y, g.Dext.x - g.D.x);
+            const bisExtDX = Math.cos(angDA) + Math.cos(angDext);
+            const bisExtDY = Math.sin(angDA) + Math.sin(angDext);
+            const lenExtD = Math.hypot(bisExtDX, bisExtDY) || 1;
+            drawTextBadge(ctx, `Ext D = ${g.extAngleD.toFixed(1)}°`, g.D.x + 30 * (bisExtDX / lenExtD), g.D.y + 30 * (bisExtDY / lenExtD), PALETTE.rose);
+          }
         }
       }
     }
@@ -272,7 +278,7 @@ export class CanvasView {
       drawReflexWedge(ctx, g.T, angTan, angTA, 40, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
       drawReflexWedge(ctx, g.B, angBA, angBT, 36, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
 
-      if (showThales && g.D) {
+      if (showThales && g.D && state.showDAngles !== false) {
         const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
         const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
         drawReflexWedge(ctx, g.D, angDT, angDA, 36, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
@@ -293,7 +299,7 @@ export class CanvasView {
         const lenT = Math.hypot(bisTX, bisTY) || 1;
         drawTextBadge(ctx, `α* = ${(360 - g.tangentChordDeg).toFixed(1)}°`, g.T.x - 46 * (bisTX / lenT), g.T.y - 46 * (bisTY / lenT), PALETTE.yellow);
 
-        if (showThales && g.D) {
+        if (showThales && g.D && state.showDAngles !== false) {
           const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
           const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
           const bisIntDX = Math.cos(angDT) + Math.cos(angDA);

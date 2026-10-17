@@ -913,21 +913,58 @@ test('Interactive Canvas Protection: all circle visual canvas containers enforce
 });
 
 test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dragging invariants', () => {
-  // 1. Alternate Segment: Dragging Point D updates Point T (antipodal D = -T)
+  // 1. Alternate Segment: Rigid Point D spinning along perimeter across continuous [0, 2π) domain
   const altState = AlternateSegment.createInitialState();
+  const initAltG = AlternateSegment.computeGeometry(altState, 800, 600);
+  const initialTA = Math.hypot(initAltG.A.x - initAltG.T.x, initAltG.A.y - initAltG.T.y);
+  const initialAB = Math.hypot(initAltG.B.x - initAltG.A.x, initAltG.B.y - initAltG.A.y);
+  const initialBT = Math.hypot(initAltG.T.x - initAltG.B.x, initAltG.T.y - initAltG.B.y);
+  const initialAlpha = initAltG.inscribedDeg;
   const TAU = Math.PI * 2;
-  for (const angD of [0.2 * Math.PI, 0.7 * Math.PI, 1.3 * Math.PI, 1.8 * Math.PI]) {
-    const derivedAngT = (angD - Math.PI + TAU * 2) % TAU;
-    const g = AlternateSegment.computeGeometry({ ...altState, angleT: derivedAngT }, 800, 600);
-    // Inscribed angle at B and tangent angle must remain strictly equal
-    close(g.tangentChordDeg, g.inscribedDeg, 1e-4);
-    // Point D must be antipodal to T
+
+  // Continuous 360° domain sweep (fuzzing every 5° from 0 to 2π)
+  for (let deg = 0; deg < 360; deg += 5) {
+    const angD = (deg * Math.PI) / 180;
+    const oldD = (altState.angleT + Math.PI) % TAU;
+    let delta = (angD - oldD) % TAU;
+    if (delta > Math.PI) delta -= TAU;
+    if (delta < -Math.PI) delta += TAU;
+    const nextT = (altState.angleT + delta + TAU * 4) % TAU;
+    const nextA = (altState.angleA + delta + TAU * 4) % TAU;
+    const nextB = (altState.angleB + delta + TAU * 4) % TAU;
+
+    const g = AlternateSegment.computeGeometry({ ...altState, angleT: nextT, angleA: nextA, angleB: nextB }, 800, 600);
+
+    // Invariants preserved rigidly throughout the full 360° perimeter spin:
+    // a. Primary theorem: tangent-chord angle == inscribed angle == initial alpha
+    close(g.tangentChordDeg, initialAlpha, 1e-4);
+    close(g.inscribedDeg, initialAlpha, 1e-4);
+    close(g.diffDeg, 0, 1e-4);
+
+    // b. Point D angles: Interior angle ∠TDA strictly equals alpha, Ext D equals 180° - alpha
+    close(g.angleTDA, initialAlpha, 1e-4);
+    close(g.extAngleD, 180.0 - initialAlpha, 1e-4);
+
+    // c. Triangle side lengths are strictly invariant under rigid rotation
+    const curTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
+    const curAB = Math.hypot(g.B.x - g.A.x, g.B.y - g.A.y);
+    const curBT = Math.hypot(g.T.x - g.B.x, g.T.y - g.B.y);
+    close(curTA, initialTA, 1e-4);
+    close(curAB, initialAB, 1e-4);
+    close(curBT, initialBT, 1e-4);
+
+    // d. Point D remains strictly antipodal to T
     const dxT = g.T.x - g.cx;
     const dyT = g.T.y - g.cy;
     const dxD = g.D.x - g.cx;
     const dyD = g.D.y - g.cy;
     close(dxT + dxD, 0, 1e-4);
     close(dyT + dyD, 0, 1e-4);
+
+    // e. Thales right angles remain strictly 90°
+    close(g.thalesAngleTBD, 90.0, 1e-4);
+    close(g.thalesAngleTAD, 90.0, 1e-4);
+    close(g.thalesTangentTD, 90.0, 1e-4);
   }
 
   // 2. Chord Bisector: Dragging Midpoint M rigidly rotates chord AB
@@ -949,6 +986,106 @@ test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dra
     close(g.dot, 0, 1e-4);
     close(g.angleOMADeg, 90.0, 1e-4);
   }
+});
+
+test('Alternate Segment: showDAngles toggle suppresses Point D interior, exterior, and reflex wedges/badges in 2D and 3D', async () => {
+  const canvasMod = await import('../visuals/alternate-segment/src/canvas.js');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const circle3dCode = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+
+  const noop = () => {};
+  const createMockCanvas = () => {
+    const renderedTexts = [];
+    const ctx = {
+      beginPath: noop,
+      moveTo: noop,
+      lineTo: noop,
+      arc: noop,
+      closePath: noop,
+      stroke: noop,
+      fill: noop,
+      clearRect: noop,
+      fillRect: noop,
+      strokeRect: noop,
+      setLineDash: noop,
+      save: noop,
+      restore: noop,
+      fillText: (text) => renderedTexts.push(text),
+      strokeText: noop,
+      setTransform: noop,
+      translate: noop,
+      rotate: noop,
+      scale: noop,
+      measureText: (text) => ({ width: String(text).length * 7 }),
+      createLinearGradient: () => ({ addColorStop: noop }),
+      createRadialGradient: () => ({ addColorStop: noop }),
+    };
+    return {
+      renderedTexts,
+      mockCanvas: {
+        width: 800,
+        height: 600,
+        style: {},
+        getContext: () => ctx,
+        getBoundingClientRect: () => ({ width: 800, height: 600 }),
+        parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+      },
+    };
+  };
+
+  // 1. 2D CanvasView: showDAngles = true vs showDAngles = false
+  const stateEnabled = {
+    ...AlternateSegment.createInitialState(),
+    showDAngles: true,
+    showProofConstruction: true,
+    vis2d: { reflex: true, labels: true, angles: true },
+  };
+  const { renderedTexts: textsEnabled, mockCanvas: canvasEnabled } = createMockCanvas();
+  const viewEnabled = new canvasMod.CanvasView(canvasEnabled, canvasEnabled.parentElement);
+  viewEnabled.render(stateEnabled);
+
+  const hasDInt = textsEnabled.some((t) => t.includes('∠TDA'));
+  const hasDExt = textsEnabled.some((t) => t.includes('Ext D'));
+  const hasDRef = textsEnabled.some((t) => t.includes('D*'));
+  assert.ok(hasDInt, 'When showDAngles: true, ∠TDA text badge must be rendered in 2D');
+  assert.ok(hasDExt, 'When showDAngles: true, Ext D text badge must be rendered in 2D');
+  assert.ok(hasDRef, 'When showDAngles: true, D* reflex badge must be rendered in 2D');
+
+  const stateDisabled = {
+    ...AlternateSegment.createInitialState(),
+    showDAngles: false,
+    showProofConstruction: true,
+    vis2d: { reflex: true, labels: true, angles: true },
+  };
+  const { renderedTexts: textsDisabled, mockCanvas: canvasDisabled } = createMockCanvas();
+  const viewDisabled = new canvasMod.CanvasView(canvasDisabled, canvasDisabled.parentElement);
+  viewDisabled.render(stateDisabled);
+
+  const hasDIntDisabled = textsDisabled.some((t) => t.includes('∠TDA'));
+  const hasDExtDisabled = textsDisabled.some((t) => t.includes('Ext D'));
+  const hasDRefDisabled = textsDisabled.some((t) => t.includes('D*'));
+  assert.strictEqual(hasDIntDisabled, false, 'When showDAngles: false, ∠TDA badge must NOT be rendered in 2D');
+  assert.strictEqual(hasDExtDisabled, false, 'When showDAngles: false, Ext D badge must NOT be rendered in 2D');
+  assert.strictEqual(hasDRefDisabled, false, 'When showDAngles: false, D* reflex badge must NOT be rendered in 2D');
+
+  // 2. 3D Scene View: verify state-to-render wiring in circle-3d.js
+  assert.ok(
+    circle3dCode.includes('showReflex && (state.showDAngles !== false)'),
+    'circle-3d.js must guard reflexDMesh with showDAngles !== false'
+  );
+  assert.ok(
+    circle3dCode.includes('const showDAngles = showProof && showAngles && (state.showDAngles !== false);'),
+    'circle-3d.js must compute showDAngles guarding angleIntDMesh and angleExtDMesh'
+  );
+  assert.ok(
+    circle3dCode.includes('const showDLabels = showAngles && (state.showDAngles !== false);'),
+    'circle-3d.js must guard 3D angIntD and angExtD labels with showDAngles !== false'
+  );
+  assert.ok(
+    circle3dCode.includes("show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false)"),
+    'circle-3d.js must guard 3D reflexD label with showDAngles !== false'
+  );
 });
 
 test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels, and UI state synchronization', () => {

@@ -180,7 +180,19 @@ function bootstrap() {
     else if (activePoint === 'B') store.set({ angleB: ang });
     else if (activePoint === 'D') {
       const TAU = Math.PI * 2;
-      store.set({ angleT: (ang - Math.PI + TAU * 2) % TAU });
+      const cur = store.get();
+      const curT = cur.angleT;
+      const curA = cur.angleA;
+      const curB = cur.angleB;
+      const oldD = (curT + Math.PI) % TAU;
+      let delta = (ang - oldD) % TAU;
+      if (delta > Math.PI) delta -= TAU;
+      if (delta < -Math.PI) delta += TAU;
+      store.set({
+        angleT: (curT + delta + TAU * 4) % TAU,
+        angleA: (curA + delta + TAU * 4) % TAU,
+        angleB: (curB + delta + TAU * 4) % TAU,
+      });
     }
   });
 
@@ -206,7 +218,9 @@ function bootstrap() {
     const isProof = state.showProofConstruction !== false;
     if (toggleProof && toggleProof.checked !== isProof) toggleProof.checked = isProof;
     if (toggle3dProof && toggle3dProof.checked !== isProof) toggle3dProof.checked = isProof;
-    if (toggleDAngles && toggleDAngles.checked !== (state.showDAngles !== false)) toggleDAngles.checked = (state.showDAngles !== false);
+    const isShowDAngles = state.showDAngles !== false;
+    if (toggleDAngles && toggleDAngles.checked !== isShowDAngles) toggleDAngles.checked = isShowDAngles;
+    if (toggle3dDAngles && toggle3dDAngles.checked !== isShowDAngles) toggle3dDAngles.checked = isShowDAngles;
 
     const angUnit = state.angleUnit || 'deg';
     const lenUnit = state.lengthUnit || 'px';
