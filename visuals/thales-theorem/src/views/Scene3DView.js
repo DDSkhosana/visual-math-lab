@@ -1,6 +1,7 @@
 import { point3DToGreatCircle, sphericalToCartesian } from '../model/thales-math.js';
 import { createThalesScene } from './scene3d/scene-factory.js';
 import { rightAngleVertices, sectorVertices, setPositions } from './scene3d/geometry.js';
+import { ArcballTrackballControls } from '../../../../js/circle-3d.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
@@ -20,7 +21,7 @@ export class Scene3DView {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(this.renderer.domElement);
 
-    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new ArcballTrackballControls(THREE, this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
 
@@ -283,6 +284,7 @@ export class Scene3DView {
   }
 
   #animateCamera(targetPos, targetUp) {
+    if (this.controls?.angularVelocity) this.controls.angularVelocity.angle = 0;
     if (this.camAnim) cancelAnimationFrame(this.camAnim);
     const startPos = this.camera.position.clone();
     const startUp = this.camera.up.clone();

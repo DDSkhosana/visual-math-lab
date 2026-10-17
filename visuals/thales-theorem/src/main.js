@@ -158,6 +158,33 @@ function bootstrap() {
     syncCameraAndPlanes(curPlane);
   }, ['plane2D']);
 
+  // 3D Camera Rotation Mode (Free 360° Trackball vs Constrained Turntable Orbit)
+  const thalesPresetBars = document.querySelectorAll('.camera-presets-bar');
+  thalesPresetBars.forEach((bar) => {
+    if (!bar.querySelector('.camera-mode-toggle')) {
+      const modeBtn = document.createElement('button');
+      modeBtn.type = 'button';
+      modeBtn.className = 'camera-mode-toggle';
+      modeBtn.dataset.cameraMode = 'trackball';
+      modeBtn.title = 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.';
+      modeBtn.innerHTML = '🔄 360°';
+      bar.appendChild(modeBtn);
+
+      modeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const curMode = scene3d?.controls?.mode || 'trackball';
+        const nextMode = curMode === 'trackball' ? 'orbit' : 'trackball';
+        scene3d?.controls?.setMode?.(nextMode);
+        modeBtn.dataset.cameraMode = nextMode;
+        modeBtn.innerHTML = nextMode === 'trackball' ? '🔄 360°' : '🌐 Orbit';
+        modeBtn.title = nextMode === 'trackball'
+          ? 'Current: Free 360° Trackball (unconstrained tumbling in all directions). Click for Constrained Turntable.'
+          : 'Current: Constrained Turntable (level horizon). Click for Free 360° Trackball.';
+        store.set({ cameraMode: nextMode });
+      });
+    }
+  });
+
   const accordion = new Accordion(explorer);
   new Panel(byId('ui-panel-container'), {
     header: byId('panel-header'), resizeHandle: byId('panel-resize-handle'), resizeFrom: 'right',

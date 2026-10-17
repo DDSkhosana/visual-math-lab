@@ -1080,6 +1080,12 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   assert.ok(circle3d.includes("this.camera.position.set(26, 18, 26)"), 'circle-3d.js initial camera position must be isometric (26, 18, 26)');
   assert.ok(thales3d.includes("this.camera.position.set(30, 20, 30)"), 'Thales Scene3DView.js initial camera position must be isometric (30, 20, 30)');
 
+  // Verify unconstrained ArcballTrackballControls and mode switching
+  assert.ok(circle3d.includes("export class ArcballTrackballControls"), 'circle-3d.js must export ArcballTrackballControls');
+  assert.ok(circle3d.includes("this.controls = new ArcballTrackballControls"), 'BaseScene3DView must instantiate ArcballTrackballControls');
+  assert.ok(thales3d.includes("this.controls = new ArcballTrackballControls"), 'Thales Scene3DView must instantiate ArcballTrackballControls');
+  assert.ok(circleCore.includes("camera-mode-toggle"), 'circle-core.js must support camera-mode-toggle');
+
   const visualSlugs = [
     'thales-theorem',
     'angle-at-centre',
