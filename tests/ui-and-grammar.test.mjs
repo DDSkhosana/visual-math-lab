@@ -339,3 +339,59 @@ test('Colour Grammar: Telemetry stats across all 8 visual HTML pages enforce col
   }
 });
 
+test('Flip Split Toggle: Concise "Flip" label, SVG icon, and ratio reset across all 8 visualizers', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const files = [
+    'visuals/thales-theorem/index.html',
+    'visuals/angle-at-centre/index.html',
+    'visuals/angles-in-same-segment/index.html',
+    'visuals/cyclic-quadrilateral/index.html',
+    'visuals/tangent-radius/index.html',
+    'visuals/alternate-segment/index.html',
+    'visuals/tangents-from-external-point/index.html',
+    'visuals/perpendicular-chord-bisector/index.html'
+  ];
+
+  for (const relPath of files) {
+    const fullPath = path.join(rootDir, relPath);
+    const html = fs.readFileSync(fullPath, 'utf8');
+    assert.ok(html.includes('id="split-dir-btn"'), `${relPath} must have #split-dir-btn`);
+    assert.ok(html.includes('<span>Flip</span>'), `${relPath} must have concise "Flip" label`);
+    assert.ok(!html.includes('Flip Split'), `${relPath} must not have legacy "Flip Split" label`);
+  }
+
+  // Verify circle-3d ViewModeController resets splitRatio: 50 on flip
+  const { createStore } = await import('../js/circle-core.js');
+  const { ViewModeController } = await import('../js/circle-3d.js');
+
+  const store = createStore({ viewMode: 'split', splitDirection: 'horizontal', splitRatio: 30 });
+  const mockBtn = {
+    addEventListener: (evt, handler) => { mockBtn.handler = handler; },
+    click: () => { if (mockBtn.handler) mockBtn.handler(); },
+    style: {},
+    setAttribute: () => {},
+    classList: { toggle: () => {} }
+  };
+  const mockContainer = { style: {} };
+  const mockMainView = { className: '', classList: { contains: () => false }, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 500 }) };
+
+  new ViewModeController(store, {
+    mainView: mockMainView,
+    container2d: mockContainer,
+    container3d: mockContainer,
+    buttons: {},
+    flipButton: mockBtn
+  });
+
+  // Trigger flip
+  mockBtn.click();
+  assert.strictEqual(store.get().splitDirection, 'vertical');
+  assert.strictEqual(store.get().splitRatio, 50, 'Flipping split direction must reset splitRatio to 50');
+});
+
+

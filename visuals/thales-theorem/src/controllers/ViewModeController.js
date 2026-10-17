@@ -31,7 +31,13 @@ export class ViewModeController {
       button.classList.toggle('active', mode === viewMode);
       button.setAttribute('aria-pressed', String(mode === viewMode));
     }
-    this.flipButton.hidden = viewMode !== 'split';
+    const isSplit = viewMode === 'split';
+    this.flipButton.style.display = isSplit ? '' : 'none';
+    this.flipButton.hidden = !isSplit;
+    this.flipButton.setAttribute(
+      'title',
+      horizontal ? 'Switch to vertical split (stacked)' : 'Switch to horizontal split (side-by-side)'
+    );
 
     const split = viewMode === 'split';
     this.container2d.style.flexBasis = split ? `${splitRatio}%` : '';

@@ -368,7 +368,7 @@ function mountTutorialModal(visual, theoremData) {
           <h4>Viewport Modes &amp; Toolbar</h4>
           <ul class="tutorial-feature-list">
             <li><strong>Split / 2D / 3D:</strong> Switch layouts instantly from the floating toolbar.</li>
-            <li><strong>Flip Split:</strong> Swap between horizontal and vertical screen dividers.</li>
+            <li><strong>Flip:</strong> Swap split layout between side-by-side (horizontal) and stacked (vertical).</li>
             <li><strong>Draggable Toolbar:</strong> Grab the 6-dot grip handle to move the toolbar anywhere; double-click or press <kbd>Home</kbd> to reset.</li>
             <li><strong>Reset:</strong> Click Reset to restore default camera, angles, and layout.</li>
           </ul>
@@ -567,7 +567,7 @@ function createTourController(slug, theoremData) {
       title: 'Viewport Modes & Draggable Toolbar',
       selector: '#viewport-toolbar',
       content: `Use the floating toolbar to switch between <strong>Split</strong>, <strong>2D</strong>, and <strong>3D</strong> viewports.
-        Click <strong>Flip Split</strong> to rotate layout horizontally or vertically.
+        Click <strong>Flip</strong> to rotate layout horizontally or vertically.
         <strong>Tip:</strong> Grab the 6-dot grip handle to move the toolbar anywhere on screen, or double-click / press <kbd>Home</kbd> to reset.`,
       placement: 'bottom',
     },

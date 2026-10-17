@@ -42,7 +42,10 @@ export class ViewModeController {
 
     flipButton?.addEventListener('click', () => {
       const cur = store.get().splitDirection || 'horizontal';
-      store.set({ splitDirection: cur === 'horizontal' ? 'vertical' : 'horizontal' });
+      store.set({
+        splitDirection: cur === 'horizontal' ? 'vertical' : 'horizontal',
+        splitRatio: 50,
+      });
     });
 
     if (resizer) {
@@ -69,7 +72,13 @@ export class ViewModeController {
     }
 
     if (this.flipButton) {
-      this.flipButton.style.display = viewMode === 'split' ? '' : 'none';
+      const isSplit = viewMode === 'split';
+      this.flipButton.style.display = isSplit ? '' : 'none';
+      this.flipButton.hidden = !isSplit;
+      this.flipButton.setAttribute(
+        'title',
+        horizontal ? 'Switch to vertical split (stacked)' : 'Switch to horizontal split (side-by-side)'
+      );
     }
 
     const isSplit = viewMode === 'split';
@@ -95,7 +104,7 @@ export class ViewModeController {
         const ratio = isRow
           ? ((e.clientX - rect.left) / rect.width) * 100
           : ((e.clientY - rect.top) / rect.height) * 100;
-        this.store.set({ splitRatio: clamp(ratio, 20, 80) });
+        this.store.set({ splitRatio: clamp(ratio, 10, 90) });
       };
 
       const end = () => {

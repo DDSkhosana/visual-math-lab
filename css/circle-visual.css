@@ -905,6 +905,10 @@ input[type=range] {
     flex-direction: column;
   }
 
+  .circle-explorer #split-dir-btn {
+    display: none !important;
+  }
+
   .circle-explorer .layout-split #canvas-2d-container,
   .circle-explorer .layout-split #canvas-3d-container {
     width: 100%;
