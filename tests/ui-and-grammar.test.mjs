@@ -301,3 +301,41 @@ test('Thales Grammar Decoupling & Dynamic Angle Annotations', async () => {
   assert.ok(html.includes('class="color-orange">β*</span>'), 'index.html must use color-orange for β* reflex in 2D overlays');
   assert.ok(html.includes('class="color-orange">360°-β</span>'), 'index.html must use color-orange for 360°-β in 3D overlays');
 });
+
+test('Colour Grammar: Telemetry stats across all 8 visual HTML pages enforce colorized labels and values', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const files = [
+    'visuals/thales-theorem/index.html',
+    'visuals/angle-at-centre/index.html',
+    'visuals/angles-in-same-segment/index.html',
+    'visuals/cyclic-quadrilateral/index.html',
+    'visuals/tangent-radius/index.html',
+    'visuals/alternate-segment/index.html',
+    'visuals/tangents-from-external-point/index.html',
+    'visuals/perpendicular-chord-bisector/index.html'
+  ];
+
+  for (const relPath of files) {
+    const fullPath = path.join(rootDir, relPath);
+    const html = fs.readFileSync(fullPath, 'utf8');
+    const lines = html.split('\n');
+    lines.forEach((l, idx) => {
+      if (l.includes('class="stat-line"')) {
+        assert.ok(
+          !l.includes('<span>'),
+          `${relPath}:${idx + 1} has an uncolored <span> label in stat-line: ${l.trim()}`
+        );
+        assert.ok(
+          !l.includes('<strong>'),
+          `${relPath}:${idx + 1} has an uncolored <strong> value in stat-line: ${l.trim()}`
+        );
+      }
+    });
+  }
+});
+

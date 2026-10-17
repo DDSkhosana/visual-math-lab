@@ -39,32 +39,32 @@ export class AngleAtCentreDerivations {
       ${cardTemplate(
         'aac-step-1',
         'Step 1',
-        `Center & Radii Invariant (${tag('indigo', 'OA')} = ${tag('indigo', 'OB')} = ${tag('indigo', 'OP')} = ${tag('indigo', 'r')})`,
+        `Center & Radii Invariant (${tag('red', 'OA')} = ${tag('orange', 'OB')} = ${tag('lavender', 'OP')} = ${tag('indigo', 'r')})`,
         `Center ${tag('indigo', 'O')} = (0, 0)<br>` +
-        `Endpoints: ${tag('red', 'A')}(r cos θ_A, r sin θ_A), ${tag('orange', 'B')}(r cos θ_B, r sin θ_B)<br>` +
-        `Vertex ${tag('violet', 'P')}(r cos θ_P, r sin θ_P) on circumference<br>` +
-        `Equal radii: |OA| = |OB| = |OP| = ${tag('indigo', 'r')}`
+        `Endpoints: ${tag('red', 'A')}(${tag('amber', 'r cos θ_A')}, ${tag('lime', 'r sin θ_A')}), ${tag('orange', 'B')}(${tag('amber', 'r cos θ_B')}, ${tag('lime', 'r sin θ_B')})<br>` +
+        `Vertex ${tag('violet', 'P')}(${tag('amber', 'r cos θ_P')}, ${tag('lime', 'r sin θ_P')}) on circumference<br>` +
+        `Equal radii: |${tag('red', 'OA')}| = |${tag('orange', 'OB')}| = |${tag('lavender', 'OP')}| = ${tag('indigo', 'r')}`
       )}
       ${cardTemplate(
         'aac-step-2',
         'Step 2',
-        `Isosceles Triangles (${tag('cyan', '△OPA')} & ${tag('cyan', '△OPB')})`,
-        `In △OPA: OA = OP = r ⟹ base angles ∠OAP = ∠OPA = ${tag('lime', 'α')}<br>` +
-        `In △OPB: OB = OP = r ⟹ base angles ∠OBP = ∠OPB = ${tag('fuchsia', 'β')}`
+        `Isosceles Triangles (${tag('blue', '△OPA')} & ${tag('orange', '△OPB')})`,
+        `In ${tag('blue', '△OPA')}: ${tag('red', 'OA')} = ${tag('lavender', 'OP')} = ${tag('indigo', 'r')} ⟹ base angles ${tag('lime', '∠OAP')} = ${tag('lime', '∠OPA')} = ${tag('lime', 'α')}<br>` +
+        `In ${tag('orange', '△OPB')}: ${tag('orange', 'OB')} = ${tag('lavender', 'OP')} = ${tag('indigo', 'r')} ⟹ base angles ${tag('fuchsia', '∠OBP')} = ${tag('fuchsia', '∠OPB')} = ${tag('fuchsia', 'β')}`
       )}
       ${cardTemplate(
         'aac-step-3',
         'Step 3',
         `Inscribed Angle at Circumference (${tag('green', 'θ')} = ${tag('lime', 'α')} + ${tag('fuchsia', 'β')})`,
         `Subtended angle at vertex ${tag('violet', 'P')}:<br>` +
-        `${tag('green', '∠APB')} = ∠OPA + ∠OPB = ${tag('lime', 'α')} + ${tag('fuchsia', 'β')} = ${tag('green', 'θ')}`,
+        `${tag('green', '∠APB')} = ${tag('lime', '∠OPA')} + ${tag('fuchsia', '∠OPB')} = ${tag('lime', 'α')} + ${tag('fuchsia', 'β')} = ${tag('green', 'θ')}`,
         true
       )}
       ${cardTemplate(
         'aac-step-4',
         'Step 4',
         `Central Angle & 2:1 Invariant (${tag('yellow', '2θ')} = ${tag('yellow', '∠AOB')})`,
-        `Exterior angles of △OPA and △OPB at center ${tag('indigo', 'O')}:<br>` +
+        `Exterior angles of ${tag('blue', '△OPA')} and ${tag('orange', '△OPB')} at center ${tag('indigo', 'O')}:<br>` +
         `${tag('yellow', '∠AOB')} = 2${tag('lime', 'α')} + 2${tag('fuchsia', 'β')} = 2(${tag('lime', 'α')} + ${tag('fuchsia', 'β')}) = 2${tag('green', 'θ')}`,
         true
       )}
@@ -303,15 +303,15 @@ export class CyclicQuadDerivations {
         'Step 1',
         `Concyclic Vertices (${tag('violet', 'A')}, ${tag('cyan', 'B')}, ${tag('amber', 'C')}, ${tag('rose', 'D')})`,
         `Four vertices inscribed on circle of radius ${tag('indigo', 'r')} centered at ${tag('indigo', 'O')}.<br>` +
-        `All vertices satisfy: x² + y² = ${tag('indigo', 'r²')}`
+        `All vertices satisfy: ${tag('amber', 'x²')} + ${tag('lime', 'y²')} = ${tag('indigo', 'r²')}`
       )}
       ${cardTemplate(
         'cq-step-2',
         'Step 2',
         `Arc Subtensions by Opposite Vertices`,
-        `Opposite vertex ${tag('violet', 'A')} subtends arc BCD (central angle 2∠A).<br>` +
-        `Opposite vertex ${tag('amber', 'C')} subtends arc DAB (central angle 2∠C).<br>` +
-        `Arc BCD + Arc DAB = Full circumference = 360°`
+        `Opposite vertex ${tag('violet', 'A')} subtends arc ${tag('amber', 'BCD')} (central angle 2${tag('violet', '∠A')}).<br>` +
+        `Opposite vertex ${tag('amber', 'C')} subtends arc ${tag('violet', 'DAB')} (central angle 2${tag('amber', '∠C')}).<br>` +
+        `Arc ${tag('amber', 'BCD')} + Arc ${tag('violet', 'DAB')} = Full ${tag('sky', 'Circumference')} = 360°`
       )}
       ${cardTemplate(
         'cq-step-3',
@@ -333,8 +333,8 @@ export class CyclicQuadDerivations {
         'Step 5',
         `Reflex Angles & Quad Perigon Sum (${tag('lavender', '1080°')})`,
         `Each vertex angle forms a 360° perigon with its reflex angle (${tag('teal', 'θ* = 360° - θ')}):<br>` +
-        `• Opposite Reflex Sum AC: ${tag('lavender', '∠A* + ∠C*')} = (360° - ∠A) + (360° - ∠C) = 720° - 180° = ${tag('lavender', '540.0°')}<br>` +
-        `• Opposite Reflex Sum BD: ${tag('sky', '∠B* + ∠D*')} = (360° - ∠B) + (360° - ∠D) = 720° - 180° = ${tag('sky', '540.0°')}<br>` +
+        `• Opposite Reflex Sum AC: ${tag('lavender', '∠A* + ∠C*')} = (360° - ${tag('violet', '∠A')}) + (360° - ${tag('amber', '∠C')}) = 720° - 180° = ${tag('lavender', '540.0°')}<br>` +
+        `• Opposite Reflex Sum BD: ${tag('sky', '∠B* + ∠D*')} = (360° - ${tag('cyan', '∠B')}) + (360° - ${tag('rose', '∠D')}) = 720° - 180° = ${tag('sky', '540.0°')}<br>` +
         `• <b>Total Reflex Quad Sum:</b> 4(360°) - 360° = ${tag('lavender', '1080.0°')}`,
         true
       )}
@@ -912,28 +912,28 @@ export class ChordBisectorDerivations {
         'Step 1',
         `Chord Endpoints ${tag('blue', 'A')}, ${tag('orange', 'B')} on Circle`,
         `Circle centered at ${tag('indigo', 'O')}(0, 0) with radius ${tag('indigo', 'r')}.<br>` +
-        `Endpoints on circumference satisfy: |OA| = |OB| = ${tag('indigo', 'r')}`
+        `Endpoints on circumference satisfy: |${tag('blue', 'OA')}| = |${tag('orange', 'OB')}| = ${tag('indigo', 'r')}`
       )}
       ${cardTemplate(
         'cb-step-2',
         'Step 2',
         `Midpoint ${tag('emerald', 'M')} of Chord ${tag('blue', 'AB')}`,
-        `Coordinates of midpoint: ${tag('emerald', 'M')} = (A + B) / 2<br>` +
-        `Half-chord lengths: ${tag('blue', '|AM|')} = ½|AB|, ${tag('orange', '|MB|')} = ½|AB|`
+        `Coordinates of midpoint: ${tag('emerald', 'M')} = (${tag('blue', 'A')} + ${tag('orange', 'B')}) / 2<br>` +
+        `Half-chord lengths: ${tag('blue', '|AM|')} = ½|${tag('blue', 'AB')}|, ${tag('orange', '|MB|')} = ½|${tag('blue', 'AB')}|`
       )}
       ${cardTemplate(
         'cb-step-3',
         'Step 3',
         `Perpendicularity of Radius Line (${tag('emerald', 'OM')} ⊥ ${tag('blue', 'AB')})`,
-        `Vector OM · Vector AB = (x_M)(x_B - x_A) + (y_M)(y_B - y_A) = 0<br>` +
-        `⟹ Radial line from center through midpoint is perpendicular to chord (∠OMA = ${tag('teal', '90°')})`
+        `${tag('emerald', 'OM')} · ${tag('blue', 'AB')} = (${tag('amber', 'x_M')})(${tag('amber', 'x_B - x_A')}) + (${tag('lime', 'y_M')})(${tag('lime', 'y_B - y_A')}) = ${tag('teal', '0')}<br>` +
+        `⟹ Radial line from center through midpoint is perpendicular to chord (${tag('teal', '∠OMA = 90.0°')})`
       )}
       ${cardTemplate(
         'cb-step-4',
         'Step 4',
         `RHS Congruence & Bisector Invariant (${tag('blue', '|AM|')} = ${tag('orange', '|MB|')})`,
-        `In right ${tag('blue', '△OMA')} and ${tag('orange', '△OMB')}: OA = OB = ${tag('indigo', 'r')} (hypotenuses), ${tag('emerald', 'OM')} shared leg, ∠OMA = ∠OMB = ${tag('teal', '90°')}.<br>` +
-        `By RHS congruence: △OMA ≅ △OMB ⟹ ${tag('blue', '|AM|')} = ${tag('orange', '|MB|')} (Bisected)`,
+        `In right ${tag('blue', '△OMA')} and ${tag('orange', '△OMB')}: ${tag('blue', 'OA')} = ${tag('orange', 'OB')} = ${tag('indigo', 'r')} (hypotenuses), ${tag('emerald', 'OM')} shared leg, ${tag('teal', '∠OMA = ∠OMB = 90.0°')}.<br>` +
+        `By RHS congruence: ${tag('blue', '△OMA')} ≅ ${tag('orange', '△OMB')} ⟹ ${tag('blue', '|AM|')} = ${tag('orange', '|MB|')} (Bisected)`,
         true
       )}
       ${cardTemplate(
@@ -942,8 +942,8 @@ export class ChordBisectorDerivations {
         `Conjugate Reflex Right Angle at Midpoint (${tag('teal', '270.0°')})`,
         `The right angle at midpoint ${tag('emerald', 'M')} forms a 360° perigon with its conjugate reflex angle (${tag('teal', 'M* = 270.0°')}):<br>` +
         `• Midpoint Perigon: ${tag('teal', '∠OMA')} + ${tag('teal', '∠OMA*')} = 90° + 270° = ${tag('teal', '360.0°')}<br>` +
-        `• Triangle Reflex Sum: In △OMA, reflex sum = 3(360°) - 180° = ${tag('lavender', '900.0°')}<br>` +
-        `• Symmetrical Bisector Invariant: Both right angles at M (∠OMA and ∠OMB) share identical conjugate reflex angles of ${tag('teal', '270.0°')}.`,
+        `• Triangle Reflex Sum: In ${tag('blue', '△OMA')}, reflex sum = 3(360°) - 180° = ${tag('lavender', '900.0°')}<br>` +
+        `• Symmetrical Bisector Invariant: Both right angles at ${tag('emerald', 'M')} (${tag('teal', '∠OMA')} and ${tag('teal', '∠OMB')}) share identical conjugate reflex angles of ${tag('teal', '270.0°')}.`,
         true
       )}
     `;
