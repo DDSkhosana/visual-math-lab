@@ -101,8 +101,8 @@
   left: 0;
   right: 0;
   bottom: auto;
-  height: var(--dock-size, 280px);
-  max-height: 55vh;
+  height: auto;
+  max-height: var(--dock-size, 340px);
   width: 100%;
   border-left: none;
   border-right: none;
@@ -115,8 +115,8 @@
   left: 0;
   right: 0;
   top: auto;
-  height: var(--dock-size, 280px);
-  max-height: 55vh;
+  height: auto;
+  max-height: var(--dock-size, 340px);
   width: 100%;
   border-left: none;
   border-right: none;
@@ -258,11 +258,59 @@
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
+  height: auto !important;
+  max-height: min(440px, 50vh) !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
   border: 1px solid rgba(51, 65, 85, 0.75) !important;
   border-radius: 0.5rem !important;
+  overflow: hidden !important;
+}
+
+.workspace-dock-body > .ui-panel .panel-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 0 1 auto !important;
+  height: auto !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.workspace-dock-body > .ui-panel .panel-body {
+  flex: 1 1 auto !important;
+  max-height: min(340px, 45vh) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: thin;
+}
+
+.workspace-dock-body > .ui-panel .panel-body.hidden {
+  display: none !important;
+}
+
+.workspace-dock-body::-webkit-scrollbar,
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.workspace-dock-body::-webkit-scrollbar-track,
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-dock-body::-webkit-scrollbar-thumb,
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+.workspace-dock-body::-webkit-scrollbar-thumb:hover,
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
 }
 
 .workspace-dock-body > .ui-panel .omni-handle,
@@ -278,14 +326,17 @@
   flex-direction: row !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  align-items: stretch;
+  align-items: flex-start !important;
+  gap: 0.75rem !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
-  flex: 0 0 340px !important;
-  max-width: 380px !important;
-  height: 100% !important;
+  flex: 0 0 320px !important;
+  max-width: 360px !important;
+  height: auto !important;
+  max-height: calc(var(--dock-size, 340px) - 2.5rem) !important;
+  align-self: flex-start !important;
 }
 
 /* Dock Resizer Divider */

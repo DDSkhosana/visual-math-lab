@@ -551,6 +551,10 @@ test('WorkspaceDockManager: Edge-Adaptive Docking Orientations & Detached Floati
   assert.ok(css.includes('[data-dock-edge="bottom"] .workspace-dock-body'), 'CSS must define horizontal shelf for bottom margin');
   assert.ok(css.includes('flex-direction: row !important'), 'Top/bottom dock body must use flex-direction: row !important');
   assert.ok(css.includes('overflow-x: auto !important'), 'Top/bottom dock body must use overflow-x: auto !important');
+  assert.ok(css.includes('align-items: flex-start !important'), 'Top/bottom dock body must align items to start to prevent stretching dead space');
+  assert.ok(css.includes('height: auto !important'), 'Docked panels must maintain height: auto to eliminate vertical dead space');
+  assert.ok(css.includes('overflow-y: auto !important'), 'Docked panel body must be scrollable when content exceeds bounds');
+  assert.ok(css.includes('.workspace-dock-body > .ui-panel .panel-body.hidden {\n  display: none !important;'), 'Collapsed panel body must enforce display: none !important');
 
   // Verify collapsed capsule pill CSS
   assert.ok(css.includes('border-radius: 9999px !important'), 'Collapsed dock must style as rounded capsule pill');
