@@ -129,8 +129,9 @@ export class BaseScene3DView {
     this.scene.background = new THREE.Color(PALETTE.slate800);
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    this.camera.position.set(0, 36, 0);
-    this.camera.up.set(0, 0, -1);
+    this.camera.position.set(0, 36, 0.001);
+    this.camera.up.set(0, 1, 0);
+    this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -139,6 +140,7 @@ export class BaseScene3DView {
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
+    this.controls.screenSpacePanning = true;
 
     // Lighting
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.65));
@@ -261,20 +263,17 @@ export class BaseScene3DView {
 
   setCameraPreset(preset) {
     const d = 36;
-    let targetPos, targetUp;
+    let targetPos;
+    const targetUp = new this.THREE.Vector3(0, 1, 0);
     if (preset === 'top') {
-      targetPos = new this.THREE.Vector3(0, d, 0);
-      targetUp = new this.THREE.Vector3(0, 0, -1);
+      targetPos = new this.THREE.Vector3(0, d, 0.001);
     } else if (preset === 'front') {
       targetPos = new this.THREE.Vector3(0, 0, d);
-      targetUp = new this.THREE.Vector3(0, 1, 0);
     } else if (preset === 'side') {
       targetPos = new this.THREE.Vector3(d, 0, 0);
-      targetUp = new this.THREE.Vector3(0, 1, 0);
     } else {
       // iso / perspective
       targetPos = new this.THREE.Vector3(26, 18, 26);
-      targetUp = new this.THREE.Vector3(0, 1, 0);
     }
 
     if (typeof requestAnimationFrame === 'function' && typeof performance !== 'undefined') {
@@ -383,12 +382,12 @@ export class BaseScene3DView {
       let minScore = Infinity;
       for (const tgt of targets) {
         if (!tgt.mesh || tgt.mesh.visible === false) continue;
-        const dist3d = ray.ray.distanceToPoint(tgt.mesh.position);
+        const intersects = ray.intersectObject(tgt.mesh);
         const screenPt = projectToScreen(tgt.mesh.position);
         const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
 
-        if (dist3d < 2.2 || distPx < 26) {
-          const score = Math.min(dist3d, distPx / 12);
+        if (intersects.length > 0 || distPx < 14) {
+          const score = intersects.length > 0 ? 0 : distPx;
           if (score < minScore) {
             minScore = score;
             closest = tgt;
@@ -434,10 +433,10 @@ export class BaseScene3DView {
         let hover = false;
         for (const tgt of targets) {
           if (!tgt.mesh || tgt.mesh.visible === false) continue;
-          const dist3d = ray.ray.distanceToPoint(tgt.mesh.position);
+          const intersects = ray.intersectObject(tgt.mesh);
           const screenPt = projectToScreen(tgt.mesh.position);
           const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
-          if (dist3d < 2.2 || distPx < 26) {
+          if (intersects.length > 0 || distPx < 14) {
             hover = true;
             break;
           }
@@ -1992,10 +1991,10 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     this.rightAngle1Mesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngle2Mesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngleKMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
-    this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.65);
-    this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.65);
-    this.angleOMesh1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.65);
-    this.angleOMesh2 = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.65);
+    this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28);
+    this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28);
+    this.angleOMesh1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
+    this.angleOMesh2 = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.28);
     this.reflexRight1Mesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
     this.reflexRight2Mesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
 

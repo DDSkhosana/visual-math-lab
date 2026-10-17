@@ -1052,3 +1052,24 @@ test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels,
   }
 });
 
+test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates pole singularity, precise hit-testing, and translucent angle shading', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const circle3d = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+  const thales3d = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'views', 'Scene3DView.js'), 'utf8');
+
+  // Verify Top-view gimbal lock elimination:
+  // Must use (0, d, 0.001) with up = (0, 1, 0) instead of (0, 0, -1) which causes coordinate-frame collapse
+  assert.ok(circle3d.includes("targetPos = new this.THREE.Vector3(0, d, 0.001)"), 'circle-3d.js Top preset must offset Z slightly to prevent gimbal lock');
+  assert.ok(circle3d.includes("const targetUp = new this.THREE.Vector3(0, 1, 0)"), 'circle-3d.js must maintain consistent up vector (0, 1, 0)');
+  assert.ok(thales3d.includes("top: { pos: new this.THREE.Vector3(0, 48, 0.001), up: new this.THREE.Vector3(0, 1, 0) }"), 'Thales Scene3DView.js Top preset must maintain up vector (0, 1, 0) with epsilon Z offset');
+
+  // Verify precise hit detection without loose 2.2 unit 3D volume hijacking
+  assert.ok(!circle3d.includes("dist3d < 2.2"), 'circle-3d.js must not hijack pointer events with loose 2.2 unit 3D cylinder');
+  assert.ok(!thales3d.includes("distanceToPoint(this.objects.pointP.position) < 2.2"), 'Thales Scene3DView.js must not hijack pointer events with loose 2.2 unit distance');
+
+  // Verify Tangents From External Point translucent 0.28 angle shading
+  assert.ok(circle3d.includes("this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28)"), 'TangentsFromPoint3DView alpha1 must use 0.28 opacity');
+  assert.ok(circle3d.includes("this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28)"), 'TangentsFromPoint3DView alpha2 must use 0.28 opacity');
+});
+

@@ -215,9 +215,9 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointP).length > 0) return true;
     const screenPt = this.project(this.objects.pointP.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
     }
-    return this.raycaster.ray.distanceToPoint(this.objects.pointP.position) < 2.2;
+    return false;
   }
 
   hitsPointA() {
@@ -225,9 +225,9 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointA).length > 0) return true;
     const screenPt = this.project(this.objects.pointA.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
     }
-    return this.raycaster.ray.distanceToPoint(this.objects.pointA.position) < 2.2;
+    return false;
   }
 
   hitsPointB() {
@@ -235,9 +235,9 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointB).length > 0) return true;
     const screenPt = this.project(this.objects.pointB.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 26) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
     }
-    return this.raycaster.ray.distanceToPoint(this.objects.pointB.position) < 2.2;
+    return false;
   }
 
   pickSphere(baselineRotation = 0) {
@@ -274,7 +274,7 @@ export class Scene3DView {
     const presets = {
       default: { pos: new this.THREE.Vector3(30, 20, 30), up: new this.THREE.Vector3(0, 1, 0) },
       isometric: { pos: new this.THREE.Vector3(30, 20, 30), up: new this.THREE.Vector3(0, 1, 0) },
-      top: { pos: new this.THREE.Vector3(0, 48, 0), up: new this.THREE.Vector3(0, 0, -1) },
+      top: { pos: new this.THREE.Vector3(0, 48, 0.001), up: new this.THREE.Vector3(0, 1, 0) },
       front: { pos: new this.THREE.Vector3(0, 0, 48), up: new this.THREE.Vector3(0, 1, 0) },
       side: { pos: new this.THREE.Vector3(48, 0, 0), up: new this.THREE.Vector3(0, 1, 0) },
     };
