@@ -394,4 +394,61 @@ test('Flip Split Toggle: Concise "Flip" label, SVG icon, and ratio reset across 
   assert.strictEqual(store.get().splitRatio, 50, 'Flipping split direction must reset splitRatio to 50');
 });
 
+test('Performance: Multi-origin preconnects and deferred Three.js/OrbitControls across all 8 visualizers', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const files = [
+    'visuals/thales-theorem/index.html',
+    'visuals/angle-at-centre/index.html',
+    'visuals/angles-in-same-segment/index.html',
+    'visuals/cyclic-quadrilateral/index.html',
+    'visuals/tangent-radius/index.html',
+    'visuals/alternate-segment/index.html',
+    'visuals/tangents-from-external-point/index.html',
+    'visuals/perpendicular-chord-bisector/index.html'
+  ];
+
+  for (const relPath of files) {
+    const fullPath = path.join(rootDir, relPath);
+    const html = fs.readFileSync(fullPath, 'utf8');
+
+    // Preconnect & DNS-prefetch assertions
+    assert.ok(
+      html.includes('rel="preconnect" href="https://cdnjs.cloudflare.com"'),
+      `${relPath} must preconnect to cdnjs.cloudflare.com`
+    );
+    assert.ok(
+      html.includes('rel="preconnect" href="https://cdn.jsdelivr.net"'),
+      `${relPath} must preconnect to cdn.jsdelivr.net`
+    );
+    assert.ok(
+      html.includes('rel="dns-prefetch" href="https://cdnjs.cloudflare.com"'),
+      `${relPath} must have dns-prefetch for cdnjs.cloudflare.com`
+    );
+    assert.ok(
+      html.includes('rel="dns-prefetch" href="https://cdn.jsdelivr.net"'),
+      `${relPath} must have dns-prefetch for cdn.jsdelivr.net`
+    );
+
+    // Deferred Three.js and OrbitControls assertions
+    assert.ok(
+      html.includes('<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'),
+      `${relPath} must load Three.js with defer`
+    );
+    assert.ok(
+      html.includes('<script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>'),
+      `${relPath} must load OrbitControls with defer`
+    );
+    assert.ok(
+      !html.includes('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'),
+      `${relPath} must not have synchronous render-blocking Three.js`
+    );
+  }
+});
+
+
 
