@@ -821,8 +821,19 @@ body.interaction-tips-disabled .walkthrough-popover {
 }
 
 .interaction-tip-badge.tip-3d {
-  top: 3.25rem;
+  top: 10.5rem;
   right: 1rem;
+}
+
+@media (max-width: 48rem) {
+  .interaction-tip-badge.tip-2d {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  .interaction-tip-badge.tip-3d {
+    top: 9.75rem;
+    right: 0.5rem;
+  }
 }
 
 .tip-badge-icon {

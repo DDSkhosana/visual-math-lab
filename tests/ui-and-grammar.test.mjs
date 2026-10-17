@@ -505,3 +505,47 @@ test('Camera Presets Bar: Vertically oriented and right-margin aligned across al
     );
   }
 });
+
+test('Canvas Header Info & Overlay Minimal Styling: Canvas never hides under info text and overlays do not collide', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+
+  for (const [name, css] of [['circle-visual.css', circleCss], ['overlays.css', thalesCss]]) {
+    // 1. view-title must have transparent background and no borders so canvas is visible
+    assert.ok(
+      /\.view-title\s*\{[^}]*background:\s*transparent/s.test(css),
+      `${name} .view-title must have transparent background`
+    );
+    assert.ok(
+      /\.view-title\s*\{[^}]*border:\s*none/s.test(css),
+      `${name} .view-title must have no border`
+    );
+    assert.ok(
+      /\.view-title\s*\{[^}]*max-width:\s*calc/s.test(css),
+      `${name} .view-title must have max-width constraint to prevent overlapping right margin controls`
+    );
+
+    // 2. perspective-badge must have transparent background and no bulky box-shadow
+    assert.ok(
+      /\.perspective-badge\s*\{[^}]*background:\s*transparent/s.test(css),
+      `${name} .perspective-badge must have transparent background`
+    );
+    assert.ok(
+      !css.includes('box-shadow: 0 0 10px rgba(56, 189, 248'),
+      `${name} must not have glowing neon box-shadows on perspective badges`
+    );
+  }
+
+  // 3. tip-3d must be positioned below camera presets bar (at least 10rem from top)
+  assert.ok(
+    /\.interaction-tip-badge\.tip-3d\s*\{[^}]*top:\s*10\.5rem/s.test(visualCss),
+    'visual.css .interaction-tip-badge.tip-3d must be positioned below camera presets bar at top: 10.5rem'
+  );
+});
