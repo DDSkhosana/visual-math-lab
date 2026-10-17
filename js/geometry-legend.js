@@ -642,13 +642,13 @@ function mountControlsToggle() {
   if (container.querySelector('#section-geometry-legend')) return;
 
   const section = document.createElement('div');
-  section.className = 'collapsible-section';
+  section.className = 'collapsible-section collapsed';
   section.id = 'section-geometry-legend';
   section.innerHTML = `
-    <div class="collapsible-header" id="header-geometry-legend">
-      <span>Geometry Notation Legend</span><span class="icon">▼</span>
+    <div class="collapsible-header" id="header-geometry-legend" aria-expanded="false">
+      <span>Geometry Notation Legend</span><span class="icon">▶</span>
     </div>
-    <div class="collapsible-content" id="content-geometry-legend" style="display:flex; flex-direction:column; gap:0.5rem; padding: 0.65rem 0.5rem;">
+    <div class="collapsible-content collapsed" id="content-geometry-legend" style="display:flex; flex-direction:column; gap:0.5rem; padding: 0.65rem 0.5rem;">
       <p class="text-xs text-slate-400 m-0">Reference cheatsheet for chords, tangents, secants, sectors, segments, and angles notation.</p>
       <button type="button" class="btn text-xs font-bold px-2 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/40 rounded flex items-center justify-between" id="btn-popout-legend">
         <span style="display:flex; align-items:center; gap:6px;">
@@ -673,9 +673,11 @@ function mountControlsToggle() {
   const content = section.querySelector('.collapsible-content');
   header?.addEventListener('click', () => {
     if (!content) return;
-    const isCurrentlyHidden = content.classList.contains('hidden') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
-    content.classList.toggle('hidden', !isCurrentlyHidden);
+    const isCurrentlyHidden = section.classList.contains('collapsed') || content.classList.contains('collapsed') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
+    section.classList.toggle('collapsed', !isCurrentlyHidden);
+    content.classList.toggle('collapsed', !isCurrentlyHidden);
     content.classList.toggle('open', isCurrentlyHidden);
+    header.setAttribute('aria-expanded', String(isCurrentlyHidden));
     const icon = header.querySelector('.icon');
     if (icon) icon.textContent = isCurrentlyHidden ? '▼' : '▶';
   });

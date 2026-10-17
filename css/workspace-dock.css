@@ -702,6 +702,22 @@
   overflow-y: hidden !important;
 }
 
+/* Collapsed Nested Subcomponents inside Dock Panel */
+.workspace-dock-body .collapsible-section.collapsed .collapsible-content,
+.workspace-dock-body .collapsible-section.collapsed > .collapsible-content,
+.workspace-dock-body .collapsible-content.collapsed,
+.workspace-dock-body .derivation-card-content:not(.open) {
+  display: none !important;
+}
+
+.workspace-dock-body .collapsible-section.collapsed .icon {
+  transform: rotate(-90deg);
+}
+
+.workspace-dock-body .derivation-card:not(.open) .icon {
+  transform: none;
+}
+
 /* Mobile & Narrow Screen Media Query Rules */
 @media (max-width: 48rem) {
   .workspace-dock {

@@ -36,6 +36,7 @@ export class WorkspaceDockManager {
       this.#initContainers();
       this.#loadPersistedState();
       this.#discoverAndRegisterPanels();
+      this.collapseAllSubComponents();
       this.#setupGlobalListeners();
     }
   }
@@ -477,11 +478,68 @@ export class WorkspaceDockManager {
     // Initial placement: default into the dock body unless marked floating
     if (!panelElement.classList.contains('is-floating')) {
       this.dockBody.appendChild(panelElement);
+      this.collapseSubComponents(panelElement);
     } else {
       this.floatPanel(id);
     }
 
     this.#renderTrayItems();
+  }
+
+  collapseSubComponents(container) {
+    if (!container) return;
+    // 1. Collapsible sections inside panel
+    const sections = container.querySelectorAll ? container.querySelectorAll('.collapsible-section') : [];
+    sections.forEach((sec) => {
+      sec.classList.add('collapsed');
+      const header = sec.querySelector ? sec.querySelector('.collapsible-header') : null;
+      if (header) {
+        header.setAttribute('aria-expanded', 'false');
+        header.classList.remove('open');
+        const icon = header.querySelector ? header.querySelector('.icon') : null;
+        if (icon) icon.textContent = '▶';
+      }
+      const content = sec.querySelector ? sec.querySelector('.collapsible-content') : null;
+      if (content) {
+        content.classList.remove('open');
+        content.classList.add('collapsed');
+      }
+    });
+
+    // 2. Derivation cards inside panel
+    const cards = container.querySelectorAll ? container.querySelectorAll('.derivation-card') : [];
+    cards.forEach((card) => {
+      const header = card.querySelector ? card.querySelector('.derivation-card-header') : null;
+      if (header) {
+        header.classList.remove('open');
+        header.setAttribute('aria-expanded', 'false');
+        const icon = header.querySelector ? header.querySelector('.icon') : null;
+        if (icon) icon.textContent = '▶';
+      }
+      const content = card.querySelector ? card.querySelector('.derivation-card-content') : null;
+      if (content) {
+        content.classList.remove('open');
+      }
+    });
+
+    // 3. Panel expand all buttons
+    const expandBtns = container.querySelectorAll ? container.querySelectorAll('.panel-expand-btn, [id$="-expand"], [id$="-btn"]') : [];
+    expandBtns.forEach((btn) => {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.title = 'Expand all sections';
+      const label = btn.querySelector ? btn.querySelector('.panel-expand-label') : null;
+      if (label) label.textContent = 'Expand All';
+      const icon = btn.querySelector ? btn.querySelector('.panel-expand-icon') : null;
+      if (icon) {
+        icon.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg>`;
+      }
+    });
+  }
+
+  collapseAllSubComponents() {
+    if (this.dockBody) {
+      this.collapseSubComponents(this.dockBody);
+    }
   }
 
   #enhancePanelHeader(record) {
@@ -734,6 +792,7 @@ export class WorkspaceDockManager {
 
     // Move DOM node back to dock body
     this.dockBody.appendChild(panel);
+    this.collapseSubComponents(panel);
 
     if (record.dockToggleBtn) {
       record.dockToggleBtn.innerHTML = `⧉`;

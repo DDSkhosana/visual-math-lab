@@ -10,7 +10,7 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
           <span class="derivation-badge">${badge}</span>
           <span class="derivation-title">${title}</span>
         </div>
-        <span class="icon">▼</span>
+        <span class="icon">▶</span>
       </div>
       <div class="derivation-card-content collapsible-content">
         <div class="derivation-math-row">${symbolicLines}</div>

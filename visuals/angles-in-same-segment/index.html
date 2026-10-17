@@ -207,8 +207,8 @@
             </div>
           </div>
           <div class="panel-body hidden">
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Circle Radius</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Circle Radius</span><span class="icon">▶</span></div>
               <div class="collapsible-content">
                 <div class="slider-container">
                   <label for="slider-radius"><span class="color-indigo">Circle Radius r:</span><span id="label-radius" class="color-indigo font-bold">180px</span></label>
@@ -216,9 +216,9 @@
                 </div>
               </div>
             </div>
-            <div class="collapsible-section" id="section-unit-converter">
-              <div class="collapsible-header" id="header-unit-converter">
-                <span>Unit System Conversion</span><span class="icon">▼</span>
+            <div class="collapsible-section collapsed" id="section-unit-converter">
+              <div class="collapsible-header" id="header-unit-converter" aria-expanded="false">
+                <span>Unit System Conversion</span><span class="icon">▶</span>
               </div>
               <div class="collapsible-content" id="content-unit-converter"></div>
             </div>
@@ -259,15 +259,15 @@
             </div>
           </div>
           <div class="panel-body hidden">
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Grids &amp; Axes</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>2D Grids &amp; Axes</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span class="color-steel">Cartesian Grid</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
               </div>
             </div>
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>2D Overlays</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>2D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span><span class="color-blue">Point Markers</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-yellow">θ</span>)</label>
@@ -278,8 +278,8 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
               </div>
             </div>
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Camera Perspective</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Camera Perspective</span><span class="icon">▶</span></div>
               <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
                 <button type="button" class="btn text-xs" data-camera-preset="top">Top</button>
                 <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
@@ -287,8 +287,8 @@
                 <button type="button" class="btn text-xs active" data-camera-preset="iso">Iso</button>
               </div>
             </div>
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Snapshot Export</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Snapshot Export</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                 <button type="button" class="btn" id="btn-export-png">Export PNG</button>
                 <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
@@ -314,8 +314,8 @@
             </div>
           </div>
           <div class="panel-body hidden">
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>3D Guides</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>3D Guides</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid" checked><span class="checkmark"></span><span class="color-steel">XZ Reference Grid</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-axes" checked><span class="checkmark"></span><span>XYZ Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span> / <span class="color-steel">Z</span>)</span></label>
@@ -323,8 +323,8 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-wire" checked><span class="checkmark"></span><span class="color-sky">Great Circle Wire</span></label>
               </div>
             </div>
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>3D Overlays</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-yellow">θ</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-steel">z</span>)</label>
@@ -333,8 +333,8 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>
-            <div class="collapsible-section">
-              <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Camera Presets</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                 <button type="button" class="btn active" data-preset="iso">Isometric</button>
                 <button type="button" class="btn" data-preset="top">Top (+Y)</button>

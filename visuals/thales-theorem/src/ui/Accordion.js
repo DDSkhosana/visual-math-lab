@@ -62,7 +62,17 @@ export class Accordion {
   setOpen(header, open) {
     header.classList.toggle('open', open);
     header.setAttribute('aria-expanded', String(open));
-    header.nextElementSibling?.classList.toggle('open', open);
+    const section = header.closest('.collapsible-section');
+    if (section) section.classList.toggle('collapsed', !open);
+    const content = header.nextElementSibling || section?.querySelector('.collapsible-content');
+    if (content) {
+      content.classList.toggle('open', open);
+      content.classList.toggle('collapsed', !open);
+    }
+    const icon = header.querySelector('.icon');
+    if (icon) {
+      icon.textContent = open ? '▼' : '▶';
+    }
   }
 
   headers(scope = this.root) {

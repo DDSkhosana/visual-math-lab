@@ -598,3 +598,95 @@ test('WorkspaceDockManager: Edge-Adaptive Docking Orientations & Detached Floati
   assert.strictEqual(panel.style.top, '120px', 'Floating panel top must update from drag');
 });
 
+test('WorkspaceDockManager: Nested Sub Components Collapsed By Default in Dock Panel', () => {
+  const mockDoc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+
+  // Create a panel with nested collapsible sections, cards, and expand button
+  const panel = new MockDOMElement('div', 'ui-panel', 'test-controls');
+  panel.ownerDocument = mockDoc;
+
+  const header = new MockDOMElement('div', 'panel-header');
+  header.textContent = 'Controls';
+  panel.appendChild(header);
+
+  const expandBtn = new MockDOMElement('button', 'panel-expand-btn', 'toggle-test-expand');
+  const expandLabel = new MockDOMElement('span', 'panel-expand-label');
+  expandLabel.textContent = 'Collapse All';
+  const expandIcon = new MockDOMElement('span', 'panel-expand-icon');
+  expandBtn.appendChild(expandIcon);
+  expandBtn.appendChild(expandLabel);
+  header.appendChild(expandBtn);
+
+  const panelBody = new MockDOMElement('div', 'panel-body hidden');
+  panel.appendChild(panelBody);
+
+  // Sub-component 1: Collapsible section
+  const sec = new MockDOMElement('div', 'collapsible-section');
+  const secHeader = new MockDOMElement('div', 'collapsible-header');
+  const secIcon = new MockDOMElement('span', 'icon');
+  secIcon.textContent = '▼';
+  secHeader.appendChild(secIcon);
+  sec.appendChild(secHeader);
+  const secContent = new MockDOMElement('div', 'collapsible-content open');
+  sec.appendChild(secContent);
+  panelBody.appendChild(sec);
+
+  // Sub-component 2: Derivation card
+  const card = new MockDOMElement('div', 'derivation-card');
+  const cardHeader = new MockDOMElement('div', 'derivation-card-header open');
+  const cardIcon = new MockDOMElement('span', 'icon');
+  cardIcon.textContent = '▼';
+  cardHeader.appendChild(cardIcon);
+  card.appendChild(cardHeader);
+  const cardContent = new MockDOMElement('div', 'derivation-card-content open');
+  card.appendChild(cardContent);
+  panelBody.appendChild(card);
+
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // Verify collapseSubComponents was executed on panel in the dock
+  assert.ok(sec.classList.contains('collapsed'), 'Section in docked panel must have .collapsed class');
+  assert.strictEqual(secHeader.getAttribute('aria-expanded'), 'false', 'Section header must have aria-expanded="false"');
+  assert.strictEqual(secIcon.textContent, '▶', 'Section icon must be ▶');
+  assert.ok(!secContent.classList.contains('open'), 'Section content must not have .open class');
+  assert.ok(secContent.classList.contains('collapsed'), 'Section content must have .collapsed class');
+
+  assert.ok(!cardHeader.classList.contains('open'), 'Card header must not have .open class');
+  assert.strictEqual(cardHeader.getAttribute('aria-expanded'), 'false', 'Card header must have aria-expanded="false"');
+  assert.strictEqual(cardIcon.textContent, '▶', 'Card icon must be ▶');
+  assert.ok(!cardContent.classList.contains('open'), 'Card content must not have .open class');
+
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'false', 'Expand button must have aria-expanded="false"');
+  assert.strictEqual(expandLabel.textContent, 'Expand All', 'Expand button label must be Expand All');
+
+  // Verify CSS rule in workspace-dock.css
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+  assert.ok(css.includes('.workspace-dock-body .collapsible-section.collapsed .collapsible-content'), 'CSS must define rule for collapsed section in dock');
+  assert.ok(css.includes('.workspace-dock-body .derivation-card-content:not(.open)'), 'CSS must define rule for unopened derivation card in dock');
+
+  // Verify all 8 visual HTML files have collapsed sections and right arrows by default
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(html.includes('class="collapsible-section collapsed"'), `${slug}/index.html must have collapsible sections collapsed by default`);
+    assert.ok(!html.includes('<div class="collapsible-section">'), `${slug}/index.html must not contain uncollapsed <div class="collapsible-section">`);
+  }
+});
+

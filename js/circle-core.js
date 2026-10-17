@@ -205,8 +205,18 @@ export class Panel {
     this.setMinimized(false);
     sections.forEach((s) => {
       s.classList.toggle('collapsed', isCollapse);
+      const header = s.querySelector('.collapsible-header');
+      if (header) {
+        header.setAttribute('aria-expanded', String(!isCollapse));
+        header.classList.toggle('open', !isCollapse);
+      }
       const icon = s.querySelector('.collapsible-header .icon');
       if (icon) icon.textContent = isCollapse ? '▶' : '▼';
+      const content = s.querySelector('.collapsible-content');
+      if (content) {
+        content.classList.toggle('open', !isCollapse);
+        content.classList.toggle('collapsed', isCollapse);
+      }
     });
     cards.forEach((c) => {
       const header = c.querySelector('.derivation-card-header');
@@ -214,6 +224,8 @@ export class Panel {
       header?.classList.toggle('open', !isCollapse);
       header?.setAttribute('aria-expanded', String(!isCollapse));
       content?.classList.toggle('open', !isCollapse);
+      const icon = c.querySelector('.icon');
+      if (icon) icon.textContent = isCollapse ? '▶' : '▼';
     });
     if (this.expandButton) {
       setExpandButtonUI(this.expandButton, !isCollapse);
@@ -464,7 +476,45 @@ export class TelemetryPanel {
  * Accordion section and derivation card toggle helper.
  */
 export function initCollapsibleSections(root = document) {
-  root.addEventListener('click', (e) => {
+  // Ensure all nested sub components are collapsed by default
+  const initialSections = Array.from(root.querySelectorAll ? root.querySelectorAll('.collapsible-section') : []);
+  initialSections.forEach((s) => {
+    s.classList.add('collapsed');
+    const header = s.querySelector ? s.querySelector('.collapsible-header') : null;
+    if (header) {
+      header.setAttribute('aria-expanded', 'false');
+      header.classList.remove('open');
+      const icon = header.querySelector ? header.querySelector('.icon') : null;
+      if (icon) icon.textContent = '▶';
+    }
+    const content = s.querySelector ? s.querySelector('.collapsible-content') : null;
+    if (content) {
+      content.classList.remove('open');
+      content.classList.add('collapsed');
+    }
+  });
+
+  const initialCards = Array.from(root.querySelectorAll ? root.querySelectorAll('.derivation-card') : []);
+  initialCards.forEach((c) => {
+    const header = c.querySelector ? c.querySelector('.derivation-card-header') : null;
+    if (header) {
+      header.classList.remove('open');
+      header.setAttribute('aria-expanded', 'false');
+      const icon = header.querySelector ? header.querySelector('.icon') : null;
+      if (icon) icon.textContent = '▶';
+    }
+    const content = c.querySelector ? c.querySelector('.derivation-card-content') : null;
+    if (content) {
+      content.classList.remove('open');
+    }
+  });
+
+  const expandBtns = Array.from(root.querySelectorAll ? root.querySelectorAll('.panel-expand-btn, [id$="-expand"], [id$="-btn"]') : []);
+  expandBtns.forEach((btn) => {
+    setExpandButtonUI(btn, false);
+  });
+
+  root.addEventListener?.('click', (e) => {
     const header = e.target.closest('.collapsible-header');
     if (!header || !root.contains(header)) return;
 
@@ -474,6 +524,8 @@ export function initCollapsibleSections(root = document) {
       header.setAttribute('aria-expanded', String(isOpen));
       const content = card.querySelector('.derivation-card-content');
       if (content) content.classList.toggle('open', isOpen);
+      const icon = header.querySelector('.icon');
+      if (icon) icon.textContent = isOpen ? '▼' : '▶';
       _syncPanelExpandButton(header);
       return;
     }
@@ -482,9 +534,15 @@ export function initCollapsibleSections(root = document) {
     if (section) {
       const isCollapsed = section.classList.toggle('collapsed');
       header.setAttribute('aria-expanded', String(!isCollapsed));
+      header.classList.toggle('open', !isCollapsed);
       const icon = header.querySelector('.icon');
       if (icon) {
         icon.textContent = isCollapsed ? '▶' : '▼';
+      }
+      const content = section.querySelector('.collapsible-content');
+      if (content) {
+        content.classList.toggle('open', !isCollapsed);
+        content.classList.toggle('collapsed', isCollapsed);
       }
       _syncPanelExpandButton(header);
     }

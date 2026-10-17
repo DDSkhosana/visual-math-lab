@@ -488,13 +488,13 @@ function mountControlsSection() {
   if (target.querySelector('#section-walkthrough-tips')) return;
 
   const section = document.createElement('div');
-  section.className = 'collapsible-section';
+  section.className = 'collapsible-section collapsed';
   section.id = 'section-walkthrough-tips';
   section.innerHTML = `
-    <div class="collapsible-header" id="header-walkthrough-tips">
-      <span>Tutorial &amp; Interaction Tips</span><span class="icon">▼</span>
+    <div class="collapsible-header" id="header-walkthrough-tips" aria-expanded="false">
+      <span>Tutorial &amp; Interaction Tips</span><span class="icon">▶</span>
     </div>
-    <div class="collapsible-content" id="content-walkthrough-tips" style="display:flex; flex-direction:column; gap:0.6rem; padding: 0.65rem 0.5rem;">
+    <div class="collapsible-content collapsed" id="content-walkthrough-tips" style="display:flex; flex-direction:column; gap:0.6rem; padding: 0.65rem 0.5rem;">
       <label class="checkbox-container" title="Show on-screen interaction tips and badges">
         <input type="checkbox" data-tutorial-toggle-chk ${isTipsEnabled() ? 'checked' : ''}>
         <span class="checkmark"></span>
@@ -523,9 +523,11 @@ function mountControlsSection() {
   const content = section.querySelector('.collapsible-content');
   header?.addEventListener('click', () => {
     if (!content) return;
-    const isCurrentlyHidden = content.classList.contains('hidden') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
-    content.classList.toggle('hidden', !isCurrentlyHidden);
+    const isCurrentlyHidden = section.classList.contains('collapsed') || content.classList.contains('collapsed') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
+    section.classList.toggle('collapsed', !isCurrentlyHidden);
+    content.classList.toggle('collapsed', !isCurrentlyHidden);
     content.classList.toggle('open', isCurrentlyHidden);
+    header.setAttribute('aria-expanded', String(isCurrentlyHidden));
     const icon = header.querySelector('.icon');
     if (icon) icon.textContent = isCurrentlyHidden ? '▼' : '▶';
   });
