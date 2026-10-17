@@ -10,46 +10,29 @@
 /* Main Visual Layout Container Integration */
 .circle-explorer.has-workspace-dock,
 .thales-explorer.has-workspace-dock {
-  display: flex !important;
+  position: relative !important;
   width: 100%;
   height: calc(100vh - 3rem);
   height: calc(100dvh - 3rem);
-  position: relative;
   overflow: hidden;
   background: #0f172a;
 }
 
-/* Dock Placement Orientations */
-.circle-explorer.has-workspace-dock[data-dock-edge="left"],
-.thales-explorer.has-workspace-dock[data-dock-edge="left"] {
-  flex-direction: row;
-}
-
-.circle-explorer.has-workspace-dock[data-dock-edge="right"],
-.thales-explorer.has-workspace-dock[data-dock-edge="right"] {
-  flex-direction: row-reverse;
-}
-
-.circle-explorer.has-workspace-dock[data-dock-edge="top"],
-.thales-explorer.has-workspace-dock[data-dock-edge="top"] {
-  flex-direction: column;
-}
-
-.circle-explorer.has-workspace-dock[data-dock-edge="bottom"],
-.thales-explorer.has-workspace-dock[data-dock-edge="bottom"] {
-  flex-direction: column-reverse;
-}
-
-/* Canvas View Container when Dock is Active */
+/* Canvas View Container: Strict Zero-Reflow & Zero-Displacement Invariant
+   The 2D and 3D canvas viewport is pinned to 100% width and 100% height at all times.
+   Dock operations (docking, resizing, edge switching, collapsing, expanding) NEVER
+   shrink, push, displace, or reflow the canvas workspace. */
 .has-workspace-dock .view-container,
 .has-workspace-dock #main-view {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-  overflow: hidden;
-  width: auto;
-  height: auto;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  z-index: 1 !important;
 }
 
 /* Floating Workspace Layer (Overlay directly over the Canvas) */
@@ -62,11 +45,11 @@
 }
 
 /* ==========================================================================
-   Workspace Dock Container
+   Workspace Dock Container (Absolute Floating Overlay)
    ========================================================================== */
 .workspace-dock {
   --dock-size: 380px;
-  position: relative;
+  position: absolute !important;
   display: flex;
   flex-direction: column;
   background: rgba(15, 23, 42, 0.94);
@@ -77,27 +60,68 @@
   z-index: 30;
   min-width: 0;
   min-height: 0;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.55);
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+              height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease,
+              border-radius 0.2s ease;
 }
 
-/* Dimensions per edge */
-.circle-explorer.has-workspace-dock[data-dock-edge="left"] .workspace-dock,
-.circle-explorer.has-workspace-dock[data-dock-edge="right"] .workspace-dock,
-.thales-explorer.has-workspace-dock[data-dock-edge="left"] .workspace-dock,
-.thales-explorer.has-workspace-dock[data-dock-edge="right"] .workspace-dock {
+/* Overlay Placement & Dimensions per Edge */
+[data-dock-edge="left"] .workspace-dock {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
   width: var(--dock-size, 380px);
   max-width: 65vw;
   height: 100%;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  border-right: 1px solid rgba(51, 65, 85, 0.75);
 }
 
-.circle-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock,
-.circle-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock,
-.thales-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock,
-.thales-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock {
-  height: var(--dock-size, 300px);
+[data-dock-edge="right"] .workspace-dock {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  width: var(--dock-size, 380px);
+  max-width: 65vw;
+  height: 100%;
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
+  border-left: 1px solid rgba(51, 65, 85, 0.75);
+}
+
+[data-dock-edge="top"] .workspace-dock {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: var(--dock-size, 280px);
   max-height: 55vh;
   width: 100%;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.75);
+}
+
+[data-dock-edge="bottom"] .workspace-dock {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: auto;
+  height: var(--dock-size, 280px);
+  max-height: 55vh;
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-top: 1px solid rgba(51, 65, 85, 0.75);
 }
 
 /* Dock Header Bar */
@@ -249,23 +273,19 @@
 }
 
 /* Horizontal Dock Body for Top/Bottom edges */
-.circle-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock-body,
-.circle-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock-body,
-.thales-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock-body,
-.thales-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock-body {
-  flex-direction: row;
-  overflow-x: auto;
-  overflow-y: hidden;
+[data-dock-edge="top"] .workspace-dock-body,
+[data-dock-edge="bottom"] .workspace-dock-body {
+  flex-direction: row !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   align-items: stretch;
 }
 
-.circle-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock-body > .ui-panel,
-.circle-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel,
-.thales-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock-body > .ui-panel,
-.thales-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
-  flex: 0 0 340px;
-  max-width: 380px;
-  height: 100%;
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
+  flex: 0 0 340px !important;
+  max-width: 380px !important;
+  height: 100% !important;
 }
 
 /* Dock Resizer Divider */
@@ -315,38 +335,69 @@
   cursor: ns-resize;
 }
 
-/* Collapsed Dock State */
+/* ==========================================================================
+   Collapsed Dock State: Freely Draggable Floating Capsule Pill
+   Transforms from edge-pinned bar into a compact floating capsule pill.
+   Can be dragged anywhere across the viewport without displacing canvases.
+   ========================================================================== */
 .workspace-dock.is-collapsed {
-  --dock-size: 38px !important;
-  width: var(--dock-size) !important;
-  min-width: var(--dock-size) !important;
-  overflow: hidden;
+  --dock-size: auto !important;
+  position: absolute !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  bottom: auto !important;
+  right: auto !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+  border: 1px solid rgba(56, 189, 248, 0.5) !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  z-index: 40 !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
 }
 
-.circle-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock.is-collapsed,
-.circle-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock.is-collapsed,
-.thales-explorer.has-workspace-dock[data-dock-edge="top"] .workspace-dock.is-collapsed,
-.thales-explorer.has-workspace-dock[data-dock-edge="bottom"] .workspace-dock.is-collapsed {
-  height: 38px !important;
-  min-height: 38px !important;
-  width: 100% !important;
+.workspace-dock.is-collapsed.is-dragging {
+  cursor: grabbing !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 0 2px #38bdf8 !important;
 }
 
-.workspace-dock.is-collapsed .dock-controls-group,
+.workspace-dock.is-collapsed .workspace-dock-header {
+  border-bottom: none !important;
+  border-radius: 9999px !important;
+  padding: 0.35rem 0.75rem !important;
+  cursor: inherit !important;
+  gap: 0.65rem;
+  background: transparent !important;
+  height: auto !important;
+}
+
+.workspace-dock.is-collapsed .dock-title-group span {
+  display: inline !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+}
+
+.workspace-dock.is-collapsed .dock-edge-switcher,
 .workspace-dock.is-collapsed .workspace-dock-body,
 .workspace-dock.is-collapsed .dock-resizer {
   display: none !important;
 }
 
-.workspace-dock.is-collapsed .workspace-dock-header {
-  padding: 0.35rem;
-  justify-content: center;
-  cursor: pointer;
-  height: 100%;
-}
-
-.workspace-dock.is-collapsed .dock-title-group span {
-  display: none;
+.workspace-dock.is-collapsed .dock-controls-group {
+  display: flex !important;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 /* ==========================================================================

@@ -16,7 +16,6 @@ const rootDir = path.resolve(__dirname, '..');
 class MockDOMElement {
   constructor(tag = 'div', className = '', id = '') {
     this.tagName = tag.toUpperCase();
-    this.className = className;
     this.id = id;
     this.children = [];
     this.parentElement = null;
@@ -38,21 +37,34 @@ class MockDOMElement {
     };
     this.classList = {
       _set: new Set(className.split(' ').filter(Boolean)),
-      add: (...tokens) => tokens.forEach((t) => this.classList._set.add(t)),
-      remove: (...tokens) => tokens.forEach((t) => this.classList._set.delete(t)),
-      toggle: (token, force) => {
+      add(...tokens) {
+        tokens.forEach((t) => this._set.add(t));
+      },
+      remove(...tokens) {
+        tokens.forEach((t) => this._set.delete(t));
+      },
+      toggle(token, force) {
         if (force === undefined) {
-          if (this.classList._set.has(token)) this.classList._set.delete(token);
-          else this.classList._set.add(token);
+          if (this._set.has(token)) this._set.delete(token);
+          else this._set.add(token);
         } else if (force) {
-          this.classList._set.add(token);
+          this._set.add(token);
         } else {
-          this.classList._set.delete(token);
+          this._set.delete(token);
         }
       },
-      contains: (token) => this.classList._set.has(token),
+      contains(token) {
+        return this._set.has(token);
+      },
     };
     this.listeners = new Map();
+  }
+
+  get className() {
+    return Array.from(this.classList._set).join(' ');
+  }
+  set className(val) {
+    this.classList._set = new Set(String(val).split(' ').filter(Boolean));
   }
 
   get parentNode() {
@@ -169,8 +181,28 @@ class MockDOMElement {
     handlers.forEach((h) => h(event));
   }
 
+  setPointerCapture(id) {
+    this._capturedPointerId = id;
+  }
+
+  releasePointerCapture(id) {
+    if (this._capturedPointerId === id) this._capturedPointerId = null;
+  }
+
+  hasPointerCapture(id) {
+    return this._capturedPointerId === id;
+  }
+
   getBoundingClientRect() {
-    return { top: 0, left: 0, width: 800, height: 600, right: 800, bottom: 600 };
+    const left = parseFloat(this.style.left) || 0;
+    const top = parseFloat(this.style.top) || 0;
+    const isRootOrLayer = this.classList.contains('floating-workspace') ||
+                          this.classList.contains('circle-explorer') ||
+                          this.classList.contains('thales-explorer') ||
+                          this.tagName === 'BODY';
+    const width = parseFloat(this.style.width) || (isRootOrLayer ? 1200 : 320);
+    const height = parseFloat(this.style.height) || (isRootOrLayer ? 800 : 260);
+    return { top, left, width, height, right: left + width, bottom: top + height };
   }
 
   get offsetWidth() {
@@ -239,12 +271,22 @@ function matches(node, selector) {
 
 // Global mock DOM environment for Node.js test runner
 const mockDoc = new MockDocument();
+const winListeners = new Map();
 const mockWin = {
   innerWidth: 1200,
   innerHeight: 800,
-  addEventListener: () => {},
-  removeEventListener: () => {},
-  dispatchEvent: () => {},
+  addEventListener: (event, handler) => {
+    if (!winListeners.has(event)) winListeners.set(event, []);
+    winListeners.get(event).push(handler);
+  },
+  removeEventListener: (event, handler) => {
+    if (!winListeners.has(event)) return;
+    winListeners.set(event, winListeners.get(event).filter((h) => h !== handler));
+  },
+  dispatchEvent: (event) => {
+    const handlers = winListeners.get(event.type) || [];
+    handlers.forEach((h) => h(event));
+  },
 };
 mockDoc.defaultView = mockWin;
 globalThis.document = mockDoc;
@@ -416,3 +458,139 @@ test('WorkspaceDockManager: Panels Visibility Tray and Restore Mechanism', () =>
   assert.strictEqual(panel.hidden, false);
   assert.strictEqual(panel.style.display, '');
 });
+
+test('WorkspaceDockManager: Strict Zero Canvas Displacement Invariant', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // Verify view-container overlay rules: pinned to 100% width and 100% height with zero reflow
+  assert.ok(css.includes('position: absolute !important'), 'Canvas container must have position: absolute !important');
+  assert.ok(css.includes('inset: 0 !important'), 'Canvas container must enforce inset: 0 !important');
+  assert.ok(css.includes('width: 100% !important'), 'Canvas container must maintain 100% width !important');
+  assert.ok(css.includes('height: 100% !important'), 'Canvas container must maintain 100% height !important');
+  assert.ok(css.includes('flex: none !important'), 'Canvas container must enforce flex: none to prevent sibling displacement');
+
+  // Verify dock is an absolute overlay rather than an in-flow flex sibling
+  assert.ok(css.includes('.workspace-dock {\n  --dock-size: 380px;\n  position: absolute !important;'),
+    'Workspace dock must be an absolute overlay to guarantee zero canvas displacement');
+
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+
+  const dock = new WorkspaceDockManager(root);
+
+  // View container remains untouched and unconstrained across dock mutations
+  ['left', 'right', 'top', 'bottom'].forEach((edge) => {
+    dock.setDockEdge(edge);
+    assert.strictEqual(viewContainer.style.width, '', 'viewContainer inline width must never be altered by dock edge');
+    assert.strictEqual(viewContainer.style.height, '', 'viewContainer inline height must never be altered by dock edge');
+  });
+
+  dock.setDockCollapsed(true);
+  assert.strictEqual(viewContainer.style.width, '', 'viewContainer inline width must never be altered by dock collapse');
+  dock.setDockCollapsed(false);
+  assert.strictEqual(viewContainer.style.width, '', 'viewContainer inline width must never be altered by dock expand');
+});
+
+test('WorkspaceDockManager: Freely Draggable Collapsed Capsule Pill with Pointer Capture', () => {
+  globalThis.localStorage?.clear?.();
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+
+  const dock = new WorkspaceDockManager(root);
+
+  // Collapse into floating capsule pill
+  dock.setDockCollapsed(true);
+  assert.strictEqual(dock.isCollapsed, true);
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), true);
+
+  // Initial parked position is assigned
+  assert.ok(dock.dockElement.style.left.endsWith('px'), 'Collapsed dock must have initial left px style');
+  assert.ok(dock.dockElement.style.top.endsWith('px'), 'Collapsed dock must have initial top px style');
+
+  const header = dock.dockElement.querySelector('.workspace-dock-header');
+  assert.ok(header, 'Dock must have header');
+
+  // Simulate pointer drag interaction on collapsed dock header
+  header.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 16, clientY: 16, target: header, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 150, clientY: 90 });
+
+  assert.strictEqual(dock.dockElement.classList.contains('is-dragging'), true, 'Dock must have is-dragging class during drag');
+  assert.strictEqual(dock.dockElement.style.left, '150px', 'Dock left style must update with drag');
+  assert.strictEqual(dock.dockElement.style.top, '90px', 'Dock top style must update with drag');
+  assert.deepStrictEqual(dock.collapsedPos, { x: 150, y: 90 }, 'Dock manager must track collapsedPos coordinates');
+
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockElement.classList.contains('is-dragging'), false, 'Dock must remove is-dragging class after drag');
+
+  // Expanding the dock clears inline positioning to restore edge-docked pinned layout
+  dock.setDockCollapsed(false);
+  assert.strictEqual(dock.isCollapsed, false);
+  assert.strictEqual(dock.dockElement.style.left, '', 'Inline left must be cleared on expand');
+  assert.strictEqual(dock.dockElement.style.top, '', 'Inline top must be cleared on expand');
+  assert.strictEqual(dock.dockElement.style.right, '', 'Inline right must be cleared on expand');
+  assert.strictEqual(dock.dockElement.style.bottom, '', 'Inline bottom must be cleared on expand');
+  assert.strictEqual(dock.dockElement.style.width, '', 'Inline width must be cleared on expand');
+  assert.strictEqual(dock.dockElement.style.height, '', 'Inline height must be cleared on expand');
+
+  // Re-collapsing remembers the dragged position
+  dock.setDockCollapsed(true);
+  assert.strictEqual(dock.dockElement.style.left, '150px', 'Re-collapsing dock must restore saved position');
+  assert.strictEqual(dock.dockElement.style.top, '90px', 'Re-collapsing dock must restore saved position');
+});
+
+test('WorkspaceDockManager: Edge-Adaptive Docking Orientations & Detached Floating Panels', () => {
+  globalThis.localStorage?.clear?.();
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // Verify horizontal body rules for top/bottom margins
+  assert.ok(css.includes('[data-dock-edge="top"] .workspace-dock-body'), 'CSS must define horizontal shelf for top margin');
+  assert.ok(css.includes('[data-dock-edge="bottom"] .workspace-dock-body'), 'CSS must define horizontal shelf for bottom margin');
+  assert.ok(css.includes('flex-direction: row !important'), 'Top/bottom dock body must use flex-direction: row !important');
+  assert.ok(css.includes('overflow-x: auto !important'), 'Top/bottom dock body must use overflow-x: auto !important');
+
+  // Verify collapsed capsule pill CSS
+  assert.ok(css.includes('border-radius: 9999px !important'), 'Collapsed dock must style as rounded capsule pill');
+  assert.ok(css.includes('cursor: grab'), 'Collapsed dock must display grab cursor');
+
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'stats-panel');
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  panel.appendChild(panelHeader);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+
+  // Switch to top edge
+  dock.setDockEdge('top');
+  assert.strictEqual(dock.dockEdge, 'top');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'top');
+
+  // Switch to bottom edge
+  dock.setDockEdge('bottom');
+  assert.strictEqual(dock.dockEdge, 'bottom');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'bottom');
+
+  // Float panel
+  dock.floatPanel('stats-panel');
+  const record = dock.panels.get('stats-panel');
+  assert.strictEqual(record.isFloating, true);
+  assert.strictEqual(panel.parentElement, dock.floatingLayer);
+  assert.ok(panel.style.left.endsWith('px'), 'Floating panel must have left position');
+  assert.ok(panel.style.top.endsWith('px'), 'Floating panel must have top position');
+
+  // Simulate dragging floating panel header
+  panelHeader.dispatchEvent({ type: 'pointerdown', pointerId: 2, clientX: 30, clientY: 60, target: panelHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 80, clientY: 120 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 2 });
+
+  assert.strictEqual(panel.style.left, '80px', 'Floating panel left must update from drag');
+  assert.strictEqual(panel.style.top, '120px', 'Floating panel top must update from drag');
+});
+

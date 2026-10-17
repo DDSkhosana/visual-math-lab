@@ -27,6 +27,7 @@ export class WorkspaceDockManager {
     this.options = options;
     this.dockEdge = 'left'; // 'left' | 'right' | 'top' | 'bottom'
     this.isCollapsed = false;
+    this.collapsedPos = null; // { x, y }
     this.dockSize = 380; // px
     this.panels = new Map(); // id -> { element, header, title, isFloating, isHidden, lastPos, handles }
     this.topZIndex = 40;
@@ -193,6 +194,7 @@ export class WorkspaceDockManager {
 
     this.#bindDockHeaderEvents();
     this.#bindDockResizer();
+    this.#bindCollapsedDockDrag();
   }
 
   #bindDockHeaderEvents() {
@@ -231,15 +233,83 @@ export class WorkspaceDockManager {
       });
     }
 
-    // Expand when clicking header while collapsed
+    // Expand when clicking header while collapsed (unless dragging or clicking buttons)
     const header = this.dockElement.querySelector('.workspace-dock-header');
     if (header) {
       header.addEventListener('click', (e) => {
         if (this.isCollapsed && !e.target.closest('button')) {
+          if (this.dockElement.classList.contains('is-dragging')) return;
           this.setDockCollapsed(false);
         }
       });
     }
+  }
+
+  #bindCollapsedDockDrag() {
+    const header = this.dockElement.querySelector('.workspace-dock-header');
+    if (!header) return;
+
+    header.addEventListener('pointerdown', (e) => {
+      if (!this.isCollapsed) return;
+      if (e.target.closest('button, input, select, a')) return;
+      e.preventDefault();
+      try {
+        if (header.setPointerCapture) header.setPointerCapture(e.pointerId);
+      } catch (_) {}
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const dockRect = this.dockElement.getBoundingClientRect();
+      const parentRect = this.root.getBoundingClientRect();
+
+      const startLeft = dockRect.left - parentRect.left;
+      const startTop = dockRect.top - parentRect.top;
+
+      let hasDragged = false;
+
+      const onMove = (moveEv) => {
+        const dx = moveEv.clientX - startX;
+        const dy = moveEv.clientY - startY;
+        if (!hasDragged && Math.hypot(dx, dy) > 3) {
+          hasDragged = true;
+          this.dockElement.classList.add('is-dragging');
+        }
+        if (!hasDragged) return;
+
+        const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
+        const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
+
+        const nextX = clamp(startLeft + dx, 0, maxLeft);
+        const nextY = clamp(startTop + dy, 0, maxTop);
+
+        this.dockElement.style.left = `${nextX}px`;
+        this.dockElement.style.top = `${nextY}px`;
+        this.dockElement.style.right = 'auto';
+        this.dockElement.style.bottom = 'auto';
+
+        this.collapsedPos = { x: nextX, y: nextY };
+      };
+
+      const onUp = (upEv) => {
+        try {
+          if (header.hasPointerCapture?.(upEv.pointerId)) {
+            header.releasePointerCapture(upEv.pointerId);
+          }
+        } catch (_) {}
+        this.dockElement.classList.remove('is-dragging');
+        this.win?.removeEventListener?.('pointermove', onMove);
+        this.win?.removeEventListener?.('pointerup', onUp);
+        this.win?.removeEventListener?.('pointercancel', onUp);
+
+        if (hasDragged) {
+          this.#persistState();
+        }
+      };
+
+      this.win?.addEventListener?.('pointermove', onMove);
+      this.win?.addEventListener?.('pointerup', onUp);
+      this.win?.addEventListener?.('pointercancel', onUp);
+    });
   }
 
   #bindDockResizer() {
@@ -275,7 +345,6 @@ export class WorkspaceDockManager {
 
         this.dockSize = newSize;
         this.dockElement.style.setProperty('--dock-size', `${newSize}px`);
-        this.#dispatchResize();
       };
 
       const onUp = (upEv) => {
@@ -302,6 +371,15 @@ export class WorkspaceDockManager {
     this.dockEdge = edge;
     this.root.setAttribute('data-dock-edge', edge);
 
+    if (!this.isCollapsed) {
+      this.dockElement.style.left = '';
+      this.dockElement.style.top = '';
+      this.dockElement.style.right = '';
+      this.dockElement.style.bottom = '';
+      this.dockElement.style.width = '';
+      this.dockElement.style.height = '';
+    }
+
     // Update active button state
     this.dockElement.querySelectorAll('.dock-edge-btn').forEach((btn) => {
       const isActive = btn.getAttribute('data-edge') === edge;
@@ -309,20 +387,50 @@ export class WorkspaceDockManager {
       btn.setAttribute('aria-pressed', String(isActive));
     });
 
-    this.#dispatchResize();
     this.#persistState();
   }
 
   setDockCollapsed(collapsed) {
     this.isCollapsed = Boolean(collapsed);
     this.dockElement.classList.toggle('is-collapsed', this.isCollapsed);
+
+    if (this.isCollapsed) {
+      if (this.collapsedPos) {
+        this.dockElement.style.left = `${this.collapsedPos.x}px`;
+        this.dockElement.style.top = `${this.collapsedPos.y}px`;
+        this.dockElement.style.right = 'auto';
+        this.dockElement.style.bottom = 'auto';
+      } else {
+        const parentRect = this.root.getBoundingClientRect();
+        let initX = 16;
+        let initY = 16;
+        if (this.dockEdge === 'right') {
+          initX = Math.max(16, (parentRect.width || 1000) - 160);
+        } else if (this.dockEdge === 'bottom') {
+          initY = Math.max(16, (parentRect.height || 700) - 48);
+        }
+        this.dockElement.style.left = `${initX}px`;
+        this.dockElement.style.top = `${initY}px`;
+        this.dockElement.style.right = 'auto';
+        this.dockElement.style.bottom = 'auto';
+        this.collapsedPos = { x: initX, y: initY };
+      }
+    } else {
+      this.dockElement.style.left = '';
+      this.dockElement.style.top = '';
+      this.dockElement.style.right = '';
+      this.dockElement.style.bottom = '';
+      this.dockElement.style.width = '';
+      this.dockElement.style.height = '';
+    }
+
     if (this.collapseBtn) {
       this.collapseBtn.title = this.isCollapsed ? 'Expand Dock strip' : 'Collapse / Minimize Dock strip';
+      this.collapseBtn.setAttribute('aria-label', this.isCollapsed ? 'Expand Dock' : 'Collapse Dock');
       this.collapseBtn.innerHTML = this.isCollapsed
         ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>`
         : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 19 4 12 11 5"></polyline><polyline points="18 19 11 12 18 5"></polyline></svg>`;
     }
-    this.#dispatchResize();
     this.#persistState();
   }
 
@@ -729,6 +837,7 @@ export class WorkspaceDockManager {
         dockEdge: this.dockEdge,
         isCollapsed: this.isCollapsed,
         dockSize: this.dockSize,
+        collapsedPos: this.collapsedPos,
         panels: panelStates,
       };
       storage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -742,9 +851,13 @@ export class WorkspaceDockManager {
       const raw = storage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (data.dockEdge) this.dockEdge = data.dockEdge;
-      if (data.dockSize) this.dockSize = data.dockSize;
-      if (data.isCollapsed !== undefined) this.isCollapsed = data.isCollapsed;
+      if (data.dockEdge) this.setDockEdge(data.dockEdge);
+      if (data.dockSize) {
+        this.dockSize = data.dockSize;
+        this.dockElement.style.setProperty('--dock-size', `${data.dockSize}px`);
+      }
+      if (data.collapsedPos) this.collapsedPos = data.collapsedPos;
+      if (data.isCollapsed !== undefined) this.setDockCollapsed(data.isCollapsed);
       this.savedPanelStates = data.panels || {};
     } catch (_) {}
   }
