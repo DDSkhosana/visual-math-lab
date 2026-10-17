@@ -14,13 +14,14 @@ const TOUR_SEEN_KEY = 'vml_walkthrough_seen';
 const THEOREM_TIPS = {
   'thales-theorem': {
     name: "Thales' Theorem",
-    interactionTip2D: 'Drag Point P around the semicircle. Notice that the inscribed angle ∠APB remains strictly 90° across all quadrants.',
+    interactionTip2D: 'Drag Point P around the semicircle, or spin baseline AB. The inscribed angle ∠APB remains strictly 90° across all quadrants.',
     theoremSpecifics: [
       'Drag Point P along the circumference to see the right angle invariant (90°) maintained continuously.',
-      'Click "Flip Baseline" in the Viewport Toolbar to rotate diameter AB between the X and Y axes.',
+      'Drag Point A or B to rigidly spin the baseline diameter along the perimeter, maintaining orthogonal geometry.',
+      'Click and drag the circle rim, or use mouse wheel, to smoothly resize the circle radius with synchronized 2D/3D scaling.',
       'Check the Telemetry panel to observe the Pythagorean sum s² + t² = |d|² and reflex angles sum (900°).'
     ],
-    highlightPoint: 'Point P'
+    highlightPoint: 'Point P, A, or B'
   },
   'angle-at-centre': {
     name: 'Angle at the Centre Theorem',
@@ -28,6 +29,7 @@ const THEOREM_TIPS = {
     theoremSpecifics: [
       'Drag Point P along the major arc; notice that inscribed angle θ remains constant for fixed A and B.',
       'Drag endpoints A and B to change the subtended arc and see central angle 2θ dynamically scale.',
+      'Angle labels are vertically oriented and stacked to prevent overlapping badges and ensure mathematical clarity.',
       'Move P past the baseline or toggle Reflex Angle at Centre to explore the major-arc reflex theorem.'
     ],
     highlightPoint: 'Point P, A, or B'
@@ -64,13 +66,15 @@ const THEOREM_TIPS = {
   },
   'alternate-segment': {
     name: 'Alternate Segment Theorem',
-    interactionTip2D: 'Drag chord point A, vertex B, or contact point T. The tangent-chord angle equals ∠TBA in the alternate segment.',
+    interactionTip2D: 'Drag chord point A, vertex B, contact point T, or antipodal point D. The tangent-chord angle equals ∠TBA in the alternate segment.',
     theoremSpecifics: [
       'Observe the equality between the tangent-chord angle α and the inscribed angle ∠TBA.',
-      'Notice distinct colours for Major (Alt Seg (Maj), Sky Blue) and Minor (Alt Seg (Min), Violet) segments.',
-      'Toggle the Thales Overlay in controls to inspect the auxiliary diameter TD and the 90° right-angle proof steps.'
+      'Notice distinct colours for Major (Alt Seg (Maj), Sky Blue) and Minor (Alt Seg (Min), Violet) circular segments, shaded cleanly without puzzle-like artifacts.',
+      'Toggle "Inscribed & Proof Triangles Shading" in 2D/3D Overlays to optionally view the filled auxiliary triangles.',
+      'Drag Point D along the perimeter to rigidly spin the entire geometric configuration while preserving side lengths and right angles.',
+      'Toggle the Thales Overlay in controls to inspect the auxiliary diameter TD, right angles ∠TAD = ∠TBD = 90°, and Point D angles (∠TDA = α).'
     ],
-    highlightPoint: 'Points T, A, and B'
+    highlightPoint: 'Points T, A, B, and D'
   },
   'tangents-from-external-point': {
     name: 'Tangents from an External Point',
@@ -84,13 +88,14 @@ const THEOREM_TIPS = {
   },
   'perpendicular-chord-bisector': {
     name: 'Perpendicular Chord Bisector',
-    interactionTip2D: 'Drag chord endpoints A and B. Perpendicular bisector OM strictly bisects chord AB (|AM| = |MB| at 90°).',
+    interactionTip2D: 'Drag chord endpoints A and B or midpoint M. Perpendicular bisector OM strictly bisects chord AB (|AM| = |MB| at 90°).',
     theoremSpecifics: [
-      'Drag chord endpoints A and B to vary chord length and orientation.',
+      'Drag chord endpoints A and B or midpoint M to vary chord length and orientation.',
+      'Dragging midpoint M smoothly and rigidly spins chord AB along the perimeter.',
       'Radius/line OM from centre O always meets chord AB at a 90° right angle and bisects it into equal halves.',
       'Inspect the telemetry to verify |AM| = |MB| with 0.000 px invariant difference.'
     ],
-    highlightPoint: 'Chord endpoints A and B'
+    highlightPoint: 'Chord endpoints A, B, or Midpoint M'
   }
 };
 
@@ -264,7 +269,7 @@ function mountInteractionBadges(slug, theoremData) {
           <button type="button" class="tip-badge-close" title="Dismiss tip badge">✕</button>
         </div>
         <div class="tip-badge-shortcuts">
-          <div><kbd>Left-drag</kbd> Orbit / Rotate</div>
+          <div><kbd>Left-drag</kbd> Direct Orbit (follows pointer)</div>
           <div><kbd>Right-drag</kbd> Pan View</div>
           <div><kbd>Scroll / Pinch</kbd> Zoom In / Out</div>
           <div><kbd>Presets</kbd> Snap to Top/Front/Side/Iso</div>
@@ -335,7 +340,7 @@ function mountTutorialModal(visual, theoremData) {
       <div class="tutorial-hero-box">
         <div class="tutorial-hero-text">
           <h3>Interactive Step-by-Step Walkthrough</h3>
-          <p>Take a 6-step guided tour through the 2D canvas, 3D spatial controls, toolbar docking, live proofs, and unit converter.</p>
+          <p>Take a 6-step guided tour through the 2D canvas, direct-manipulation 3D spatial controls, dockable windowing toolbar, live proofs, and unit converter.</p>
         </div>
         <button type="button" class="button button--primary tutorial-start-btn" id="tutorial-start-tour-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -349,6 +354,8 @@ function mountTutorialModal(visual, theoremData) {
           <h4>2D Planar Canvas</h4>
           <ul class="tutorial-feature-list">
             <li><strong>Click &amp; Drag:</strong> Move vertices (e.g. ${theoremData.highlightPoint}) across quadrants to test invariants.</li>
+            <li><strong>Radius Resizing:</strong> Click and drag near the circle circumference, or scroll mouse wheel over canvas, to resize radius with synchronized 2D/3D scaling.</li>
+            <li><strong>Vertical Badges:</strong> Angle labels are oriented vertically to eliminate label overlaps and maintain clear legibility.</li>
             <li><strong>Touch Drag:</strong> Fully supported on mobile, tablets, and interactive touch screens.</li>
             <li><strong>Real-time Math:</strong> Inscribed angles, chord lengths, and radial orthogonality recalculate continuously.</li>
           </ul>
@@ -357,20 +364,22 @@ function mountTutorialModal(visual, theoremData) {
         <div class="tutorial-card-section">
           <h4>3D Spatial Sphere</h4>
           <ul class="tutorial-feature-list">
-            <li><strong>Orbit:</strong> Left-click and drag (or 1-finger swipe) to freely rotate the great circle.</li>
+            <li><strong>Direct Manipulation Orbit:</strong> Left-click and drag (or 1-finger swipe) to rotate the 3D graphic in the exact direction of your pointer.</li>
+            <li><strong>Arcball &amp; Orbit:</strong> Default Arcball trackball mode with optional Orbit mode toggleable from 3D controls.</li>
             <li><strong>Pan:</strong> Right-click and drag (or 2-finger drag) to pan spatial coordinates.</li>
-            <li><strong>Zoom:</strong> Mouse scroll wheel or pinch to zoom.</li>
-            <li><strong>Camera Presets:</strong> Click Top, Front, Side, or Iso buttons to align views.</li>
+            <li><strong>Zoom / Dolly:</strong> Mouse scroll wheel or pinch to zoom.</li>
+            <li><strong>Camera Presets:</strong> Click Top, Front, Side, or Iso buttons to align views with zero gimbal lock.</li>
           </ul>
         </div>
 
         <div class="tutorial-card-section">
-          <h4>Viewport Modes &amp; Toolbar</h4>
+          <h4>Viewport Modes &amp; Dockable Toolbar</h4>
           <ul class="tutorial-feature-list">
             <li><strong>Split / 2D / 3D:</strong> Switch layouts instantly from the floating toolbar.</li>
+            <li><strong>Dockable Toolbar:</strong> Grab the 6-dot grip handle to dock the toolbar on any screen margin (Top / Bottom / Left / Right) or collapse it into a freely movable capsule pill.</li>
+            <li><strong>Detachable Panels:</strong> Detach and drag panels outside the dock as floating windows with zero canvas displacement.</li>
             <li><strong>Flip:</strong> Swap split layout between side-by-side (horizontal) and stacked (vertical).</li>
-            <li><strong>Draggable Toolbar:</strong> Grab the 6-dot grip handle to move the toolbar anywhere; double-click or press <kbd>Home</kbd> to reset.</li>
-            <li><strong>Reset:</strong> Click Reset to restore default camera, angles, and layout.</li>
+            <li><strong>Reset:</strong> Restores default camera, presets, radius, and initial load configuration.</li>
           </ul>
         </div>
 
@@ -548,27 +557,37 @@ function createTourController(slug, theoremData) {
     {
       title: '2D Interactive Canvas & Draggable Points',
       selector: '#canvas-2d-container',
-      content: `<strong>Drag ${theoremData.highlightPoint}:</strong> ${theoremData.interactionTip2D} Watch collinear chords, tangents, and right-angles adapt continuously.`,
+      content: `<strong>Drag ${theoremData.highlightPoint}:</strong> ${theoremData.interactionTip2D}
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>Circumference Resizing:</strong> Click and drag near the circle rim, or use mouse wheel, to resize the circle radius with live 2D/3D synchronization.</li>
+          <li><strong>Vertical Badges:</strong> Angle labels are stacked vertically to eliminate label overlaps.</li>
+          <li><strong>Real-time Geometry:</strong> Chords, tangents, sectors, and right-angles adapt continuously.</li>
+        </ul>`,
       placement: 'right',
     },
     {
-      title: '3D Spatial Scene & Orbit Navigation',
+      title: '3D Spatial Scene & Direct Pointer Orbit',
       selector: '#canvas-3d-container',
-      content: `Explore the spatial geometry in 3D:
+      content: `Explore the spatial geometry in 3D with direct pointer manipulation:
         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
-          <li><strong>Left-drag:</strong> Orbit / rotate the great-circle sphere</li>
-          <li><strong>Right-drag:</strong> Pan the camera</li>
-          <li><strong>Scroll / Pinch:</strong> Zoom in and out</li>
+          <li><strong>Direct Manipulation:</strong> Left-drag rotates the 3D graphic in the exact direction of your pointer (in both Arcball and Orbit modes).</li>
+          <li><strong>Right-drag:</strong> Pan the camera across 3D space</li>
+          <li><strong>Scroll / Pinch:</strong> Zoom / dolly in and out</li>
           <li><strong>Presets:</strong> Click <em>Top, Front, Side, Iso</em> buttons to align spatial angles with 2D projections.</li>
         </ul>`,
       placement: 'left',
     },
     {
-      title: 'Viewport Modes & Draggable Toolbar',
+      title: 'Viewport Modes & Dockable Windowing Toolbar',
       selector: '#viewport-toolbar',
       content: `Use the floating toolbar to switch between <strong>Split</strong>, <strong>2D</strong>, and <strong>3D</strong> viewports.
         Click <strong>Flip</strong> to rotate layout horizontally or vertically.
-        <strong>Tip:</strong> Grab the 6-dot grip handle to move the toolbar anywhere on screen, or double-click / press <kbd>Home</kbd> to reset.`,
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>Dock to any Margin:</strong> Grab the 6-dot grip handle to dock on Top, Bottom, Left, or Right edges.</li>
+          <li><strong>Movable Capsule Pill:</strong> Collapse the dock toolbar to float it anywhere without disrupting the canvas.</li>
+          <li><strong>Detachable Panels:</strong> Drag panels outside the dock as free-floating windows with zero canvas displacement.</li>
+          <li><strong>Reset:</strong> Click Reset or press <kbd>Home</kbd> to restore initial configuration.</li>
+        </ul>`,
       placement: 'bottom',
     },
     {
@@ -580,7 +599,7 @@ function createTourController(slug, theoremData) {
     {
       title: 'Controls, Overlays & Unit System Conversion',
       selector: '#section-unit-converter, #toolbar-2d-panel, #controls-panel',
-      content: `Customize display layers (Cartesian grids, axes, angle arcs, reflex wedges, area shading) and open the <strong>Unit System Conversion</strong> section to convert measurements across <em>Pixels, Normalized (0-1), Centimeters, Inches</em> and <em>Degrees vs Radians</em>.`,
+      content: `Customize display layers (Cartesian grids, axes, angle arcs, reflex wedges, Major/Minor circular segments, and dedicated triangle shading toggles). Open the <strong>Unit System Conversion</strong> section to convert measurements across <em>Pixels, Normalized (0-1), Centimeters, Inches</em> and <em>Degrees vs Radians</em>.`,
       placement: 'top',
     },
   ];
