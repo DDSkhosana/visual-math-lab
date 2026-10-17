@@ -313,7 +313,7 @@ export class ArcballTrackballControls {
 
       if (this.isArcball) {
         const curSpherePoint = this.projectOnVirtualSphere(curX, curY, rect.width, rect.height);
-        const axisScreen = new this.THREE.Vector3().crossVectors(this.prevSpherePoint, curSpherePoint);
+        const axisScreen = new this.THREE.Vector3().crossVectors(curSpherePoint, this.prevSpherePoint);
         const dot = Math.max(-1, Math.min(1, this.prevSpherePoint.dot(curSpherePoint)));
         const angle = Math.acos(dot) * this.rotateSpeed;
 

@@ -1222,6 +1222,10 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   assert.ok(circle3d.includes("this.controls = new ArcballTrackballControls"), 'BaseScene3DView must instantiate ArcballTrackballControls');
   assert.ok(thales3d.includes("this.controls = new ArcballTrackballControls"), 'Thales Scene3DView must instantiate ArcballTrackballControls');
   assert.ok(circle3d.includes("this.mode = 'arcball'"), 'ArcballTrackballControls must default to arcball mode on initial load');
+  assert.ok(
+    circle3d.includes("crossVectors(curSpherePoint, this.prevSpherePoint)"),
+    'ArcballTrackballControls must use curSpherePoint.cross(this.prevSpherePoint) so pointer drag aligns with graphic motion'
+  );
   assert.ok(circleCore.includes("camera-mode-toggle"), 'circle-core.js must support camera-mode-toggle');
   assert.ok(circleCore.includes("modeBtn.dataset.cameraMode = 'arcball'"), 'circle-core.js must set dataset.cameraMode to arcball on load');
   assert.ok(circleCore.includes("'🔄 Arcball'"), 'circle-core.js must label default button with Arcball');
