@@ -1272,7 +1272,7 @@ export function bindStandardToggles(store, ...args) {
   }, ['cameraPerspective']);
 
   // Reset to initial load configuration
-  const defaultPreset = opts.defaultCameraPreset || 'top';
+  const defaultPreset = opts.defaultCameraPreset || 'iso';
   const resetBtn = document.getElementById('btn-reset');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {

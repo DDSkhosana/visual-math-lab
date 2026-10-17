@@ -178,10 +178,10 @@
         <div id="canvas-3d-container">
           <div class="view-title">3D: Tangent Cone from External Point P</div>
           <div class="camera-presets-bar">
-            <button type="button" data-preset="top" class="active">Top</button>
+            <button type="button" data-preset="top">Top</button>
             <button type="button" data-preset="front">Front</button>
             <button type="button" data-preset="side">Side</button>
-            <button type="button" data-preset="iso">Iso</button>
+            <button type="button" data-preset="iso" class="active">Iso</button>
           </div>
           <div id="labels-3d-container" class="labels-3d-container"></div>
 
@@ -314,10 +314,10 @@
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Camera Perspective</span><span class="icon">▼</span></div>
               <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
-                <button type="button" class="btn text-xs active" data-camera-preset="top">Top</button>
+                <button type="button" class="btn text-xs" data-camera-preset="top">Top</button>
                 <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
                 <button type="button" class="btn text-xs" data-camera-preset="side">Side</button>
-                <button type="button" class="btn text-xs" data-camera-preset="iso">Iso</button>
+                <button type="button" class="btn text-xs active" data-camera-preset="iso">Iso</button>
               </div>
             </div>
             <div class="collapsible-section">
@@ -367,8 +367,8 @@
             <div class="collapsible-section">
               <div class="collapsible-header"><span>Camera Presets</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn active" data-preset="top">Top (+Y)</button>
-                <button type="button" class="btn" data-preset="iso">Isometric</button>
+                <button type="button" class="btn active" data-preset="iso">Isometric</button>
+                <button type="button" class="btn" data-preset="top">Top (+Y)</button>
                 <button type="button" class="btn" data-preset="front">Front (+Z)</button>
                 <button type="button" class="btn" data-preset="side">Side (+X)</button>
               </div>

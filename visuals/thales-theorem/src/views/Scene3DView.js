@@ -14,7 +14,7 @@ export class Scene3DView {
     this.raycaster = new THREE.Raycaster();
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    this.camera.position.set(0, 0, 48);
+    this.camera.position.set(30, 20, 30);
     this.camera.up.set(0, 1, 0);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);

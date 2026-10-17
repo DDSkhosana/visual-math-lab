@@ -1071,5 +1071,30 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   // Verify Tangents From External Point translucent 0.28 angle shading
   assert.ok(circle3d.includes("this.anglePMesh1 = makeAngleWedgeMesh(THREE, PALETTE.lime, 0.28)"), 'TangentsFromPoint3DView alpha1 must use 0.28 opacity');
   assert.ok(circle3d.includes("this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28)"), 'TangentsFromPoint3DView alpha2 must use 0.28 opacity');
+
+  // Verify all 3D canvases load in isometric view by default
+  const circleCore = fs.readFileSync(path.join(rootDir, 'js', 'circle-core.js'), 'utf8');
+  assert.ok(circleCore.includes("defaultCameraPreset || 'iso'"), 'circle-core.js must default camera preset to iso');
+  assert.ok(circle3d.includes("this.camera.position.set(26, 18, 26)"), 'circle-3d.js initial camera position must be isometric (26, 18, 26)');
+  assert.ok(thales3d.includes("this.camera.position.set(30, 20, 30)"), 'Thales Scene3DView.js initial camera position must be isometric (30, 20, 30)');
+
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    assert.ok(
+      (html.includes('data-preset="iso" class="active"') || html.includes('data-preset="isometric" class="active"')),
+      `${slug}/index.html camera-presets-bar must have iso active by default`
+    );
+  }
 });
 

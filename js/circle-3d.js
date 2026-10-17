@@ -129,7 +129,7 @@ export class BaseScene3DView {
     this.scene.background = new THREE.Color(PALETTE.slate800);
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    this.camera.position.set(0, 36, 0.001);
+    this.camera.position.set(26, 18, 26);
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(0, 0, 0);
 

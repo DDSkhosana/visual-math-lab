@@ -189,9 +189,9 @@
             <div class="view-title">3D: Spherical Extension (<span class="color-sky">Sphere</span> &amp; <span class="color-violet">Volume</span>)</div>
             <div class="camera-presets-bar">
                 <button type="button" data-preset="top">Top</button>
-                <button type="button" data-preset="front" class="active">Front</button>
+                <button type="button" data-preset="front">Front</button>
                 <button type="button" data-preset="side">Side</button>
-                <button type="button" data-preset="isometric">Iso</button>
+                <button type="button" data-preset="isometric" class="active">Iso</button>
             </div>
 
             <div class="stats-overlay collapsed" id="stats-3d">
@@ -454,9 +454,9 @@
                     <div class="collapsible-content">
                         <p class="text-xs text-slate-400 mb-2">Align 3D perspective to standard axes:</p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                            <button type="button" class="btn" id="btn-cam-iso" data-preset="isometric" title="Standard 3D perspective">Isometric</button>
+                            <button type="button" class="btn active" id="btn-cam-iso" data-preset="isometric" title="Standard 3D perspective">Isometric</button>
                             <button type="button" class="btn" id="btn-cam-top" data-preset="top" title="Top-down view (+Y plane)">Top (+Y)</button>
-                            <button type="button" class="btn active" id="btn-cam-front" data-preset="front" title="Front elevation view (+Z plane)">Front (+Z)</button>
+                            <button type="button" class="btn" id="btn-cam-front" data-preset="front" title="Front elevation view (+Z plane)">Front (+Z)</button>
                             <button type="button" class="btn" id="btn-cam-side" data-preset="side" title="Side profile view (+X plane)">Side (+X)</button>
                         </div>
                     </div>
