@@ -72,10 +72,13 @@ class MockDOMElement {
   }
 
   get textContent() {
-    return this._textContent || '';
+    if (this._textContent !== undefined) return this._textContent;
+    if (this._innerHTML !== undefined) return this._innerHTML.replace(/<[^>]*>/g, '');
+    return '';
   }
   set textContent(val) {
     this._textContent = String(val);
+    this._innerHTML = String(val);
   }
 
   get innerHTML() {
@@ -83,6 +86,7 @@ class MockDOMElement {
   }
   set innerHTML(val) {
     this._innerHTML = String(val);
+    this._textContent = String(val).replace(/<[^>]*>/g, '');
     if (val === '') {
       this.children.forEach((c) => {
         c.parentElement = null;
@@ -195,8 +199,22 @@ class MockDOMElement {
   }
 
   dispatchEvent(event) {
+    if (!event.target) event.target = this;
+    if (!event.stopPropagation) event.stopPropagation = () => {};
+    if (!event.preventDefault) event.preventDefault = () => {};
     const handlers = this.listeners.get(event.type) || [];
     handlers.forEach((h) => h(event));
+  }
+
+  click() {
+    this.dispatchEvent({ type: 'click', target: this, stopPropagation: () => {}, preventDefault: () => {} });
+  }
+
+  focus() {
+    this._isFocused = true;
+    if (this.ownerDocument) {
+      this.ownerDocument.activeElement = this;
+    }
   }
 
   setPointerCapture(id) {
@@ -261,6 +279,8 @@ class MockDocument {
     );
   }
   dispatchEvent(event) {
+    if (!event.stopPropagation) event.stopPropagation = () => {};
+    if (!event.preventDefault) event.preventDefault = () => {};
     const handlers = this.listeners.get(event.type) || [];
     handlers.forEach((h) => h(event));
   }
@@ -271,20 +291,41 @@ function matches(node, selector) {
   if (selector.includes(',')) {
     return selector.split(',').some((s) => matches(node, s.trim()));
   }
-  if (selector.startsWith('.')) {
-    const classes = selector.split('.').filter(Boolean);
-    return classes.every((cls) => node.classList && node.classList.contains(cls));
+  let sel = selector;
+  const attrRegex = /\[([a-zA-Z0-9_-]+)(?:="([^"]+)")?\]/g;
+  let attrMatch;
+  while ((attrMatch = attrRegex.exec(selector)) !== null) {
+    const [, attr, val] = attrMatch;
+    if (val !== undefined) {
+      const nodeVal = (typeof node.getAttribute === 'function' ? node.getAttribute(attr) : null) ?? node[attr];
+      if (nodeVal !== val) return false;
+    } else {
+      const hasAttr = (typeof node.hasAttribute === 'function' ? node.hasAttribute(attr) : false) || node[attr] !== undefined;
+      if (!hasAttr) return false;
+    }
+    sel = sel.replace(attrMatch[0], '');
   }
-  if (selector.startsWith('#')) return node.id === selector.slice(1);
-  if (selector.startsWith('[')) {
-    const match = selector.match(/\[([a-zA-Z0-9_-]+)(?:="([^"]+)")?\]/);
-    if (match) {
-      const [, attr, val] = match;
-      if (val !== undefined) return node.getAttribute(attr) === val;
-      return node.attributes.has(attr);
+
+  const idMatch = sel.match(/#([a-zA-Z0-9_-]+)/);
+  if (idMatch) {
+    if (node.id !== idMatch[1]) return false;
+    sel = sel.replace(idMatch[0], '');
+  }
+
+  const classMatches = sel.match(/\.([a-zA-Z0-9_-]+)/g);
+  if (classMatches) {
+    for (const cm of classMatches) {
+      const cls = cm.slice(1);
+      if (!node.classList || !node.classList.contains(cls)) return false;
+      sel = sel.replace(cm, '');
     }
   }
-  return node.tagName ? node.tagName.toLowerCase() === selector.toLowerCase() : false;
+
+  sel = sel.trim();
+  if (sel) {
+    return node.tagName ? node.tagName.toLowerCase() === sel.toLowerCase() : false;
+  }
+  return true;
 }
 
 // Global mock DOM environment for Node.js test runner
@@ -1059,6 +1100,503 @@ test('WorkspaceDockManager: Advanced Docking Refinements (Shade, Tray Float, Mag
   assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
   assert.strictEqual(secB.classList.contains('is-in-deck'), true, 'In Deck mode, non-active subpanel must have is-in-deck');
 });
+
+test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline', async () => {
+  globalThis.localStorage?.clear?.();
+  const mockDoc = new MockDocument();
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    listeners: new Map(),
+    addEventListener(event, handler) {
+      if (!this.listeners.has(event)) this.listeners.set(event, []);
+      this.listeners.get(event).push(handler);
+    },
+    removeEventListener(event, handler) {
+      if (!this.listeners.has(event)) return;
+      this.listeners.set(event, this.listeners.get(event).filter((h) => h !== handler));
+    },
+    dispatchEvent(event) {
+      if (!event.stopPropagation) event.stopPropagation = () => {};
+      if (!event.preventDefault) event.preventDefault = () => {};
+      const handlers = this.listeners.get(event.type) || [];
+      handlers.forEach((h) => h(event));
+    },
+  };
+  mockDoc.defaultView = mockWin;
+
+  const root = mockDoc.createElement('div');
+  root.className = 'circle-explorer';
+  mockDoc.body.appendChild(root);
+
+  // Main canvas view container
+  const viewContainer = mockDoc.createElement('div');
+  viewContainer.className = 'view-container';
+  root.appendChild(viewContainer);
+
+  // Panel 1: Controls panel with subpanels
+  const panel1 = mockDoc.createElement('div');
+  panel1.className = 'ui-panel';
+  panel1.id = 'panel-controls';
+
+  const p1Header = mockDoc.createElement('div');
+  p1Header.className = 'panel-header';
+  p1Header.textContent = 'Interactive Controls';
+  panel1.appendChild(p1Header);
+
+  const p1Body = mockDoc.createElement('div');
+  p1Body.className = 'panel-body';
+
+  const secA = mockDoc.createElement('div');
+  secA.className = 'collapsible-section collapsed';
+  const secAHeader = mockDoc.createElement('div');
+  secAHeader.className = 'collapsible-header';
+  secAHeader.textContent = 'Primary Angles';
+  secA.appendChild(secAHeader);
+  const secAContent = mockDoc.createElement('div');
+  secAContent.className = 'collapsible-content collapsed';
+  secA.appendChild(secAContent);
+  p1Body.appendChild(secA);
+
+  const secB = mockDoc.createElement('div');
+  secB.className = 'collapsible-section collapsed';
+  const secBHeader = mockDoc.createElement('div');
+  secBHeader.className = 'collapsible-header';
+  secBHeader.textContent = 'Projection Controls';
+  secB.appendChild(secBHeader);
+  const secBContent = mockDoc.createElement('div');
+  secBContent.className = 'collapsible-content collapsed';
+  secB.appendChild(secBContent);
+  p1Body.appendChild(secB);
+
+  panel1.appendChild(p1Body);
+  root.appendChild(panel1);
+
+  // Panel 2: Derivations panel
+  const panel2 = mockDoc.createElement('div');
+  panel2.className = 'ui-panel';
+  panel2.id = 'panel-derivations';
+  const p2Header = mockDoc.createElement('div');
+  p2Header.className = 'panel-header';
+  p2Header.textContent = 'Geometric Derivations';
+  panel2.appendChild(p2Header);
+  const p2Body = mockDoc.createElement('div');
+  p2Body.className = 'panel-body';
+  panel2.appendChild(p2Body);
+  root.appendChild(panel2);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // -------------------------------------------------------------
+  // Step 1: Edge switching with vertical/horizontal size memory
+  // -------------------------------------------------------------
+  assert.strictEqual(dock.dockEdge, 'left');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'left');
+  assert.strictEqual(dock.dockSize, 380);
+
+  const edgeTopBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="top"]');
+  assert.ok(edgeTopBtn, 'Edge button for top must exist');
+  edgeTopBtn.click();
+  assert.strictEqual(dock.dockEdge, 'top');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'top');
+  assert.strictEqual(dock.dockSize, 340, 'Horizontal edge must use dockSizeHorizontal (340px)');
+  assert.strictEqual(edgeTopBtn.classList.contains('active'), true);
+  assert.strictEqual(edgeTopBtn.getAttribute('aria-pressed'), 'true');
+
+  const edgeRightBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="right"]');
+  edgeRightBtn.click();
+  assert.strictEqual(dock.dockEdge, 'right');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'right');
+  assert.strictEqual(dock.dockSize, 380, 'Vertical edge must restore dockSizeVertical (380px)');
+
+  const edgeBottomBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="bottom"]');
+  edgeBottomBtn.click();
+  assert.strictEqual(dock.dockEdge, 'bottom');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'bottom');
+  assert.strictEqual(dock.dockSize, 340);
+
+  // Switch back to left edge
+  const edgeLeftBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="left"]');
+  edgeLeftBtn.click();
+  assert.strictEqual(dock.dockEdge, 'left');
+
+  // -------------------------------------------------------------
+  // Step 2: Resizer drag with clamping
+  // -------------------------------------------------------------
+  const resizer = dock.dockResizer;
+  assert.ok(resizer, 'Dock resizer divider must exist');
+
+  // Pointerdown on resizer
+  resizer.dispatchEvent({ type: 'pointerdown', pointerId: 2, clientX: 380, clientY: 200 });
+  assert.strictEqual(resizer.classList.contains('active'), true);
+  assert.strictEqual(resizer.hasPointerCapture(2), true);
+
+  // Drag outward: clientX moves to 450 (+70px)
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 450, clientY: 200 });
+  assert.strictEqual(dock.dockSize, 450);
+  assert.strictEqual(dock.dockSizeVertical, 450);
+
+  // Drag below minimum threshold: clientX moves to 100 -> clamped to 280
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 100, clientY: 200 });
+  assert.strictEqual(dock.dockSize, 280, 'Resizer must clamp vertical dock size to minimum 280px');
+
+  // Pointerup releases capture
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 2 });
+  assert.strictEqual(resizer.classList.contains('active'), false);
+  assert.strictEqual(resizer.hasPointerCapture(2), false);
+
+  // -------------------------------------------------------------
+  // Step 3: Collapse and expand via collapse button
+  // -------------------------------------------------------------
+  const collapseBtn = dock.collapseBtn;
+  assert.ok(collapseBtn, 'Collapse button must exist in dock header');
+  assert.strictEqual(dock.isCollapsed, false);
+
+  // Click collapse button
+  collapseBtn.click();
+  assert.strictEqual(dock.isCollapsed, true);
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), true);
+  assert.strictEqual(root.classList.contains('dock-is-collapsed'), true);
+  assert.strictEqual(collapseBtn.getAttribute('aria-label'), 'Expand Dock');
+
+  // Click collapse button again to expand
+  collapseBtn.click();
+  assert.strictEqual(dock.isCollapsed, false);
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), false);
+  assert.strictEqual(root.classList.contains('dock-is-collapsed'), false);
+  assert.strictEqual(collapseBtn.getAttribute('aria-label'), 'Collapse Dock');
+  assert.strictEqual(dock.dockElement.style.left, '');
+
+  // -------------------------------------------------------------
+  // Step 4: Header interaction while collapsed
+  // -------------------------------------------------------------
+  dock.setDockCollapsed(true);
+  assert.strictEqual(dock.isCollapsed, true);
+
+  const dockHeader = dock.dockElement.querySelector('.workspace-dock-header');
+
+  // Double-click header while collapsed resets pill position to (16, 56)
+  dockHeader.dispatchEvent({ type: 'dblclick' });
+  assert.strictEqual(dock.collapsedPos.x, 16);
+  assert.strictEqual(dock.collapsedPos.y, 56);
+  assert.strictEqual(dock.dockElement.style.left, '16px');
+  assert.strictEqual(dock.dockElement.style.top, '56px');
+
+  // Single-click header auto-expands dock
+  dockHeader.click();
+  assert.strictEqual(dock.isCollapsed, false);
+
+  // -------------------------------------------------------------
+  // Step 5: Capsule pill drag with pointer capture and magnetic snap
+  // -------------------------------------------------------------
+  dock.setDockCollapsed(true);
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 3, clientX: 200, clientY: 200, target: dockHeader });
+  assert.strictEqual(dockHeader.hasPointerCapture(3), true);
+
+  // Drag near top-left edge (within 24px magnetic snap threshold)
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 18, clientY: 15 });
+  assert.strictEqual(dock.dockElement.classList.contains('is-dragging'), true);
+
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 3 });
+  assert.strictEqual(dock.dockElement.classList.contains('is-dragging'), false);
+  assert.strictEqual(dock.collapsedPos.x, 12, 'Magnetic snapping must snap x to 12px margin');
+  assert.strictEqual(dock.collapsedPos.y, 12, 'Magnetic snapping must snap y to 12px margin');
+
+  dock.setDockCollapsed(false);
+
+  // -------------------------------------------------------------
+  // Step 6: Float panel via header button and dock back
+  // -------------------------------------------------------------
+  const p1Record = dock.panels.get('panel-controls');
+  const p1DockBtn = p1Record.dockToggleBtn;
+  assert.ok(p1DockBtn, 'Panel controls must have a dock toggle button');
+  assert.strictEqual(p1Record.isFloating, false);
+
+  // Pop out to floating
+  p1DockBtn.click();
+  assert.strictEqual(p1Record.isFloating, true);
+  assert.strictEqual(panel1.classList.contains('is-floating'), true);
+  assert.strictEqual(panel1.parentElement, dock.floatingLayer);
+  assert.strictEqual(p1DockBtn.textContent, '🗁', 'Header button must update to dock icon');
+
+  // Dock back
+  p1DockBtn.click();
+  assert.strictEqual(p1Record.isFloating, false);
+  assert.strictEqual(panel1.classList.contains('is-floating'), false);
+  assert.strictEqual(panel1.parentElement, dock.dockBody);
+  assert.strictEqual(p1DockBtn.textContent, '⧉', 'Header button must update to float icon');
+
+  // -------------------------------------------------------------
+  // Step 7: Float panel via tray row button and dock back
+  // -------------------------------------------------------------
+  const trayRows = dock.trayItemsContainer.querySelectorAll('.tray-item-row');
+  assert.strictEqual(trayRows.length, 2);
+  const p1TrayFloatBtn = trayRows[0].querySelector('.tray-item-float-btn');
+  assert.ok(p1TrayFloatBtn, 'Tray row must contain float button');
+
+  // Float via tray button
+  p1TrayFloatBtn.click();
+  assert.strictEqual(p1Record.isFloating, true);
+  const updatedTrayRows = dock.trayItemsContainer.querySelectorAll('.tray-item-row');
+  const updatedTrayFloatBtn = updatedTrayRows[0].querySelector('.tray-item-float-btn');
+  assert.strictEqual(updatedTrayFloatBtn.textContent, '🗁');
+
+  // Re-dock via tray button
+  updatedTrayFloatBtn.click();
+  assert.strictEqual(p1Record.isFloating, false);
+
+  // -------------------------------------------------------------
+  // Step 8: Panel shading via shade button and header double-click
+  // -------------------------------------------------------------
+  const p1ShadeBtn = p1Record.shadeBtn;
+  assert.ok(p1ShadeBtn, 'Panel must have shade button');
+  assert.strictEqual(panel1.classList.contains('is-shaded'), false);
+
+  p1ShadeBtn.click();
+  assert.strictEqual(panel1.classList.contains('is-shaded'), true);
+  assert.strictEqual(p1ShadeBtn.textContent, '□');
+
+  p1ShadeBtn.click();
+  assert.strictEqual(panel1.classList.contains('is-shaded'), false);
+  assert.strictEqual(p1ShadeBtn.textContent, '─');
+
+  // Double-click panel header to toggle shading
+  p1Header.dispatchEvent({ type: 'dblclick', target: p1Header });
+  assert.strictEqual(panel1.classList.contains('is-shaded'), true);
+  p1Header.dispatchEvent({ type: 'dblclick', target: p1Header });
+  assert.strictEqual(panel1.classList.contains('is-shaded'), false);
+
+  // -------------------------------------------------------------
+  // Step 9: Omni-resizing floating panel (all 8 handles)
+  // -------------------------------------------------------------
+  dock.floatPanel('panel-controls');
+  assert.strictEqual(p1Record.handles.length, 8, 'Floating panel must have 8 resize handles');
+
+  // Test SE handle (South-East corner)
+  const seHandle = panel1.querySelector('.omni-handle.omni-se');
+  assert.ok(seHandle, 'SE handle must exist');
+  seHandle.dispatchEvent({ type: 'pointerdown', pointerId: 4, clientX: 300, clientY: 300 });
+  assert.strictEqual(seHandle.classList.contains('active'), true);
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 380, clientY: 380 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 4 });
+  assert.strictEqual(seHandle.classList.contains('active'), false);
+  assert.ok(parseFloat(panel1.style.width) >= 380);
+
+  // Test NW handle (North-West corner with minimum clamping)
+  const nwHandle = panel1.querySelector('.omni-handle.omni-nw');
+  assert.ok(nwHandle, 'NW handle must exist');
+  nwHandle.dispatchEvent({ type: 'pointerdown', pointerId: 5, clientX: 100, clientY: 100 });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 999, clientY: 999 }); // tries to shrink past min
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 5 });
+  assert.ok(parseFloat(panel1.style.width) >= 260, 'Width must clamp to minimum 260px');
+  assert.ok(parseFloat(panel1.style.height) >= 140, 'Height must clamp to minimum 140px');
+
+  // -------------------------------------------------------------
+  // Step 10: Floating panel z-index focus raising
+  // -------------------------------------------------------------
+  dock.floatPanel('panel-derivations');
+  const p2Record = dock.panels.get('panel-derivations');
+  assert.strictEqual(panel2.classList.contains('is-focused'), true);
+  assert.strictEqual(panel1.classList.contains('is-focused'), false);
+
+  // Click on panel1 in floating layer
+  dock.floatingLayer.dispatchEvent({ type: 'pointerdown', target: panel1 });
+  assert.strictEqual(panel1.classList.contains('is-focused'), true);
+  assert.strictEqual(panel2.classList.contains('is-focused'), false);
+  assert.ok(parseInt(panel1.style.zIndex, 10) > parseInt(panel2.style.zIndex, 10));
+
+  // Dock both panels back
+  dock.dockPanel('panel-controls');
+  dock.dockPanel('panel-derivations');
+
+  // -------------------------------------------------------------
+  // Step 11: Tray checklist show/hide and outside click
+  // -------------------------------------------------------------
+  const trayBtn = dock.trayBtn;
+  const trayDropdown = dock.trayDropdown;
+  assert.strictEqual(trayDropdown.hidden, true);
+  assert.strictEqual(trayBtn.getAttribute('aria-expanded'), 'false');
+
+  // Open tray
+  trayBtn.click();
+  assert.strictEqual(trayDropdown.hidden, false);
+  assert.strictEqual(trayBtn.getAttribute('aria-expanded'), 'true');
+
+  // Click outside closes tray
+  const outsideEl = mockDoc.createElement('div');
+  mockDoc.body.appendChild(outsideEl);
+  mockDoc.dispatchEvent({ type: 'click', target: outsideEl });
+  assert.strictEqual(trayDropdown.hidden, true);
+  assert.strictEqual(trayBtn.getAttribute('aria-expanded'), 'false');
+
+  // Toggle checkbox to hide panel-derivations
+  const rowsAfter = dock.trayItemsContainer.querySelectorAll('.tray-item-row');
+  const p2Checkbox = rowsAfter[1].querySelector('input[type="checkbox"]');
+  p2Checkbox.checked = false;
+  p2Checkbox.dispatchEvent({ type: 'change' });
+  assert.strictEqual(p2Record.isHidden, true);
+  assert.strictEqual(panel2.style.display, 'none');
+
+  p2Checkbox.checked = true;
+  p2Checkbox.dispatchEvent({ type: 'change' });
+  assert.strictEqual(p2Record.isHidden, false);
+  assert.strictEqual(panel2.style.display, '');
+
+  // -------------------------------------------------------------
+  // Step 12: Tray batch actions (Show All, Dock All, Collapse All)
+  // -------------------------------------------------------------
+  // Hide panel1 and float panel2
+  dock.setPanelVisible('panel-controls', false);
+  dock.floatPanel('panel-derivations');
+
+  const showAllBtn = trayDropdown.querySelector('#tray-btn-show-all');
+  const dockAllBtn = trayDropdown.querySelector('#tray-btn-dock-all');
+  const collapseAllBtn = trayDropdown.querySelector('#tray-btn-collapse-all');
+  assert.ok(showAllBtn && dockAllBtn && collapseAllBtn, 'Tray footer buttons must exist');
+
+  showAllBtn.click();
+  assert.strictEqual(p1Record.isHidden, false, 'Show All must unhide panel-controls');
+
+  dockAllBtn.click();
+  assert.strictEqual(p2Record.isFloating, false, 'Dock All must re-dock panel-derivations');
+
+  secA.classList.remove('collapsed');
+  secB.classList.remove('collapsed');
+  collapseAllBtn.click();
+  assert.strictEqual(secA.classList.contains('collapsed'), true, 'Collapse All must collapse secA');
+  assert.strictEqual(secB.classList.contains('collapsed'), true, 'Collapse All must collapse secB');
+
+  // -------------------------------------------------------------
+  // Step 13: Empty dock notice and 1-click restore
+  // -------------------------------------------------------------
+  dock.setPanelVisible('panel-controls', false);
+  dock.setPanelVisible('panel-derivations', false);
+
+  const emptyNotice = dock.dockBody.querySelector('.dock-empty-notice');
+  assert.ok(emptyNotice, 'Dock body must show empty notice when all docked panels are hidden');
+  assert.strictEqual(emptyNotice.style.display, 'flex');
+
+  const emptyRestoreBtn = emptyNotice.querySelector('.dock-empty-restore-btn');
+  assert.ok(emptyRestoreBtn, 'Empty notice must provide Restore button');
+  emptyRestoreBtn.click();
+
+  assert.strictEqual(p1Record.isHidden, false, 'Restore button must unhide panel 1');
+  assert.strictEqual(p2Record.isHidden, false, 'Restore button must unhide panel 2');
+  assert.strictEqual(emptyNotice.style.display, 'none', 'Empty notice must be hidden when panels are restored');
+
+  // -------------------------------------------------------------
+  // Step 14: Elevation deck multi-expand turn-taking
+  // -------------------------------------------------------------
+  // Expand both secA and secB
+  secA.classList.remove('collapsed');
+  secB.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  const deckEl = p1Body.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, 'Elevation deck must appear when multiple subpanels are expanded');
+  assert.strictEqual(deckEl.style.display, 'flex');
+
+  const deckLabel = deckEl.querySelector('.elevation-deck-label');
+  assert.strictEqual(deckLabel.textContent, 'Deck (1/2)');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secA.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), true);
+
+  // -------------------------------------------------------------
+  // Step 15: Elevation deck pill click turn-taking
+  // -------------------------------------------------------------
+  const deckPills = deckEl.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(deckPills.length, 2);
+  assert.strictEqual(deckPills[0].classList.contains('active'), true);
+  assert.strictEqual(deckPills[1].classList.contains('active'), false);
+
+  // Click pill 2 (secB)
+  deckPills[1].click();
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secB.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), true);
+
+  const updatedPills = deckEl.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(updatedPills[1].classList.contains('active'), true);
+
+  // -------------------------------------------------------------
+  // Step 16: Elevation deck previous and next nav buttons with turn wrapping
+  // -------------------------------------------------------------
+  const nextNavBtn = deckEl.querySelector('.elevation-deck-nav-btn.next');
+  assert.ok(nextNavBtn, 'Next nav button must exist');
+
+  // Next wraps from secB (idx 1) back to secA (idx 0)
+  nextNavBtn.click();
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+
+  // Prev wraps from secA (idx 0) back to secB (idx 1)
+  const prevNavBtn = deckEl.querySelector('.elevation-deck-nav-btn.prev');
+  assert.ok(prevNavBtn, 'Prev nav button must exist');
+  prevNavBtn.click();
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'deck');
+
+  // -------------------------------------------------------------
+  // Step 17: Elevation deck keyboard cycling ([ and ])
+  // -------------------------------------------------------------
+  // Press '[' on document: retreats turn back to secA
+  mockDoc.dispatchEvent({ type: 'keydown', key: '[' });
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+
+  // Press ']' on document: advances turn to secB
+  mockDoc.dispatchEvent({ type: 'keydown', key: ']' });
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+
+  // -------------------------------------------------------------
+  // Step 18: Elevation deck pill arrow key navigation
+  // -------------------------------------------------------------
+  const pillsForKeys = deckEl.querySelectorAll('.elevation-deck-pill');
+  // Press ArrowRight on active pill (secB) -> wraps to secA
+  pillsForKeys[1].dispatchEvent({ type: 'keydown', key: 'ArrowRight' });
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+
+  // Press ArrowLeft on new active pill (secA) -> wraps to secB
+  const pillsAfterRight = deckEl.querySelectorAll('.elevation-deck-pill');
+  pillsAfterRight[0].dispatchEvent({ type: 'keydown', key: 'ArrowLeft' });
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+
+  // -------------------------------------------------------------
+  // Step 19: Elevation deck mode toggle (Deck ☵ vs Stack ↕)
+  // -------------------------------------------------------------
+  const modeToggleBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.ok(modeToggleBtn, 'Mode toggle button must exist');
+  assert.strictEqual(modeToggleBtn.textContent, 'Deck ☵');
+
+  // Switch to Stack mode
+  modeToggleBtn.click();
+  assert.strictEqual(p1Body.getAttribute('data-deck-mode'), 'stack');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), false);
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false);
+
+  const updatedModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.strictEqual(updatedModeBtn.textContent, 'Stack ↕');
+  assert.strictEqual(updatedModeBtn.classList.contains('is-stack'), true);
+
+  // Switch back to Deck mode
+  updatedModeBtn.click();
+  assert.strictEqual(p1Body.getAttribute('data-deck-mode'), 'deck');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), true);
+
+  // -------------------------------------------------------------
+  // Step 20: Viewport deduction
+  // -------------------------------------------------------------
+  mockWin.innerWidth = 1200;
+  dock.deduceViewport();
+  assert.strictEqual(root.getAttribute('data-viewport'), 'regular');
+
+  mockWin.innerWidth = 600;
+  dock.deduceViewport();
+  assert.strictEqual(root.getAttribute('data-viewport'), 'compact');
+});
+
 
 
 

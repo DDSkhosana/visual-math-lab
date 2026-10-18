@@ -40,6 +40,7 @@ export class WorkspaceDockManager {
       this.#discoverAndRegisterPanels();
       this.collapseAllSubComponents();
       this.#setupGlobalListeners();
+      this.updateDockEmptyState();
     }
   }
 
@@ -222,10 +223,16 @@ export class WorkspaceDockManager {
     // 2. Tray toggle
     if (this.trayBtn && this.trayDropdown) {
       this.trayBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        e?.stopPropagation?.();
         const isHidden = this.trayDropdown.hidden;
         this.trayDropdown.hidden = !isHidden;
         this.trayBtn.setAttribute('aria-expanded', String(isHidden));
+        if (isHidden) {
+          const dockRect = this.dockElement?.getBoundingClientRect?.() || { top: 50 };
+          const winHeight = this.win?.innerHeight || 700;
+          const shouldFlipUp = dockRect.top > winHeight * 0.65;
+          this.trayDropdown.classList.toggle('flip-up', shouldFlipUp);
+        }
       });
 
       this.doc?.addEventListener('click', (e) => {
@@ -539,6 +546,7 @@ export class WorkspaceDockManager {
     }
 
     this.#renderTrayItems();
+    this.updateDockEmptyState();
   }
 
   collapseSubComponents(container) {
@@ -713,12 +721,12 @@ export class WorkspaceDockManager {
     }
     record.closeBtn = closeBtn;
 
-    // Header double-click to shade when floating
+    // Header double-click to shade/roll-up panel
     if (record.header && !record.header._hasShadeBound) {
       record.header._hasShadeBound = true;
       record.header.addEventListener('dblclick', (e) => {
-        if (record.isFloating && !e.target.closest('button, input, select, a')) {
-          e.stopPropagation();
+        if (!e.target.closest('button, input, select, a')) {
+          e.stopPropagation?.();
           record.element.classList.toggle('is-shaded');
           if (shadeBtn) {
             shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
@@ -906,6 +914,7 @@ export class WorkspaceDockManager {
 
     this.#focusPanel(record);
     this.#persistState();
+    this.updateDockEmptyState();
   }
 
   dockPanel(panelId) {
@@ -937,6 +946,7 @@ export class WorkspaceDockManager {
     }
 
     this.#persistState();
+    this.updateDockEmptyState();
   }
 
   setPanelVisible(panelId, visible) {
@@ -949,6 +959,87 @@ export class WorkspaceDockManager {
 
     this.#renderTrayItems();
     this.#persistState();
+    this.updateDockEmptyState();
+  }
+
+  updateDockEmptyState() {
+    if (!this.dockBody) return;
+    const dockedPanels = Array.from(this.panels.values()).filter((p) => !p.isFloating);
+    const visibleDocked = dockedPanels.filter((p) => !p.isHidden);
+    let emptyNotice = this.dockBody.querySelector ? this.dockBody.querySelector('.dock-empty-notice') : null;
+
+    if (visibleDocked.length === 0 && this.panels.size > 0) {
+      if (!emptyNotice && this.doc?.createElement) {
+        emptyNotice = this.doc.createElement('div');
+        emptyNotice.className = 'dock-empty-notice';
+
+        const iconEl = this.doc.createElement('div');
+        iconEl.className = 'dock-empty-icon';
+        iconEl.textContent = '🗂';
+        emptyNotice.appendChild(iconEl);
+
+        const titleEl = this.doc.createElement('div');
+        titleEl.className = 'dock-empty-title';
+        emptyNotice.appendChild(titleEl);
+
+        const textEl = this.doc.createElement('p');
+        textEl.className = 'dock-empty-text';
+        emptyNotice.appendChild(textEl);
+
+        const restoreBtn = this.doc.createElement('button');
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'dock-empty-restore-btn';
+        restoreBtn.id = 'btn-dock-restore-all';
+        emptyNotice.appendChild(restoreBtn);
+
+        this.dockBody.appendChild(emptyNotice);
+      }
+
+      if (emptyNotice) {
+        const titleEl = emptyNotice.querySelector ? emptyNotice.querySelector('.dock-empty-title') : null;
+        const textEl = emptyNotice.querySelector ? emptyNotice.querySelector('.dock-empty-text') : null;
+        const restoreBtn = emptyNotice.querySelector ? emptyNotice.querySelector('.dock-empty-restore-btn') : null;
+
+        if (dockedPanels.length > 0) {
+          if (titleEl) titleEl.textContent = 'All Docked Panels Hidden';
+          if (textEl) textEl.textContent = 'Open Panels menu above to restore views, or click below:';
+          if (restoreBtn) {
+            restoreBtn.textContent = 'Restore Panels';
+            restoreBtn.onclick = (e) => {
+              e?.stopPropagation?.();
+              this.panels.forEach((_, id) => this.setPanelVisible(id, true));
+            };
+            restoreBtn.addEventListener?.('click', (e) => {
+              e?.stopPropagation?.();
+              this.panels.forEach((_, id) => this.setPanelVisible(id, true));
+            });
+          }
+        } else {
+          if (titleEl) titleEl.textContent = 'All Panels Floating';
+          if (textEl) textEl.textContent = 'Panels are detached as floating windows in workspace:';
+          if (restoreBtn) {
+            restoreBtn.textContent = 'Dock All Panels';
+            restoreBtn.onclick = (e) => {
+              e?.stopPropagation?.();
+              this.panels.forEach((p, id) => {
+                if (p.isFloating) this.dockPanel(id);
+              });
+              this.#renderTrayItems();
+            };
+            restoreBtn.addEventListener?.('click', (e) => {
+              e?.stopPropagation?.();
+              this.panels.forEach((p, id) => {
+                if (p.isFloating) this.dockPanel(id);
+              });
+              this.#renderTrayItems();
+            });
+          }
+        }
+        emptyNotice.style.display = 'flex';
+      }
+    } else if (emptyNotice) {
+      emptyNotice.style.display = 'none';
+    }
   }
 
   #focusPanel(record) {
@@ -1015,28 +1106,47 @@ export class WorkspaceDockManager {
     if (this.trayDropdown && !this.trayDropdown.querySelector('.tray-dropdown-footer')) {
       const footer = this.doc.createElement('div');
       footer.className = 'tray-dropdown-footer';
-      footer.innerHTML = `
-        <button type="button" class="tray-footer-btn" id="tray-btn-show-all" title="Show all panels">Show All</button>
-        <button type="button" class="tray-footer-btn" id="tray-btn-dock-all" title="Dock all floating windows">Dock All</button>
-        <button type="button" class="tray-footer-btn" id="tray-btn-collapse-all" title="Collapse all panel sections">Collapse All</button>
-      `;
-      this.trayDropdown.appendChild(footer);
 
-      footer.querySelector('#tray-btn-show-all')?.addEventListener('click', (e) => {
+      const showAllBtn = this.doc.createElement('button');
+      showAllBtn.type = 'button';
+      showAllBtn.className = 'tray-footer-btn';
+      showAllBtn.id = 'tray-btn-show-all';
+      showAllBtn.title = 'Show all panels';
+      showAllBtn.textContent = 'Show All';
+      showAllBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         this.panels.forEach((_, id) => this.setPanelVisible(id, true));
       });
-      footer.querySelector('#tray-btn-dock-all')?.addEventListener('click', (e) => {
+      footer.appendChild(showAllBtn);
+
+      const dockAllBtn = this.doc.createElement('button');
+      dockAllBtn.type = 'button';
+      dockAllBtn.className = 'tray-footer-btn';
+      dockAllBtn.id = 'tray-btn-dock-all';
+      dockAllBtn.title = 'Dock all floating windows';
+      dockAllBtn.textContent = 'Dock All';
+      dockAllBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         this.panels.forEach((p, id) => {
           if (p.isFloating) this.dockPanel(id);
         });
         this.#renderTrayItems();
       });
-      footer.querySelector('#tray-btn-collapse-all')?.addEventListener('click', (e) => {
+      footer.appendChild(dockAllBtn);
+
+      const collapseAllBtn = this.doc.createElement('button');
+      collapseAllBtn.type = 'button';
+      collapseAllBtn.className = 'tray-footer-btn';
+      collapseAllBtn.id = 'tray-btn-collapse-all';
+      collapseAllBtn.title = 'Collapse all panel sections';
+      collapseAllBtn.textContent = 'Collapse All';
+      collapseAllBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         this.collapseAllSubComponents();
       });
+      footer.appendChild(collapseAllBtn);
+
+      this.trayDropdown.appendChild(footer);
     }
   }
 
@@ -1101,8 +1211,12 @@ export class WorkspaceDockManager {
           if (deck && deck.style.display !== 'none') {
             const navBtn = deck.querySelector?.(`.elevation-deck-nav-btn.${e.key === '[' ? 'prev' : 'next'}`);
             if (navBtn) {
-              e.preventDefault();
-              navBtn.click();
+              e.preventDefault?.();
+              if (typeof navBtn.click === 'function') {
+                navBtn.click();
+              } else {
+                navBtn.dispatchEvent?.({ type: 'click' });
+              }
               break;
             }
           }
@@ -1327,6 +1441,26 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
         pill.addEventListener?.('click', (e) => {
           e.stopPropagation?.();
           syncPanelElevationTurn(panel, sub);
+        });
+
+        pill.addEventListener?.('keydown', (e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            const nextIdx = (i + 1) % openSubpanels.length;
+            syncPanelElevationTurn(panel, openSubpanels[nextIdx]);
+            const newDeck = body.querySelector?.('.panel-elevation-deck');
+            const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
+            newPills[nextIdx]?.focus?.();
+          } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            const prevIdx = (i - 1 + openSubpanels.length) % openSubpanels.length;
+            syncPanelElevationTurn(panel, openSubpanels[prevIdx]);
+            const newDeck = body.querySelector?.('.panel-elevation-deck');
+            const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
+            newPills[prevIdx]?.focus?.();
+          }
         });
 
         pillsContainer.appendChild(pill);
