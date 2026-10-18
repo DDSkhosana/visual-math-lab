@@ -938,4 +938,127 @@ test('WorkspaceDockManager: Elevation Hierarchy & Turn-Taking Deck Contract', ()
   assert.strictEqual(secC.getAttribute('data-elevation-turn'), null);
 });
 
+test('WorkspaceDockManager: Advanced Docking Refinements (Shade, Tray Float, Magnetic Snapping, Deck Navigation & Stack Mode)', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // 1. Verify CSS rules for refined capabilities
+  assert.ok(css.includes('.dock-drag-handle'), 'CSS must define .dock-drag-handle');
+  assert.ok(css.includes('.tray-item-float-btn'), 'CSS must define .tray-item-float-btn');
+  assert.ok(css.includes('.tray-dropdown-footer'), 'CSS must define .tray-dropdown-footer');
+  assert.ok(css.includes('.panel-shade-btn'), 'CSS must define .panel-shade-btn');
+  assert.ok(css.includes('.ui-panel.is-shaded'), 'CSS must define .ui-panel.is-shaded');
+  assert.ok(css.includes('.elevation-deck-nav-btn'), 'CSS must define .elevation-deck-nav-btn');
+  assert.ok(css.includes('.elevation-deck-mode-toggle'), 'CSS must define .elevation-deck-mode-toggle');
+
+  // 2. Setup DOM environment
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const panel = new MockDOMElement('div', 'ui-panel', 'refined-panel');
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  const panelBody = new MockDOMElement('div', 'panel-body');
+
+  const secA = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-a');
+  const hA = new MockDOMElement('div', 'collapsible-header');
+  hA.textContent = '▶ Subpanel Alpha';
+  const cA = new MockDOMElement('div', 'collapsible-content collapsed');
+  secA.appendChild(hA);
+  secA.appendChild(cA);
+
+  const secB = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-b');
+  const hB = new MockDOMElement('div', 'collapsible-header');
+  hB.textContent = '▶ Subpanel Beta';
+  const cB = new MockDOMElement('div', 'collapsible-content collapsed');
+  secB.appendChild(hB);
+  secB.appendChild(cB);
+
+  panelBody.appendChild(secA);
+  panelBody.appendChild(secB);
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelBody);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+
+  // 3. Window Shade / Roll-Up Verification
+  const shadeBtn = panel.querySelector('.panel-shade-btn');
+  assert.ok(shadeBtn, 'Panel header must have a shade button');
+  assert.strictEqual(panel.classList.contains('is-shaded'), false);
+
+  shadeBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(panel.classList.contains('is-shaded'), true, 'Clicking shadeBtn must shade panel');
+  shadeBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Clicking shadeBtn again must un-shade panel');
+
+  // 4. Tray Float / Re-Dock Button Verification
+  const trayRow = dock.trayItemsContainer.querySelector('.tray-item-row');
+  assert.ok(trayRow, 'Tray items must be organized in rows');
+  const floatBtn = trayRow.querySelector('.tray-item-float-btn');
+  assert.ok(floatBtn, 'Tray row must include a float/dock toggle button');
+  assert.strictEqual(floatBtn.textContent, '⧉');
+
+  floatBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(dock.panels.get('refined-panel').isFloating, true, 'Clicking floatBtn in tray must float panel');
+
+  const updatedFloatBtn = dock.trayItemsContainer.querySelector('.tray-item-float-btn');
+  assert.strictEqual(updatedFloatBtn.textContent, '🗁', 'Float button icon must update to dock icon');
+  updatedFloatBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(dock.panels.get('refined-panel').isFloating, false, 'Clicking dockBtn in tray must re-dock panel');
+
+  // 5. Magnetic Snapping on Dragged Collapsed Pill
+  dock.setDockCollapsed(true);
+  const header = dock.dockElement.querySelector('.workspace-dock-header');
+  // Drag near left edge (clientX: 10px -> snap threshold < 24px)
+  header.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 100, clientY: 100, target: header, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 10, clientY: 100 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+
+  assert.strictEqual(dock.collapsedPos.x, 12, 'Collapsed pill dropped within 24px of edge must magnetically snap to 12px');
+
+  // 6. Elevation Deck Prev/Next Navigation & Mode Toggle
+  dock.setDockCollapsed(false);
+  secA.classList.remove('collapsed');
+  secB.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  const deckEl = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, 'Elevation deck must be present');
+
+  const prevBtn = deckEl.querySelector('.elevation-deck-nav-btn.prev');
+  const nextBtn = deckEl.querySelector('.elevation-deck-nav-btn.next');
+  const modeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+
+  assert.ok(prevBtn, 'Elevation deck must have Previous button');
+  assert.ok(nextBtn, 'Elevation deck must have Next button');
+  assert.ok(modeBtn, 'Elevation deck must have Mode toggle button');
+
+  // Initial turn: secA
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+
+  // Advance via nextBtn -> switches to secB
+  nextBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'deck');
+
+  // Advance via updated prevBtn -> switches back to secA
+  const updatedPrevBtn = deckEl.querySelector('.elevation-deck-nav-btn.prev');
+  updatedPrevBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+
+  // Switch to Stack mode
+  const currentModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  currentModeBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'stack');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), false, 'In Stack mode, subpanels must not have is-in-deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false, 'In Stack mode, subpanels must not have is-in-deck');
+
+  // Switch back to Deck mode
+  const updatedModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  updatedModeBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), true, 'In Deck mode, non-active subpanel must have is-in-deck');
+});
+
+
 

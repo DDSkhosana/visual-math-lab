@@ -528,15 +528,84 @@
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.3) !important;
 }
 
+/* Elevation Deck Step Navigation Buttons (Prev ◀ / Next ▶) */
+.elevation-deck-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  padding: 0 !important;
+  font-size: 0.65rem !important;
+  line-height: 1 !important;
+  color: #94a3b8 !important;
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  border-radius: 0.25rem !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+
+.elevation-deck-nav-btn:hover {
+  color: #38bdf8 !important;
+  background: rgba(51, 65, 85, 0.9) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+}
+
+/* Elevation Deck Mode Toggle (Deck ☵ / Stack ↕) */
+.elevation-deck-mode-toggle {
+  margin-left: auto !important;
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  padding: 0.18rem 0.5rem !important;
+  border-radius: 9999px !important;
+  background: rgba(30, 41, 59, 0.85) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #38bdf8 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+
+.elevation-deck-mode-toggle:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
+}
+
+.elevation-deck-mode-toggle.is-stack {
+  background: rgba(148, 163, 184, 0.15) !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+  color: #94a3b8 !important;
+}
+
+/* Left/Right dock panels when multi-expanded with elevation deck */
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]),
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) {
+  position: relative !important;
+  min-height: 280px !important;
+}
+
 /* Level 2: Top-Turn Subpanel in Bounded Dock */
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"],
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"],
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"],
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"],
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"],
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] {
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"],
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"],
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] {
   position: absolute !important;
   top: 2.25rem !important;
   left: 0 !important;
@@ -559,12 +628,20 @@
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top > .collapsible-header,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top > .collapsible-header,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top > .collapsible-header,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top > .collapsible-header,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top > .derivation-card-header,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top > .derivation-card-header,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-header,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-header,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"] > .collapsible-header,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"] > .collapsible-header,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"] > .collapsible-header,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"] > .collapsible-header,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-header,
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-header {
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-header,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-header,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-header {
   flex-shrink: 0 !important;
   position: sticky !important;
   top: 0 !important;
@@ -577,12 +654,20 @@
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top > .collapsible-content,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top > .collapsible-content,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top > .collapsible-content,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top > .collapsible-content,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top > .derivation-card-content,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-elevated-top > .derivation-card-content,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-content,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-content,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"] > .collapsible-content,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="top"] > .collapsible-content,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"] > .collapsible-content,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"] > .collapsible-content,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-content {
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-content {
   flex: 1 1 auto !important;
   height: calc(100% - 2.5rem) !important;
   max-height: calc(100% - 2.5rem) !important;
@@ -596,12 +681,20 @@
 /* Level 2: Subpanels waiting in the deck during multi-expansion */
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-in-deck,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-in-deck,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-in-deck,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section.is-in-deck,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-in-deck,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card.is-in-deck,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-in-deck,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card.is-in-deck,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="deck"],
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section[data-elevation-turn="deck"],
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="deck"],
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="deck"],
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="deck"],
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="deck"] {
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded .derivation-card[data-elevation-turn="deck"],
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="deck"],
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="deck"] {
   display: none !important;
 }
 
@@ -764,6 +857,88 @@
   display: none;
 }
 
+.dock-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: grab;
+  padding: 0 0.15rem;
+  margin-right: 0.2rem;
+  transition: color 0.15s ease;
+}
+
+.dock-drag-handle:hover,
+.workspace-dock.is-dragging .dock-drag-handle {
+  color: #38bdf8;
+}
+
+.tray-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  border-radius: 0.25rem;
+  transition: background 0.12s ease;
+}
+
+.tray-item-row:hover {
+  background: rgba(51, 65, 85, 0.4);
+}
+
+.tray-item-row .tray-item-label {
+  flex: 1 1 auto;
+  background: transparent !important;
+}
+
+.tray-item-float-btn {
+  background: transparent;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  color: #94a3b8;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+
+.tray-item-float-btn:hover {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.tray-dropdown-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.6);
+  margin-top: 0.25rem;
+}
+
+.tray-footer-btn {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.tray-footer-btn:hover {
+  background: rgba(51, 65, 85, 0.85);
+  color: #f8fafc;
+  border-color: #38bdf8;
+}
+
 .tray-dropdown-header {
   font-size: 0.72rem;
   font-weight: 700;
@@ -801,7 +976,7 @@
 }
 
 /* ==========================================================================
-   Panel Window Controls: Pop-out, Re-dock, Close, Minimize
+   Panel Window Controls: Pop-out, Re-dock, Close, Minimize, Shade
    ========================================================================== */
 .panel-header-actions {
   display: flex;
@@ -828,6 +1003,23 @@
   background: rgba(51, 65, 85, 0.85);
   color: #f8fafc;
   border-color: #38bdf8;
+}
+
+.panel-shade-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+/* Shaded / Rolled-up Window State */
+.ui-panel.is-shaded .panel-content,
+.ui-panel.is-shaded .panel-body {
+  display: none !important;
+}
+
+.ui-panel.is-floating.is-shaded {
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 .panel-close-btn:hover {

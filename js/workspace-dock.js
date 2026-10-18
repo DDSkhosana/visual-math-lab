@@ -28,6 +28,8 @@ export class WorkspaceDockManager {
     this.dockEdge = 'left'; // 'left' | 'right' | 'top' | 'bottom'
     this.isCollapsed = false;
     this.collapsedPos = null; // { x, y }
+    this.dockSizeVertical = 380; // px
+    this.dockSizeHorizontal = 340; // px
     this.dockSize = 380; // px
     this.panels = new Map(); // id -> { element, header, title, isFloating, isHidden, lastPos, handles }
     this.topZIndex = 40;
@@ -75,8 +77,15 @@ export class WorkspaceDockManager {
 
       const titleGroup = this.doc.createElement('div');
       titleGroup.className = 'dock-title-group';
-      titleGroup.title = 'Workspace Window Manager';
+      titleGroup.title = 'Workspace Window Manager (Drag when collapsed, double-click to reset)';
       titleGroup.innerHTML = `
+        <span class="dock-drag-handle" title="Drag to reposition capsule pill" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+            <circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="9" y1="3" x2="9" y2="21"></line>
@@ -315,6 +324,20 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointercancel', onUp);
 
         if (hasDragged) {
+          // Magnetic edge snapping (within 24px of edge)
+          const snapMargin = 12;
+          const snapDist = 24;
+          const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
+          const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
+          let { x, y } = this.collapsedPos;
+          if (x < snapDist) x = snapMargin;
+          else if (x > maxLeft - snapDist) x = Math.max(snapMargin, maxLeft - snapMargin);
+          if (y < snapDist) y = snapMargin;
+          else if (y > maxTop - snapDist) y = Math.max(snapMargin, maxTop - snapMargin);
+
+          this.collapsedPos = { x, y };
+          this.dockElement.style.left = `${x}px`;
+          this.dockElement.style.top = `${y}px`;
           this.#persistState();
         }
       };
@@ -345,15 +368,19 @@ export class WorkspaceDockManager {
         if (this.dockEdge === 'left') {
           newSize = startSize + (moveEv.clientX - startX);
           newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.55));
+          this.dockSizeVertical = newSize;
         } else if (this.dockEdge === 'right') {
           newSize = startSize - (moveEv.clientX - startX);
           newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.55));
+          this.dockSizeVertical = newSize;
         } else if (this.dockEdge === 'top') {
           newSize = startSize + (moveEv.clientY - startY);
           newSize = clamp(newSize, 180, Math.floor(rootRect.height * 0.55));
+          this.dockSizeHorizontal = newSize;
         } else if (this.dockEdge === 'bottom') {
           newSize = startSize - (moveEv.clientY - startY);
           newSize = clamp(newSize, 180, Math.floor(rootRect.height * 0.55));
+          this.dockSizeHorizontal = newSize;
         }
 
         this.dockSize = newSize;
@@ -383,6 +410,10 @@ export class WorkspaceDockManager {
     if (!['left', 'right', 'top', 'bottom'].includes(edge)) return;
     this.dockEdge = edge;
     this.root.setAttribute('data-dock-edge', edge);
+
+    const isHorizontal = edge === 'top' || edge === 'bottom';
+    this.dockSize = isHorizontal ? this.dockSizeHorizontal : this.dockSizeVertical;
+    this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
 
     if (!this.isCollapsed) {
       this.dockElement.style.left = '';
@@ -635,7 +666,7 @@ export class WorkspaceDockManager {
       actionsContainer.prepend(dockToggleBtn);
 
       dockToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        e?.stopPropagation?.();
         if (record.isFloating) {
           this.dockPanel(record.id);
         } else {
@@ -645,7 +676,26 @@ export class WorkspaceDockManager {
     }
     record.dockToggleBtn = dockToggleBtn;
 
-    // 2. Remove / Hide Button [ ✕ ]
+    // 2. Shade / Roll Up Toggle Button [ ─ ]
+    let shadeBtn = actionsContainer.querySelector('.panel-shade-btn');
+    if (!shadeBtn) {
+      shadeBtn = this.doc.createElement('button');
+      shadeBtn.type = 'button';
+      shadeBtn.className = 'panel-window-btn panel-shade-btn';
+      shadeBtn.setAttribute('aria-label', 'Roll up or restore window');
+      shadeBtn.title = 'Roll up / restore window';
+      shadeBtn.innerHTML = `─`;
+      actionsContainer.appendChild(shadeBtn);
+
+      shadeBtn.addEventListener('click', (e) => {
+        e?.stopPropagation?.();
+        record.element.classList.toggle('is-shaded');
+        shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
+      });
+    }
+    record.shadeBtn = shadeBtn;
+
+    // 3. Remove / Hide Button [ ✕ ]
     let closeBtn = actionsContainer.querySelector('.panel-close-btn');
     if (!closeBtn) {
       closeBtn = this.doc.createElement('button');
@@ -657,11 +707,25 @@ export class WorkspaceDockManager {
       actionsContainer.appendChild(closeBtn);
 
       closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        e?.stopPropagation?.();
         this.setPanelVisible(record.id, false);
       });
     }
     record.closeBtn = closeBtn;
+
+    // Header double-click to shade when floating
+    if (record.header && !record.header._hasShadeBound) {
+      record.header._hasShadeBound = true;
+      record.header.addEventListener('dblclick', (e) => {
+        if (record.isFloating && !e.target.closest('button, input, select, a')) {
+          e.stopPropagation();
+          record.element.classList.toggle('is-shaded');
+          if (shadeBtn) {
+            shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
+          }
+        }
+      });
+    }
   }
 
   #attachOmniResizeHandles(record) {
@@ -898,6 +962,9 @@ export class WorkspaceDockManager {
     this.trayItemsContainer.innerHTML = '';
 
     this.panels.forEach((record) => {
+      const row = this.doc.createElement('div');
+      row.className = 'tray-item-row';
+
       const label = this.doc.createElement('label');
       label.className = 'tray-item-label';
 
@@ -920,8 +987,57 @@ export class WorkspaceDockManager {
 
       label.appendChild(checkbox);
       label.appendChild(span);
-      this.trayItemsContainer.appendChild(label);
+      row.appendChild(label);
+
+      // Quick Float / Re-dock Button per panel directly in tray
+      const floatBtn = this.doc.createElement('button');
+      floatBtn.type = 'button';
+      floatBtn.className = 'tray-item-float-btn';
+      floatBtn.title = record.isFloating ? 'Dock panel back to sidebar' : 'Pop out panel to floating window';
+      floatBtn.setAttribute('aria-label', record.isFloating ? `Dock ${record.title}` : `Float ${record.title}`);
+      floatBtn.textContent = record.isFloating ? '🗁' : '⧉';
+      floatBtn.addEventListener('click', (e) => {
+        e?.stopPropagation?.();
+        e?.preventDefault?.();
+        if (record.isFloating) {
+          this.dockPanel(record.id);
+        } else {
+          this.floatPanel(record.id);
+        }
+        this.#renderTrayItems();
+      });
+      row.appendChild(floatBtn);
+
+      this.trayItemsContainer.appendChild(row);
     });
+
+    // Tray Batch Actions Footer
+    if (this.trayDropdown && !this.trayDropdown.querySelector('.tray-dropdown-footer')) {
+      const footer = this.doc.createElement('div');
+      footer.className = 'tray-dropdown-footer';
+      footer.innerHTML = `
+        <button type="button" class="tray-footer-btn" id="tray-btn-show-all" title="Show all panels">Show All</button>
+        <button type="button" class="tray-footer-btn" id="tray-btn-dock-all" title="Dock all floating windows">Dock All</button>
+        <button type="button" class="tray-footer-btn" id="tray-btn-collapse-all" title="Collapse all panel sections">Collapse All</button>
+      `;
+      this.trayDropdown.appendChild(footer);
+
+      footer.querySelector('#tray-btn-show-all')?.addEventListener('click', (e) => {
+        e?.stopPropagation?.();
+        this.panels.forEach((_, id) => this.setPanelVisible(id, true));
+      });
+      footer.querySelector('#tray-btn-dock-all')?.addEventListener('click', (e) => {
+        e?.stopPropagation?.();
+        this.panels.forEach((p, id) => {
+          if (p.isFloating) this.dockPanel(id);
+        });
+        this.#renderTrayItems();
+      });
+      footer.querySelector('#tray-btn-collapse-all')?.addEventListener('click', (e) => {
+        e?.stopPropagation?.();
+        this.collapseAllSubComponents();
+      });
+    }
   }
 
   #dispatchResize() {
@@ -974,6 +1090,25 @@ export class WorkspaceDockManager {
         setTimeout(() => this.syncSubpanelOverlayState(), 0);
       }
     });
+
+    // Keyboard navigation for Elevation Turns ([ and ])
+    this.doc?.addEventListener?.('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(this.doc.activeElement?.tagName)) return;
+      if (e.key === '[' || e.key === ']') {
+        const panels = this.dockBody?.querySelectorAll?.('.ui-panel') || [];
+        for (const panel of panels) {
+          const deck = panel.querySelector?.('.panel-elevation-deck');
+          if (deck && deck.style.display !== 'none') {
+            const navBtn = deck.querySelector?.(`.elevation-deck-nav-btn.${e.key === '[' ? 'prev' : 'next'}`);
+            if (navBtn) {
+              e.preventDefault();
+              navBtn.click();
+              break;
+            }
+          }
+        }
+      }
+    });
   }
 
   deduceViewport() {
@@ -1000,6 +1135,8 @@ export class WorkspaceDockManager {
         dockEdge: this.dockEdge,
         isCollapsed: this.isCollapsed,
         dockSize: this.dockSize,
+        dockSizeVertical: this.dockSizeVertical,
+        dockSizeHorizontal: this.dockSizeHorizontal,
         collapsedPos: this.collapsedPos,
         panels: panelStates,
       };
@@ -1014,9 +1151,14 @@ export class WorkspaceDockManager {
       const raw = storage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
+      if (data.dockSizeVertical) this.dockSizeVertical = data.dockSizeVertical;
+      if (data.dockSizeHorizontal) this.dockSizeHorizontal = data.dockSizeHorizontal;
       if (data.dockEdge) this.setDockEdge(data.dockEdge);
       if (data.dockSize) {
         this.dockSize = data.dockSize;
+        const isHorizontal = this.dockEdge === 'top' || this.dockEdge === 'bottom';
+        if (isHorizontal) this.dockSizeHorizontal = data.dockSize;
+        else this.dockSizeVertical = data.dockSize;
         this.dockElement.style.setProperty('--dock-size', `${data.dockSize}px`);
       }
       if (data.collapsedPos) this.collapsedPos = data.collapsedPos;
@@ -1139,13 +1281,27 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       deck.innerHTML = '';
     }
 
-    const activeIdx = openSubpanels.indexOf(activeSubpanel) + 1;
+    const activeIdx = openSubpanels.indexOf(activeSubpanel);
     if (doc && doc.createElement) {
       const badge = doc.createElement('span');
       badge.className = 'elevation-deck-label';
-      badge.textContent = `Deck (${activeIdx}/${openSubpanels.length})`;
+      badge.textContent = `Deck (${activeIdx + 1}/${openSubpanels.length})`;
       badge.title = 'Subpanels elevation deck: click any pill to bring that subpanel to the top';
       deck.appendChild(badge);
+
+      // Previous Turn Button
+      const prevBtn = doc.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'elevation-deck-nav-btn prev';
+      prevBtn.title = 'Previous elevated subpanel (Shortcut: [)';
+      prevBtn.setAttribute('aria-label', 'Previous subpanel');
+      prevBtn.textContent = '◀';
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation?.();
+        const prevIdx = (activeIdx - 1 + openSubpanels.length) % openSubpanels.length;
+        syncPanelElevationTurn(panel, openSubpanels[prevIdx]);
+      });
+      deck.appendChild(prevBtn);
 
       const pillsContainer = doc.createElement('div');
       pillsContainer.className = 'elevation-deck-pills';
@@ -1177,9 +1333,39 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       });
 
       deck.appendChild(pillsContainer);
+
+      // Next Turn Button
+      const nextBtn = doc.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'elevation-deck-nav-btn next';
+      nextBtn.title = 'Next elevated subpanel (Shortcut: ])';
+      nextBtn.setAttribute('aria-label', 'Next subpanel');
+      nextBtn.textContent = '▶';
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation?.();
+        const nextIdx = (activeIdx + 1) % openSubpanels.length;
+        syncPanelElevationTurn(panel, openSubpanels[nextIdx]);
+      });
+      deck.appendChild(nextBtn);
+
+      // Mode Toggle Button (Deck / Stack)
+      const isStackMode = body.getAttribute?.('data-deck-mode') === 'stack';
+      const modeBtn = doc.createElement('button');
+      modeBtn.type = 'button';
+      modeBtn.className = `elevation-deck-mode-toggle${isStackMode ? ' is-stack' : ''}`;
+      modeBtn.title = isStackMode ? 'Switch to Deck mode (strict height turns)' : 'Switch to Stack mode (scroll all sections)';
+      modeBtn.textContent = isStackMode ? 'Stack ↕' : 'Deck ☵';
+      modeBtn.addEventListener('click', (e) => {
+        e.stopPropagation?.();
+        const nextMode = body.getAttribute?.('data-deck-mode') === 'stack' ? 'deck' : 'stack';
+        body.setAttribute?.('data-deck-mode', nextMode);
+        syncPanelElevationTurn(panel, activeSubpanel);
+      });
+      deck.appendChild(modeBtn);
     }
   }
 
+  const isStackMode = body.getAttribute?.('data-deck-mode') === 'stack';
   openSubpanels.forEach((sub) => {
     sub.setAttribute?.('data-elevation-level', '2');
     const isTop = sub === activeSubpanel;
@@ -1190,7 +1376,11 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
     } else {
       sub.setAttribute?.('data-elevation-turn', 'deck');
       sub.classList?.remove('is-elevated-top');
-      sub.classList?.add('is-in-deck');
+      if (isStackMode) {
+        sub.classList?.remove('is-in-deck');
+      } else {
+        sub.classList?.add('is-in-deck');
+      }
     }
   });
 
