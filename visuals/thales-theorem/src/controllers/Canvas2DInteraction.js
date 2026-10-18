@@ -1,6 +1,7 @@
 import { LIMITS } from '../config/defaults.js';
 import { setAngle2D, setBaselineRotation, setPlaying, setRadius, setSpherePoint } from '../model/actions.js';
 import { cartesianToSpherical, clamp, pointerToAngle } from '../model/thales-math.js';
+import { AffineTransform2D } from '../../../../js/circle-core.js';
 
 /** Pointer Events on the 2D canvas: drag point P, pan the background, wheel-zoom, spin baseline A/B. */
 export class Canvas2DInteraction {
@@ -78,7 +79,21 @@ export class Canvas2DInteraction {
     const { cx, cy } = this.view.frame(state);
     const plane = state.plane2D ?? 'great-circle';
     const rot = plane === 'yz' ? 0 : (state.baselineRotation || 0);
-    const rawAng = pointerToAngle(x - cx, cy - y);
+
+    let curX = x;
+    let curY = y;
+    if (state.affineMode) {
+      const transform = new AffineTransform2D(
+        state.affineStretch ?? 1.0,
+        1.0,
+        state.affineAxisAngle ?? 0
+      );
+      const canonical = transform.inverseTransformPoint({ x, y }, { x: cx, y: cy });
+      curX = canonical.x;
+      curY = canonical.y;
+    }
+
+    const rawAng = pointerToAngle(curX - cx, cy - curY);
     const ang = ((rawAng - rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
     const r = state.radius;
 

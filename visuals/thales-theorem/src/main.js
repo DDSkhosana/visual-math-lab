@@ -1,6 +1,6 @@
 import { createInitialState } from './config/defaults.js';
 import { createStore } from './model/store.js';
-import { setViewMode, setPlane2D } from './model/actions.js';
+import { setViewMode, setPlane2D, setAffineMode } from './model/actions.js';
 import { loadThree } from './platform/three.js';
 import { Canvas2DView } from './views/Canvas2DView.js';
 import { Scene3DView } from './views/Scene3DView.js';
@@ -79,6 +79,25 @@ function bootstrap() {
   if (exportSvgBtn) {
     exportSvgBtn.addEventListener('click', () => view2d.exportSVG());
   }
+
+  const affineToggleBtn = document.getElementById('btn-toggle-affine');
+  const affineStatusPill = document.getElementById('affine-status-pill');
+  if (affineToggleBtn) {
+    affineToggleBtn.addEventListener('click', () => {
+      const cur = Boolean(store.get().affineMode);
+      store.set(setAffineMode(!cur));
+    });
+    store.subscribe((state) => {
+      const isAffine = Boolean(state.affineMode);
+      affineToggleBtn.classList.toggle('active', isAffine);
+      affineToggleBtn.setAttribute('aria-pressed', String(isAffine));
+      if (affineStatusPill) {
+        affineStatusPill.textContent = isAffine ? 'ON' : 'OFF';
+        affineStatusPill.classList.toggle('is-on', isAffine);
+      }
+    }, ['affineMode']);
+  }
+
   const resetBtn = document.getElementById('btn-reset');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {

@@ -62,6 +62,10 @@ export class Scene3DView {
     const y = raw.x * sinR + raw.y * cosR;
     const z = raw.z;
 
+    const scaleX = state.affineMode ? (state.affineStretch ?? 1.0) : 1.0;
+    const scaleY = 1.0;
+    const scaleZ = 1.0;
+
     o.grids.xz.visible = state.vis3d.gridXZ;
     o.grids.xy.visible = state.vis3d.gridXY;
     o.grids.yz.visible = state.vis3d.gridYZ;
@@ -69,21 +73,21 @@ export class Scene3DView {
       o.axes.visible = state.vis3d.axes !== undefined ? Boolean(state.vis3d.axes) : true;
     }
     o.sphere.visible = o.sphereLines.visible = state.vis3d.sphere;
-    o.sphere.scale.setScalar(r);
-    o.sphereLines.scale.setScalar(r);
+    o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
+    o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
 
     const { psi } = point3DToGreatCircle(raw, r);
     if (o.greatCircleWire) {
       o.greatCircleWire.rotation.order = 'ZYX';
       o.greatCircleWire.rotation.z = rot;
       o.greatCircleWire.rotation.x = psi;
-      o.greatCircleWire.scale.setScalar(r);
+      o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
       o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
     }
 
-    o.pointP.position.set(x, y, z);
-    o.pointA.position.set(-r * cosR, -r * sinR, 0);
-    o.pointB.position.set(r * cosR, r * sinR, 0);
+    o.pointP.position.set(x * scaleX, y * scaleY, z * scaleZ);
+    o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
+    o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
     o.pointP.material = state.hoverP3D ? o.materials.markerHover : o.materials.markerHidden;
     o.pointA.material = state.hoverA3D ? o.materials.markerHover : o.materials.markerHidden;
     o.pointB.material = state.hoverB3D ? o.materials.markerHover : o.materials.markerHidden;

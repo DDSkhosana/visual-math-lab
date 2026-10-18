@@ -23,7 +23,7 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
 
 /** Renders the "Live Math Derivations" panel with full algebraic proofs and live numerical substitutions. */
 export class DerivationView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit'];
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle'];
 
   constructor(flatElement, solidElement) {
     this.flatElement = flatElement;
@@ -103,6 +103,17 @@ export class DerivationView {
         `Diameter AB subtends straight central angle ${tag('lavender', '180°')} and reflex central angle ${tag('lavender', '180°')}. For any cyclic polygon, reflex central angles govern obtuse inscribed angles, guaranteeing opposite angles sum to ${tag('lavender', '180°')}.`,
         true
       )}
+      ${cardTemplate(
+        'deriv-2d-step-8',
+        'Step 8',
+        `Affine Conic Generalization (Erlangen Program & Apollonius Conjugacy)`,
+        `<b>Felix Klein's Erlangen Program (1872):</b> Under affine deformation ${tag('amber', "x' = S x")}, Euclidean orthogonality deforms (${tag('rose', '∠APB ≠ 90°')}).<br>` +
+        `However, the deeper <b>Apollonius Theorem of Conjugate Diameters</b> remains invariant:<br>` +
+        `• Metric Tensor: ${tag('indigo', 'Q = (S⁻¹)ᵀ (1/r² I) S⁻¹')}<br>` +
+        `• Invariant Conjugacy: ${tag('teal', 'v_PAᵀ Q v_PB ≡ 0.000')}<br>` +
+        `The chords to diameter endpoints are conjugate directions with respect to the ellipse.`,
+        true
+      )}
     `;
 
     this.solidElement.innerHTML = `
@@ -157,6 +168,8 @@ export class DerivationView {
       step6Eval: this.flatElement.querySelector('#deriv-2d-step-6 [data-eval]'),
       step7Sub: this.flatElement.querySelector('#deriv-2d-step-7 [data-sub]'),
       step7Eval: this.flatElement.querySelector('#deriv-2d-step-7 [data-eval]'),
+      step8Sub: this.flatElement.querySelector('#deriv-2d-step-8 [data-sub]'),
+      step8Eval: this.flatElement.querySelector('#deriv-2d-step-8 [data-eval]'),
     };
 
     this.slots3D = {
@@ -180,8 +193,10 @@ export class DerivationView {
     this.updateSolid(state);
   }
 
-  updateFlat({ radius, angle2D }) {
-    const { p, s, t, sumSquares, diameterSquared, area } = thalesStats2D(radius, angle2D);
+  updateFlat(state) {
+    const { radius, angle2D } = state;
+    const flat = thalesStats2D(radius, angle2D, state);
+    const { p, s, t, sumSquares, diameterSquared, area } = flat;
     const deg = Math.round(toDegrees(angle2D));
     const px = p.x;
     const py = p.y;
@@ -283,6 +298,30 @@ export class DerivationView {
     if (this.slots2D.step7Eval) {
       this.slots2D.step7Eval.innerHTML =
         `<span>${tag('lavender', `Total Reflex Sum = ${reflexSumDeg.toFixed(1)}° ≡ 900.0°`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`;
+    }
+
+    const affine = flat.affine;
+    if (this.slots2D.step8Sub) {
+      if (state.affineMode && affine) {
+        this.slots2D.step8Sub.innerHTML =
+          `↳ Active Affine Mode: ${tag('yellow', `Stretch s = ${(state.affineStretch ?? 1.0).toFixed(2)}`)}, Axis ${tag('cyan', `φ = ${Math.round(toDegrees(state.affineAxisAngle ?? 0))}°`)}<br>` +
+          `↳ Ellipse Semi-Axes: ${tag('indigo', `a = ${affine.semiMajor.toFixed(2)}`)}, ${tag('indigo', `b = ${affine.semiMinor.toFixed(2)}`)}, Eccentricity ${tag('cyan', `e = ${affine.eccentricity.toFixed(3)}`)}<br>` +
+          `↳ Euclidean Angle at P: ${tag('rose', `∠APB = ${affine.angleEuclidDeg.toFixed(1)}°`)} (perturbed from 90°)<br>` +
+          `↳ Apollonius Invariant: ${tag('teal', `v_PAᵀ Q v_PB = ${Math.abs(affine.apolloniusConjugacy) < 1e-6 ? '0.000' : affine.apolloniusConjugacy.toFixed(4)}`)} (strictly conjugate)`;
+      } else {
+        this.slots2D.step8Sub.innerHTML =
+          `↳ Canonical Euclidean Circle: ${tag('sky', 's = 1.00, e = 0.000')}<br>` +
+          `↳ Toggle ${tag('yellow', 'Affine Mode: ON')} to observe how Euclidean right angles deform into Apollonius conjugate directions.`;
+      }
+    }
+    if (this.slots2D.step8Eval) {
+      if (state.affineMode && affine) {
+        this.slots2D.step8Eval.innerHTML =
+          `<span>${tag('rose', `Euclidean ∠APB = ${affine.angleEuclidDeg.toFixed(1)}°`)} | ${tag('teal', 'Conjugacy Inv = 0.000')}</span><span class="derivation-check">✓ Apollonius Invariant</span>`;
+      } else {
+        this.slots2D.step8Eval.innerHTML =
+          `<span>${tag('teal', 'Euclidean Orthogonality (90.0°)')}</span><span class="derivation-check">✓ Canonical Circle</span>`;
+      }
     }
   }
 

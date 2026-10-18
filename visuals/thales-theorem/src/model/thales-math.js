@@ -96,14 +96,67 @@ export function longitudeToAngle2D(lon) {
   return toRadians(degrees);
 }
 
+import {
+  AffineTransform2D,
+  evaluateConicConjugacy,
+  normalizedConicConjugacy,
+} from '../../../../js/circle-transforms.js';
+
 /** The diameter AB spans (-r, 0) to (r, 0); s = |PA| and t = |PB|. */
-export function thalesStats2D(radius, angle) {
+export function thalesStats2D(radius, angle, options = {}) {
   const p = pointOnCircle(radius, angle);
   const s = Math.hypot(p.x + radius, p.y);
   const t = Math.hypot(p.x - radius, p.y);
   const d = 2 * radius;
   const alpha = Math.asin(clamp(t / d, -1, 1));
   const beta = Math.asin(clamp(s / d, -1, 1));
+
+  let affineData = null;
+  if (options.affineMode) {
+    const transform = new AffineTransform2D(
+      options.affineStretch ?? 1.0,
+      1.0,
+      options.affineAxisAngle ?? 0
+    );
+    const center = { x: 0, y: 0 };
+    const aCirc = { x: -radius, y: 0 };
+    const bCirc = { x: radius, y: 0 };
+    const aEll = transform.transformPoint(aCirc, center);
+    const bEll = transform.transformPoint(bCirc, center);
+    const pEll = transform.transformPoint(p, center);
+
+    const vPA = { x: aEll.x - pEll.x, y: aEll.y - pEll.y };
+    const vPB = { x: bEll.x - pEll.x, y: bEll.y - pEll.y };
+
+    const Q = transform.getConicMetricTensor(radius);
+    const conjugacy = evaluateConicConjugacy(Q, vPA, vPB);
+    const normConj = normalizedConicConjugacy(Q, vPA, vPB);
+
+    const dotEuclid = vPA.x * vPB.x + vPA.y * vPB.y;
+    const lenPA = Math.hypot(vPA.x, vPA.y);
+    const lenPB = Math.hypot(vPB.x, vPB.y);
+    const cosEuclid = lenPA > 0 && lenPB > 0 ? clamp(dotEuclid / (lenPA * lenPB), -1, 1) : 0;
+    const angleEuclidDeg = toDegrees(Math.acos(cosEuclid));
+    const metrics = transform.getEllipseMetrics(radius);
+
+    affineData = {
+      transform,
+      pTransformed: pEll,
+      aTransformed: aEll,
+      bTransformed: bEll,
+      sTransformed: lenPA,
+      tTransformed: lenPB,
+      dTransformed: Math.hypot(bEll.x - aEll.x, bEll.y - aEll.y),
+      apolloniusConjugacy: conjugacy,
+      normalizedConjugacy: normConj,
+      angleEuclidDeg,
+      semiMajor: metrics.a,
+      semiMinor: metrics.b,
+      eccentricity: metrics.eccentricity,
+      orientation: metrics.angle,
+    };
+  }
+
   return {
     radius,
     diameter: radius * 2,
@@ -124,6 +177,7 @@ export function thalesStats2D(radius, angle) {
     betaReflexDeg: 360 - toDegrees(beta),
     rightAngleReflexDeg: 270,
     reflexSumDeg: 900,
+    affine: affineData,
   };
 }
 

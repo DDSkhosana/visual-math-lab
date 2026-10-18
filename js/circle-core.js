@@ -2064,3 +2064,9 @@ export class PlaybackController {
 }
 
 export { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn } from './workspace-dock.js';
+export {
+  AffineTransform2D,
+  evaluateConicConjugacy,
+  normalizedConicConjugacy,
+  projectPointToAffineEllipse,
+} from './circle-transforms.js';

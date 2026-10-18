@@ -131,6 +131,12 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
           <span>Flip</span>
         </button>
+        <button type="button" class="btn-toolbar" id="btn-toggle-affine" title="Toggle between Euclidean Circle Mode and Affine Conic Mode" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+            <ellipse cx="12" cy="12" rx="9" ry="5.5"/>
+          </svg>
+          <span>Affine: <b class="toggle-state-text" id="affine-status-pill">OFF</b></span>
+        </button>
         <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           <span>Reset</span>
@@ -194,6 +200,15 @@
                     <div class="stat-line"><span class="color-orange">Reflex β* (360°-β):</span> <span class="stat-value color-orange" id="val-2d-beta-reflex">0.00°</span></div>
                     <div class="stat-line"><span class="color-teal">Reflex ∠P* (360°-90°):</span> <span class="stat-value color-teal" id="val-2d-p-reflex">270.00°</span></div>
                     <div class="stat-line"><span class="color-lavender">Total Reflex Sum:</span> <span class="stat-value color-lavender" id="val-2d-reflex-sum">900.00°</span></div>
+                    <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
+                        <span class="color-yellow">Conic Inv (v_PAᵀ Q v_PB):</span> <span class="stat-value color-yellow" id="val-affine-inv">0.000</span>
+                    </div>
+                    <div class="stat-line affine-telemetry-row" id="row-affine-angle" style="display: none;">
+                        <span class="color-rose">Deformed ∠P:</span> <span class="stat-value color-rose" id="val-affine-euclid-p">90.00°</span>
+                    </div>
+                    <div class="stat-line affine-telemetry-row" id="row-affine-ecc" style="display: none;">
+                        <span class="color-cyan">Eccentricity e:</span> <span class="stat-value color-cyan" id="val-affine-ecc">0.000</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -336,6 +351,31 @@
                         <span>3. Unit System Conversion</span><span class="icon">▶</span>
                     </div>
                     <div class="collapsible-content" id="content-unit-converter"></div>
+                </div>
+
+                <!-- Section: Affine Conic Mode -->
+                <div class="collapsible-section collapsed" id="section-affine-conic">
+                    <div class="collapsible-header" id="header-affine-conic" aria-expanded="false">
+                        <span>4. Affine Conic Mode</span><span class="icon">▶</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="toggle-tooltips-container" style="margin-bottom: 12px;">
+                            <span class="text-xs font-semibold text-slate-200">Affine Conic Mode</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-affine-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3" style="line-height: 1.4;">Deforms the circle into an ellipse. While the Euclidean right angle breaks, Apollonius' conjugate diameter invariant <b class="color-yellow">v_PAᵀ Q v_PB = 0</b> remains strictly constant.</p>
+                        <div class="slider-container">
+                            <label><span class="color-yellow">Aspect Stretch (s)</span><span id="affine-stretch-label" class="color-yellow font-bold">1.00</span></label>
+                            <input type="range" id="affine-stretch-slider" min="0.4" max="2.5" step="0.05" value="1.0">
+                        </div>
+                        <div class="slider-container">
+                            <label><span class="color-cyan">Deformation Axis (φ)</span><span id="affine-angle-label" class="color-cyan font-bold">0°</span></label>
+                            <input type="range" id="affine-angle-slider" min="0" max="180" step="1" value="0">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

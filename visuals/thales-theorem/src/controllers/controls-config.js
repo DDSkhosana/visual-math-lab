@@ -1,4 +1,4 @@
-import { setAngle2D, setLatitude, setLongitude, setRadius } from '../model/actions.js';
+import { setAngle2D, setLatitude, setLongitude, setRadius, setAffineStretch, setAffineAxisAngle } from '../model/actions.js';
 import { toDegrees, toRadians } from '../model/thales-math.js';
 
 const degrees = (rad) => Math.round(toDegrees(rad));
@@ -26,10 +26,21 @@ export const SLIDERS = [
     toPatch: (v, s) => setLongitude(toRadians(parseInt(v, 10)), s),
     fromState: (s) => degrees(s.lon3D), format: degreeLabel,
   },
+  {
+    input: 'affine-stretch-slider', label: 'affine-stretch-label',
+    toPatch: (v) => setAffineStretch(parseFloat(v)),
+    fromState: (s) => s.affineStretch ?? 1.0, format: (v) => Number(v).toFixed(2),
+  },
+  {
+    input: 'affine-angle-slider', label: 'affine-angle-label',
+    toPatch: (v) => setAffineAxisAngle(toRadians(parseInt(v, 10))),
+    fromState: (s) => degrees(s.affineAxisAngle ?? 0), format: degreeLabel,
+  },
 ];
 
 /** Checkbox element id -> path into state. */
 export const TOGGLES = {
+  'toggle-affine-mode': ['affineMode'],
   'vis-2d-points': ['vis2d', 'points'],
   'vis-2d-lengths': ['vis2d', 'lengths'],
   'vis-2d-coords': ['vis2d', 'coords'],

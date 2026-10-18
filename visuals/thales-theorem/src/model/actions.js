@@ -50,6 +50,12 @@ export const rotateBaseline90 = (state) => ({
 
 export const setPlaying = (playing) => ({ playing });
 
+export const setAffineMode = (affineMode) => ({ affineMode: Boolean(affineMode) });
+
+export const setAffineStretch = (affineStretch) => ({ affineStretch: Number(affineStretch) });
+
+export const setAffineAxisAngle = (affineAxisAngle) => ({ affineAxisAngle: Number(affineAxisAngle) });
+
 export const toggleSplitDirection = (state) => ({
   splitDirection: state.splitDirection === 'horizontal' ? 'vertical' : 'horizontal',
   splitRatio: 50,

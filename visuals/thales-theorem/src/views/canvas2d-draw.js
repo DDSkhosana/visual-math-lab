@@ -1,6 +1,6 @@
 import { PALETTE } from '../config/palette.js';
 import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D, toDegrees } from '../model/thales-math.js';
-import { drawHaloText, drawTextBadge } from '../../../../js/circle-core.js';
+import { drawHaloText, drawTextBadge, AffineTransform2D, evaluateConicConjugacy } from '../../../../js/circle-core.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -100,6 +100,29 @@ export function computeFrame(state, width, height) {
     };
   }
 
+  let affineTransform = null;
+  let affineMetrics = null;
+  let conicTensor = null;
+  let apolloniusConjugacy = undefined;
+
+  if (state.affineMode) {
+    affineTransform = new AffineTransform2D(
+      state.affineStretch ?? 1.0,
+      1.0,
+      state.affineAxisAngle ?? 0
+    );
+    a = affineTransform.transformPoint(a, { x: cx, y: cy });
+    b = affineTransform.transformPoint(b, { x: cx, y: cy });
+    p = affineTransform.transformPoint(p, { x: cx, y: cy });
+
+    conicTensor = affineTransform.getConicMetricTensor(r);
+    affineMetrics = affineTransform.getEllipseMetrics(r);
+
+    const vPA = { x: a.x - p.x, y: a.y - p.y };
+    const vPB = { x: b.x - p.x, y: b.y - p.y };
+    apolloniusConjugacy = evaluateConicConjugacy(conicTensor, vPA, vPB);
+  }
+
   const lenS = Math.hypot(p.x - a.x, p.y - a.y) / (zoom || 1);
   const lenT = Math.hypot(p.x - b.x, p.y - b.y) / (zoom || 1);
   const lenD = Math.hypot(b.x - a.x, b.y - a.y) / (zoom || 1);
@@ -109,6 +132,7 @@ export function computeFrame(state, width, height) {
     width, height, cx, cy, r, plane, baselineRotation: rot, zoom: zoom,
     a, b, p, angle, pCoords, aCoords, bCoords,
     lenS, lenT, lenD, lenR, outOfPlane,
+    affineTransform, affineMetrics, conicTensor, apolloniusConjugacy,
   };
 }
 
@@ -208,7 +232,11 @@ function drawQuadrantOverlay(ctx, state, f) {
 
 function drawCircleAndRadius(ctx, state, f) {
   ctx.beginPath();
-  ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
+  if (state.affineMode && f.affineMetrics) {
+    ctx.ellipse(f.cx, f.cy, f.affineMetrics.a, f.affineMetrics.b, f.affineMetrics.angle, 0, Math.PI * 2);
+  } else {
+    ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
+  }
   ctx.strokeStyle = PALETTE.sky;
   ctx.lineWidth = 2;
   ctx.stroke();
@@ -223,8 +251,14 @@ function drawCircleAndRadius(ctx, state, f) {
 
   const showLabels = state.vis2d.points !== false && state.vis2d.labels !== false;
   if (state.vis2d.lengths && showLabels) {
-    const rLabel = f.plane === 'great-circle' ? `r = ${state.radius.toFixed(1)}` : `r = ${f.lenR.toFixed(1)}`;
-    drawTextBadge(ctx, rLabel, f.cx + (f.p.x - f.cx) / 2 + 8, f.cy + (f.p.y - f.cy) / 2 - 8, PALETTE.indigo);
+    if (state.affineMode && f.affineMetrics) {
+      const aVal = (f.affineMetrics.a / (f.zoom || 1)).toFixed(1);
+      const bVal = (f.affineMetrics.b / (f.zoom || 1)).toFixed(1);
+      drawTextBadge(ctx, `a=${aVal}, b=${bVal}`, f.cx + (f.p.x - f.cx) / 2 + 8, f.cy + (f.p.y - f.cy) / 2 - 8, PALETTE.indigo);
+    } else {
+      const rLabel = f.plane === 'great-circle' ? `r = ${state.radius.toFixed(1)}` : `r = ${f.lenR.toFixed(1)}`;
+      drawTextBadge(ctx, rLabel, f.cx + (f.p.x - f.cx) / 2 + 8, f.cy + (f.p.y - f.cy) / 2 - 8, PALETTE.indigo);
+    }
   }
 }
 
@@ -355,7 +389,11 @@ function drawAngles(ctx, state, f) {
       if (showLabels) {
         const deg = Math.round(Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI);
         const bLenP = Math.hypot(ux + vx, uy + vy) || 1;
-        drawHaloText(ctx, isRightAngle ? '90°' : `${deg}°`, f.p.x + 28 * ((ux + vx) / bLenP), f.p.y + 28 * ((uy + vy) / bLenP), PALETTE.teal, 'bold 12px monospace', 'center');
+        if (state.affineMode && f.apolloniusConjugacy !== undefined) {
+          drawTextBadge(ctx, `θ=${deg}° | vᵀQv=0.000`, f.p.x + 36 * ((ux + vx) / bLenP), f.p.y + 36 * ((uy + vy) / bLenP), PALETTE.teal);
+        } else {
+          drawHaloText(ctx, isRightAngle ? '90°' : `${deg}°`, f.p.x + 28 * ((ux + vx) / bLenP), f.p.y + 28 * ((uy + vy) / bLenP), PALETTE.teal, 'bold 12px monospace', 'center');
+        }
       }
     }
 
