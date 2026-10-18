@@ -31,7 +31,7 @@ export function createInitialState() {
     hoverB3D: false,
     show3dArea: true,
     show3dAngles: true,
-    vis2d: { points: true, lengths: true, coords: false, area: true, angles: true, reflex: false, gridX: true, gridY: true, grid: true, axes: true },
+    vis2d: { points: true, labels: true, lengths: true, coords: false, area: true, angles: true, reflex: false, gridX: true, gridY: true, grid: true, axes: true },
     vis3d: { labels: true, coords: false, volume: true, sphere: true, circleWire: true, axes: true, gridXZ: true, gridXY: false, gridYZ: false, reflex: false },
   };
 }

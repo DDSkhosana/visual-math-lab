@@ -1,3 +1,5 @@
+import { syncPanelElevationTurn } from '../../../../js/workspace-dock.js';
+
 export const CHEVRON_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg>`;
 export const CHEVRON_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 11 12 6 17 11"></polyline><polyline points="7 16 12 11 17 16"></polyline></svg>`;
 
@@ -94,6 +96,7 @@ export class Accordion {
             sec.classList.toggle('is-subpanel-overlay', isSingle && h.classList.contains('open'));
           }
         });
+        syncPanelElevationTurn(panel, header.closest('.collapsible-section'));
       }
     }
     return true;
@@ -140,6 +143,7 @@ export class Accordion {
           sec.classList.toggle('is-subpanel-overlay', isSingle && h.classList.contains('open'));
         }
       });
+      syncPanelElevationTurn(panel);
     }
   }
 }

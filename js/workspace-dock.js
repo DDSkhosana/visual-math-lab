@@ -555,6 +555,7 @@ export class WorkspaceDockManager {
       p.classList.remove('has-expanded-subpanel');
       const b = p.querySelector ? p.querySelector('.panel-body') : null;
       if (b) b.classList.remove('is-all-expanded');
+      syncPanelElevationTurn(p);
     });
 
     const expandBtns = container.querySelectorAll ? container.querySelectorAll('.panel-expand-btn, [id$="-expand"]') : [];
@@ -608,6 +609,8 @@ export class WorkspaceDockManager {
         const isOpen = c.classList.contains('open') || Boolean(h?.classList.contains('open'));
         c.classList.toggle('is-subpanel-overlay', isSingle && isOpen);
       });
+
+      syncPanelElevationTurn(panel);
     });
   }
 
@@ -904,10 +907,16 @@ export class WorkspaceDockManager {
 
       checkbox.addEventListener('change', () => {
         this.setPanelVisible(record.id, checkbox.checked);
+        if (checkbox.checked && this.isCollapsed && !record.isFloating) {
+          this.setDockCollapsed(false);
+          try {
+            record.element?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+          } catch (_) {}
+        }
       });
 
       const span = this.doc.createElement('span');
-      span.textContent = record.title;
+      span.textContent = record.title + (record.isFloating ? ' ⧉' : '');
 
       label.appendChild(checkbox);
       label.appendChild(span);
@@ -1023,3 +1032,172 @@ export class WorkspaceDockManager {
 export function initWorkspaceDock(root = null, options = {}) {
   return new WorkspaceDockManager(root, options);
 }
+
+/**
+ * Synchronizes elevation levels and turn-taking deck when panels have bounded dock height.
+ * - Level 1: Base panel surface (.ui-panel).
+ * - Level 2: Subpanels (.collapsible-section, .derivation-card). When multiple subpanels are
+ *            expanded, they take turns being at the top ([data-elevation-turn="top"] / .is-elevated-top),
+ *            with an interactive Elevation Deck Bar (.panel-elevation-deck) displaying navigation pills.
+ * - Level 3: Nested controls and components inside an elevated subpanel.
+ *
+ * @param {HTMLElement} panel - The .ui-panel container.
+ * @param {HTMLElement|null} preferredActiveElement - Optional subpanel or child requesting the top turn.
+ */
+export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
+  if (!panel) return;
+  const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+  if (!body) return;
+
+  const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
+  const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
+  const allSubpanels = [...sections, ...cards];
+
+  const isOpen = (sub) => {
+    if (sub.classList.contains('collapsible-section')) {
+      return !sub.classList.contains('collapsed');
+    }
+    const h = sub.querySelector ? sub.querySelector('.derivation-card-header') : null;
+    return sub.classList.contains('open') || Boolean(h?.classList.contains('open'));
+  };
+
+  const openSubpanels = allSubpanels.filter(isOpen);
+  const totalOpen = openSubpanels.length;
+
+  panel.setAttribute?.('data-elevation-level', '1');
+
+  // Deck container inside the panel body
+  let deck = body.querySelector ? body.querySelector('.panel-elevation-deck') : null;
+
+  if (totalOpen <= 1) {
+    if (deck) {
+      deck.style.display = 'none';
+      if (Array.isArray(deck.children)) {
+        deck.children.length = 0;
+      }
+      if (typeof deck.replaceChildren === 'function') {
+        deck.replaceChildren();
+      } else if (deck.innerHTML !== undefined) {
+        deck.innerHTML = '';
+      }
+    }
+    allSubpanels.forEach((sub) => {
+      sub.removeAttribute?.('data-elevation-turn');
+      sub.classList?.remove('is-elevated-top', 'is-in-deck');
+      if (totalOpen === 1 && isOpen(sub)) {
+        sub.setAttribute?.('data-elevation-level', '2');
+      } else {
+        sub.removeAttribute?.('data-elevation-level');
+      }
+    });
+    return;
+  }
+
+  // Multi-expand mode (totalOpen > 1): Elevation Turn-Taking Deck is active
+  let activeSubpanel = null;
+  if (preferredActiveElement) {
+    const target = preferredActiveElement.closest
+      ? preferredActiveElement.closest('.collapsible-section, .derivation-card')
+      : preferredActiveElement;
+    if (target && openSubpanels.includes(target)) {
+      activeSubpanel = target;
+    }
+  }
+
+  if (!activeSubpanel) {
+    activeSubpanel = openSubpanels.find(
+      (s) => s.getAttribute?.('data-elevation-turn') === 'top' || s.classList?.contains('is-elevated-top')
+    );
+  }
+
+  if (!activeSubpanel) {
+    activeSubpanel = openSubpanels[0];
+  }
+
+  // Ensure deck bar container exists
+  const doc = panel.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  if (!deck && doc && doc.createElement) {
+    deck = doc.createElement('div');
+    deck.className = 'panel-elevation-deck';
+    if (typeof body.prepend === 'function') {
+      body.prepend(deck);
+    } else if (typeof body.insertBefore === 'function' && body.children && body.children[0]) {
+      body.insertBefore(deck, body.children[0]);
+    } else if (typeof body.appendChild === 'function') {
+      body.appendChild(deck);
+    }
+  }
+
+  if (deck) {
+    deck.style.display = 'flex';
+    if (Array.isArray(deck.children)) {
+      deck.children.length = 0;
+    }
+    if (typeof deck.replaceChildren === 'function') {
+      deck.replaceChildren();
+    } else if (deck.innerHTML !== undefined) {
+      deck.innerHTML = '';
+    }
+
+    const activeIdx = openSubpanels.indexOf(activeSubpanel) + 1;
+    if (doc && doc.createElement) {
+      const badge = doc.createElement('span');
+      badge.className = 'elevation-deck-label';
+      badge.textContent = `Deck (${activeIdx}/${openSubpanels.length})`;
+      badge.title = 'Subpanels elevation deck: click any pill to bring that subpanel to the top';
+      deck.appendChild(badge);
+
+      const pillsContainer = doc.createElement('div');
+      pillsContainer.className = 'elevation-deck-pills';
+
+      openSubpanels.forEach((sub, i) => {
+        const pill = doc.createElement('button');
+        pill.type = 'button';
+        const isCurrent = sub === activeSubpanel;
+        pill.className = `elevation-deck-pill${isCurrent ? ' active' : ''}`;
+        pill.setAttribute('role', 'tab');
+        pill.setAttribute('aria-selected', String(isCurrent));
+
+        const headerEl = sub.querySelector ? sub.querySelector('.collapsible-header, .derivation-card-header') : null;
+        let titleText = headerEl?.textContent ? headerEl.textContent.replace(/[▶▼◀▲]/g, '').trim() : `Section ${i + 1}`;
+        titleText = titleText.replace(/\s+/g, ' ');
+        if (titleText.length > 22) {
+          titleText = titleText.slice(0, 20) + '…';
+        }
+
+        pill.textContent = `${i + 1}. ${titleText}${isCurrent ? ' ★' : ''}`;
+        pill.title = `Bring "${titleText}" to top elevation`;
+
+        pill.addEventListener?.('click', (e) => {
+          e.stopPropagation?.();
+          syncPanelElevationTurn(panel, sub);
+        });
+
+        pillsContainer.appendChild(pill);
+      });
+
+      deck.appendChild(pillsContainer);
+    }
+  }
+
+  openSubpanels.forEach((sub) => {
+    sub.setAttribute?.('data-elevation-level', '2');
+    const isTop = sub === activeSubpanel;
+    if (isTop) {
+      sub.setAttribute?.('data-elevation-turn', 'top');
+      sub.classList?.add('is-elevated-top');
+      sub.classList?.remove('is-in-deck');
+    } else {
+      sub.setAttribute?.('data-elevation-turn', 'deck');
+      sub.classList?.remove('is-elevated-top');
+      sub.classList?.add('is-in-deck');
+    }
+  });
+
+  allSubpanels.filter((s) => !isOpen(s)).forEach((sub) => {
+    sub.removeAttribute?.('data-elevation-turn');
+    sub.removeAttribute?.('data-elevation-level');
+    sub.classList?.remove('is-elevated-top', 'is-in-deck');
+  });
+}
+

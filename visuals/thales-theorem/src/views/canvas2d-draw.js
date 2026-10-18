@@ -1,6 +1,6 @@
 import { PALETTE } from '../config/palette.js';
 import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D, toDegrees } from '../model/thales-math.js';
-import { drawHaloText } from '../../../../js/circle-core.js';
+import { drawHaloText, drawTextBadge } from '../../../../js/circle-core.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -223,10 +223,8 @@ function drawCircleAndRadius(ctx, state, f) {
 
   const showLabels = state.vis2d.points !== false && state.vis2d.labels !== false;
   if (state.vis2d.lengths && showLabels) {
-    ctx.fillStyle = PALETTE.indigo;
-    ctx.font = 'bold 12px monospace';
-    const rLabel = f.plane === 'great-circle' ? `r=${state.radius.toFixed(1)}` : `r=${f.lenR.toFixed(1)}`;
-    ctx.fillText(rLabel, f.cx + (f.p.x - f.cx) / 2 + 6, f.cy + (f.p.y - f.cy) / 2 - 6);
+    const rLabel = f.plane === 'great-circle' ? `r = ${state.radius.toFixed(1)}` : `r = ${f.lenR.toFixed(1)}`;
+    drawTextBadge(ctx, rLabel, f.cx + (f.p.x - f.cx) / 2 + 8, f.cy + (f.p.y - f.cy) / 2 - 8, PALETTE.indigo);
   }
 }
 
@@ -307,16 +305,10 @@ function drawArea(ctx, state, f) {
       // Height label
       const showLabels = state.vis2d.points !== false && state.vis2d.labels !== false;
       if (showLabels) {
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = PALETTE.lime;
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
         const textH = `h = ${(hLen / (f.zoom || 1)).toFixed(1)}`;
         const midH = { x: (f.p.x + footX) / 2, y: (f.p.y + footY) / 2 };
-        const offsetNorm = { x: -uhY * 12, y: uhX * 12 };
-        ctx.strokeText(textH, midH.x + offsetNorm.x - 14, midH.y + offsetNorm.y + 4);
-        ctx.fillText(textH, midH.x + offsetNorm.x - 14, midH.y + offsetNorm.y + 4);
+        const offsetNorm = { x: -uhY * 16, y: uhX * 16 };
+        drawTextBadge(ctx, textH, midH.x + offsetNorm.x, midH.y + offsetNorm.y, PALETTE.lime);
       }
       ctx.restore();
     }
@@ -635,28 +627,17 @@ function drawLengthLabels(ctx, f, state) {
   const showLabels = state?.vis2d?.points !== false && state?.vis2d?.labels !== false;
   if (!showLabels) return;
   ctx.save();
-  ctx.font = 'bold 12px monospace';
-  ctx.lineJoin = 'round';
-  ctx.miterLimit = 2;
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
-  ctx.lineWidth = 4;
 
-  const renderWithHalo = (text, x, y, color) => {
-    ctx.strokeText(text, x, y);
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-  };
-
-  const sText = `s=${f.lenS.toFixed(1)}`;
-  const tText = `t=${f.lenT.toFixed(1)}`;
+  const sText = `s = ${f.lenS.toFixed(1)}`;
+  const tText = `t = ${f.lenT.toFixed(1)}`;
 
   if (f.plane !== 'yz') {
-    renderWithHalo(sText, f.p.x + (f.a.x - f.p.x) / 2 - 20, f.p.y + (f.a.y - f.p.y) / 2 - 10, PALETTE.blue);
-    renderWithHalo(tText, f.p.x + (f.b.x - f.p.x) / 2 + 10, f.p.y + (f.b.y - f.p.y) / 2 - 10, PALETTE.orange);
-    renderWithHalo(`|d|=${f.lenD.toFixed(1)}`, f.cx - 24, f.cy - 10, PALETTE.red);
+    drawTextBadge(ctx, sText, f.p.x + (f.a.x - f.p.x) / 2 - 20, f.p.y + (f.a.y - f.p.y) / 2 - 12, PALETTE.blue);
+    drawTextBadge(ctx, tText, f.p.x + (f.b.x - f.p.x) / 2 + 20, f.p.y + (f.b.y - f.p.y) / 2 - 12, PALETTE.orange);
+    drawTextBadge(ctx, `|d| = ${f.lenD.toFixed(1)}`, f.cx - 24, f.cy - 12, PALETTE.red);
   } else {
-    renderWithHalo(`s,t=${f.lenS.toFixed(1)}`, f.p.x + (f.cx - f.p.x) / 2 + 6, f.p.y + (f.cy - f.p.y) / 2 - 6, PALETTE.blue);
-    renderWithHalo(`|d|⟂=${f.lenD.toFixed(1)}`, f.cx + 8, f.cy - 10, PALETTE.red);
+    drawTextBadge(ctx, `s,t = ${f.lenS.toFixed(1)}`, f.p.x + (f.cx - f.p.x) / 2 + 8, f.p.y + (f.cy - f.p.y) / 2 - 8, PALETTE.blue);
+    drawTextBadge(ctx, `|d|⟂ = ${f.lenD.toFixed(1)}`, f.cx + 8, f.cy - 12, PALETTE.red);
   }
   ctx.restore();
 }

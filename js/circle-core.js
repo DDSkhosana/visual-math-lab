@@ -1,6 +1,7 @@
 /**
  * Shared core utilities, math helpers, and UI widgets for Circle Geometry Visualisations.
  */
+import { syncPanelElevationTurn } from './workspace-dock.js';
 
 export const PALETTE = Object.freeze({
   red: '#ef4444',
@@ -263,6 +264,7 @@ export class Panel {
     if (this.expandButton) {
       setExpandButtonUI(this.expandButton, !isCollapse);
     }
+    syncPanelElevationTurn(this.element);
   }
 
   #resetLayout() {
@@ -621,6 +623,8 @@ function _syncPanelExpandButton(header) {
   if (expandBtn) {
     setExpandButtonUI(expandBtn, allSectionsOpen && allCardsOpen);
   }
+
+  syncPanelElevationTurn(panel, header.closest('.collapsible-section, .derivation-card'));
 }
 
 /**
@@ -2059,4 +2063,4 @@ export class PlaybackController {
   }
 }
 
-export { WorkspaceDockManager, initWorkspaceDock } from './workspace-dock.js';
+export { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn } from './workspace-dock.js';

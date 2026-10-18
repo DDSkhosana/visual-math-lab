@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { WorkspaceDockManager, initWorkspaceDock } from '../js/circle-core.js';
+import { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn } from '../js/circle-core.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,6 +83,12 @@ class MockDOMElement {
   }
   set innerHTML(val) {
     this._innerHTML = String(val);
+    if (val === '') {
+      this.children.forEach((c) => {
+        c.parentElement = null;
+      });
+      this.children = [];
+    }
   }
 
   setAttribute(name, val) {
@@ -93,6 +99,18 @@ class MockDOMElement {
   }
   hasAttribute(name) {
     return this.attributes.has(name);
+  }
+  removeAttribute(name) {
+    this.attributes.delete(name);
+  }
+
+  removeChild(child) {
+    const idx = this.children.indexOf(child);
+    if (idx !== -1) {
+      this.children.splice(idx, 1);
+      child.parentElement = null;
+    }
+    return child;
   }
 
   appendChild(child) {
@@ -457,6 +475,28 @@ test('WorkspaceDockManager: Panels Visibility Tray and Restore Mechanism', () =>
   assert.strictEqual(record.isHidden, false);
   assert.strictEqual(panel.hidden, false);
   assert.strictEqual(panel.style.display, '');
+
+  // Level 2: When dock is collapsed, checking a docked panel auto-expands the dock
+  dock.setPanelVisible('derivations-panel', false);
+  dock.setDockCollapsed(true);
+  assert.strictEqual(dock.isCollapsed, true);
+
+  const trayLabels = dock.trayItemsContainer.querySelectorAll('.tray-item-label');
+  const derivationsLabel = Array.from(trayLabels).find((l) => {
+    const s = l.querySelector('span');
+    return s && s.textContent.includes('Live Math Derivations');
+  });
+  assert.ok(derivationsLabel, 'Tray must list Live Math Derivations');
+  const checkbox = derivationsLabel.querySelector('input');
+  assert.ok(checkbox, 'Checkbox must exist in derivations label');
+  assert.strictEqual(checkbox.checked, false);
+
+  checkbox.checked = true;
+  checkbox.dispatchEvent({ type: 'change' });
+
+  assert.strictEqual(record.isHidden, false);
+  assert.strictEqual(dock.isCollapsed, false, 'Checking docked panel while collapsed must auto-expand dock');
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), false);
 });
 
 test('WorkspaceDockManager: Strict Zero Canvas Displacement Invariant', () => {
@@ -772,4 +812,130 @@ test('WorkspaceDockManager: Top/Bottom Dock Sub-Panel Overlay & Internal Scrolli
   assert.strictEqual(sec1.classList.contains('is-subpanel-overlay'), false);
   assert.strictEqual(sec2.classList.contains('is-subpanel-overlay'), false);
 });
+
+test('WorkspaceDockManager: Elevation Hierarchy & Turn-Taking Deck Contract', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // 1. Verify CSS architecture for Level 1, Level 2, and Level 3 Elevation
+  assert.ok(css.includes('.panel-elevation-deck'), 'CSS must define .panel-elevation-deck container');
+  assert.ok(css.includes('.elevation-deck-label'), 'CSS must define .elevation-deck-label');
+  assert.ok(css.includes('.elevation-deck-pills'), 'CSS must define .elevation-deck-pills container');
+  assert.ok(css.includes('.elevation-deck-pill'), 'CSS must define .elevation-deck-pill');
+  assert.ok(css.includes('.elevation-deck-pill.active'), 'CSS must style active deck pill');
+  assert.ok(css.includes('.is-elevated-top'), 'CSS must define .is-elevated-top for active top-turn subpanel');
+  assert.ok(css.includes('.is-in-deck'), 'CSS must define .is-in-deck for queued subpanels');
+  assert.ok(css.includes('display: none !important'), 'Decked subpanels must have display: none !important');
+  assert.ok(css.includes('z-index: 20 !important'), 'Elevated top subpanel must use z-index: 20');
+  assert.ok(css.includes('.derivation-step'), 'CSS must provide Level 3 elevation for derivation steps');
+
+  // 2. DOM Turn-Taking Verification
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const panel = new MockDOMElement('div', 'ui-panel', 'dock-controls-panel');
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  const panelBody = new MockDOMElement('div', 'panel-body');
+
+  const secA = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-a');
+  const hA = new MockDOMElement('div', 'collapsible-header');
+  hA.textContent = '▶ Interactive Controls';
+  const cA = new MockDOMElement('div', 'collapsible-content collapsed');
+  secA.appendChild(hA);
+  secA.appendChild(cA);
+
+  const secB = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-b');
+  const hB = new MockDOMElement('div', 'collapsible-header');
+  hB.textContent = '▶ Geometry Telemetry';
+  const cB = new MockDOMElement('div', 'collapsible-content collapsed');
+  secB.appendChild(hB);
+  secB.appendChild(cB);
+
+  const secC = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-c');
+  const hC = new MockDOMElement('div', 'collapsible-header');
+  hC.textContent = '▶ Step Derivations';
+  const cC = new MockDOMElement('div', 'collapsible-content collapsed');
+  secC.appendChild(hC);
+  secC.appendChild(cC);
+
+  panelBody.appendChild(secA);
+  panelBody.appendChild(secB);
+  panelBody.appendChild(secC);
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelBody);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+  dock.setDockEdge('bottom');
+
+  // Initially all collapsed: Level 1 base panel
+  assert.strictEqual(panel.getAttribute('data-elevation-level'), '1');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), null);
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), null);
+
+  // Expand single section (secA)
+  secA.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), true);
+  assert.strictEqual(secA.classList.contains('is-subpanel-overlay'), true);
+  assert.strictEqual(secA.getAttribute('data-elevation-level'), '2');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), null);
+
+  // Expand all sections (Multi-expansion: secA, secB, secC)
+  secB.classList.remove('collapsed');
+  secC.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  // Verify multi-expand deck activated
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), true);
+  const deckEl = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, '.panel-elevation-deck must be created in panelBody');
+  assert.strictEqual(deckEl.style.display, 'flex');
+
+  // Verify pills generated for all 3 open sections
+  const pills = deckEl.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(pills.length, 3, 'Deck must render a pill for each open section');
+
+  // Initial turn belongs to first open section (secA)
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secA.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), true);
+  assert.strictEqual(secC.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secC.classList.contains('is-in-deck'), true);
+
+  assert.strictEqual(pills[0].classList.contains('active'), true);
+  assert.strictEqual(pills[0].getAttribute('aria-selected'), 'true');
+  assert.strictEqual(pills[1].classList.contains('active'), false);
+  assert.strictEqual(pills[1].getAttribute('aria-selected'), 'false');
+
+  // User clicks pill 2 (Geometry Telemetry) -> switches turn to secB
+  pills[1].dispatchEvent({ type: 'click' });
+
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secA.classList.contains('is-elevated-top'), false);
+  assert.strictEqual(secA.classList.contains('is-in-deck'), true);
+
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secB.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false);
+
+  const updatedPills = deckEl.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(updatedPills[1].classList.contains('active'), true);
+  assert.strictEqual(updatedPills[1].getAttribute('aria-selected'), 'true');
+
+  // User clicks pill 3 (Step Derivations) -> switches turn to secC
+  updatedPills[2].dispatchEvent({ type: 'click' });
+  assert.strictEqual(secC.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(secC.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), true);
+
+  // Collapse all
+  dock.collapseAllSubComponents();
+  assert.strictEqual(deckEl.style.display, 'none');
+  assert.strictEqual(secA.getAttribute('data-elevation-turn'), null);
+  assert.strictEqual(secB.getAttribute('data-elevation-turn'), null);
+  assert.strictEqual(secC.getAttribute('data-elevation-turn'), null);
+});
+
 
