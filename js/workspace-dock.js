@@ -33,6 +33,9 @@ export class WorkspaceDockManager {
     this.dockSize = 380; // px
     this.panels = new Map(); // id -> { element, header, title, isFloating, isHidden, lastPos, handles }
     this.topZIndex = 40;
+    this.activePanelId = null;
+    this.activeSectionHeader = null;
+    this.breadcrumbBar = null;
 
     if (this.root && this.doc) {
       this.#initContainers();
@@ -41,6 +44,7 @@ export class WorkspaceDockManager {
       this.collapseAllSubComponents();
       this.#setupGlobalListeners();
       this.updateDockEmptyState();
+      this.updateBreadcrumb();
     }
   }
 
@@ -174,6 +178,10 @@ export class WorkspaceDockManager {
       header.appendChild(controlsGroup);
       this.dockElement.appendChild(header);
 
+      // Breadcrumb Navigation Bar
+      const breadcrumbBar = this.#createBreadcrumbBar();
+      this.dockElement.appendChild(breadcrumbBar);
+
       // Dock Body
       const dockBody = this.doc.createElement('div');
       dockBody.className = 'workspace-dock-body';
@@ -204,9 +212,76 @@ export class WorkspaceDockManager {
     this.trayItemsContainer = this.dockElement.querySelector('#dock-tray-items-container');
     this.collapseBtn = this.dockElement.querySelector('#dock-collapse-btn');
 
+    this.breadcrumbBar = this.dockElement.querySelector('.dock-breadcrumb-bar');
+    if (!this.breadcrumbBar && this.doc?.createElement && this.dockBody) {
+      this.breadcrumbBar = this.#createBreadcrumbBar();
+      this.dockElement.insertBefore(this.breadcrumbBar, this.dockBody);
+    }
+
     this.#bindDockHeaderEvents();
     this.#bindDockResizer();
     this.#bindCollapsedDockDrag();
+  }
+
+  #createBreadcrumbBar() {
+    const breadcrumbBar = this.doc.createElement('nav');
+    breadcrumbBar.className = 'dock-breadcrumb-bar';
+    breadcrumbBar.id = 'workspace-dock-breadcrumbs';
+    breadcrumbBar.setAttribute('aria-label', 'Workspace Navigation Hierarchy');
+
+    const dockCrumb = this.doc.createElement('button');
+    dockCrumb.type = 'button';
+    dockCrumb.className = 'breadcrumb-item breadcrumb-dock';
+    dockCrumb.textContent = 'Dock';
+    dockCrumb.title = 'Workspace Dock Level (Click to focus dock)';
+    dockCrumb.addEventListener('click', (e) => {
+      e?.stopPropagation?.();
+      const dockTitle = this.dockElement?.querySelector('.dock-title-group, #dock-collapse-btn');
+      if (dockTitle) {
+        if (!dockTitle.hasAttribute?.('tabindex')) dockTitle.setAttribute?.('tabindex', '-1');
+        dockTitle.focus?.();
+      }
+      this.updateBreadcrumb(null, null);
+    });
+    breadcrumbBar.appendChild(dockCrumb);
+
+    const sep1 = this.doc.createElement('span');
+    sep1.className = 'breadcrumb-sep sep-panel';
+    sep1.textContent = '▸';
+    breadcrumbBar.appendChild(sep1);
+
+    const panelCrumb = this.doc.createElement('button');
+    panelCrumb.type = 'button';
+    panelCrumb.className = 'breadcrumb-item breadcrumb-panel';
+    panelCrumb.textContent = 'Panels';
+    panelCrumb.title = 'Active Panel Level (Click to jump to panel)';
+    panelCrumb.addEventListener('click', (e) => {
+      e?.stopPropagation?.();
+      if (this.activePanelId) this.jumpToPanel(this.activePanelId);
+    });
+    breadcrumbBar.appendChild(panelCrumb);
+
+    const sep2 = this.doc.createElement('span');
+    sep2.className = 'breadcrumb-sep sep-section';
+    sep2.textContent = '▸';
+    sep2.style.display = 'none';
+    breadcrumbBar.appendChild(sep2);
+
+    const sectionCrumb = this.doc.createElement('button');
+    sectionCrumb.type = 'button';
+    sectionCrumb.className = 'breadcrumb-item breadcrumb-section';
+    sectionCrumb.textContent = '';
+    sectionCrumb.title = 'Active Section Level (Click to focus section)';
+    sectionCrumb.style.display = 'none';
+    sectionCrumb.addEventListener('click', (e) => {
+      e?.stopPropagation?.();
+      if (this.activeSectionHeader) {
+        this.activeSectionHeader.focus?.();
+      }
+    });
+    breadcrumbBar.appendChild(sectionCrumb);
+
+    return breadcrumbBar;
   }
 
   #bindDockHeaderEvents() {
@@ -537,6 +612,25 @@ export class WorkspaceDockManager {
     this.#attachOmniResizeHandles(record);
     this.#enableFloatingDrag(record);
 
+    // Make section headers keyboard-accessible roving targets
+    const subHeaders = panelElement.querySelectorAll ? panelElement.querySelectorAll('.collapsible-header, .derivation-card-header') : [];
+    subHeaders.forEach((h) => {
+      if (!h.hasAttribute?.('tabindex')) {
+        h.setAttribute?.('tabindex', '0');
+      }
+      if (!h.hasAttribute?.('role')) {
+        h.setAttribute?.('role', 'button');
+      }
+    });
+
+    if (record.header && !record.header.hasAttribute?.('tabindex')) {
+      record.header.setAttribute?.('tabindex', '-1');
+    }
+
+    if (!this.activePanelId) {
+      this.activePanelId = id;
+    }
+
     // Initial placement: default into the dock body unless marked floating
     if (!panelElement.classList.contains('is-floating')) {
       this.dockBody.appendChild(panelElement);
@@ -547,6 +641,7 @@ export class WorkspaceDockManager {
 
     this.#renderTrayItems();
     this.updateDockEmptyState();
+    this.updateBreadcrumb(this.activePanelId, null);
   }
 
   collapseSubComponents(container) {
@@ -1042,6 +1137,78 @@ export class WorkspaceDockManager {
     }
   }
 
+  jumpToPanel(panelId) {
+    const record = this.panels.get(panelId);
+    if (!record) return;
+
+    if (record.isHidden) {
+      this.setPanelVisible(panelId, true);
+    }
+
+    if (!record.isFloating && this.isCollapsed) {
+      this.setDockCollapsed(false);
+    }
+
+    if (record.isFloating) {
+      this.#focusPanel(record);
+    } else {
+      try {
+        record.element.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      } catch (_) {}
+    }
+
+    if (record.header) {
+      if (!record.header.hasAttribute?.('tabindex')) {
+        record.header.setAttribute?.('tabindex', '-1');
+      }
+      record.header.focus?.();
+    }
+
+    this.activePanelId = panelId;
+    this.updateBreadcrumb(panelId, null);
+  }
+
+  updateBreadcrumb(panelId = null, sectionTitle = null) {
+    if (!this.dockElement) return;
+    const breadcrumbBar = this.dockElement.querySelector ? this.dockElement.querySelector('.dock-breadcrumb-bar') : null;
+    if (!breadcrumbBar) return;
+
+    const panelCrumb = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.breadcrumb-panel') : null;
+    const sep2 = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.sep-section') : null;
+    const sectionCrumb = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.breadcrumb-section') : null;
+
+    if (panelId && this.panels.has(panelId)) {
+      this.activePanelId = panelId;
+      const record = this.panels.get(panelId);
+      if (panelCrumb) {
+        panelCrumb.textContent = record.title || panelId;
+        panelCrumb.title = `Jump to ${record.title}`;
+        panelCrumb.style.display = '';
+      }
+    } else if (panelId === null && !this.activePanelId && this.panels.size > 0) {
+      const firstRecord = Array.from(this.panels.values())[0];
+      if (firstRecord && panelCrumb) {
+        this.activePanelId = firstRecord.id;
+        panelCrumb.textContent = firstRecord.title || firstRecord.id;
+        panelCrumb.style.display = '';
+      }
+    }
+
+    if (sectionTitle) {
+      if (sep2) sep2.style.display = '';
+      if (sectionCrumb) {
+        let displayTitle = sectionTitle.trim();
+        if (displayTitle.length > 20) displayTitle = displayTitle.slice(0, 18) + '…';
+        sectionCrumb.textContent = displayTitle;
+        sectionCrumb.title = `Focus "${sectionTitle}"`;
+        sectionCrumb.style.display = '';
+      }
+    } else {
+      if (sep2) sep2.style.display = 'none';
+      if (sectionCrumb) sectionCrumb.style.display = 'none';
+    }
+  }
+
   #focusPanel(record) {
     this.panels.forEach((p) => p.element.classList.remove('is-focused'));
     record.element.classList.add('is-focused');
@@ -1201,7 +1368,209 @@ export class WorkspaceDockManager {
       }
     });
 
-    // Keyboard navigation for Elevation Turns ([ and ])
+    // 1. Hierarchical Focus & Click Tracking for Breadcrumbs
+    const handleHierarchyTrack = (e) => {
+      const panel = e.target?.closest?.('.ui-panel');
+      const section = e.target?.closest?.('.collapsible-section, .derivation-card');
+      const secHeader = section?.querySelector?.('.collapsible-header, .derivation-card-header');
+      const secTitle = secHeader?.textContent ? secHeader.textContent.replace(/[▶▼◀▲]/g, '').trim() : null;
+
+      if (panel) {
+        this.activePanelId = panel.id;
+        if (secHeader) this.activeSectionHeader = secHeader;
+        this.updateBreadcrumb(panel.id, secTitle);
+      }
+    };
+    this.root?.addEventListener?.('focusin', handleHierarchyTrack);
+    this.root?.addEventListener?.('click', handleHierarchyTrack);
+
+    // 2. Elevation Turn Event Tracking
+    this.root?.addEventListener?.('panelelevationturn', (e) => {
+      const { panel, activeSubpanel, title } = e.detail || {};
+      if (panel) {
+        this.activePanelId = panel.id;
+        if (activeSubpanel) {
+          const h = activeSubpanel.querySelector?.('.collapsible-header, .derivation-card-header');
+          if (h) this.activeSectionHeader = h;
+        }
+        this.updateBreadcrumb(panel.id, title);
+      }
+    });
+
+    // 3. Global Shortcuts: Panel Jumps (Alt + 1..9), Panel Cycling (Alt + Arrow), Floating Window Cycle (Alt + \)
+    this.doc?.addEventListener?.('keydown', (e) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        // Alt + 1..9: Direct panel jump
+        if (e.key >= '1' && e.key <= '9') {
+          const panelIndex = parseInt(e.key, 10) - 1;
+          const panelRecords = Array.from(this.panels.values());
+          if (panelIndex < panelRecords.length) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            this.jumpToPanel(panelRecords[panelIndex].id);
+            return;
+          }
+        }
+
+        // Alt + ArrowDown / Alt + ArrowUp: Navigate between sibling panels
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const panelRecords = Array.from(this.panels.values());
+          if (panelRecords.length > 0) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            const currId = this.activePanelId || panelRecords[0].id;
+            const currIdx = panelRecords.findIndex((p) => p.id === currId);
+            const delta = e.key === 'ArrowDown' ? 1 : -1;
+            const nextIdx = (currIdx + delta + panelRecords.length) % panelRecords.length;
+            this.jumpToPanel(panelRecords[nextIdx].id);
+            return;
+          }
+        }
+
+        // Alt + \: Cycle floating window focus
+        if (e.key === '\\') {
+          const floatingRecords = Array.from(this.panels.values()).filter((p) => p.isFloating && !p.isHidden);
+          if (floatingRecords.length > 0) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            const currFocused = floatingRecords.find((p) => p.element.classList.contains('is-focused'));
+            const currIdx = currFocused ? floatingRecords.indexOf(currFocused) : -1;
+            const nextIdx = (currIdx + 1) % floatingRecords.length;
+            this.#focusPanel(floatingRecords[nextIdx]);
+            const header = floatingRecords[nextIdx].header;
+            if (header) {
+              if (!header.hasAttribute?.('tabindex')) header.setAttribute?.('tabindex', '-1');
+              header.focus?.();
+            }
+            this.updateBreadcrumb(floatingRecords[nextIdx].id, null);
+            return;
+          }
+        }
+      }
+    });
+
+    // 4. Roving Arrow Navigation between Level 2 Section Headers
+    this.root?.addEventListener?.('keydown', (e) => {
+      const header = e.target?.closest?.('.collapsible-header, .derivation-card-header');
+      if (!header) return;
+
+      const panel = header.closest?.('.ui-panel');
+      if (!panel) return;
+
+      const allHeaders = Array.from(
+        panel.querySelectorAll?.('.collapsible-header, .derivation-card-header') || []
+      );
+      const currIdx = allHeaders.indexOf(header);
+      if (currIdx === -1) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        const nextIdx = (currIdx + 1) % allHeaders.length;
+        allHeaders[nextIdx]?.focus?.();
+        this.activeSectionHeader = allHeaders[nextIdx];
+        this.updateBreadcrumb(panel.id, allHeaders[nextIdx]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        const prevIdx = (currIdx - 1 + allHeaders.length) % allHeaders.length;
+        allHeaders[prevIdx]?.focus?.();
+        this.activeSectionHeader = allHeaders[prevIdx];
+        this.updateBreadcrumb(panel.id, allHeaders[prevIdx]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
+      } else if (e.key === 'Home') {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        allHeaders[0]?.focus?.();
+        this.activeSectionHeader = allHeaders[0];
+        this.updateBreadcrumb(panel.id, allHeaders[0]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
+      } else if (e.key === 'End') {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        allHeaders[allHeaders.length - 1]?.focus?.();
+        this.activeSectionHeader = allHeaders[allHeaders.length - 1];
+        this.updateBreadcrumb(panel.id, allHeaders[allHeaders.length - 1]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
+      } else if (e.key === 'ArrowRight') {
+        // If section is open, ArrowRight moves focus to the first interactive input/button inside
+        const section = header.closest?.('.collapsible-section, .derivation-card');
+        const isOpen = !section?.classList.contains('collapsed') &&
+          (section?.classList.contains('open') || header.classList.contains('open') || header.getAttribute?.('aria-expanded') === 'true');
+        if (isOpen) {
+          const content = section?.querySelector?.('.collapsible-content, .derivation-card-content');
+          const firstInteractive = content?.querySelector?.('button, input, select, [tabindex="0"]');
+          if (firstInteractive) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            firstInteractive.focus?.();
+          }
+        }
+      }
+    });
+
+    // 5. The Escape Ladder: Universal Hierarchical Ascending
+    this.doc?.addEventListener?.('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+
+      const activeEl = this.doc.activeElement;
+      if (!activeEl || activeEl === this.doc.body) return;
+
+      // Case 1: Inside a Level 3 section content (slider, input, button)
+      const content = activeEl.closest?.('.collapsible-content, .derivation-card-content');
+      if (content) {
+        const section = content.closest?.('.collapsible-section, .derivation-card');
+        const header = section?.querySelector?.('.collapsible-header, .derivation-card-header');
+        if (header) {
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          header.focus?.();
+          this.activeSectionHeader = header;
+          const panel = section?.closest?.('.ui-panel');
+          if (panel) this.updateBreadcrumb(panel.id, header.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
+          return;
+        }
+      }
+
+      // Case 2: On a Level 2 Section Header
+      const sectionHeader = activeEl.closest?.('.collapsible-header, .derivation-card-header');
+      if (sectionHeader) {
+        const section = sectionHeader.closest?.('.collapsible-section, .derivation-card');
+        const panel = sectionHeader.closest?.('.ui-panel');
+        const isOpen = !section?.classList.contains('collapsed') &&
+          (section?.classList.contains('open') || sectionHeader.classList.contains('open') || sectionHeader.getAttribute?.('aria-expanded') === 'true');
+
+        if (isOpen) {
+          // If open, collapse section
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          sectionHeader.click?.();
+          return;
+        } else if (panel) {
+          // If already collapsed, ascend to parent Level 1 Panel Header
+          e.preventDefault?.();
+          e.stopPropagation?.();
+          const panelHeader = panel.querySelector?.('.panel-header') || panel;
+          if (!panelHeader.hasAttribute?.('tabindex')) panelHeader.setAttribute?.('tabindex', '-1');
+          panelHeader.focus?.();
+          this.updateBreadcrumb(panel.id, null);
+          return;
+        }
+      }
+
+      // Case 3: On a Level 1 Panel Header or actions
+      const panelHeader = activeEl.closest?.('.panel-header');
+      if (panelHeader) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        const dockTitle = this.dockElement?.querySelector?.('.dock-title-group, #dock-collapse-btn');
+        if (dockTitle) {
+          if (!dockTitle.hasAttribute?.('tabindex')) dockTitle.setAttribute?.('tabindex', '-1');
+          dockTitle.focus?.();
+        }
+        this.updateBreadcrumb(null, null);
+        return;
+      }
+    });
+
+    // 6. Keyboard navigation for Elevation Turns ([ and ])
     this.doc?.addEventListener?.('keydown', (e) => {
       if (['INPUT', 'TEXTAREA'].includes(this.doc.activeElement?.tagName)) return;
       if (e.key === '[' || e.key === ']') {
@@ -1346,6 +1715,15 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
         sub.removeAttribute?.('data-elevation-level');
       }
     });
+    try {
+      const activeSingle = totalOpen === 1 ? openSubpanels[0] : null;
+      const h = activeSingle?.querySelector?.('.collapsible-header, .derivation-card-header');
+      const title = h?.textContent ? h.textContent.replace(/[▶▼◀▲]/g, '').trim() : null;
+      const evt = typeof CustomEvent !== 'undefined'
+        ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel: activeSingle, title } })
+        : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel: activeSingle, title } };
+      panel.dispatchEvent?.(evt);
+    } catch (_) {}
     return;
   }
 
@@ -1523,5 +1901,14 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
     sub.removeAttribute?.('data-elevation-level');
     sub.classList?.remove('is-elevated-top', 'is-in-deck');
   });
+
+  try {
+    const h = activeSubpanel?.querySelector?.('.collapsible-header, .derivation-card-header');
+    const title = h?.textContent ? h.textContent.replace(/[▶▼◀▲]/g, '').trim() : null;
+    const evt = typeof CustomEvent !== 'undefined'
+      ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel, title } })
+      : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel, title } };
+    panel.dispatchEvent?.(evt);
+  } catch (_) {}
 }
 

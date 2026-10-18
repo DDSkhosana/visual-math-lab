@@ -1597,6 +1597,258 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
   assert.strictEqual(root.getAttribute('data-viewport'), 'compact');
 });
 
+test('WorkspaceDockManager: Cross-Level Hierarchical Navigation & Peer Roving Pipeline', async () => {
+  globalThis.localStorage?.clear?.();
+  const mockDoc = new MockDocument();
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    listeners: new Map(),
+    addEventListener(event, handler) {
+      if (!this.listeners.has(event)) this.listeners.set(event, []);
+      this.listeners.get(event).push(handler);
+    },
+    removeEventListener(event, handler) {
+      if (!this.listeners.has(event)) return;
+      this.listeners.set(event, this.listeners.get(event).filter((h) => h !== handler));
+    },
+    dispatchEvent(event) {
+      if (!event.stopPropagation) event.stopPropagation = () => {};
+      if (!event.preventDefault) event.preventDefault = () => {};
+      const handlers = this.listeners.get(event.type) || [];
+      handlers.forEach((h) => h(event));
+    },
+  };
+  mockDoc.defaultView = mockWin;
+
+  const root = mockDoc.createElement('div');
+  root.className = 'circle-explorer';
+  mockDoc.body.appendChild(root);
+
+  const viewContainer = mockDoc.createElement('div');
+  viewContainer.className = 'view-container';
+  root.appendChild(viewContainer);
+
+  // Panel 1: Controls (with two sections, secA with input slider, secB with button)
+  const panel1 = mockDoc.createElement('div');
+  panel1.className = 'ui-panel';
+  panel1.id = 'panel-controls';
+
+  const p1Header = mockDoc.createElement('div');
+  p1Header.className = 'panel-header';
+  p1Header.textContent = 'Controls';
+  panel1.appendChild(p1Header);
+
+  const p1Body = mockDoc.createElement('div');
+  p1Body.className = 'panel-body';
+
+  const secA = mockDoc.createElement('div');
+  secA.className = 'collapsible-section collapsed';
+  const secAHeader = mockDoc.createElement('div');
+  secAHeader.className = 'collapsible-header';
+  secAHeader.textContent = 'Primary Angles';
+  secA.appendChild(secAHeader);
+  const secAContent = mockDoc.createElement('div');
+  secAContent.className = 'collapsible-content collapsed';
+  const sliderInput = mockDoc.createElement('input');
+  sliderInput.type = 'range';
+  sliderInput.id = 'theta-slider';
+  secAContent.appendChild(sliderInput);
+  secA.appendChild(secAContent);
+  p1Body.appendChild(secA);
+
+  const secB = mockDoc.createElement('div');
+  secB.className = 'collapsible-section collapsed';
+  const secBHeader = mockDoc.createElement('div');
+  secBHeader.className = 'collapsible-header';
+  secBHeader.textContent = 'Camera Presets';
+  secB.appendChild(secBHeader);
+  const secBContent = mockDoc.createElement('div');
+  secBContent.className = 'collapsible-content collapsed';
+  const camBtn = mockDoc.createElement('button');
+  camBtn.type = 'button';
+  camBtn.id = 'btn-iso';
+  camBtn.textContent = 'Isometric';
+  secBContent.appendChild(camBtn);
+  secB.appendChild(secBContent);
+  p1Body.appendChild(secB);
+
+  panel1.appendChild(p1Body);
+  root.appendChild(panel1);
+
+  // Panel 2: Derivations
+  const panel2 = mockDoc.createElement('div');
+  panel2.className = 'ui-panel';
+  panel2.id = 'panel-derivations';
+  const p2Header = mockDoc.createElement('div');
+  p2Header.className = 'panel-header';
+  p2Header.textContent = 'Derivations';
+  panel2.appendChild(p2Header);
+  const p2Body = mockDoc.createElement('div');
+  p2Body.className = 'panel-body';
+  panel2.appendChild(p2Body);
+  root.appendChild(panel2);
+
+  // Panel 3: Modes
+  const panel3 = mockDoc.createElement('div');
+  panel3.className = 'ui-panel';
+  panel3.id = 'panel-modes';
+  const p3Header = mockDoc.createElement('div');
+  p3Header.className = 'panel-header';
+  p3Header.textContent = 'Modes';
+  panel3.appendChild(p3Header);
+  const p3Body = mockDoc.createElement('div');
+  p3Body.className = 'panel-body';
+  panel3.appendChild(p3Body);
+  root.appendChild(panel3);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // -------------------------------------------------------------
+  // Test 1: Header Breadcrumb Bar Initial Structure & Click Actions
+  // -------------------------------------------------------------
+  const breadcrumbBar = dock.breadcrumbBar;
+  assert.ok(breadcrumbBar, 'Breadcrumb bar must exist in the dock header');
+  assert.strictEqual(breadcrumbBar.getAttribute('aria-label'), 'Workspace Navigation Hierarchy');
+
+  const dockCrumb = breadcrumbBar.querySelector('.breadcrumb-dock');
+  const panelCrumb = breadcrumbBar.querySelector('.breadcrumb-panel');
+  const sectionCrumb = breadcrumbBar.querySelector('.breadcrumb-section');
+
+  assert.ok(dockCrumb, 'Breadcrumb must have Dock level item');
+  assert.ok(panelCrumb, 'Breadcrumb must have Panel level item');
+  assert.ok(sectionCrumb, 'Breadcrumb must have Section level item');
+
+  assert.strictEqual(dockCrumb.textContent, 'Dock');
+  assert.strictEqual(panelCrumb.textContent, 'Controls');
+  assert.strictEqual(sectionCrumb.style.display, 'none', 'Section crumb is hidden when no section is selected');
+
+  // Click panel crumb jumps to panel
+  panelCrumb.click();
+  assert.strictEqual(dock.activePanelId, 'panel-controls');
+
+  // -------------------------------------------------------------
+  // Test 2: Roving Arrow Navigation Between Level 2 Headers
+  // -------------------------------------------------------------
+  assert.strictEqual(secAHeader.getAttribute('tabindex'), '0');
+  assert.strictEqual(secBHeader.getAttribute('tabindex'), '0');
+  assert.strictEqual(secAHeader.getAttribute('role'), 'button');
+
+  // Focus on secAHeader
+  secAHeader.focus();
+  assert.strictEqual(mockDoc.activeElement, secAHeader);
+
+  // ArrowDown roves to secBHeader
+  root.dispatchEvent({ type: 'keydown', key: 'ArrowDown', target: secAHeader });
+  assert.strictEqual(mockDoc.activeElement, secBHeader, 'ArrowDown must rove focus to sibling section header');
+  assert.strictEqual(sectionCrumb.style.display, '', 'Breadcrumb section crumb becomes visible');
+  assert.strictEqual(sectionCrumb.textContent, 'Camera Presets');
+
+  // ArrowUp roves back to secAHeader
+  root.dispatchEvent({ type: 'keydown', key: 'ArrowUp', target: secBHeader });
+  assert.strictEqual(mockDoc.activeElement, secAHeader, 'ArrowUp must rove focus back to previous section header');
+  assert.strictEqual(sectionCrumb.textContent, 'Primary Angles');
+
+  // End key jumps to last header (secBHeader)
+  root.dispatchEvent({ type: 'keydown', key: 'End', target: secAHeader });
+  assert.strictEqual(mockDoc.activeElement, secBHeader, 'End key must jump to last section header');
+
+  // Home key jumps to first header (secAHeader)
+  root.dispatchEvent({ type: 'keydown', key: 'Home', target: secBHeader });
+  assert.strictEqual(mockDoc.activeElement, secAHeader, 'Home key must jump to first section header');
+
+  // -------------------------------------------------------------
+  // Test 3: Drill-Down from Section Header into Child Control
+  // -------------------------------------------------------------
+  // Expand secA
+  secA.classList.remove('collapsed');
+  secAHeader.classList.add('open');
+  secAHeader.setAttribute('aria-expanded', 'true');
+
+  // Press ArrowRight on open header -> drops focus into child sliderInput
+  root.dispatchEvent({ type: 'keydown', key: 'ArrowRight', target: secAHeader });
+  assert.strictEqual(mockDoc.activeElement, sliderInput, 'ArrowRight on open header must drill down into first control');
+
+  // -------------------------------------------------------------
+  // Test 4: The Escape Ladder (Ascending Hierarchical Levels)
+  // -------------------------------------------------------------
+  // Level 3 (Inside control sliderInput) -> Press Escape -> Ascends to Level 2 (secAHeader)
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.strictEqual(mockDoc.activeElement, secAHeader, 'Escape in child control must ascend to parent section header');
+
+  // Level 2 (Section is open) -> Press Escape -> Collapses section
+  let clickTriggered = false;
+  secAHeader.addEventListener('click', () => { clickTriggered = true; });
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.strictEqual(clickTriggered, true, 'Escape on open section header must trigger collapse');
+
+  // Simulate section now collapsed
+  secA.classList.add('collapsed');
+  secAHeader.classList.remove('open');
+  secAHeader.setAttribute('aria-expanded', 'false');
+
+  // Level 2 (Section is collapsed) -> Press Escape -> Ascends to Level 1 (p1Header)
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.strictEqual(mockDoc.activeElement, p1Header, 'Escape on collapsed section header must ascend to panel header');
+
+  // Level 1 (On panel header) -> Press Escape -> Ascends to Level 0 (dock title / collapse btn)
+  const dockTitleGroup = dock.dockElement.querySelector('.dock-title-group');
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.strictEqual(mockDoc.activeElement, dockTitleGroup, 'Escape on panel header must ascend to dock header');
+
+  // -------------------------------------------------------------
+  // Test 5: Global Panel Jump Shortcuts (Alt + 1..9 & Alt + Arrow)
+  // -------------------------------------------------------------
+  // Alt + 2 -> Jumps to Panel 2 (Derivations)
+  mockDoc.dispatchEvent({ type: 'keydown', key: '2', altKey: true });
+  assert.strictEqual(dock.activePanelId, 'panel-derivations', 'Alt+2 must jump to derivations panel');
+  assert.strictEqual(panelCrumb.textContent, 'Derivations', 'Breadcrumb must reflect jumped panel');
+  assert.strictEqual(mockDoc.activeElement, p2Header, 'Header of derivations panel must receive focus');
+
+  // Alt + 3 -> Jumps to Panel 3 (Modes)
+  mockDoc.dispatchEvent({ type: 'keydown', key: '3', altKey: true });
+  assert.strictEqual(dock.activePanelId, 'panel-modes', 'Alt+3 must jump to modes panel');
+  assert.strictEqual(panelCrumb.textContent, 'Modes');
+
+  // Alt + 1 -> Jumps back to Panel 1 (Controls)
+  mockDoc.dispatchEvent({ type: 'keydown', key: '1', altKey: true });
+  assert.strictEqual(dock.activePanelId, 'panel-controls');
+  assert.strictEqual(panelCrumb.textContent, 'Controls');
+
+  // Alt + ArrowDown -> Cycles to next panel (Derivations)
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'ArrowDown', altKey: true });
+  assert.strictEqual(dock.activePanelId, 'panel-derivations');
+
+  // Alt + ArrowUp -> Cycles to previous panel (Controls)
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'ArrowUp', altKey: true });
+  assert.strictEqual(dock.activePanelId, 'panel-controls');
+
+  // -------------------------------------------------------------
+  // Test 6: Floating Window Focus Cycling (Alt + \)
+  // -------------------------------------------------------------
+  dock.floatPanel('panel-controls');
+  dock.floatPanel('panel-derivations');
+
+  // panel2 was floated last, so it's focused
+  assert.strictEqual(panel2.classList.contains('is-focused'), true);
+  assert.strictEqual(panel1.classList.contains('is-focused'), false);
+
+  // Press Alt + \ to cycle focus to panel1
+  mockDoc.dispatchEvent({ type: 'keydown', key: '\\', altKey: true });
+  assert.strictEqual(panel1.classList.contains('is-focused'), true, 'Alt+\\ must cycle focus to next floating window');
+  assert.strictEqual(panel2.classList.contains('is-focused'), false);
+
+  // Press Alt + \ again to cycle focus back to panel2
+  mockDoc.dispatchEvent({ type: 'keydown', key: '\\', altKey: true });
+  assert.strictEqual(panel2.classList.contains('is-focused'), true, 'Alt+\\ must cycle focus back to first floating window');
+  assert.strictEqual(panel1.classList.contains('is-focused'), false);
+
+  // Re-dock
+  dock.dockPanel('panel-controls');
+  dock.dockPanel('panel-derivations');
+});
+
+
 
 
 

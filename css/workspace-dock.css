@@ -1389,4 +1389,85 @@
   animation: elevationSlideIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ==========================================================================
+   Hierarchical Navigation & Breadcrumb Bar
+   ========================================================================== */
+.dock-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  font-size: 0.72rem;
+  color: #94a3b8;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.dock-breadcrumb-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.workspace-dock.is-collapsed .dock-breadcrumb-bar {
+  display: none !important;
+}
+
+.breadcrumb-item {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.breadcrumb-item:hover {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.breadcrumb-item:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.breadcrumb-item.breadcrumb-dock {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.breadcrumb-item.breadcrumb-panel {
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.breadcrumb-item.breadcrumb-section {
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.breadcrumb-sep {
+  color: #64748b;
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+/* Roving Focus & Accessibility Outlines */
+.collapsible-header:focus-visible,
+.derivation-card-header:focus-visible,
+.panel-header:focus-visible {
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: -2px !important;
+}
+
+
 
