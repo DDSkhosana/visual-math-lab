@@ -90,6 +90,7 @@ function bootstrap() {
         splitRatio: 50,
         plane2D: 'great-circle',
         cameraMode: 'arcball',
+        pan: { x: 0, y: 0 },
       });
       scene3d?.controls?.setMode?.('arcball');
       const thalesPresetBars = document.querySelectorAll('.camera-presets-bar');

@@ -4,6 +4,7 @@ export function createInitialState() {
   const vis = createDefaultVisState();
   return {
     radius: 120,
+    pan: { x: 0, y: 0 },
     pointDist: 260,
     pointAngle: 0.15 * Math.PI,
     showCongruence: true,
@@ -25,8 +26,9 @@ export function createInitialState() {
 export const MIN_EXTERNAL_POINT_CLEARANCE = 15;
 
 export function computeGeometry(state, width, height) {
-  const cx = width / 2;
-  const cy = height / 2;
+  const pan = state.pan || { x: 0, y: 0 };
+  const cx = width / 2 + (pan.x || 0);
+  const cy = height / 2 + (pan.y || 0);
   const maxSafeRadius = Math.max(40, Math.min(width, height) / 2 - 50);
   const r = Math.min(state.radius, maxSafeRadius);
 

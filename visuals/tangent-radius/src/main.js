@@ -29,7 +29,7 @@ function bootstrap() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       store.reset();
-      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50, pan: { x: 0, y: 0 } });
     });
   }
 
@@ -131,6 +131,7 @@ function bootstrap() {
 
   // Interactive Drag on any active Tangent Contact Point
   let dragTargetId = null;
+  let panOrigin = { x: 0, y: 0 };
   canvas.addEventListener('pointerdown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -145,6 +146,10 @@ function bootstrap() {
     }
     if (!dragTargetId && isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) {
       dragTargetId = 'radius';
+    } else if (!dragTargetId) {
+      dragTargetId = 'pan';
+      const curPan = store.get().pan || { x: 0, y: 0 };
+      panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
     }
 
     if (dragTargetId) {
@@ -170,7 +175,18 @@ function bootstrap() {
         }
       }
       const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
-      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'grab');
+      return;
+    }
+
+    if (dragTargetId === 'pan') {
+      canvas.style.cursor = 'grabbing';
+      store.set({
+        pan: {
+          x: e.clientX - panOrigin.x,
+          y: e.clientY - panOrigin.y,
+        },
+      });
       return;
     }
 
@@ -199,13 +215,16 @@ function bootstrap() {
     if (dragTargetId) {
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       dragTargetId = null;
-      canvas.style.cursor = 'default';
+      canvas.style.cursor = 'grab';
     }
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
   window.addEventListener('pointerup', stopDrag);
   window.addEventListener('pointercancel', stopDrag);
+  canvas.addEventListener('dblclick', () => {
+    store.set({ pan: { x: 0, y: 0 } });
+  });
 
   // Store Subscribe & Initial Render
   const update = (state) => {

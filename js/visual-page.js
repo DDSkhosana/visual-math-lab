@@ -53,24 +53,10 @@ function enhanceHeader(visual) {
 
   const metaGroup = document.createElement("div");
   metaGroup.className = "site-header__visual-meta";
-  const tipsActive = isTipsEnabled();
   metaGroup.innerHTML = `
     <span class="site-header__category">${visual.category}</span>
     <span class="site-header__separator">/</span>
     <span class="site-header__title">${visual.title}</span>
-    <button type="button" class="site-header__info-btn" id="visual-info-btn" aria-label="About this visual" aria-expanded="false" title="Show visual information">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span>Info</span>
-    </button>
-    <button type="button" class="site-header__tutorial-btn" id="visual-tutorial-btn" aria-label="Walkthrough Tutorial & Interaction Tips" aria-expanded="false" title="Open walkthrough tutorial & interaction tips (Shortcut: ?)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
-      <span>Tips</span>
-      <span class="tutorial-status-pill ${tipsActive ? 'is-on' : 'is-off'}">${tipsActive ? 'ON' : 'OFF'}</span>
-    </button>
-    <button type="button" class="site-header__legend-btn" id="visual-legend-btn" aria-label="Circle Geometry Notation Legend" aria-expanded="false" title="Open Circle Geometry Notation Legend & Cheatsheet (Shortcut: L)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      <span>Legend</span>
-    </button>
   `;
 
   if (brand && brand.nextSibling) {
@@ -98,81 +84,8 @@ function enhanceHeader(visual) {
 function setupHeaderAndModal(visual) {
   enhanceHeader(visual);
 
-  const infoBtn = document.getElementById("visual-info-btn");
-  const tutorialBtn = document.getElementById("visual-tutorial-btn");
-  const legendBtn = document.getElementById("visual-legend-btn");
-  const modal = document.getElementById("visual-info-modal");
-  const closeBtn = document.getElementById("visual-info-close");
-  const dismissBtn = document.getElementById("visual-info-dismiss");
-  const scrollLink = document.getElementById("visual-info-scroll");
   const collapseBtn = document.getElementById("header-collapse-btn");
   const restoreBtn = document.getElementById("header-restore-btn");
-
-  if (tutorialBtn) {
-    tutorialBtn.addEventListener("click", () => {
-      openTutorialModal();
-    });
-  }
-
-  if (legendBtn) {
-    legendBtn.addEventListener("click", () => {
-      openLegendModal();
-    });
-  }
-
-  function openModal() {
-    if (!modal) return;
-    modal.hidden = false;
-    if (infoBtn) infoBtn.setAttribute("aria-expanded", "true");
-    if (closeBtn) closeBtn.focus({ preventScroll: true });
-  }
-
-  function closeModal() {
-    if (!modal) return;
-    modal.hidden = true;
-    if (infoBtn) {
-      infoBtn.setAttribute("aria-expanded", "false");
-      infoBtn.focus({ preventScroll: true });
-    }
-  }
-
-  if (infoBtn) {
-    infoBtn.addEventListener("click", () => {
-      if (modal && modal.hidden) {
-        openModal();
-      } else {
-        closeModal();
-      }
-    });
-  }
-
-  if (closeBtn) closeBtn.addEventListener("click", closeModal);
-  if (dismissBtn) dismissBtn.addEventListener("click", closeModal);
-
-  if (modal) {
-    modal.addEventListener("click", (event) => {
-      if (event.target === modal) {
-        closeModal();
-      }
-    });
-  }
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && modal && !modal.hidden) {
-      closeModal();
-    }
-  });
-
-  if (scrollLink) {
-    scrollLink.addEventListener("click", (event) => {
-      event.preventDefault();
-      closeModal();
-      const target = document.getElementById("about-visual");
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth" });
-      }
-    });
-  }
 
   if (collapseBtn) {
     collapseBtn.addEventListener("click", () => {
@@ -233,24 +146,66 @@ async function initializeVisualPage() {
   // Initialize Workspace Windowing & Dock System
   initWorkspaceDock();
 
-  // Mount quick Tips ON/OFF toggle in Viewport Modes Toolbar if present
+  // Mount status indicators & badges inside the Viewport Modes Toolbar
   const toolbarContent = document.getElementById("toolbar-content");
-  if (toolbarContent && !document.getElementById("btn-toolbar-tips")) {
-    const tipsToolbarBtn = document.createElement("button");
-    tipsToolbarBtn.type = "button";
-    tipsToolbarBtn.className = "btn-toolbar";
-    tipsToolbarBtn.id = "btn-toolbar-tips";
-    tipsToolbarBtn.title = "Toggle interaction tips & walkthrough tour";
-    tipsToolbarBtn.setAttribute("aria-pressed", isTipsEnabled() ? "true" : "false");
-    tipsToolbarBtn.innerHTML = `
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
-      <span class="tips-btn-label">Tips: ${isTipsEnabled() ? "ON" : "OFF"}</span>
-    `;
-    tipsToolbarBtn.addEventListener("click", () => {
-      const next = !isTipsEnabled();
-      setTipsEnabled(next);
-    });
-    toolbarContent.appendChild(tipsToolbarBtn);
+  if (toolbarContent) {
+    let tipsToolbarBtn = document.getElementById("btn-toolbar-tips") || document.getElementById("visual-tutorial-btn");
+    if (!tipsToolbarBtn) {
+      const divider = document.createElement("span");
+      divider.className = "toolbar-divider";
+      divider.setAttribute("aria-hidden", "true");
+      toolbarContent.appendChild(divider);
+
+      tipsToolbarBtn = document.createElement("button");
+      tipsToolbarBtn.type = "button";
+      tipsToolbarBtn.className = "btn-toolbar btn-toolbar--badge btn-toolbar-tips";
+      tipsToolbarBtn.id = "btn-toolbar-tips";
+      tipsToolbarBtn.setAttribute("data-action", "visual-tutorial-btn");
+      tipsToolbarBtn.title = "Toggle Tips / Open Walkthrough (Shortcut: ?)";
+      tipsToolbarBtn.setAttribute("aria-label", "Walkthrough Tutorial & Interaction Tips");
+      tipsToolbarBtn.setAttribute("aria-pressed", isTipsEnabled() ? "true" : "false");
+      const tipsActive = isTipsEnabled();
+      tipsToolbarBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+        <span class="tips-btn-label">Tips: <span class="tutorial-status-pill ${tipsActive ? 'is-on' : 'is-off'}" id="toolbar-tips-status">${tipsActive ? 'ON' : 'OFF'}</span></span>
+      `;
+      toolbarContent.appendChild(tipsToolbarBtn);
+    }
+
+    let legendToolbarBtn = document.getElementById("btn-toolbar-legend") || document.getElementById("visual-legend-btn");
+    if (!legendToolbarBtn) {
+      legendToolbarBtn = document.createElement("button");
+      legendToolbarBtn.type = "button";
+      legendToolbarBtn.className = "btn-toolbar btn-toolbar--badge btn-toolbar-legend";
+      legendToolbarBtn.id = "btn-toolbar-legend";
+      legendToolbarBtn.setAttribute("data-action", "visual-legend-btn");
+      legendToolbarBtn.title = "Open Circle Geometry Notation Legend & Cheatsheet (Shortcut: L)";
+      legendToolbarBtn.setAttribute("aria-label", "Circle Geometry Notation Legend");
+      legendToolbarBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Legend</span>
+      `;
+      toolbarContent.appendChild(legendToolbarBtn);
+    }
+
+    if (tipsToolbarBtn && !tipsToolbarBtn._hasClickBound) {
+      tipsToolbarBtn._hasClickBound = true;
+      tipsToolbarBtn.addEventListener("click", (e) => {
+        if (e.target && (e.target.id === 'toolbar-tips-status' || e.target.classList.contains('tutorial-status-pill'))) {
+          e.stopPropagation();
+          setTipsEnabled(!isTipsEnabled());
+        } else {
+          openTutorialModal();
+        }
+      });
+    }
+
+    if (legendToolbarBtn && !legendToolbarBtn._hasClickBound) {
+      legendToolbarBtn._hasClickBound = true;
+      legendToolbarBtn.addEventListener("click", () => {
+        openLegendModal();
+      });
+    }
   }
 
   trackEvent("visual_view", { visual: visual.slug });

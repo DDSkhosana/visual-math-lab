@@ -33,7 +33,7 @@ export class CanvasView {
     const g = computeGeometry(state, width, height);
 
     // Cartesian Grid & Coordinate Axes
-    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d, 40, state.cameraPerspective);
 
     // Shaded areas (circular segment, congruent triangles, and angle wedges)
     const center = { x: g.cx, y: g.cy };
@@ -169,10 +169,10 @@ export class CanvasView {
       const lenBOM = Math.hypot(bisBOMx, bisBOMy) || 1;
       const nbBOMx = bisBOMx / lenBOM, nbBOMy = bisBOMy / lenBOM;
 
-      // Position badges staggered outside angle wedges (30px and 52px from center O to eliminate overlap)
-      drawTextBadge(ctx, `∠AOM\n${degAOM.toFixed(1)}°`, g.cx + 30 * nbAOMx, g.cy + 30 * nbAOMy, PALETTE.blue);
-      drawTextBadge(ctx, `∠BOM\n${degBOM.toFixed(1)}°`, g.cx + 52 * nbBOMx, g.cy + 52 * nbBOMy, PALETTE.orange);
-      drawTextBadge(ctx, '90.0°', g.M.x - 20 * uOMx, g.M.y - 20 * uOMy, PALETTE.teal);
+      // Position badges outside the 26px angle wedges (50px from center O to eliminate obstruction)
+      drawTextBadge(ctx, `∠AOM = ${degAOM.toFixed(1)}°`, g.cx + 50 * nbAOMx, g.cy + 50 * nbAOMy, PALETTE.blue);
+      drawTextBadge(ctx, `∠BOM = ${degBOM.toFixed(1)}°`, g.cx + 50 * nbBOMx, g.cy + 50 * nbBOMy, PALETTE.orange);
+      drawTextBadge(ctx, '90.0°', g.M.x - 26 * uOMx, g.M.y - 26 * uOMy, PALETTE.teal);
     }
 
     // Length text on chord halves with protective badge pills offset perpendicular to chord
@@ -196,7 +196,7 @@ export class CanvasView {
       drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
 
       if (showLabels) {
-        drawTextBadge(ctx, '270°\n(M*)', g.M.x + 24 * uOMx, g.M.y + 24 * uOMy, PALETTE.teal);
+        drawTextBadge(ctx, '270.0° (M*)', g.M.x + 36 * uOMx, g.M.y + 36 * uOMy, PALETTE.teal);
       }
     }
   }

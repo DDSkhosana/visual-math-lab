@@ -60,12 +60,12 @@ input[type=range] { width: 100%; accent-color: #6366f1; }
 input:checked + .toggle-slider { background-color: #4f46e5; }
 input:checked + .toggle-slider:before { transform: translateX(14px); }
 
-/* Top-Center Floating Viewport Toolbar */
+/* Top Floating Draggable Toolbar: Left Margin Alignment */
 .viewport-header-toolbar {
     position: absolute;
     top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 1rem;
+    transform: none;
     z-index: 30;
     display: inline-flex;
     align-items: center;
@@ -81,6 +81,12 @@ input:checked + .toggle-slider:before { transform: translateX(14px); }
     cursor: grab;
     user-select: none;
     touch-action: none;
+    transition: left 0.22s cubic-bezier(0.16, 1, 0.3, 1), top 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* When left dock is expanded, modes toolbar aligns to the active canvas workspace margin */
+.has-workspace-dock[data-dock-edge="left"]:not(.dock-is-collapsed) .viewport-header-toolbar {
+    left: calc(var(--dock-size, 380px) + 1rem);
 }
 
 .viewport-header-toolbar.is-dragging {
@@ -142,6 +148,67 @@ input:checked + .toggle-slider:before { transform: translateX(14px); }
     letter-spacing: 0.05em;
     text-transform: uppercase;
     user-select: none;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+/* Badges inside Viewport Modes Toolbar */
+.btn-toolbar--badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 0.375rem;
+}
+
+.btn-toolbar-tips {
+    color: #fde047;
+    border-color: rgba(234, 179, 8, 0.45);
+    background: rgba(161, 98, 7, 0.18);
+}
+
+.btn-toolbar-tips:hover {
+    background: rgba(161, 98, 7, 0.4);
+    border-color: #fde047;
+    color: #ffffff;
+}
+
+.btn-toolbar-legend {
+    color: #c7d2fe;
+    border-color: rgba(129, 140, 248, 0.45);
+    background: rgba(79, 70, 229, 0.18);
+}
+
+.btn-toolbar-legend:hover {
+    background: rgba(79, 70, 229, 0.4);
+    border-color: #a5b4fc;
+    color: #ffffff;
+}
+
+/* Modes Panel Glow Affordance when tips are ON and it is collapsed */
+body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed,
+.viewport-header-toolbar.is-collapsed.tips-active {
+    border-color: rgba(234, 179, 8, 0.85);
+    box-shadow: 0 0 14px rgba(234, 179, 8, 0.5), 0 0 4px rgba(250, 204, 21, 0.7);
+    animation: modes-panel-tips-glow 2s ease-in-out infinite alternate;
+}
+
+body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
+.viewport-header-toolbar.is-collapsed.tips-active::after {
+    color: #facc15;
+    text-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+}
+
+@keyframes modes-panel-tips-glow {
+    0% {
+        border-color: rgba(234, 179, 8, 0.6);
+        box-shadow: 0 0 8px rgba(234, 179, 8, 0.35), 0 0 2px rgba(250, 204, 21, 0.5);
+    }
+    100% {
+        border-color: rgba(250, 204, 21, 0.95);
+        box-shadow: 0 0 18px rgba(234, 179, 8, 0.75), 0 0 8px rgba(250, 204, 21, 0.9);
+    }
 }
 
 .toolbar-drag-handle {

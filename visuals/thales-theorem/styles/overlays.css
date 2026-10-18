@@ -55,20 +55,34 @@
     font-weight: bold;
     font-size: 0.75rem;
     line-height: 1;
-    padding: 0.15rem 0.4rem;
+    padding: 0;
     border-radius: 0.25rem;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.25rem;
-    min-height: 1.25rem;
+    width: 1.35rem;
+    height: 1.35rem;
+    min-width: 1.35rem;
+    min-height: 1.35rem;
     transition: color 0.15s, background-color 0.15s;
+}
+
+.stats-toggle-btn .panel-minimize-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    transition: color 0.15s ease;
 }
 
 .stats-toggle-btn:hover {
     color: #ffffff;
     background: #334155;
+}
+
+.stats-toggle-btn:hover .panel-minimize-icon {
+    color: #7dd3fc;
 }
 
 .stats-body {
@@ -172,6 +186,15 @@
     z-index: 10;
 }
 .label-3d.visible { opacity: 1; }
+.label-3d.is-angle {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    gap: 4px;
+}
 
 .live-math-line {
     font-family: monospace; margin-bottom: 0.5rem; font-size: 0.8rem; display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(51, 65, 85, 0.4); padding-bottom: 3px;

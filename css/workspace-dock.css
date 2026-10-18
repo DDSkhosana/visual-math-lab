@@ -339,6 +339,111 @@
   align-self: flex-start !important;
 }
 
+/* Top/Bottom Dock Sub-Panel Overlay & Internal Scrolling:
+   When an inner sub-panel (.collapsible-section or .derivation-card) is expanded,
+   it overlays the sub-panels container (.panel-body), taking 100% of available height
+   and scrolling internally without extending outside the parent container (.ui-panel / .workspace-dock). */
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body {
+  position: relative !important;
+  max-height: calc(var(--dock-size, 340px) - 5rem) !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel.has-expanded-subpanel,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel.has-expanded-subpanel,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)),
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)),
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)),
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)),
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card.open),
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) {
+  height: calc(var(--dock-size, 340px) - 2.5rem) !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)) .panel-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)) .panel-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)) .panel-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)) .panel-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-content {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)) .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.collapsible-section:not(.collapsed)) .panel-body,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)) .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)) .panel-body,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body {
+  height: calc(100% - 2.5rem) !important;
+  overflow: hidden !important;
+}
+
+/* Expanded Sub-Panel Overlay Card */
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed),
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed),
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open),
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open),
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 10 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: rgba(15, 23, 42, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-header,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-header,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-header,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-header {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  background: rgba(30, 41, 59, 0.96) !important;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8) !important;
+  padding: 0.5rem 0.75rem !important;
+  cursor: pointer !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-content {
+  flex: 1 1 auto !important;
+  height: calc(100% - 2.5rem) !important;
+  max-height: calc(100% - 2.5rem) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding: 0.75rem !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: thin !important;
+}
+
 /* Dock Resizer Divider */
 .dock-resizer {
   position: absolute;
@@ -394,6 +499,8 @@
 .workspace-dock.is-collapsed {
   --dock-size: auto !important;
   position: absolute !important;
+  left: 1rem;
+  top: 3.5rem;
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
@@ -718,21 +825,86 @@
   transform: none;
 }
 
-/* Mobile & Narrow Screen Media Query Rules */
+/* Mobile & Narrow Screen Media Query Rules: Dynamic Viewport Adaptation */
 @media (max-width: 48rem) {
+  .circle-explorer.has-workspace-dock,
+  .thales-explorer.has-workspace-dock {
+    position: relative !important;
+    width: 100% !important;
+    height: calc(100vh - 3rem) !important;
+    height: calc(100dvh - 3rem) !important;
+    min-height: 24rem !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.header-collapsed .circle-explorer.has-workspace-dock,
+  body.header-collapsed .thales-explorer.has-workspace-dock {
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+
+  .has-workspace-dock .view-container,
+  .has-workspace-dock #main-view {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex: none !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+  }
+
+  /* Strict Zero Canvas Displacement on Mobile: Overlay Bottom Sheet or Floating Capsule */
   .workspace-dock {
+    position: absolute !important;
+    z-index: 30 !important;
+    box-sizing: border-box !important;
+  }
+
+  .workspace-dock:not(.is-collapsed) {
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     height: auto !important;
-    max-height: none !important;
-    position: relative !important;
+    max-height: min(58vh, 420px) !important;
+    max-height: min(58dvh, 420px) !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-top: 1px solid rgba(51, 65, 85, 0.8) !important;
+    box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.75) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  .circle-explorer.has-workspace-dock,
-  .thales-explorer.has-workspace-dock {
+  .workspace-dock:not(.is-collapsed) .workspace-dock-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: calc(min(58vh, 420px) - 2.8rem) !important;
+    max-height: calc(min(58dvh, 420px) - 2.8rem) !important;
+    padding: 0.5rem 0.65rem !important;
+    display: flex !important;
     flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .workspace-dock.is-collapsed {
+    position: absolute !important;
+    width: auto !important;
     height: auto !important;
-    overflow: visible !important;
+    border-radius: 9999px !important;
+    left: 1rem;
+    top: 3.5rem;
+    max-width: none !important;
+    display: flex !important;
   }
 
   .dock-edge-switcher,

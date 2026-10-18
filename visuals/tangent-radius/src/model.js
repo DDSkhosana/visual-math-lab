@@ -4,6 +4,7 @@ export function createInitialState() {
   const vis = createDefaultVisState();
   return {
     radius: 180,
+    pan: { x: 0, y: 0 },
     angleT: toRadians(45),
     angleT2: toRadians(135),
     angleT3: toRadians(225),
@@ -22,8 +23,9 @@ export function createInitialState() {
 }
 
 export function computeGeometry(state, width, height) {
-  const cx = width / 2;
-  const cy = height / 2;
+  const pan = state.pan || { x: 0, y: 0 };
+  const cx = width / 2 + (pan.x || 0);
+  const cy = height / 2 + (pan.y || 0);
   const maxSafeRadius = Math.max(50, Math.min(width, height) / 2 - 40);
   const r = Math.min(state.radius, maxSafeRadius);
   const O = { x: cx, y: cy };

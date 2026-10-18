@@ -29,7 +29,7 @@ function bootstrap() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       store.reset();
-      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50, pan: { x: 0, y: 0 } });
     });
   }
 
@@ -58,15 +58,6 @@ function bootstrap() {
       view.resize();
       scene3d.resize();
     },
-  });
-
-  const cameraPresets = document.querySelectorAll('#canvas-3d-container .camera-presets-bar button');
-  cameraPresets.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      cameraPresets.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      scene3d.setCameraPreset(btn.dataset.preset);
-    });
   });
 
   new Panel(document.getElementById('controls-panel'), {
@@ -136,6 +127,7 @@ function bootstrap() {
 
   // Interactive Dragging of P, T1, T2
   let dragTarget = null;
+  let panOrigin = { x: 0, y: 0 };
   function hit(x, y, pt, radius = 24) {
     return Math.hypot(x - pt.x, y - pt.y) < radius;
   }
@@ -154,6 +146,10 @@ function bootstrap() {
       dragTarget = 'T2';
     } else if (isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) {
       dragTarget = 'radius';
+    } else {
+      dragTarget = 'pan';
+      const curPan = store.get().pan || { x: 0, y: 0 };
+      panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
     }
 
     if (dragTarget) {
@@ -173,7 +169,18 @@ function bootstrap() {
     if (!dragTarget) {
       const hoverPt = hit(x, y, g.P, 26) || hit(x, y, g.T1, 24) || hit(x, y, g.T2, 24);
       const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
-      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'grab');
+      return;
+    }
+
+    if (dragTarget === 'pan') {
+      canvas.style.cursor = 'grabbing';
+      store.set({
+        pan: {
+          x: e.clientX - panOrigin.x,
+          y: e.clientY - panOrigin.y,
+        },
+      });
       return;
     }
 
@@ -211,13 +218,16 @@ function bootstrap() {
     if (dragTarget) {
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       dragTarget = null;
-      canvas.style.cursor = 'default';
+      canvas.style.cursor = 'grab';
     }
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
   window.addEventListener('pointerup', stopDrag);
   window.addEventListener('pointercancel', stopDrag);
+  canvas.addEventListener('dblclick', () => {
+    store.set({ pan: { x: 0, y: 0 } });
+  });
 
   // Store Subscribe & Initial Render
   const update = (state) => {

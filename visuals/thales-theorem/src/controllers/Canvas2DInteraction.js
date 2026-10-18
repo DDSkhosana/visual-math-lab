@@ -26,6 +26,7 @@ export class Canvas2DInteraction {
       const nextRadius = clamp(Math.round(currentRadius * factor * 2) / 2, 5, 15);
       this.store.set(setRadius(nextRadius));
     }, { passive: false });
+    canvas.addEventListener('dblclick', () => store.set({ pan: { x: 0, y: 0 } }));
   }
 
   #distanceTo(event, pt) {

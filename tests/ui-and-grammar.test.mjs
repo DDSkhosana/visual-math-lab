@@ -237,7 +237,14 @@ test('Reflex Angle Features: TOGGLES configuration and Derivation Step 7 grammar
 
 test('Camera Perspective Synchronization: 2D plane and 3D camera presets align bidirectionally', async () => {
   const { setPlane2D } = await import('../visuals/thales-theorem/src/model/actions.js');
+  const { normalizeCameraPreset, draw2DCartesianGrid } = await import('../js/circle-core.js');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
   
+  // 1. Thales Plane/Preset bidirectional mapping
   const planeToPreset = {
     'great-circle': 'isometric',
     'xy': 'front',
@@ -257,6 +264,87 @@ test('Camera Perspective Synchronization: 2D plane and 3D camera presets align b
     assert.strictEqual(presetToPlane[preset], plane);
     const patch = setPlane2D(plane);
     assert.strictEqual(patch.plane2D, plane);
+  }
+
+  // 2. normalizeCameraPreset bidirectional standardization
+  assert.strictEqual(normalizeCameraPreset('top'), 'top');
+  assert.strictEqual(normalizeCameraPreset('xz'), 'top');
+  assert.strictEqual(normalizeCameraPreset('front'), 'front');
+  assert.strictEqual(normalizeCameraPreset('xy'), 'front');
+  assert.strictEqual(normalizeCameraPreset('side'), 'side');
+  assert.strictEqual(normalizeCameraPreset('yz'), 'side');
+  assert.strictEqual(normalizeCameraPreset('iso'), 'iso');
+  assert.strictEqual(normalizeCameraPreset('isometric'), 'iso');
+  assert.strictEqual(normalizeCameraPreset('default'), 'iso');
+  assert.strictEqual(normalizeCameraPreset('great-circle'), 'iso');
+
+  // 3. draw2DCartesianGrid coordinate axes and watermark re-orientation
+  const testCanvas = (perspective) => {
+    const renderedTexts = [];
+    const mockCtx = {
+      save: () => {},
+      restore: () => {},
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      closePath: () => {},
+      stroke: () => {},
+      fill: () => {},
+      measureText: (txt) => ({ width: txt.length * 8 }),
+      fillText: (txt) => renderedTexts.push(txt),
+      strokeText: (txt) => renderedTexts.push(txt),
+    };
+    draw2DCartesianGrid(mockCtx, 800, 600, 400, 300, { grid: true, axes: true, labels: true, coords: true }, 40, perspective);
+    return renderedTexts;
+  };
+
+  const textsTop = testCanvas('top');
+  assert.ok(textsTop.includes('+X') && textsTop.includes('+Z'), 'Top view must render +X and +Z coordinate axes');
+  assert.ok(textsTop.some((t) => t.includes('XZ Plan Projection')), 'Top view must render XZ Plan watermark');
+
+  const textsFront = testCanvas('front');
+  assert.ok(textsFront.includes('+X') && textsFront.includes('+Y'), 'Front view must render +X and +Y coordinate axes');
+  assert.ok(textsFront.some((t) => t.includes('XY Elevation Projection')), 'Front view must render XY Elevation watermark');
+
+  const textsSide = testCanvas('side');
+  assert.ok(textsSide.includes('+Z') && textsSide.includes('+Y'), 'Side view must render +Z and +Y coordinate axes');
+  assert.ok(textsSide.some((t) => t.includes('YZ Profile Projection')), 'Side view must render YZ Profile watermark');
+
+  const textsIso = testCanvas('iso');
+  assert.ok(textsIso.includes('+X') && textsIso.includes('+Y₂D'), 'Iso view must render +X and +Y2D coordinate axes');
+  assert.ok(textsIso.some((t) => t.includes('Isometric Perspective')), 'Iso view must render Isometric Perspective watermark');
+
+  // 4. HTML structure across all 8 visuals: 2D panel preset buttons and 3D camera preset bars
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+      html.includes('class="camera-presets-bar"') || html.includes("class='camera-presets-bar'"),
+      `${slug}: must contain .camera-presets-bar`
+    );
+    assert.ok(
+      html.includes('id="toolbar-2d-panel"'),
+      `${slug}: must contain #toolbar-2d-panel`
+    );
+    if (slug === 'thales-theorem') {
+      assert.ok(html.includes('data-plane="great-circle"') && html.includes('data-plane="xy"'), `${slug}: must contain data-plane buttons`);
+    } else {
+      assert.ok(
+        html.includes('data-camera-preset="top"') && html.includes('data-camera-preset="front"') && html.includes('data-camera-preset="side"') && html.includes('data-camera-preset="iso"'),
+        `${slug}: 2D panel must contain camera perspective presets (top, front, side, iso)`
+      );
+    }
   }
 });
 

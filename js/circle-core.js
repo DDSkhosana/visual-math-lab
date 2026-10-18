@@ -124,8 +124,35 @@ export function createStore(initialState) {
 export const CHEVRON_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg>`;
 export const CHEVRON_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 11 12 6 17 11"></polyline><polyline points="7 16 12 11 17 16"></polyline></svg>`;
 
-export function setExpandButtonUI(btn, isExpanded) {
+export const CHEVRON_DOWN_SINGLE_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+export const CHEVRON_UP_SINGLE_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+
+export function setPanelMinimizeButtonUI(btn, isMinimized, label = 'Panel') {
   if (!btn) return;
+  const isExpanded = !isMinimized;
+  btn.setAttribute('aria-expanded', String(isExpanded));
+
+  let resolvedLabel = label;
+  if (btn.id?.includes('2d') || btn.id?.includes('stats-2d')) resolvedLabel = '2D Telemetry';
+  else if (btn.id?.includes('3d') || btn.id?.includes('stats-3d')) resolvedLabel = '3D Telemetry';
+  else if (btn.id?.includes('deriv')) resolvedLabel = 'Derivations Panel';
+  else if (btn.id?.includes('controls') || btn.id?.includes('thales')) resolvedLabel = 'Controls Panel';
+  else if (btn.id?.includes('toolbar-2d')) resolvedLabel = '2D Controls';
+  else if (btn.id?.includes('toolbar-3d') || btn.id === 'toggle-toolbar-minimize') resolvedLabel = '3D Controls';
+
+  btn.title = isExpanded ? `Minimize ${resolvedLabel}` : `Expand ${resolvedLabel}`;
+  btn.classList.add('panel-minimize-btn');
+
+  let icon = btn.querySelector('.panel-minimize-icon');
+  if (!icon) {
+    btn.innerHTML = `<span class="panel-minimize-icon" aria-hidden="true">${isExpanded ? CHEVRON_UP_SINGLE_SVG : CHEVRON_DOWN_SINGLE_SVG}</span>`;
+  } else {
+    icon.innerHTML = isExpanded ? CHEVRON_UP_SINGLE_SVG : CHEVRON_DOWN_SINGLE_SVG;
+  }
+}
+
+export function setExpandButtonUI(btn, isExpanded) {
+  if (!btn || btn.id === 'nav-visuals-btn' || btn.classList?.contains?.('site-nav__dropdown-trigger')) return;
   btn.setAttribute('aria-expanded', String(isExpanded));
   btn.title = isExpanded ? 'Collapse all sections' : 'Expand all sections';
 
@@ -184,8 +211,7 @@ export class Panel {
 
   #syncMinimizeButton() {
     if (!this.minimizeButton) return;
-    this.minimizeButton.textContent = this.minimized ? '+' : '−';
-    this.minimizeButton.setAttribute('aria-expanded', String(!this.minimized));
+    setPanelMinimizeButtonUI(this.minimizeButton, this.minimized, 'Panel');
     if (this.expandButton && this.minimized) {
       setExpandButtonUI(this.expandButton, false);
     }
@@ -224,9 +250,16 @@ export class Panel {
       header?.classList.toggle('open', !isCollapse);
       header?.setAttribute('aria-expanded', String(!isCollapse));
       content?.classList.toggle('open', !isCollapse);
+      c.classList.toggle('open', !isCollapse);
       const icon = c.querySelector('.icon');
       if (icon) icon.textContent = isCollapse ? '▶' : '▼';
     });
+    const totalOpen = isCollapse ? 0 : (sections.length + cards.length);
+    this.element.classList.toggle('has-expanded-subpanel', totalOpen > 0);
+    this.body.classList.toggle('is-all-expanded', totalOpen > 1);
+    const isSingle = totalOpen === 1;
+    sections.forEach((s) => s.classList.toggle('is-subpanel-overlay', isSingle && !s.classList.contains('collapsed')));
+    cards.forEach((c) => c.classList.toggle('is-subpanel-overlay', isSingle && (c.classList.contains('open') || Boolean(c.querySelector('.derivation-card-header')?.classList.contains('open')))));
     if (this.expandButton) {
       setExpandButtonUI(this.expandButton, !isCollapse);
     }
@@ -329,6 +362,10 @@ export class DraggableToolbar {
       });
     }
 
+    if (this.isCollapsed) {
+      this.setCollapsed(true);
+    }
+
     window.addEventListener('resize', () => {
       if (this.toolbar.style.transform === 'none') {
         const parent = this.toolbar.offsetParent ?? document.body;
@@ -377,12 +414,20 @@ export class DraggableToolbar {
 
   setCollapsed(collapsed) {
     this.toolbar.classList.toggle('is-collapsed', collapsed);
+    const tipsOn = (typeof document !== 'undefined' && document.body?.classList?.contains('interaction-tips-enabled')) ||
+                   (typeof localStorage !== 'undefined' && localStorage.getItem('vml_interaction_tips_enabled') !== 'false');
+    this.toolbar.classList.toggle('tips-active', Boolean(collapsed && tipsOn));
     if (this.collapseBtn) {
       this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand toolbar' : 'Collapse toolbar');
+      this.collapseBtn.title = collapsed ? 'Expand viewport modes panel' : 'Collapse / expand viewport modes panel';
       const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
       const iconExpand = this.collapseBtn.querySelector('.icon-expand');
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
       if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
+    }
+    if (collapsed) {
+      this.resetPosition();
     }
   }
 
@@ -466,8 +511,7 @@ export class TelemetryPanel {
     this.element.classList.toggle('collapsed', collapsed);
     this.header.setAttribute('aria-expanded', String(!collapsed));
     if (this.toggleButton) {
-      this.toggleButton.setAttribute('aria-expanded', String(!collapsed));
-      this.toggleButton.textContent = collapsed ? '+' : '−';
+      setPanelMinimizeButtonUI(this.toggleButton, collapsed, 'Telemetry');
     }
   }
 }
@@ -509,7 +553,8 @@ export function initCollapsibleSections(root = document) {
     }
   });
 
-  const expandBtns = Array.from(root.querySelectorAll ? root.querySelectorAll('.panel-expand-btn, [id$="-expand"], [id$="-btn"]') : []);
+  const expandBtns = Array.from(root.querySelectorAll ? root.querySelectorAll('.panel-expand-btn, [id$="-expand"]') : [])
+    .filter((btn) => btn.id !== 'nav-visuals-btn' && !btn.id?.startsWith('nav-') && !btn.classList?.contains?.('site-nav__dropdown-trigger'));
   expandBtns.forEach((btn) => {
     setExpandButtonUI(btn, false);
   });
@@ -521,6 +566,7 @@ export function initCollapsibleSections(root = document) {
     const card = header.closest('.derivation-card');
     if (card) {
       const isOpen = header.classList.toggle('open');
+      card.classList.toggle('open', isOpen);
       header.setAttribute('aria-expanded', String(isOpen));
       const content = card.querySelector('.derivation-card-content');
       if (content) content.classList.toggle('open', isOpen);
@@ -552,16 +598,29 @@ export function initCollapsibleSections(root = document) {
 function _syncPanelExpandButton(header) {
   const panel = header.closest('.ui-panel');
   if (!panel) return;
-  const expandBtn = panel.querySelector('[id$="-expand"], [id$="-btn"]');
+  const expandBtn = panel.querySelector('.panel-expand-btn, [id$="-expand"]');
   const body = panel.querySelector('.panel-body');
-  if (!expandBtn || !body) return;
+  if (!body) return;
 
   const sections = Array.from(body.querySelectorAll('.collapsible-section'));
   const cards = Array.from(body.querySelectorAll('.derivation-card'));
-  const allSectionsOpen = sections.length === 0 || sections.every((s) => !s.classList.contains('collapsed'));
-  const allCardsOpen = cards.length === 0 || cards.every((c) => c.querySelector('.derivation-card-header')?.classList.contains('open'));
+  const openSections = sections.filter((s) => !s.classList.contains('collapsed'));
+  const openCards = cards.filter((c) => c.classList.contains('open') || Boolean(c.querySelector('.derivation-card-header')?.classList.contains('open')));
 
-  setExpandButtonUI(expandBtn, allSectionsOpen && allCardsOpen);
+  const totalOpen = openSections.length + openCards.length;
+  panel.classList.toggle('has-expanded-subpanel', totalOpen > 0);
+  body.classList.toggle('is-all-expanded', totalOpen > 1);
+
+  const isSingle = totalOpen === 1;
+  sections.forEach((s) => s.classList.toggle('is-subpanel-overlay', isSingle && !s.classList.contains('collapsed')));
+  cards.forEach((c) => c.classList.toggle('is-subpanel-overlay', isSingle && (c.classList.contains('open') || Boolean(c.querySelector('.derivation-card-header')?.classList.contains('open')))));
+
+  const allSectionsOpen = sections.length === 0 || openSections.length === sections.length;
+  const allCardsOpen = cards.length === 0 || openCards.length === cards.length;
+
+  if (expandBtn) {
+    setExpandButtonUI(expandBtn, allSectionsOpen && allCardsOpen);
+  }
 }
 
 /**
@@ -630,12 +689,20 @@ export function drawTextBadge(ctx, text, x, y, color, font = 'bold 12px monospac
 }
 
 /**
- * Standardized vertical angle label badge helper:
- * Stacks angle symbol above degree value (e.g. "α" over "22.5°") to prevent horizontal overlap.
+ * Standardized single-line angle badge helper:
+ * Renders angle symbol and numerical value on a single line (e.g. "α = 22.5°")
+ * with dark protective halo to prevent obstructing angle arcs and geometric lines.
+ */
+export function drawAngleBadge(ctx, symbol, valStr, x, y, color, font = 'bold 12px monospace') {
+  const text = (valStr !== undefined && valStr !== null) ? `${symbol} = ${valStr}` : symbol;
+  drawHaloText(ctx, text, x, y, color, font, 'center');
+}
+
+/**
+ * Backward compatibility alias for single-line angle label badge.
  */
 export function drawVerticalAngleBadge(ctx, symbol, valStr, x, y, color, font = 'bold 12px monospace') {
-  const text = (valStr !== undefined && valStr !== null) ? `${symbol}\n${valStr}` : symbol;
-  drawHaloText(ctx, text, x, y, color, font, 'center');
+  return drawAngleBadge(ctx, symbol, valStr, x, y, color, font);
 }
 
 /**
@@ -752,13 +819,32 @@ export function drawDoubleArrow(ctx, p1, p2, color, width = 2, head = 10) {
 }
 
 /**
- * Draws a 2D Cartesian grid and coordinate axes through (cx, cy).
- * - vis2d.grid !== false: draws subtle Cartesian grid lines across the canvas.
- * - vis2d.axes !== false: draws X and Y coordinate axes through (cx, cy) with arrowheads and labels (+X, -X, +Y, -Y).
+ * Normalizes camera preset names across 2D plane and 3D camera naming conventions.
  */
-export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step = 40) {
+export function normalizeCameraPreset(val) {
+  if (!val) return 'iso';
+  const s = String(val).toLowerCase();
+  if (s === 'isometric' || s === 'default' || s === 'great-circle' || s === 'iso') return 'iso';
+  if (s === 'front' || s === 'xy') return 'front';
+  if (s === 'top' || s === 'xz') return 'top';
+  if (s === 'side' || s === 'yz') return 'side';
+  return s;
+}
+
+/**
+ * Draws a 2D Cartesian grid, coordinate axes, and active projection watermark through (cx, cy).
+ * - vis2d.grid !== false: draws subtle Cartesian grid lines across the canvas.
+ * - vis2d.axes !== false: draws re-orientated coordinate axes matching the active camera perspective
+ *   (top: +X/+Z plan, front: +X/+Y elevation, side: +Z/+Y profile, iso: +X/+Y2D section).
+ * - Watermark pill indicates active projection plane and orientation.
+ */
+export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step = 40, perspective = null) {
   const showGrid = vis2d?.grid !== false;
   const showAxes = vis2d?.axes !== false;
+  const showLabels = vis2d?.labels !== false;
+  const showCoords = Boolean(vis2d?.coords);
+  const rawP = perspective || vis2d?.cameraPerspective || vis2d?.perspective;
+  const p = rawP ? normalizeCameraPreset(rawP) : null;
 
   ctx.save();
 
@@ -801,26 +887,56 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
   }
 
   if (showAxes) {
-    // X-Axis (Horizontal) - Amber
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+    let xColor = PALETTE.amber;
+    let yColor = PALETTE.lime;
+    let xLabel = '+X';
+    let xNegLabel = '-X';
+    let yLabel = '+Y';
+    let yNegLabel = '-Y';
+
+    if (p === 'top') {
+      xColor = PALETTE.amber;
+      yColor = PALETTE.steel;
+      xLabel = '+X';
+      xNegLabel = '-X';
+      yLabel = '+Z';
+      yNegLabel = '-Z';
+    } else if (p === 'side') {
+      xColor = PALETTE.steel;
+      yColor = PALETTE.lime;
+      xLabel = '+Z';
+      xNegLabel = '-Z';
+      yLabel = '+Y';
+      yNegLabel = '-Y';
+    } else if (p === 'iso') {
+      xColor = PALETTE.amber;
+      yColor = PALETTE.emerald;
+      xLabel = '+X';
+      xNegLabel = '-X';
+      yLabel = '+Y₂D';
+      yNegLabel = '-Y₂D';
+    }
+
+    // Horizontal Axis
+    ctx.strokeStyle = xColor;
     ctx.lineWidth = 1.75;
     ctx.beginPath();
     ctx.moveTo(0, cy);
     ctx.lineTo(width, cy);
     ctx.stroke();
 
-    // Y-Axis (Vertical) - Lime
-    ctx.strokeStyle = 'rgba(132, 204, 22, 0.8)';
+    // Vertical Axis
+    ctx.strokeStyle = yColor;
     ctx.lineWidth = 1.75;
     ctx.beginPath();
     ctx.moveTo(cx, 0);
     ctx.lineTo(cx, height);
     ctx.stroke();
 
-    // Arrowheads (+X at right, -X at left, +Y at top, -Y at bottom)
+    // Arrowheads (+Horiz at right, -Horiz at left, +Vert at top, -Vert at bottom)
     const arrowHead = 8;
-    // +X (right)
-    ctx.fillStyle = PALETTE.amber;
+    // +Horiz (right)
+    ctx.fillStyle = xColor;
     ctx.beginPath();
     ctx.moveTo(width - 2, cy);
     ctx.lineTo(width - arrowHead - 2, cy - 4);
@@ -828,7 +944,7 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
     ctx.closePath();
     ctx.fill();
 
-    // -X (left)
+    // -Horiz (left)
     ctx.beginPath();
     ctx.moveTo(2, cy);
     ctx.lineTo(arrowHead + 2, cy - 4);
@@ -836,8 +952,8 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
     ctx.closePath();
     ctx.fill();
 
-    // +Y (top)
-    ctx.fillStyle = PALETTE.lime;
+    // +Vert (top)
+    ctx.fillStyle = yColor;
     ctx.beginPath();
     ctx.moveTo(cx, 2);
     ctx.lineTo(cx - 4, arrowHead + 2);
@@ -845,7 +961,7 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
     ctx.closePath();
     ctx.fill();
 
-    // -Y (bottom)
+    // -Vert (bottom)
     ctx.beginPath();
     ctx.moveTo(cx, height - 2);
     ctx.lineTo(cx - 4, height - arrowHead - 2);
@@ -853,11 +969,25 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
     ctx.closePath();
     ctx.fill();
 
-    // Axis Labels
-    drawHaloText(ctx, '+X', width - 20, cy - 10, PALETTE.amber, 'bold 11px monospace');
-    drawHaloText(ctx, '-X', 20, cy - 10, PALETTE.amber, 'bold 11px monospace');
-    drawHaloText(ctx, '+Y', cx + 12, 18, PALETTE.lime, 'bold 11px monospace');
-    drawHaloText(ctx, '-Y', cx + 12, height - 12, PALETTE.lime, 'bold 11px monospace');
+    // Axis Labels & Watermark
+    if (showLabels) {
+      drawHaloText(ctx, xLabel, width - 20, cy - 10, xColor, 'bold 11px monospace');
+      drawHaloText(ctx, xNegLabel, 20, cy - 10, xColor, 'bold 11px monospace');
+      drawHaloText(ctx, yLabel, cx + 12, 18, yColor, 'bold 11px monospace');
+      drawHaloText(ctx, yNegLabel, cx + 12, height - 12, yColor, 'bold 11px monospace');
+
+      if (showCoords || rawP) {
+        const watermarks = {
+          top: 'XZ Plan Projection (Y=0) | Top View',
+          front: 'XY Elevation Projection (Z=0) | Front View',
+          side: 'YZ Profile Projection (X=0) | Side View',
+          iso: 'Isometric Perspective | Great Circle Section',
+        };
+        const activeKey = p || 'top';
+        const wm = watermarks[activeKey] || watermarks.top;
+        drawHaloText(ctx, wm, 14, height - 12, 'rgba(148, 163, 184, 0.75)', 'bold 11px monospace');
+      }
+    }
   }
 
   ctx.restore();
@@ -1117,6 +1247,7 @@ export function getPointLabel(name, x, y, vis2d = {}) {
 
 export function createDefaultVisState() {
   return {
+    pan: { x: 0, y: 0 },
     lengthUnit: 'px',
     angleUnit: 'deg',
     cameraMode: 'arcball',
@@ -1304,13 +1435,13 @@ export function bindStandardToggles(store, ...args) {
   });
 
   // 3D & 2D Synchronized Camera Perspective Presets
-  const cameraButtons = document.querySelectorAll(
-    '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
-  );
+  const cameraButtonSelector =
+    '#toolbar-3d-panel [data-preset], .camera-presets-bar button, [data-camera-preset], #toolbar-2d-panel [data-preset], [data-plane]';
 
   const applyPerspective = (preset) => {
-    let p = preset;
-    if (p === 'isometric' || p === 'default') p = 'iso';
+    const p = normalizeCameraPreset(preset);
+    const planeMap = { iso: 'great-circle', top: 'xz', front: 'xy', side: 'yz' };
+    const pKey = planeMap[p] || 'great-circle';
 
     // 1. Update 3D scene camera
     sceneTarget?.setCameraPreset(p);
@@ -1345,39 +1476,55 @@ export function bindStandardToggles(store, ...args) {
     updateContainerBadge('canvas-3d-container');
 
     // 3. Update active classes across all buttons in 2D & 3D
-    const allButtons = document.querySelectorAll(
-      '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
-    );
+    const allButtons = document.querySelectorAll(cameraButtonSelector);
     allButtons.forEach((b) => {
-      let bPreset = b.dataset.preset || b.dataset.cameraPreset;
-      if (bPreset === 'isometric' || bPreset === 'default') bPreset = 'iso';
-      b.classList.toggle('active', bPreset === p);
+      if (b.classList.contains('camera-mode-toggle')) return;
+      const bPreset = b.dataset.preset || b.dataset.cameraPreset || b.dataset.plane;
+      if (!bPreset) return;
+      b.classList.toggle('active', normalizeCameraPreset(bPreset) === p);
     });
 
     // 4. Update store state
-    store.set({ cameraPerspective: p });
+    store.set({
+      cameraPerspective: p,
+      plane2D: pKey,
+      vis2d: {
+        ...(store.get().vis2d || {}),
+        cameraPerspective: p,
+        plane: pKey,
+      },
+    });
+
+    // 5. Trigger 2D canvas re-render
+    if (viewTarget?.render) {
+      viewTarget.render(store.get());
+    } else if (viewTarget?.draw) {
+      viewTarget.draw();
+    }
   };
 
-  cameraButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const preset = btn.dataset.preset || btn.dataset.cameraPreset;
+  // Delegated click handler on document to capture all present and future camera preset buttons
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest(cameraButtonSelector);
+    if (!btn || btn.classList.contains('camera-mode-toggle')) return;
+    const preset = btn.dataset.preset || btn.dataset.cameraPreset || btn.dataset.plane;
+    if (preset) {
       applyPerspective(preset);
-    });
+    }
   });
 
   store.subscribe((state) => {
     if (state.cameraPerspective) {
-      const p = state.cameraPerspective;
-      const allButtons = document.querySelectorAll(
-        '#toolbar-3d-panel [data-preset], #canvas-3d-container .camera-presets-bar button, #toolbar-3d-panel [data-camera-preset], #toolbar-2d-panel [data-camera-preset], #toolbar-2d-panel [data-preset]'
-      );
+      const p = normalizeCameraPreset(state.cameraPerspective);
+      const allButtons = document.querySelectorAll(cameraButtonSelector);
       allButtons.forEach((b) => {
-        let bPreset = b.dataset.preset || b.dataset.cameraPreset;
-        if (bPreset === 'isometric' || bPreset === 'default') bPreset = 'iso';
-        b.classList.toggle('active', bPreset === p);
+        if (b.classList.contains('camera-mode-toggle')) return;
+        const bPreset = b.dataset.preset || b.dataset.cameraPreset || b.dataset.plane;
+        if (!bPreset) return;
+        b.classList.toggle('active', normalizeCameraPreset(bPreset) === p);
       });
     }
-  }, ['cameraPerspective']);
+  }, ['cameraPerspective', 'plane2D']);
 
   // 3D Camera Rotation Mode (Free 360° Trackball vs Constrained Turntable Orbit)
   const presetBars = document.querySelectorAll('.camera-presets-bar');

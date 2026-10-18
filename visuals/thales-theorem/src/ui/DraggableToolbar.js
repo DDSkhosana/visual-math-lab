@@ -25,6 +25,10 @@ export class DraggableToolbar {
       });
     }
 
+    if (this.isCollapsed) {
+      this.setCollapsed(true);
+    }
+
     window.addEventListener('resize', () => this.#handleWindowResize());
     this.#initEvents();
   }
@@ -35,12 +39,20 @@ export class DraggableToolbar {
 
   setCollapsed(collapsed) {
     this.toolbar.classList.toggle('is-collapsed', collapsed);
+    const tipsOn = (typeof document !== 'undefined' && document.body?.classList?.contains('interaction-tips-enabled')) ||
+                   (typeof localStorage !== 'undefined' && localStorage.getItem('vml_interaction_tips_enabled') !== 'false');
+    this.toolbar.classList.toggle('tips-active', Boolean(collapsed && tipsOn));
     if (this.collapseBtn) {
       this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand toolbar' : 'Collapse toolbar');
+      this.collapseBtn.title = collapsed ? 'Expand viewport modes panel' : 'Collapse / expand viewport modes panel';
       const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
       const iconExpand = this.collapseBtn.querySelector('.icon-expand');
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
       if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
+    }
+    if (collapsed) {
+      this.resetPosition();
     }
   }
 

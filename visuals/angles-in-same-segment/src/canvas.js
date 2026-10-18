@@ -34,7 +34,7 @@ export class CanvasView {
     const g = computeGeometry(state, width, height);
 
     // Cartesian Grid & Coordinate Axes
-    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d, 40, state.cameraPerspective);
 
     // Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -131,7 +131,7 @@ export class CanvasView {
     // Angle text annotations with protective badge pills inside angle cones
     const showLabels = state.vis2d?.labels !== false;
     if (showAngles && showLabels) {
-      // Central Angle badge at O (above O along angle bisector) in yellow
+      // Central Angle badge at O (along angle bisector outside central wedge)
       if (state.showCenter) {
         const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
         const angB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
@@ -141,7 +141,7 @@ export class CanvasView {
         const lenO = Math.hypot(bisOX, bisOY);
         const nbOX = lenO > 0.001 ? bisOX / lenO : 0;
         const nbOY = lenO > 0.001 ? bisOY / lenO : -1;
-        drawTextBadge(ctx, `2θ\n${g.centralDeg.toFixed(1)}°`, g.O.x + 44 * nbOX, g.O.y + 44 * nbOY, PALETTE.yellow);
+        drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, g.O.x + 50 * nbOX, g.O.y + 50 * nbOY, PALETTE.yellow);
       }
 
       const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
@@ -152,7 +152,7 @@ export class CanvasView {
       const len1 = Math.hypot(bis1X, bis1Y);
       const nb1X = len1 > 0.001 ? bis1X / len1 : 0;
       const nb1Y = len1 > 0.001 ? bis1Y / len1 : 1;
-      drawTextBadge(ctx, `θ₁\n${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 44 * nb1X, g.P1.y + 44 * nb1Y, PALETTE.blue);
+      drawTextBadge(ctx, `θ₁ = ${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 50 * nb1X, g.P1.y + 50 * nb1Y, PALETTE.blue);
 
       const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
       const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
@@ -162,7 +162,7 @@ export class CanvasView {
       const len2 = Math.hypot(bis2X, bis2Y);
       const nb2X = len2 > 0.001 ? bis2X / len2 : 0;
       const nb2Y = len2 > 0.001 ? bis2Y / len2 : 1;
-      drawTextBadge(ctx, `θ₂\n${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 44 * nb2X, g.P2.y + 44 * nb2Y, PALETTE.emerald);
+      drawTextBadge(ctx, `θ₂ = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 50 * nb2X, g.P2.y + 50 * nb2Y, PALETTE.emerald);
     }
 
     // Conjugate Reflex Angles (Perigon 360° - θ)
@@ -181,13 +181,13 @@ export class CanvasView {
         const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
         const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
         const len1 = Math.hypot(bis1X, bis1Y) || 1;
-        drawTextBadge(ctx, `θ₁*\n${(360 - g.angleP1Deg).toFixed(1)}°`, g.P1.x - 48 * (bis1X / len1), g.P1.y - 48 * (bis1Y / len1), PALETTE.blue);
+        drawTextBadge(ctx, `θ₁* = ${(360 - g.angleP1Deg).toFixed(1)}°`, g.P1.x - 54 * (bis1X / len1), g.P1.y - 54 * (bis1Y / len1), PALETTE.blue);
 
         const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
         const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
         const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
         const len2 = Math.hypot(bis2X, bis2Y) || 1;
-        drawTextBadge(ctx, `θ₂*\n${(360 - g.angleP2Deg).toFixed(1)}°`, g.P2.x - 48 * (bis2X / len2), g.P2.y - 48 * (bis2Y / len2), PALETTE.emerald);
+        drawTextBadge(ctx, `θ₂* = ${(360 - g.angleP2Deg).toFixed(1)}°`, g.P2.x - 54 * (bis2X / len2), g.P2.y - 54 * (bis2Y / len2), PALETTE.emerald);
       }
     }
   }

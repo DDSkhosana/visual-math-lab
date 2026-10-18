@@ -163,8 +163,15 @@ function updateTipsDOMState(enabled) {
     toolbarBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     const label = toolbarBtn.querySelector('.tips-btn-label');
     if (label) {
-      label.textContent = enabled ? 'Tips: ON' : 'Tips: OFF';
+      label.innerHTML = `Tips: <span class="tutorial-status-pill ${enabled ? 'is-on' : 'is-off'}" id="toolbar-tips-status">${enabled ? 'ON' : 'OFF'}</span>`;
     }
+  }
+
+  // Synchronize glow on collapsed modes panel (viewport toolbar)
+  if (typeof document !== 'undefined' && document.querySelectorAll) {
+    document.querySelectorAll('.viewport-header-toolbar').forEach((tb) => {
+      tb.classList.toggle('tips-active', Boolean(enabled && tb.classList.contains('is-collapsed')));
+    });
   }
 }
 

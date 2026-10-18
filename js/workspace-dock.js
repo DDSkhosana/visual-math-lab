@@ -44,6 +44,7 @@ export class WorkspaceDockManager {
   #initContainers() {
     this.root.classList.add('has-workspace-dock');
     this.root.setAttribute('data-dock-edge', this.dockEdge);
+    this.deduceViewport();
 
     // 1. Floating Workspace Layer (Overlay directly above the Canvas container)
     this.floatingLayer = this.root.querySelector('.floating-workspace');
@@ -243,6 +244,17 @@ export class WorkspaceDockManager {
           this.setDockCollapsed(false);
         }
       });
+      header.addEventListener('dblclick', (e) => {
+        if (this.isCollapsed) {
+          e.stopPropagation();
+          const initX = 16;
+          const initY = 56;
+          this.dockElement.style.left = `${initX}px`;
+          this.dockElement.style.top = `${initY}px`;
+          this.collapsedPos = { x: initX, y: initY };
+          this.#persistState();
+        }
+      });
     }
   }
 
@@ -388,15 +400,22 @@ export class WorkspaceDockManager {
       btn.setAttribute('aria-pressed', String(isActive));
     });
 
+    this.syncSubpanelOverlayState();
     this.#persistState();
   }
 
   setDockCollapsed(collapsed) {
     this.isCollapsed = Boolean(collapsed);
     this.dockElement.classList.toggle('is-collapsed', this.isCollapsed);
+    this.root?.classList?.toggle('dock-is-collapsed', this.isCollapsed);
 
     if (this.isCollapsed) {
       if (this.collapsedPos) {
+        const parentRect = this.root?.getBoundingClientRect?.() || { width: 1000, height: 700 };
+        const maxL = Math.max(8, (parentRect.width || 1000) - 100);
+        const maxT = Math.max(8, (parentRect.height || 700) - 45);
+        this.collapsedPos.x = clamp(this.collapsedPos.x, 8, maxL);
+        this.collapsedPos.y = clamp(this.collapsedPos.y, 8, maxT);
         this.dockElement.style.left = `${this.collapsedPos.x}px`;
         this.dockElement.style.top = `${this.collapsedPos.y}px`;
         this.dockElement.style.right = 'auto';
@@ -404,11 +423,16 @@ export class WorkspaceDockManager {
       } else {
         const parentRect = this.root.getBoundingClientRect();
         let initX = 16;
-        let initY = 16;
+        let initY = 56;
         if (this.dockEdge === 'right') {
           initX = Math.max(16, (parentRect.width || 1000) - 160);
+          initY = 16;
         } else if (this.dockEdge === 'bottom') {
+          initX = 16;
           initY = Math.max(16, (parentRect.height || 700) - 48);
+        } else if (this.dockEdge === 'top') {
+          initX = 16;
+          initY = 16;
         }
         this.dockElement.style.left = `${initX}px`;
         this.dockElement.style.top = `${initY}px`;
@@ -492,6 +516,7 @@ export class WorkspaceDockManager {
     const sections = container.querySelectorAll ? container.querySelectorAll('.collapsible-section') : [];
     sections.forEach((sec) => {
       sec.classList.add('collapsed');
+      sec.classList.remove('is-subpanel-overlay');
       const header = sec.querySelector ? sec.querySelector('.collapsible-header') : null;
       if (header) {
         header.setAttribute('aria-expanded', 'false');
@@ -509,6 +534,8 @@ export class WorkspaceDockManager {
     // 2. Derivation cards inside panel
     const cards = container.querySelectorAll ? container.querySelectorAll('.derivation-card') : [];
     cards.forEach((card) => {
+      card.classList.remove('open');
+      card.classList.remove('is-subpanel-overlay');
       const header = card.querySelector ? card.querySelector('.derivation-card-header') : null;
       if (header) {
         header.classList.remove('open');
@@ -522,9 +549,17 @@ export class WorkspaceDockManager {
       }
     });
 
-    // 3. Panel expand all buttons
-    const expandBtns = container.querySelectorAll ? container.querySelectorAll('.panel-expand-btn, [id$="-expand"], [id$="-btn"]') : [];
+    // 3. Panel expand all buttons & body classes
+    const panels = container.querySelectorAll ? container.querySelectorAll('.ui-panel') : [];
+    panels.forEach((p) => {
+      p.classList.remove('has-expanded-subpanel');
+      const b = p.querySelector ? p.querySelector('.panel-body') : null;
+      if (b) b.classList.remove('is-all-expanded');
+    });
+
+    const expandBtns = container.querySelectorAll ? container.querySelectorAll('.panel-expand-btn, [id$="-expand"]') : [];
     expandBtns.forEach((btn) => {
+      if (btn.id === 'nav-visuals-btn' || btn.classList?.contains?.('site-nav__dropdown-trigger')) return;
       btn.setAttribute('aria-expanded', 'false');
       btn.title = 'Expand all sections';
       const label = btn.querySelector ? btn.querySelector('.panel-expand-label') : null;
@@ -540,6 +575,40 @@ export class WorkspaceDockManager {
     if (this.dockBody) {
       this.collapseSubComponents(this.dockBody);
     }
+  }
+
+  syncSubpanelOverlayState(container = this.dockBody) {
+    if (!container) return;
+    const panels = container.querySelectorAll ? container.querySelectorAll('.ui-panel') : [];
+    panels.forEach((panel) => {
+      const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+      if (!body) return;
+      const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
+      const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
+
+      const openSections = sections.filter((s) => !s.classList.contains('collapsed'));
+      const openCards = cards.filter((c) => {
+        const h = c.querySelector ? c.querySelector('.derivation-card-header') : null;
+        return c.classList.contains('open') || Boolean(h?.classList.contains('open'));
+      });
+
+      const totalOpen = openSections.length + openCards.length;
+      const isSingle = totalOpen === 1;
+
+      panel.classList.toggle('has-expanded-subpanel', totalOpen > 0);
+      body.classList.toggle('is-all-expanded', totalOpen > 1);
+
+      sections.forEach((s) => {
+        const isOpen = !s.classList.contains('collapsed');
+        s.classList.toggle('is-subpanel-overlay', isSingle && isOpen);
+      });
+
+      cards.forEach((c) => {
+        const h = c.querySelector ? c.querySelector('.derivation-card-header') : null;
+        const isOpen = c.classList.contains('open') || Boolean(h?.classList.contains('open'));
+        c.classList.toggle('is-subpanel-overlay', isSingle && isOpen);
+      });
+    });
   }
 
   #enhancePanelHeader(record) {
@@ -865,19 +934,45 @@ export class WorkspaceDockManager {
 
     // Ensure floating windows stay within viewport bounds on window resize
     this.win?.addEventListener?.('resize', () => {
-      if (!this.floatingLayer) return;
-      const parentRect = this.floatingLayer.getBoundingClientRect();
-      this.panels.forEach((record) => {
-        if (!record.isFloating || record.isHidden) return;
-        const panel = record.element;
-        const curLeft = parseFloat(panel.style.left) || 0;
-        const curTop = parseFloat(panel.style.top) || 0;
-        const maxL = Math.max(0, parentRect.width - (panel.offsetWidth || 300));
-        const maxT = Math.max(0, parentRect.height - (panel.offsetHeight || 200));
-        panel.style.left = `${clamp(curLeft, 0, maxL)}px`;
-        panel.style.top = `${clamp(curTop, 0, maxT)}px`;
-      });
+      this.deduceViewport();
+      if (this.floatingLayer) {
+        const parentRect = this.floatingLayer.getBoundingClientRect();
+        this.panels.forEach((record) => {
+          if (!record.isFloating || record.isHidden) return;
+          const panel = record.element;
+          const curLeft = parseFloat(panel.style.left) || 0;
+          const curTop = parseFloat(panel.style.top) || 0;
+          const maxL = Math.max(0, parentRect.width - (panel.offsetWidth || 300));
+          const maxT = Math.max(0, parentRect.height - (panel.offsetHeight || 200));
+          panel.style.left = `${clamp(curLeft, 0, maxL)}px`;
+          panel.style.top = `${clamp(curTop, 0, maxT)}px`;
+        });
+      }
+      if (this.isCollapsed && this.collapsedPos && this.root) {
+        const rootRect = this.root.getBoundingClientRect?.() || { width: 1000, height: 700 };
+        const maxL = Math.max(8, (rootRect.width || 1000) - 100);
+        const maxT = Math.max(8, (rootRect.height || 700) - 45);
+        this.collapsedPos.x = clamp(this.collapsedPos.x, 8, maxL);
+        this.collapsedPos.y = clamp(this.collapsedPos.y, 8, maxT);
+        this.dockElement.style.left = `${this.collapsedPos.x}px`;
+        this.dockElement.style.top = `${this.collapsedPos.y}px`;
+      }
     });
+
+    // Auto-sync sub-panel overlay state on click interactions inside docked panels
+    this.dockBody?.addEventListener?.('click', (e) => {
+      if (e.target?.closest?.('.collapsible-header, .panel-expand-btn, [id$="-expand"], [id$="-btn"], .panel-minimize-btn')) {
+        setTimeout(() => this.syncSubpanelOverlayState(), 0);
+      }
+    });
+  }
+
+  deduceViewport() {
+    if (!this.root) return;
+    const w = this.win?.innerWidth || this.root.getBoundingClientRect?.()?.width || 1200;
+    const isCompact = w <= 768;
+    this.root.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
+    this.dockElement?.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
   }
 
   #persistState() {

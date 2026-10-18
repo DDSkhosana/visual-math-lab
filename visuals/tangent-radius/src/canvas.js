@@ -33,7 +33,7 @@ export class CanvasView {
     const g = computeGeometry(state, width, height);
 
     // Cartesian Grid & Coordinate Axes
-    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d, 40, state.cameraPerspective);
 
     const showArea = (state.vis2d?.area !== false) && (state.showArea !== false);
     const showQuadrant = (state.showQuadrant !== false) && (state.vis2d?.quadrant !== false);
@@ -200,7 +200,7 @@ export class CanvasView {
         ctx.stroke();
 
         if (showLabels) {
-          drawTextBadge(ctx, '90°', t.rightSquare.c2.x + 8, t.rightSquare.c2.y + 8, PALETTE.teal);
+          drawTextBadge(ctx, '90.0°', t.rightSquare.c2.x + 12, t.rightSquare.c2.y + 12, PALETTE.teal);
         }
       }
 
@@ -212,9 +212,9 @@ export class CanvasView {
         drawReflexWedge(ctx, t.pt, angRad, angTan, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
 
         if (showLabels) {
-          const rbx = t.pt.x - 1.8 * (t.rightSquare.c2.x - t.pt.x);
-          const rby = t.pt.y - 1.8 * (t.rightSquare.c2.y - t.pt.y);
-          drawTextBadge(ctx, `${t.name}*\n270°`, rbx, rby, PALETTE.teal);
+          const rbx = t.pt.x - 2.2 * (t.rightSquare.c2.x - t.pt.x);
+          const rby = t.pt.y - 2.2 * (t.rightSquare.c2.y - t.pt.y);
+          drawTextBadge(ctx, `${t.name}* = 270.0°`, rbx, rby, PALETTE.teal);
         }
       }
 

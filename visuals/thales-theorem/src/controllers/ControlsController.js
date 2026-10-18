@@ -1,4 +1,4 @@
-import { rotateBaseline90, setBaselineRotation, setFlag, setPlane2D } from '../model/actions.js';
+import { setBaselineRotation, setFlag, setPlane2D } from '../model/actions.js';
 import { SLIDERS, TOGGLES } from './controls-config.js';
 
 /** Two-way binding between form controls and the store, driven by controls-config.js. */
@@ -48,11 +48,6 @@ export class ControlsController {
 
     for (const { rot, btn } of this.baselineButtons) {
       btn.addEventListener('click', () => store.set(setBaselineRotation(rot)));
-    }
-
-    const flipBtn = root.getElementById('btn-flip-baseline');
-    if (flipBtn) {
-      flipBtn.addEventListener('click', () => store.set(rotateBaseline90(store.get())));
     }
   }
 

@@ -1,6 +1,6 @@
 import { COMPACT_QUERY, LIMITS } from '../config/defaults.js';
 import { clamp } from '../model/thales-math.js';
-import { setExpandButtonUI } from './Accordion.js';
+import { setExpandButtonUI, setPanelMinimizeButtonUI } from './Accordion.js';
 
 /**
  * A floating panel that can be dragged, resized and minimised with Pointer Events (mouse, touch, pen).
@@ -42,8 +42,7 @@ export class Panel {
 
   #syncMinimizeButton() {
     if (!this.minimizeButton) return;
-    this.minimizeButton.textContent = this.minimized ? '+' : '−';
-    this.minimizeButton.setAttribute('aria-expanded', String(!this.minimized));
+    setPanelMinimizeButtonUI(this.minimizeButton, this.minimized, 'Panel');
     if (this.expandButton && this.minimized) {
       setExpandButtonUI(this.expandButton, false);
     }

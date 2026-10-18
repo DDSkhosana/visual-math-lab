@@ -12,25 +12,40 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { get3DAngleBisector, get3DAngleDegrees } from '../js/circle-3d.js';
-import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI } from '../js/circle-core.js';
-import { setExpandButtonUI as thalesSetExpandButtonUI } from '../visuals/thales-theorem/src/ui/Accordion.js';
+import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections } from '../js/circle-core.js';
+import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/thales-theorem/src/ui/Accordion.js';
 
 const close = (actual, expected, eps = 1e-6) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
-test('Angle at Centre: central angle is exactly 2x inscribed angle across various configurations', () => {
+test('Angle at Centre: central angle is exactly 2x inscribed angle across various configurations (both major and minor arc placement)', () => {
   const width = 800;
   const height = 600;
   const state = AngleAtCentre.createInitialState();
 
-  // Test across multiple arc spans with P on the remaining part of the circle
+  // Test across multiple arc spans
   for (let span = 0.2 * Math.PI; span <= 0.9 * Math.PI; span += 0.2) {
     state.angleA = 0;
     state.angleB = span;
-    state.angleP = span / 2 + Math.PI;
-    const g = AngleAtCentre.computeGeometry(state, width, height);
 
-    close(g.centralDeg, 2 * g.inscribedDeg, 1e-4);
-    close(g.ratio, 2.0, 1e-4);
+    // 1. P on the major arc: acute inscribed angle, minor central angle
+    state.angleP = span / 2 + Math.PI;
+    const gMajor = AngleAtCentre.computeGeometry(state, width, height);
+    close(gMajor.centralDeg, 2 * gMajor.inscribedDeg, 1e-4);
+    close(gMajor.ratio, 2.0, 1e-4);
+    assert.ok(gMajor.centralDeg < 180, 'Major arc placement must yield central angle < 180°');
+    assert.ok(gMajor.inscribedDeg < 90, 'Major arc placement must yield inscribed angle < 90°');
+
+    // 2. P on the minor arc (below AOB): obtuse inscribed angle, reflex central angle
+    state.angleP = span / 2;
+    const gMinor = AngleAtCentre.computeGeometry(state, width, height);
+    close(gMinor.centralDeg, 2 * gMinor.inscribedDeg, 1e-4);
+    close(gMinor.ratio, 2.0, 1e-4);
+    assert.ok(gMinor.centralDeg > 180, 'Minor arc placement must dynamically yield reflex central angle > 180°');
+    assert.ok(gMinor.inscribedDeg > 90, 'Minor arc placement must yield obtuse inscribed angle > 90°');
+
+    // 3. Reflex perigon invariant (360°)
+    close(gMinor.centralDeg + (360 - gMinor.centralDeg), 360, 1e-4);
+    close(gMinor.inscribedDeg + (360 - gMinor.inscribedDeg), 360, 1e-4);
   }
 });
 
@@ -732,6 +747,33 @@ test('Shared Navigation: components.js includes Home link and dropdown with all 
   const siteCss = fs.readFileSync(siteCssPath, 'utf8');
   assert.ok(siteCss.includes('overflow-x: auto'), 'site.css site-header must have overflow-x: auto');
   assert.ok(siteCss.includes('white-space: nowrap'), 'site.css site-header must have white-space: nowrap');
+
+  // Verify initCollapsibleSections and setExpandButtonUI never corrupt #nav-visuals-btn
+  const mockNavVisualsBtn = {
+    id: 'nav-visuals-btn',
+    classList: { contains: (cls) => cls === 'site-nav__dropdown-trigger', add: () => {} },
+    innerHTML: '<span>Visuals</span><svg class="site-nav__caret"></svg>',
+    title: 'Browse visualisations',
+    setAttribute: () => {},
+    getAttribute: () => 'false',
+    querySelector: () => null,
+  };
+  const mockNavDoc = {
+    querySelectorAll: (sel) => {
+      if (sel.includes('.panel-expand-btn') || sel.includes('nav-visuals-btn')) {
+        return [mockNavVisualsBtn];
+      }
+      return [];
+    },
+    addEventListener: () => {},
+  };
+  initCollapsibleSections(mockNavDoc);
+  setExpandButtonUI(mockNavVisualsBtn, false);
+  setExpandButtonUI(mockNavVisualsBtn, true);
+  thalesSetExpandButtonUI(mockNavVisualsBtn, false);
+  assert.strictEqual(mockNavVisualsBtn.title, 'Browse visualisations', '#nav-visuals-btn title must not be overwritten');
+  assert.ok(mockNavVisualsBtn.innerHTML.includes('Visuals'), '#nav-visuals-btn innerHTML must retain "Visuals"');
+  assert.ok(!mockNavVisualsBtn.innerHTML.includes('Expand All'), '#nav-visuals-btn must never contain "Expand All"');
 });
 
 test('Reflex Angle System: HTML toggles, 2D/3D telemetry, and perigon invariants across all 8 visuals', () => {
@@ -1200,6 +1242,116 @@ test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels,
   }
 });
 
+test('Panel Minimize Chevron Affordances: SVG single chevrons, accessible titles, and UI state synchronization across all 8 visualizers', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const cssVisual = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+  const cssCircle = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const cssOverlays = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+
+  // 1. Verify CSS styling definitions
+  assert.ok(cssVisual.includes('.panel-minimize-btn'), 'visual.css must define .panel-minimize-btn');
+  assert.ok(cssVisual.includes('.panel-minimize-icon'), 'visual.css must define .panel-minimize-icon');
+  assert.ok(cssVisual.includes('.stats-header .panel-minimize-btn'), 'visual.css must style stats-header .panel-minimize-btn');
+  assert.ok(cssCircle.includes('.stats-header .panel-minimize-btn'), 'circle-visual.css must style stats-header .panel-minimize-btn');
+  assert.ok(cssOverlays.includes('.stats-toggle-btn .panel-minimize-icon'), 'overlays.css must style .stats-toggle-btn .panel-minimize-icon');
+
+  // 2. Verify single chevron SVG constants in circle-core.js and Thales Accordion.js
+  assert.ok(typeof CHEVRON_DOWN_SINGLE_SVG === 'string' && CHEVRON_DOWN_SINGLE_SVG.includes('points="6 9 12 15 18 9"'), 'CHEVRON_DOWN_SINGLE_SVG must be single chevron down polyline');
+  assert.ok(typeof CHEVRON_UP_SINGLE_SVG === 'string' && CHEVRON_UP_SINGLE_SVG.includes('points="18 15 12 9 6 15"'), 'CHEVRON_UP_SINGLE_SVG must be single chevron up polyline');
+  assert.strictEqual(CHEVRON_DOWN_SINGLE_SVG, thalesChevronDownSingle, 'Thales Accordion.js single down chevron must match circle-core.js');
+  assert.strictEqual(CHEVRON_UP_SINGLE_SVG, thalesChevronUpSingle, 'Thales Accordion.js single up chevron must match circle-core.js');
+
+  // 3. Verify setPanelMinimizeButtonUI state transitions
+  function createMockMinBtn() {
+    let attrs = {};
+    let classes = new Set();
+    let innerHTML = '';
+    const btn = {
+      title: '',
+      setAttribute(k, v) { attrs[k] = String(v); },
+      getAttribute(k) { return attrs[k]; },
+      classList: {
+        add(c) { classes.add(c); },
+        contains(c) { return classes.has(c); },
+      },
+      get innerHTML() { return innerHTML; },
+      set innerHTML(val) {
+        innerHTML = val;
+        this._icon = val.includes('panel-minimize-icon') ? {
+          _html: '',
+          set innerHTML(h) { this._html = h; },
+          get innerHTML() { return this._html; }
+        } : null;
+      },
+      querySelector(selector) {
+        if (selector === '.panel-minimize-icon') return this._icon;
+        return null;
+      }
+    };
+    return btn;
+  }
+
+  // Test minimized (collapsed) state: down chevron, aria-expanded="false", title="Expand Controls Panel"
+  const testMinBtn = createMockMinBtn();
+  setPanelMinimizeButtonUI(testMinBtn, true, 'Controls Panel');
+  assert.equal(testMinBtn.getAttribute('aria-expanded'), 'false');
+  assert.equal(testMinBtn.title, 'Expand Controls Panel');
+  assert.ok(testMinBtn.classList.contains('panel-minimize-btn'));
+  assert.ok(testMinBtn.innerHTML.includes(CHEVRON_DOWN_SINGLE_SVG));
+
+  // Test expanded (open) state: up chevron, aria-expanded="true", title="Minimize Controls Panel"
+  setPanelMinimizeButtonUI(testMinBtn, false, 'Controls Panel');
+  assert.equal(testMinBtn.getAttribute('aria-expanded'), 'true');
+  assert.equal(testMinBtn.title, 'Minimize Controls Panel');
+  assert.equal(testMinBtn._icon.innerHTML, CHEVRON_UP_SINGLE_SVG);
+
+  // Test Thales Accordion.js implementation
+  const thalesTestBtn = createMockMinBtn();
+  thalesSetPanelMinimizeButtonUI(thalesTestBtn, true, 'Derivations Panel');
+  assert.equal(thalesTestBtn.getAttribute('aria-expanded'), 'false');
+  assert.equal(thalesTestBtn.title, 'Expand Derivations Panel');
+  assert.ok(thalesTestBtn.innerHTML.includes(CHEVRON_DOWN_SINGLE_SVG));
+
+  thalesSetPanelMinimizeButtonUI(thalesTestBtn, false, 'Derivations Panel');
+  assert.equal(thalesTestBtn.getAttribute('aria-expanded'), 'true');
+  assert.equal(thalesTestBtn.title, 'Minimize Derivations Panel');
+  assert.equal(thalesTestBtn._icon.innerHTML, CHEVRON_UP_SINGLE_SVG);
+
+  // 4. Verify all 8 visual index.html files have all 6 target buttons updated with chevron affordance
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+
+    const expectedButtons = (slug === 'thales-theorem')
+      ? ['toggle-stats-2d', 'toggle-stats-3d', 'toggle-thales-minimize', 'toggle-toolbar-2d-minimize', 'toggle-toolbar-minimize', 'toggle-deriv-minimize']
+      : ['telemetry-toggle-btn', 'toggle-stats-3d', 'toggle-controls-min', 'toggle-toolbar-2d-minimize', 'toggle-toolbar-3d-minimize', 'toggle-deriv-min'];
+
+    for (const btnId of expectedButtons) {
+      const btnRegex = new RegExp(`<button[^>]*id="${btnId}"[^>]*>[\\s\\S]*?<\\/button>`);
+      const match = html.match(btnRegex);
+      assert.ok(match, `${slug}/index.html must contain button with id="${btnId}"`);
+
+      const btnHtml = match[0];
+      assert.ok(btnHtml.includes('class="') && btnHtml.includes('panel-minimize-btn'), `${slug}/index.html button #${btnId} must have class .panel-minimize-btn`);
+      assert.ok(btnHtml.includes('class="panel-minimize-icon"'), `${slug}/index.html button #${btnId} must contain .panel-minimize-icon`);
+      assert.ok(btnHtml.includes('points="6 9 12 15 18 9"'), `${slug}/index.html button #${btnId} must contain single down chevron SVG`);
+      assert.ok(!btnHtml.includes('>+</button>') && !btnHtml.includes('>+ </button>'), `${slug}/index.html button #${btnId} must not have legacy text '+'`);
+    }
+  }
+});
+
 test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates pole singularity, precise hit-testing, and translucent angle shading', () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
@@ -1334,4 +1486,373 @@ test('Radius Resizing: click-and-drag circumference and mouse wheel resizing wit
   assert.ok(circle3D.includes('store.set(updates)'), 'circle-3d.js 3D wheel must dispatch radius updates to store');
 });
 
+test('2D Canvas Panning Contract: geometry models offset cx and cy by pan, and all 8 visualizers support grab/grabbing pan & dblclick recenter', async () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const width = 800;
+  const height = 600;
+  const testPan = { x: 42, y: -28 };
+
+  // 1. Verify all 7 circle theorem models offset cx, cy by pan.x, pan.y
+  const models = [
+    { name: 'Angle at Centre', mod: AngleAtCentre },
+    { name: 'Angles in Same Segment', mod: AnglesInSameSegment },
+    { name: 'Cyclic Quadrilateral', mod: CyclicQuad },
+    { name: 'Tangent Radius', mod: TangentRadius },
+    { name: 'Alternate Segment', mod: AlternateSegment },
+    { name: 'Tangents from External Point', mod: TangentsFromPoint },
+    { name: 'Perpendicular Chord Bisector', mod: ChordBisector },
+  ];
+
+  for (const { name, mod } of models) {
+    const defaultState = mod.createInitialState();
+    assert.deepStrictEqual(defaultState.pan, { x: 0, y: 0 }, `${name} createInitialState must initialize pan to { x: 0, y: 0 }`);
+
+    const defaultGeo = mod.computeGeometry(defaultState, width, height);
+    assert.strictEqual(defaultGeo.cx, width / 2, `${name} default cx must be width / 2`);
+    assert.strictEqual(defaultGeo.cy, height / 2, `${name} default cy must be height / 2`);
+
+    const pannedState = { ...defaultState, pan: testPan };
+    const pannedGeo = mod.computeGeometry(pannedState, width, height);
+    assert.strictEqual(pannedGeo.cx, width / 2 + testPan.x, `${name} panned cx must be width / 2 + pan.x`);
+    assert.strictEqual(pannedGeo.cy, height / 2 + testPan.y, `${name} panned cy must be height / 2 + pan.y`);
+  }
+
+  // 2. Verify all 7 circle theorem main.js files implement panning, grab/grabbing cursors, and dblclick recentering
+  const circleTheorems = [
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of circleTheorems) {
+    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'src', 'main.js'), 'utf8');
+    assert.ok(
+      mainJs.includes("= 'pan'"),
+      `${slug}/src/main.js must set active drag target to 'pan' when dragging background`
+    );
+    assert.ok(
+      mainJs.includes("canvas.style.cursor = 'grabbing'") && (mainJs.includes(": 'grab'") || mainJs.includes("canvas.style.cursor = 'grab'")),
+      `${slug}/src/main.js must support 'grab' and 'grabbing' cursor affordances`
+    );
+    assert.ok(
+      mainJs.includes("pan: {") && mainJs.includes("panOrigin.x") && mainJs.includes("panOrigin.y"),
+      `${slug}/src/main.js must compute and dispatch pan delta to store`
+    );
+    assert.ok(
+      mainJs.includes("canvas.addEventListener('dblclick',") && mainJs.includes("pan: { x: 0, y: 0 }"),
+      `${slug}/src/main.js must bind canvas dblclick to reset pan to { x: 0, y: 0 }`
+    );
+    assert.ok(
+      mainJs.includes("resetBtn.addEventListener('click',") && mainJs.includes("pan: { x: 0, y: 0 }"),
+      `${slug}/src/main.js #btn-reset listener must reset pan to { x: 0, y: 0 }`
+    );
+  }
+
+  // 3. Verify Thales 2D canvas interaction and main.js reset
+  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
+  assert.ok(thales2D.includes("this.mode = 'pan'"), "Thales Canvas2DInteraction.js must support mode 'pan'");
+  assert.ok(thales2D.includes("this.view.canvas.style.cursor = 'grab'"), "Thales Canvas2DInteraction.js must use 'grab' cursor");
+  assert.ok(thales2D.includes("this.store.set({ pan:"), "Thales Canvas2DInteraction.js must dispatch pan updates to store");
+  assert.ok(thales2D.includes("canvas.addEventListener('dblclick', () => store.set({ pan: { x: 0, y: 0 } }))"), "Thales Canvas2DInteraction.js must reset pan on dblclick");
+
+  const thalesMain = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'main.js'), 'utf8');
+  assert.ok(thalesMain.includes("pan: { x: 0, y: 0 }"), "Thales src/main.js resetBtn must clear pan to { x: 0, y: 0 }");
+});
+
+test('Viewport Toolbar Badges & Modes Panel Glow: Tips and Legend moved to modes panel, removed from header strip', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  // 1. Verify enhanceHeader in js/visual-page.js does NOT add badges/action buttons to header navigation strip
+  const visualPageJs = fs.readFileSync(path.join(rootDir, 'js', 'visual-page.js'), 'utf8');
+  assert.ok(!visualPageJs.includes('metaGroup.appendChild(infoBtn)'), 'Header visual-meta must not contain info button');
+  assert.ok(!visualPageJs.includes('metaGroup.appendChild(tutorialBtn)'), 'Header visual-meta must not contain tutorial button');
+  assert.ok(!visualPageJs.includes('metaGroup.appendChild(legendBtn)'), 'Header visual-meta must not contain legend button');
+
+  // 2. Verify all 8 visuals declare #btn-toolbar-tips and #btn-toolbar-legend inside #toolbar-content
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    assert.ok(
+      html.includes('id="btn-toolbar-tips"'),
+      `${slug}/index.html must include #btn-toolbar-tips inside viewport toolbar`
+    );
+    assert.ok(
+      html.includes('id="btn-toolbar-legend"'),
+      `${slug}/index.html must include #btn-toolbar-legend inside viewport toolbar`
+    );
+    assert.ok(
+      html.includes('id="toolbar-tips-status"'),
+      `${slug}/index.html must include #toolbar-tips-status inside #btn-toolbar-tips`
+    );
+  }
+
+  // 3. Verify CSS glow animations and badge styles exist in circle-visual.css, visual.css, and Thales controls.css
+  const cssFiles = [
+    path.join(rootDir, 'css', 'circle-visual.css'),
+    path.join(rootDir, 'css', 'visual.css'),
+    path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'controls.css'),
+  ];
+
+  for (const cssPath of cssFiles) {
+    const css = fs.readFileSync(cssPath, 'utf8');
+    assert.ok(css.includes('.btn-toolbar--badge'), `${path.basename(cssPath)} must define .btn-toolbar--badge`);
+    assert.ok(css.includes('.btn-toolbar-tips'), `${path.basename(cssPath)} must define .btn-toolbar-tips`);
+    assert.ok(css.includes('.btn-toolbar-legend'), `${path.basename(cssPath)} must define .btn-toolbar-legend`);
+    assert.ok(css.includes('modes-panel-tips-glow'), `${path.basename(cssPath)} must define @keyframes modes-panel-tips-glow`);
+    assert.ok(
+      css.includes('body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed'),
+      `${path.basename(cssPath)} must define glow selector for collapsed toolbar when tips enabled`
+    );
+  }
+});
+
+test('Modes Panel & Dock Layout: Collapsed by default and left margin aligned on default or collapse', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  // 1. Verify all 8 visuals have #viewport-toolbar collapsed by default in HTML
+  for (const slug of visualSlugs) {
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    assert.ok(
+      html.includes('class="viewport-header-toolbar is-collapsed"'),
+      `${slug}/index.html must have class "viewport-header-toolbar is-collapsed"`
+    );
+    assert.ok(
+      html.includes('id="toolbar-collapse-btn"') && html.includes('aria-expanded="false"'),
+      `${slug}/index.html toolbar collapse button must have aria-expanded="false" by default`
+    );
+  }
+
+  // 2. Verify CSS rules enforce left margin alignment for .viewport-header-toolbar and .workspace-dock.is-collapsed
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  assert.ok(circleVisualCss.includes('left: 1rem;'), 'circle-visual.css must align .viewport-header-toolbar to left: 1rem');
+  assert.ok(circleVisualCss.includes('transform: none;'), 'circle-visual.css must set transform: none for left alignment');
+  assert.ok(
+    circleVisualCss.includes('has-workspace-dock[data-dock-edge="left"]:not(.dock-is-collapsed) .viewport-header-toolbar'),
+    'circle-visual.css must offset toolbar when left dock is expanded'
+  );
+
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  assert.ok(dockCss.includes('.workspace-dock.is-collapsed'), 'workspace-dock.css must define .workspace-dock.is-collapsed');
+  assert.ok(dockCss.includes('left: 1rem;'), 'workspace-dock.css must align collapsed dock to left: 1rem');
+  assert.ok(dockCss.includes('top: 3.5rem;'), 'workspace-dock.css must position collapsed dock at top: 3.5rem below modes panel');
+
+  // 3. Verify DraggableToolbar setCollapsed calls resetPosition
+  const thalesToolbarJs = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'ui', 'DraggableToolbar.js'), 'utf8');
+  assert.ok(thalesToolbarJs.includes('this.resetPosition()'), 'Thales DraggableToolbar setCollapsed must call resetPosition on collapse');
+
+  const circleCoreJs = fs.readFileSync(path.join(rootDir, 'js', 'circle-core.js'), 'utf8');
+  assert.ok(circleCoreJs.includes('this.resetPosition()'), 'circle-core.js DraggableToolbar setCollapsed must call resetPosition on collapse');
+
+  // 4. Verify WorkspaceDockManager setDockCollapsed sets initX = 16 and initY = 56
+  const dockJs = fs.readFileSync(path.join(rootDir, 'js', 'workspace-dock.js'), 'utf8');
+  assert.ok(dockJs.includes('let initX = 16;'), 'WorkspaceDockManager must set initX = 16');
+  assert.ok(dockJs.includes('let initY = 56;'), 'WorkspaceDockManager must set initY = 56 to place dock pill below modes panel');
+  assert.ok(dockJs.includes('dock-is-collapsed'), 'WorkspaceDockManager must toggle dock-is-collapsed class on root');
+});
+
+test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes panel on small viewports', async () => {
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const { createStore } = await import('../js/circle-core.js');
+  const { ViewModeController } = await import('../js/circle-3d.js');
+  const { ViewModeController: ThalesViewModeController } = await import('../visuals/thales-theorem/src/controllers/ViewModeController.js');
+  const { WorkspaceDockManager } = await import('../js/workspace-dock.js');
+
+  // 1. ViewModeController: Deduces compact viewport and enforces vertical split & hides flip button
+  const store = createStore({ viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+  const mockBtn = { style: {}, setAttribute: () => {}, classList: { toggle: () => {} }, addEventListener: () => {} };
+  const container2d = { style: {} };
+  const container3d = { style: {} };
+
+  // A: Large Desktop Viewport (1200x800)
+  const desktopMainView = {
+    className: '',
+    dataset: {},
+    classList: { contains: () => false },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1200, height: 800 }),
+  };
+  const desktopCtrl = new ViewModeController(store, {
+    mainView: desktopMainView,
+    container2d,
+    container3d,
+    buttons: {},
+    flipButton: mockBtn,
+  });
+
+  assert.strictEqual(desktopCtrl.isCompact(), false, '1200px viewport must not be compact');
+  assert.ok(desktopMainView.className.includes('horizontal-split'), 'Desktop must retain horizontal split');
+  assert.strictEqual(mockBtn.style.display, '', 'Flip button must be visible on desktop');
+  assert.strictEqual(mockBtn.hidden, false);
+
+  // B: Small Mobile Viewport (390x844 - iPhone 14)
+  const mobileMainView = {
+    className: '',
+    dataset: {},
+    classList: { contains: () => false },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 390, height: 844 }),
+  };
+  const mobileCtrl = new ViewModeController(store, {
+    mainView: mobileMainView,
+    container2d,
+    container3d,
+    buttons: {},
+    flipButton: mockBtn,
+  });
+
+  assert.strictEqual(mobileCtrl.isCompact(), true, '390px viewport must deduce compact layout');
+  assert.ok(mobileMainView.className.includes('vertical-split'), 'Small viewport must deduce vertical (stacked) split');
+  assert.strictEqual(mobileMainView.dataset.viewport, 'compact', 'Dataset must be set to compact');
+  assert.strictEqual(mockBtn.style.display, 'none', 'Flip button must be hidden on mobile');
+  assert.strictEqual(mockBtn.hidden, true);
+  assert.strictEqual(container2d.style.flexBasis, '50%');
+  assert.strictEqual(container3d.style.flexBasis, '50%');
+
+  // 2. Thales ViewModeController: Identical viewport deduction contract
+  const thalesStore = createStore({ viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+  const thalesMobileMainView = {
+    className: '',
+    dataset: {},
+    classList: { contains: () => false },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 375, height: 667 }),
+  };
+  const thalesCtrl = new ThalesViewModeController(thalesStore, {
+    mainView: thalesMobileMainView,
+    container2d,
+    container3d,
+    buttons: {},
+    flipButton: mockBtn,
+    resizer: { addEventListener: () => {} },
+  });
+
+  assert.strictEqual(thalesCtrl.isCompact(), true, 'Thales 375px viewport must deduce compact layout');
+  assert.ok(thalesMobileMainView.className.includes('vertical-split'), 'Thales must deduce vertical split on mobile');
+  assert.strictEqual(thalesMobileMainView.dataset.viewport, 'compact');
+  assert.strictEqual(mockBtn.style.display, 'none');
+
+  // 3. WorkspaceDockManager: Viewport deduction sets compact dataset
+  const mockRoot = {
+    attributes: {},
+    classList: { add: () => {}, toggle: () => {}, contains: () => false },
+    setAttribute: (k, v) => { mockRoot.attributes[k] = v; },
+    getAttribute: (k) => mockRoot.attributes[k],
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    appendChild: (c) => c,
+    ownerDocument: null,
+    getBoundingClientRect: () => ({ width: 400, height: 800 }),
+  };
+  const dockMgr = new WorkspaceDockManager(mockRoot);
+  dockMgr.deduceViewport();
+  assert.strictEqual(mockRoot.getAttribute('data-viewport'), 'compact', 'Dock must mark root as compact viewport');
+
+  // 4. CSS Media Query Verification across circle-visual.css, thales responsive.css, and workspace-dock.css
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const thalesResponsiveCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+
+  // Canvases guaranteed positive height on mobile
+  assert.ok(circleVisualCss.includes('min-height: 24rem !important;'), 'circle-visual.css must guarantee min-height: 24rem !important');
+  assert.ok(circleVisualCss.includes('height: 50% !important;'), 'circle-visual.css must allocate height: 50% !important in split');
+  assert.ok(circleVisualCss.includes('min-height: 140px;'), 'circle-visual.css must set min-height: 140px on mobile split containers');
+  assert.ok(thalesResponsiveCss.includes('min-height: 24rem !important;'), 'thales responsive.css must guarantee min-height: 24rem !important');
+  assert.ok(thalesResponsiveCss.includes('height: 50% !important;'), 'thales responsive.css must allocate height: 50% !important in split');
+
+  // Modes Panel wraps on small screens
+  assert.ok(circleVisualCss.includes('max-width: calc(100vw - 1rem);'), 'circle-visual.css must bound modes panel to 100vw - 1rem');
+  assert.ok(circleVisualCss.includes('flex-wrap: wrap;'), 'circle-visual.css must wrap toolbar-content on mobile');
+  assert.ok(thalesResponsiveCss.includes('flex-wrap: wrap;'), 'thales responsive.css must wrap toolbar-content on mobile');
+
+  // View title offset avoids colliding with modes panel
+  assert.ok(circleVisualCss.includes('left: 5.75rem;'), 'circle-visual.css must offset 2D view title past modes panel');
+  assert.ok(thalesResponsiveCss.includes('left: 5.75rem;'), 'thales responsive.css must offset 2D view title past modes panel');
+
+  // Workspace dock on mobile: absolute overlay bottom sheet (Strict Zero Displacement)
+  assert.ok(dockCss.includes('.workspace-dock:not(.is-collapsed) {\n    bottom: 0 !important;'), 'dock must pin to bottom as bottom sheet overlay on mobile');
+  assert.ok(dockCss.includes('max-height: min(58vh, 420px) !important;'), 'dock must bound height to bottom sheet on mobile');
+  assert.ok(dockCss.includes('border-radius: 1rem 1rem 0 0 !important;'), 'dock must have rounded top corners on mobile');
+  assert.ok(dockCss.includes('.circle-explorer.has-workspace-dock,\n  .thales-explorer.has-workspace-dock {\n    position: relative !important;\n    width: 100% !important;\n    height: calc(100vh - 3rem) !important;'), 'workspace-dock.css must maintain full viewport height on mobile');
+});
+
+test('Angle Labeling Contract: Single-line labels without newlines and non-obstructing placement', async () => {
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const { drawAngleBadge, drawVerticalAngleBadge } = await import('../js/circle-core.js');
+
+  // 1. Core angle badge helpers format on a single line
+  const mockCtx = {
+    save: () => {},
+    restore: () => {},
+    strokeText: (text) => {
+      assert.ok(!text.includes('\n'), `Rendered angle text "${text}" must not contain newlines`);
+    },
+    fillText: (text) => {
+      assert.ok(!text.includes('\n'), `Rendered angle text "${text}" must not contain newlines`);
+    },
+  };
+  drawAngleBadge(mockCtx, 'α', '45.0°', 100, 100, '#ffffff');
+  drawVerticalAngleBadge(mockCtx, 'θ', '60.0°', 100, 100, '#ffffff');
+
+  // 2. All 2D visual canvas files must not contain \n inside drawTextBadge calls for angles
+  const canvasFiles = [
+    'visuals/angle-at-centre/src/canvas.js',
+    'visuals/angles-in-same-segment/src/canvas.js',
+    'visuals/cyclic-quadrilateral/src/canvas.js',
+    'visuals/perpendicular-chord-bisector/src/canvas.js',
+    'visuals/tangent-radius/src/canvas.js',
+    'visuals/tangents-from-external-point/src/canvas.js',
+    'visuals/alternate-segment/src/canvas.js',
+    'visuals/thales-theorem/src/views/canvas2d-draw.js',
+  ];
+
+  for (const relPath of canvasFiles) {
+    const fullPath = path.join(rootDir, relPath);
+    const content = fs.readFileSync(fullPath, 'utf8');
+    const badgeMatches = content.match(/drawTextBadge\([^)]+\)/g) || [];
+    for (const badge of badgeMatches) {
+      assert.ok(!badge.includes('\\n'), `${relPath}: drawTextBadge call "${badge}" must not contain newline \\n`);
+    }
+  }
+
+  // 3. 3D label overlays in circle-3d.js and LabelOverlayView.js must not contain \n in angle label definitions
+  const circle3dContent = fs.readFileSync(path.join(rootDir, 'js/circle-3d.js'), 'utf8');
+  const angleLabel3DMatches = circle3dContent.match(/\{[^}]*isAngle:\s*true[^}]*\}/g) || [];
+  for (const m of angleLabel3DMatches) {
+    assert.ok(!m.includes('\\n'), `circle-3d.js: 3D angle label "${m}" must not contain newline \\n`);
+  }
+
+  const thalesOverlayContent = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  assert.ok(!thalesOverlayContent.includes("key: 'theta'") || !thalesOverlayContent.includes('\\n'), 'LabelOverlayView.js: angle labels must not contain newline \\n');
+
+  // 4. CSS for 3D angle labels must enforce single-line nowrap
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css/circle-visual.css'), 'utf8');
+  assert.ok(visualCss.includes('.label-3d.is-angle'), 'circle-visual.css must style .label-3d.is-angle');
+  assert.ok(visualCss.includes('white-space: nowrap;'), 'circle-visual.css must enforce white-space: nowrap for labels');
+});
 

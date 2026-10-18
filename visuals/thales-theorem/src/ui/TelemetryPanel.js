@@ -1,3 +1,5 @@
+import { setPanelMinimizeButtonUI } from './Accordion.js';
+
 /**
  * Collapsible telemetry overlay panel attached to a canvas viewport.
  */
@@ -35,7 +37,8 @@ export class TelemetryPanel {
     this.body.classList.toggle('hidden', collapsed);
     this.element.classList.toggle('collapsed', collapsed);
     this.header.setAttribute('aria-expanded', String(!collapsed));
-    this.toggleButton.setAttribute('aria-expanded', String(!collapsed));
-    this.toggleButton.textContent = collapsed ? '+' : '−';
+    if (this.toggleButton) {
+      setPanelMinimizeButtonUI(this.toggleButton, collapsed, 'Telemetry');
+    }
   }
 }

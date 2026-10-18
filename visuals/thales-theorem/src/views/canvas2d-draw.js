@@ -1,5 +1,6 @@
 import { PALETTE } from '../config/palette.js';
 import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D, toDegrees } from '../model/thales-math.js';
+import { drawHaloText } from '../../../../js/circle-core.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -361,9 +362,8 @@ function drawAngles(ctx, state, f) {
 
       if (showLabels) {
         const deg = Math.round(Math.acos(Math.max(-1, Math.min(1, dot))) * 180 / Math.PI);
-        ctx.fillStyle = PALETTE.teal;
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(isRightAngle ? '90°' : `${deg}°`, f.p.x + (ux + vx) * 22 - 10, f.p.y + (uy + vy) * 22 + 4);
+        const bLenP = Math.hypot(ux + vx, uy + vy) || 1;
+        drawHaloText(ctx, isRightAngle ? '90°' : `${deg}°`, f.p.x + 28 * ((ux + vx) / bLenP), f.p.y + 28 * ((uy + vy) / bLenP), PALETTE.teal, 'bold 12px monospace', 'center');
       }
     }
 
@@ -387,9 +387,7 @@ function drawAngles(ctx, state, f) {
 
       if (showLabels) {
         const bLenP = Math.hypot(ux + vx, uy + vy) || 1;
-        ctx.fillStyle = PALETTE.teal;
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillText('270°', f.p.x - 30 * ((ux + vx) / bLenP) - 10, f.p.y - 30 * ((uy + vy) / bLenP) + 4);
+        drawHaloText(ctx, '270° (P*)', f.p.x - 34 * ((ux + vx) / bLenP), f.p.y - 34 * ((uy + vy) / bLenP), PALETTE.teal, 'bold 11px monospace', 'center');
       }
     }
 
@@ -433,19 +431,7 @@ function drawAngles(ctx, state, f) {
         ctx.strokeStyle = PALETTE.lime;
         ctx.stroke();
         if (showLabels) {
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-          ctx.fillStyle = PALETTE.lime;
-          const lx = f.a.x + 34 * (bxA / bLenA);
-          const ly = f.a.y + 34 * (byA / bLenA);
-          ctx.strokeText('α', lx, ly - 6);
-          ctx.fillText('α', lx, ly - 6);
-          ctx.strokeText(`${alphaDeg}°`, lx, ly + 7);
-          ctx.fillText(`${alphaDeg}°`, lx, ly + 7);
-          ctx.restore();
+          drawHaloText(ctx, `α = ${alphaDeg}°`, f.a.x + 46 * (bxA / bLenA), f.a.y + 46 * (byA / bLenA), PALETTE.lime, 'bold 12px monospace', 'center');
         }
 
         // Base angle beta at B (interior orange fill + stroke)
@@ -458,19 +444,7 @@ function drawAngles(ctx, state, f) {
         ctx.strokeStyle = PALETTE.orange;
         ctx.stroke();
         if (showLabels) {
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-          ctx.fillStyle = PALETTE.orange;
-          const lx = f.b.x + 34 * (bxB / bLenB);
-          const ly = f.b.y + 34 * (byB / bLenB);
-          ctx.strokeText('β', lx, ly - 6);
-          ctx.fillText('β', lx, ly - 6);
-          ctx.strokeText(`${betaDeg}°`, lx, ly + 7);
-          ctx.fillText(`${betaDeg}°`, lx, ly + 7);
-          ctx.restore();
+          drawHaloText(ctx, `β = ${betaDeg}°`, f.b.x + 46 * (bxB / bLenB), f.b.y + 46 * (byB / bLenB), PALETTE.orange, 'bold 12px monospace', 'center');
         }
       }
 
@@ -485,24 +459,13 @@ function drawAngles(ctx, state, f) {
         ctx.save();
         ctx.setLineDash([4, 3]);
         ctx.strokeStyle = PALETTE.lime;
+        ctx.lineWidth = 1.4;
         ctx.stroke();
         ctx.restore();
 
         const alphaReflexDeg = (360 - Number(alphaDeg)).toFixed(0);
         if (showLabels) {
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-          ctx.fillStyle = PALETTE.lime;
-          const lx = f.a.x - 36 * (bxA / bLenA);
-          const ly = f.a.y - 36 * (byA / bLenA);
-          ctx.strokeText('α*', lx, ly - 6);
-          ctx.fillText('α*', lx, ly - 6);
-          ctx.strokeText(`${alphaReflexDeg}°`, lx, ly + 7);
-          ctx.fillText(`${alphaReflexDeg}°`, lx, ly + 7);
-          ctx.restore();
+          drawHaloText(ctx, `α* = ${alphaReflexDeg}°`, f.a.x - 48 * (bxA / bLenA), f.a.y - 48 * (byA / bLenA), PALETTE.lime, 'bold 12px monospace', 'center');
         }
 
         // Reflex angle beta* at B (exterior orange dashed arc + label)
@@ -515,24 +478,13 @@ function drawAngles(ctx, state, f) {
         ctx.save();
         ctx.setLineDash([4, 3]);
         ctx.strokeStyle = PALETTE.orange;
+        ctx.lineWidth = 1.4;
         ctx.stroke();
         ctx.restore();
 
         const betaReflexDeg = (360 - Number(betaDeg)).toFixed(0);
         if (showLabels) {
-          ctx.save();
-          ctx.textAlign = 'center';
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-          ctx.fillStyle = PALETTE.orange;
-          const lx = f.b.x - 36 * (bxB / bLenB);
-          const ly = f.b.y - 36 * (byB / bLenB);
-          ctx.strokeText('β*', lx, ly - 6);
-          ctx.fillText('β*', lx, ly - 6);
-          ctx.strokeText(`${betaReflexDeg}°`, lx, ly + 7);
-          ctx.fillText(`${betaReflexDeg}°`, lx, ly + 7);
-          ctx.restore();
+          drawHaloText(ctx, `β* = ${betaReflexDeg}°`, f.b.x - 48 * (bxB / bLenB), f.b.y - 48 * (byB / bLenB), PALETTE.orange, 'bold 12px monospace', 'center');
         }
       }
 
@@ -566,20 +518,7 @@ function drawAngles(ctx, state, f) {
     if (showLabels) {
       const midAngle = baseO + (crossO < 0 ? -1 : 1) * (angO / 2);
       const angODeg = Math.round(toDegrees(angO));
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-      ctx.fillStyle = angleColor;
-      ctx.font = 'italic bold 12px sans-serif';
-      const lx = f.cx + 34 * Math.cos(midAngle);
-      const ly = f.cy + 34 * Math.sin(midAngle);
-      ctx.strokeText(angleLabel, lx, ly - 6);
-      ctx.fillText(angleLabel, lx, ly - 6);
-      ctx.strokeText(`${angODeg}°`, lx, ly + 7);
-      ctx.fillText(`${angODeg}°`, lx, ly + 7);
-      ctx.restore();
+      drawHaloText(ctx, `${angleLabel} = ${angODeg}°`, f.cx + 50 * Math.cos(midAngle), f.cy + 50 * Math.sin(midAngle), angleColor, 'italic bold 12px monospace', 'center');
     }
   }
 
@@ -599,20 +538,7 @@ function drawAngles(ctx, state, f) {
     if (showLabels) {
       const reflexDeg = Math.round(360 - toDegrees(angO));
       const midReflex = baseO + (crossO < 0 ? 1 : -1) * ((Math.PI * 2 - angO) / 2);
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-      ctx.fillStyle = angleColor;
-      ctx.font = 'italic bold 11px sans-serif';
-      const lx = f.cx + 46 * Math.cos(midReflex);
-      const ly = f.cy + 46 * Math.sin(midReflex);
-      ctx.strokeText(`${angleLabel}*`, lx, ly - 6);
-      ctx.fillText(`${angleLabel}*`, lx, ly - 6);
-      ctx.strokeText(`${reflexDeg}°`, lx, ly + 7);
-      ctx.fillText(`${reflexDeg}°`, lx, ly + 7);
-      ctx.restore();
+      drawHaloText(ctx, `${angleLabel}* = ${reflexDeg}°`, f.cx + 58 * Math.cos(midReflex), f.cy + 58 * Math.sin(midReflex), angleColor, 'italic bold 11px monospace', 'center');
     }
   }
 }

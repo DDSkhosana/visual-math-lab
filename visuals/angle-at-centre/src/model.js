@@ -1,9 +1,10 @@
-import { normalizeAngle, toDegrees, toRadians, PALETTE, getRadialLabelCoords, createDefaultVisState } from '../../../js/circle-core.js';
+import { normalizeAngle, toDegrees, toRadians, PALETTE, getRadialLabelCoords, createDefaultVisState, getSubtendedArcRange3D } from '../../../js/circle-core.js';
 
 export function createInitialState() {
   const vis = createDefaultVisState();
   return {
     radius: 180,
+    pan: { x: 0, y: 0 },
     angleA: toRadians(210), // bottom-left
     angleB: toRadians(330), // bottom-right
     angleP: toRadians(90),  // top
@@ -22,8 +23,9 @@ export function createInitialState() {
  * Computes coordinates and angle values for Angle at the Centre.
  */
 export function computeGeometry(state, width, height) {
-  const cx = width / 2;
-  const cy = height / 2;
+  const pan = state.pan || { x: 0, y: 0 };
+  const cx = width / 2 + (pan.x || 0);
+  const cy = height / 2 + (pan.y || 0);
   const maxSafeRadius = Math.max(50, Math.min(width, height) / 2 - 40);
   const r = Math.min(state.radius, maxSafeRadius);
 
@@ -35,11 +37,9 @@ export function computeGeometry(state, width, height) {
   const B = { x: cx + r * Math.cos(state.angleB), y: cy - r * Math.sin(state.angleB) };
   const P = { x: cx + r * Math.cos(state.angleP), y: cy - r * Math.sin(state.angleP) };
 
-  // Central angle subtended by arc AB
-  let centralRad = state.angleB - state.angleA;
-  while (centralRad < 0) centralRad += Math.PI * 2;
-  while (centralRad >= Math.PI * 2) centralRad -= Math.PI * 2;
-  if (centralRad > Math.PI) centralRad = Math.PI * 2 - centralRad;
+  // Central angle subtended by arc AB (dynamically tracking the arc not containing P)
+  const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
+  const centralRad = arcRange.sweep;
 
   // Inscribed angle subtended by arc AB at P
   // Vectors PA and PB

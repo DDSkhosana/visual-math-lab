@@ -513,8 +513,11 @@ test('WorkspaceDockManager: Freely Draggable Collapsed Capsule Pill with Pointer
   const header = dock.dockElement.querySelector('.workspace-dock-header');
   assert.ok(header, 'Dock must have header');
 
+  const initLeft = parseFloat(dock.dockElement.style.left) || 16;
+  const initTop = parseFloat(dock.dockElement.style.top) || 16;
+
   // Simulate pointer drag interaction on collapsed dock header
-  header.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 16, clientY: 16, target: header, preventDefault: () => {} });
+  header.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: initLeft, clientY: initTop, target: header, preventDefault: () => {} });
   mockWin.dispatchEvent({ type: 'pointermove', clientX: 150, clientY: 90 });
 
   assert.strictEqual(dock.dockElement.classList.contains('is-dragging'), true, 'Dock must have is-dragging class during drag');
@@ -688,5 +691,85 @@ test('WorkspaceDockManager: Nested Sub Components Collapsed By Default in Dock P
     assert.ok(html.includes('class="collapsible-section collapsed"'), `${slug}/index.html must have collapsible sections collapsed by default`);
     assert.ok(!html.includes('<div class="collapsible-section">'), `${slug}/index.html must not contain uncollapsed <div class="collapsible-section">`);
   }
+});
+
+test('WorkspaceDockManager: Top/Bottom Dock Sub-Panel Overlay & Internal Scrolling Contract', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // Verify CSS contracts for top/bottom dock sub-panel overlay
+  assert.ok(css.includes('[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body'), 'CSS must define relative container for top dock panel-body');
+  assert.ok(css.includes('[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body'), 'CSS must define relative container for bottom dock panel-body');
+  assert.ok(css.includes('position: absolute !important'), 'Expanded sub-panel must use position: absolute !important to overlay container');
+  assert.ok(css.includes('inset: 0 !important'), 'Expanded sub-panel must use inset: 0 !important to overlay entire panel body');
+  assert.ok(css.includes('overflow-y: auto !important'), 'Expanded sub-panel content must use overflow-y: auto !important for internal scrolling');
+  assert.ok(css.includes('overscroll-behavior: contain !important'), 'Expanded sub-panel content must use overscroll-behavior: contain !important');
+  assert.ok(css.includes('.has-expanded-subpanel'), 'CSS must support has-expanded-subpanel class on ui-panel');
+  assert.ok(css.includes('.is-subpanel-overlay'), 'CSS must support is-subpanel-overlay class on collapsible-section');
+
+  // Test DOM state synchronization
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'controls-panel');
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  const panelBody = new MockDOMElement('div', 'panel-body');
+
+  const sec1 = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-1');
+  const h1 = new MockDOMElement('div', 'collapsible-header');
+  const c1 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec1.appendChild(h1);
+  sec1.appendChild(c1);
+
+  const sec2 = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-2');
+  const h2 = new MockDOMElement('div', 'collapsible-header');
+  const c2 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec2.appendChild(h2);
+  sec2.appendChild(c2);
+
+  panelBody.appendChild(sec1);
+  panelBody.appendChild(sec2);
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelBody);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+  dock.setDockEdge('top');
+
+  // Initially all collapsed
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), false);
+  assert.strictEqual(sec1.classList.contains('is-subpanel-overlay'), false);
+  assert.strictEqual(sec2.classList.contains('is-subpanel-overlay'), false);
+
+  // Expand sec1
+  sec1.classList.remove('collapsed');
+  c1.classList.remove('collapsed');
+  c1.classList.add('open');
+  dock.syncSubpanelOverlayState();
+
+  // Overlay state should be active on panel and sec1
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), true);
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), false);
+  assert.strictEqual(sec1.classList.contains('is-subpanel-overlay'), true);
+  assert.strictEqual(sec2.classList.contains('is-subpanel-overlay'), false);
+
+  // Expand sec2 as well (multi-expand / Expand All state)
+  sec2.classList.remove('collapsed');
+  c2.classList.remove('collapsed');
+  c2.classList.add('open');
+  dock.syncSubpanelOverlayState();
+
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), true);
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), true);
+  assert.strictEqual(sec1.classList.contains('is-subpanel-overlay'), false, 'Multi-expand must deactivate overlay stacking');
+  assert.strictEqual(sec2.classList.contains('is-subpanel-overlay'), false, 'Multi-expand must deactivate overlay stacking');
+
+  // Collapse all
+  dock.collapseAllSubComponents();
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), false);
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), false);
+  assert.strictEqual(sec1.classList.contains('is-subpanel-overlay'), false);
+  assert.strictEqual(sec2.classList.contains('is-subpanel-overlay'), false);
 });
 

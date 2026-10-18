@@ -3,6 +3,7 @@ import { PALETTE, getRadialLabelCoords, createDefaultVisState } from '../../../j
 export function createInitialState() {
   return {
     radius: 170,
+    pan: { x: 0, y: 0 },
     angleA: 0.85 * Math.PI, // Top-left (symmetrically paired with angleB for 90° vertical bisector)
     angleB: 0.15 * Math.PI, // Top-right
     showRadii: true,
@@ -14,8 +15,9 @@ export function createInitialState() {
 }
 
 export function computeGeometry(state, width, height) {
-  const cx = width / 2;
-  const cy = height / 2;
+  const pan = state.pan || { x: 0, y: 0 };
+  const cx = width / 2 + (pan.x || 0);
+  const cy = height / 2 + (pan.y || 0);
   const maxSafeRadius = Math.max(50, Math.min(width, height) / 2 - 40);
   const r = Math.min(state.radius, maxSafeRadius);
 

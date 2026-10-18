@@ -29,7 +29,7 @@ function bootstrap() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       store.reset();
-      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+      store.set({ playing: false, viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50, pan: { x: 0, y: 0 } });
     });
   }
 
@@ -167,6 +167,7 @@ function bootstrap() {
 
   // Dragging Points
   let activePoint = null;
+  let panOrigin = { x: 0, y: 0 };
   function hit(x, y, pt, radius = 20) {
     return Math.hypot(x - pt.x, y - pt.y) < radius;
   }
@@ -182,6 +183,11 @@ function bootstrap() {
     else if (hit(x, y, g.A, 20)) activePoint = 'A';
     else if (hit(x, y, g.B, 20)) activePoint = 'B';
     else if (isNearCircumference(x, y, g.cx, g.cy, g.r, 14)) activePoint = 'radius';
+    else {
+      activePoint = 'pan';
+      const curPan = store.get().pan || { x: 0, y: 0 };
+      panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
+    }
 
     if (activePoint) {
       if (store.get().playing) {
@@ -200,7 +206,18 @@ function bootstrap() {
     if (!activePoint) {
       const hoverPt = hit(x, y, g.P1, 24) || hit(x, y, g.P2, 24) || hit(x, y, g.A, 20) || hit(x, y, g.B, 20);
       const hoverCirc = !hoverPt && isNearCircumference(x, y, g.cx, g.cy, g.r, 14);
-      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'default');
+      canvas.style.cursor = hoverPt ? 'pointer' : (hoverCirc ? 'ew-resize' : 'grab');
+      return;
+    }
+
+    if (activePoint === 'pan') {
+      canvas.style.cursor = 'grabbing';
+      store.set({
+        pan: {
+          x: e.clientX - panOrigin.x,
+          y: e.clientY - panOrigin.y,
+        },
+      });
       return;
     }
 
@@ -231,13 +248,16 @@ function bootstrap() {
     if (activePoint) {
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       activePoint = null;
-      canvas.style.cursor = 'default';
+      canvas.style.cursor = 'grab';
     }
   };
   canvas.addEventListener('pointerup', stopDrag);
   canvas.addEventListener('pointercancel', stopDrag);
   window.addEventListener('pointerup', stopDrag);
   window.addEventListener('pointercancel', stopDrag);
+  canvas.addEventListener('dblclick', () => {
+    store.set({ pan: { x: 0, y: 0 } });
+  });
 
   // Store Subscribe & Initial Render
   const update = (state) => {

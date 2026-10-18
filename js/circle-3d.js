@@ -52,17 +52,58 @@ export class ViewModeController {
       this.#enableDividerDrag(resizer);
     }
 
+    this.compactMedia = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 48rem)') : null;
+    if (this.compactMedia?.addEventListener) {
+      this.compactMedia.addEventListener('change', () => {
+        this.render(this.store.get());
+        this.onResize?.();
+      });
+    }
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', () => {
+        this.render(this.store.get());
+        this.onResize?.();
+      });
+    }
+
+    if (typeof ResizeObserver !== 'undefined' && this.mainView) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.onResize?.();
+      });
+      try {
+        this.resizeObserver.observe(this.mainView);
+      } catch (_) {}
+    }
+
     store.subscribe((state) => this.render(state), ['viewMode', 'splitDirection', 'splitRatio']);
     this.render(store.get());
   }
 
+  isCompact() {
+    if (this.compactMedia?.matches) return true;
+    const rect = this.mainView?.getBoundingClientRect?.();
+    if (rect && typeof rect.width === 'number' && rect.width > 0) {
+      return rect.width <= 768;
+    }
+    if (typeof window !== 'undefined' && typeof window.innerWidth === 'number') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  }
+
   render(state) {
     const viewMode = state.viewMode || 'split';
-    const splitDirection = state.splitDirection || 'horizontal';
+    const isCompact = this.isCompact();
+    const effectiveSplitDirection = isCompact ? 'vertical' : (state.splitDirection || 'horizontal');
     const splitRatio = state.splitRatio ?? 50;
 
-    const horizontal = splitDirection === 'horizontal';
+    const horizontal = effectiveSplitDirection === 'horizontal';
     this.mainView.className = `view-container layout-${viewMode} ${horizontal ? 'horizontal' : 'vertical'}-split`;
+
+    if (this.mainView?.dataset) {
+      this.mainView.dataset.viewport = isCompact ? 'compact' : 'regular';
+    }
 
     for (const [mode, button] of Object.entries(this.buttons)) {
       if (!button) continue;
@@ -73,8 +114,8 @@ export class ViewModeController {
 
     if (this.flipButton) {
       const isSplit = viewMode === 'split';
-      this.flipButton.style.display = isSplit ? '' : 'none';
-      this.flipButton.hidden = !isSplit;
+      this.flipButton.style.display = isSplit && !isCompact ? '' : 'none';
+      this.flipButton.hidden = !isSplit || isCompact;
       this.flipButton.setAttribute(
         'title',
         horizontal ? 'Switch to vertical split (stacked)' : 'Switch to horizontal split (side-by-side)'
@@ -1364,9 +1405,10 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     // 3D Angle Wedges & Spatial Bisectors
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
     const showReflex = Boolean(state.vis3d?.reflex);
-    setAngleWedgeVertices3D(this.centralAngleMesh, O, A, B, 2.6);
+    const isReflexSubtended = arcRange.sweep > Math.PI;
+    setAngleWedgeVertices3D(this.centralAngleMesh, O, A, B, 2.6, 24, THREE, isReflexSubtended);
     setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4);
-    setAngleWedgeVertices3D(this.centralReflexMesh, O, A, B, 3.2, 32, THREE, true);
+    setAngleWedgeVertices3D(this.centralReflexMesh, O, A, B, 3.2, 32, THREE, !isReflexSubtended);
     setAngleWedgeVertices3D(this.inscribedReflexMesh, P, A, B, 3.0, 32, THREE, true);
     setAngleWedgeVertices3D(this.angleAlphaPMesh, P, A, O, 2.8);
     setAngleWedgeVertices3D(this.angleBetaPMesh, P, O, B, 2.8);
@@ -1377,12 +1419,17 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.angleAlphaPMesh.visible = this.angleBetaPMesh.visible = showAngles;
     this.angleAlphaAMesh.visible = this.angleBetaBMesh.visible = showAngles;
 
-    const degCent = get3DAngleDegrees(O, A, B, THREE);
+    const degCent = (arcRange.sweep * 180) / Math.PI;
     const degInsc = get3DAngleDegrees(P, A, B, THREE);
     const degAlpha = get3DAngleDegrees(P, A, O, THREE);
     const degBeta = get3DAngleDegrees(P, O, B, THREE);
 
-    const centralLabelPos = get3DAngleBisector(O, A, B, 3.8, THREE);
+    const centralLabelPos = isReflexSubtended
+      ? get3DReflexBisector(O, A, B, 3.8, THREE)
+      : get3DAngleBisector(O, A, B, 3.8, THREE);
+    const centralReflexPos = isReflexSubtended
+      ? get3DAngleBisector(O, A, B, 4.2, THREE)
+      : get3DReflexBisector(O, A, B, 4.2, THREE);
     const inscribedLabelPos = get3DAngleBisector(P, A, B, 5.2, THREE);
     // Stagger alpha at 2.8 and beta at 4.8 to guarantee zero spatial collision in 3D
     const alphaLabelPos = get3DAngleBisector(P, A, O, 2.8, THREE);
@@ -1401,14 +1448,14 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-red' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
       { key: 'P', at: P_pos, name: 'P', text: 'P', coords: P, color: 'color-violet' },
-      { key: 'central', at: centralLabelPos, text: `2θ\n${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-      { key: 'inscribed', at: inscribedLabelPos, text: `θ\n${degInsc.toFixed(1)}°`, isAngle: true, color: 'color-green', show: showAngles },
-      { key: 'centralReflex', at: get3DReflexBisector(O, A, B, 4.2, THREE), text: `2θ*\n${(360 - degCent).toFixed(1)}°`, isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'inscribedReflex', at: get3DReflexBisector(P, A, B, 4.0, THREE), text: `θ*\n${(360 - degInsc).toFixed(1)}°`, isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'alphaP', at: alphaLabelPos, text: `α\n${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
-      { key: 'betaP', at: betaLabelPos, text: `β\n${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
-      { key: 'alphaA', at: alphaALabelPos, text: `α\n${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
-      { key: 'betaB', at: betaBLabelPos, text: `β\n${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
+      { key: 'central', at: centralLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
+      { key: 'inscribed', at: inscribedLabelPos, text: `θ = ${degInsc.toFixed(1)}°`, isAngle: true, color: 'color-green', show: showAngles },
+      { key: 'centralReflex', at: centralReflexPos, text: `2θ* = ${(360 - degCent).toFixed(1)}°`, isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'inscribedReflex', at: get3DReflexBisector(P, A, B, 4.0, THREE), text: `θ* = ${(360 - degInsc).toFixed(1)}°`, isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'alphaP', at: alphaLabelPos, text: `α = ${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'betaP', at: betaLabelPos, text: `β = ${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
+      { key: 'alphaA', at: alphaALabelPos, text: `α = ${degAlpha.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'betaB', at: betaBLabelPos, text: `β = ${degBeta.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);
   }
@@ -1564,15 +1611,15 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-red' },
       { key: 'P1', at: P1_pos, name: 'P₁', text: 'P₁', coords: P1, color: 'color-blue' },
       { key: 'P2', at: P2_pos, name: 'P₂', text: 'P₂', coords: P2, color: 'color-emerald' },
-      { key: 'angP1', at: p1LabelPos, text: `θ₁\n${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
-      { key: 'angP2', at: p2LabelPos, text: `θ₂\n${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
-      { key: 'reflexP1', at: get3DReflexBisector(P1, A, B, 4.0, THREE), text: `θ₁*\n${(360 - degP1).toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexP2', at: get3DReflexBisector(P2, A, B, 4.0, THREE), text: `θ₂*\n${(360 - degP2).toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'angP1', at: p1LabelPos, text: `θ₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
+      { key: 'angP2', at: p2LabelPos, text: `θ₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
+      { key: 'reflexP1', at: get3DReflexBisector(P1, A, B, 4.0, THREE), text: `θ₁* = ${(360 - degP1).toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexP2', at: get3DReflexBisector(P2, A, B, 4.0, THREE), text: `θ₂* = ${(360 - degP2).toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showReflex && (state.vis3d?.labels !== false) },
     ];
     if (showCenter) {
       this.currentLabels.push(
         { key: 'O', at: new THREE.Vector3(0, 0.8, 0), name: 'O', text: 'O', coords: O, color: 'color-indigo' },
-        { key: 'central', at: centLabelPos, text: `2θ\n${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles }
+        { key: 'central', at: centLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles }
       );
     }
     this.overlay.render(this.currentLabels, state.vis3d);
@@ -1718,14 +1765,14 @@ export class CyclicQuad3DView extends BaseScene3DView {
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-cyan' },
       { key: 'C', at: C_pos, name: 'C', text: 'C', coords: C, color: 'color-amber' },
       { key: 'D', at: D_pos, name: 'D', text: 'D', coords: D, color: 'color-rose' },
-      { key: 'angA', at: angAPos, text: `∠A\n${degA.toFixed(1)}°`, isAngle: true, color: 'color-violet', show: showAngles },
-      { key: 'angB', at: angBPos, text: `∠B\n${degB.toFixed(1)}°`, isAngle: true, color: 'color-cyan', show: showAngles },
-      { key: 'angC', at: angCPos, text: `∠C\n${degC.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
-      { key: 'angD', at: angDPos, text: `∠D\n${degD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showAngles },
-      { key: 'reflexA', at: get3DReflexBisector(A, B, D, 3.8, THREE), text: `A*\n${(360 - degA).toFixed(1)}°`, isAngle: true, color: 'color-violet', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexB', at: get3DReflexBisector(B, A, C, 3.8, THREE), text: `B*\n${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexC', at: get3DReflexBisector(C, B, D, 3.8, THREE), text: `C*\n${(360 - degC).toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexD', at: get3DReflexBisector(D, C, A, 3.8, THREE), text: `D*\n${(360 - degD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'angA', at: angAPos, text: `∠A = ${degA.toFixed(1)}°`, isAngle: true, color: 'color-violet', show: showAngles },
+      { key: 'angB', at: angBPos, text: `∠B = ${degB.toFixed(1)}°`, isAngle: true, color: 'color-cyan', show: showAngles },
+      { key: 'angC', at: angCPos, text: `∠C = ${degC.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
+      { key: 'angD', at: angDPos, text: `∠D = ${degD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showAngles },
+      { key: 'reflexA', at: get3DReflexBisector(A, B, D, 3.8, THREE), text: `∠A* = ${(360 - degA).toFixed(1)}°`, isAngle: true, color: 'color-violet', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexB', at: get3DReflexBisector(B, A, C, 3.8, THREE), text: `∠B* = ${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexC', at: get3DReflexBisector(C, B, D, 3.8, THREE), text: `∠C* = ${(360 - degC).toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexD', at: get3DReflexBisector(D, C, A, 3.8, THREE), text: `∠D* = ${(360 - degD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) },
     ];
     if (state.showDiagonals) {
       const midAC = new THREE.Vector3().addVectors(A, C).multiplyScalar(0.5);
@@ -1744,7 +1791,7 @@ export class CyclicQuad3DView extends BaseScene3DView {
       this.currentLabels.push({
         key: 'Ext',
         at: angExtPos,
-        text: `Ext\n${degExt.toFixed(1)}°`,
+        text: `Ext = ${degExt.toFixed(1)}°`,
         isAngle: true,
         color: 'color-violet',
         show: showAngles,
@@ -2074,7 +2121,7 @@ export class TangentRadius3DView extends BaseScene3DView {
         this.currentLabels.push({
           key: `reflex_${t.name}`,
           at: t.reflexAngleAt,
-          text: `270°\n(${t.name}*)`,
+          text: `270.0° (${t.name}*)`,
           isAngle: true,
           color: 'color-teal',
           show: state.vis3d?.labels !== false,
@@ -2342,10 +2389,10 @@ export class AlternateSegment3DView extends BaseScene3DView {
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-blue' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
       { key: 'tangent', at: tanLabelPos, name: 'Tangent', text: 'Tangent', color: 'color-emerald' },
-      { key: 'angTan', at: angTPos, text: `α\n${degTan.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-      { key: 'angB', at: angBPos, text: `α\n${degB.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-      { key: 'reflexTan', at: get3DReflexBisector(T, activeTan, A, 4.0, THREE), text: `α*\n${(360 - degTan).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexB', at: get3DReflexBisector(B, T, A, 4.0, THREE), text: `α*\n${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'angTan', at: angTPos, text: `α = ${degTan.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
+      { key: 'angB', at: angBPos, text: `α = ${degB.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
+      { key: 'reflexTan', at: get3DReflexBisector(T, activeTan, A, 4.0, THREE), text: `α* = ${(360 - degTan).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexB', at: get3DReflexBisector(B, T, A, 4.0, THREE), text: `α* = ${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
       { key: 'segMajor', at: majorLabelPos, text: 'Alt Seg (Maj)', color: 'color-sky', show: showArea },
       { key: 'segMinor', at: minorLabelPos, text: 'Alt Seg (Min)', color: 'color-violet', show: showArea },
     ];
@@ -2358,12 +2405,12 @@ export class AlternateSegment3DView extends BaseScene3DView {
       const extDAt = get3DAngleBisector(D, A, Dext, 3.2, THREE);
       const showDLabels = showAngles && (state.showDAngles !== false);
       this.currentLabels.push(
-        { key: 'rightB', at: rightAngleBAt, text: '∠TBD\n90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'rightA', at: rightAngleAAt, text: '∠TAD\n90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'rightT', at: rightAngleTAt, text: 'TD ⊥ Tan\n90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'angIntD', at: intDAt, text: `∠TDA\n${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showDLabels },
-        { key: 'angExtD', at: extDAt, text: `Ext D\n${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showDLabels },
-        { key: 'reflexD', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D*\n${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false) },
+        { key: 'rightB', at: rightAngleBAt, text: '∠TBD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'rightA', at: rightAngleAAt, text: '∠TAD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'rightT', at: rightAngleTAt, text: 'TD ⊥ Tan = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'angIntD', at: intDAt, text: `∠TDA = ${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showDLabels },
+        { key: 'angExtD', at: extDAt, text: `Ext D = ${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showDLabels },
+        { key: 'reflexD', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D* = ${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false) },
       );
     }
     this.overlay.render(this.currentLabels, state.vis3d);
@@ -2556,12 +2603,12 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       { key: 'd', at: midOP, text: `d = ${d.toFixed(1)}`, isAngle: false, color: 'color-yellow' },
       { key: 'right1', at: right1Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
       { key: 'right2', at: right2Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
-      { key: 'reflex1', at: get3DReflexBisector(T1, O, P, 3.8, THREE), text: '270°\n(T₁*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflex2', at: get3DReflexBisector(T2, O, P, 3.8, THREE), text: '270°\n(T₂*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'angO1', at: angO1Pos, text: `β₁\n${degO1.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
-      { key: 'angO2', at: angO2Pos, text: `β₂\n${degO2.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
-      { key: 'angP1', at: angP1Pos, text: `α₁\n${degP1.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
-      { key: 'angP2', at: angP2Pos, text: `α₂\n${degP2.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
+      { key: 'reflex1', at: get3DReflexBisector(T1, O, P, 3.8, THREE), text: '270.0° (T₁*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflex2', at: get3DReflexBisector(T2, O, P, 3.8, THREE), text: '270.0° (T₂*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'angO1', at: angO1Pos, text: `β₁ = ${degO1.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
+      { key: 'angO2', at: angO2Pos, text: `β₂ = ${degO2.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
+      { key: 'angP1', at: angP1Pos, text: `α₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
+      { key: 'angP2', at: angP2Pos, text: `α₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-fuchsia', show: showAngles },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);
   }
@@ -2705,10 +2752,10 @@ export class ChordBisector3DView extends BaseScene3DView {
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-blue' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
       { key: 'M', at: M_pos, name: 'M', text: 'M', coords: M, color: 'color-emerald' },
-      { key: 'angAOM', at: aomLabelPos, text: `∠AOM\n${degAOM.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
-      { key: 'angBOM', at: bomLabelPos, text: `∠BOM\n${degBOM.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
+      { key: 'angAOM', at: aomLabelPos, text: `∠AOM = ${degAOM.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
+      { key: 'angBOM', at: bomLabelPos, text: `∠BOM = ${degBOM.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
       { key: 'right', at: rightPos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
-      { key: 'reflexM', at: get3DReflexBisector(M, O, A, 3.2, THREE), text: '270°\n(M*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexM', at: get3DReflexBisector(M, O, A, 3.2, THREE), text: '270.0° (M*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
     ];
     this.overlay.render(this.currentLabels, state.vis3d);
   }

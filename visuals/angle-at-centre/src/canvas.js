@@ -1,4 +1,4 @@
-import { PALETTE, toDegrees, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../js/circle-core.js';
+import { PALETTE, toDegrees, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSubtendedSector, getSubtendedArcCanvas, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -34,7 +34,7 @@ export class CanvasView {
     const g = computeGeometry(state, width, height);
 
     // Cartesian Grid & Coordinate Axes
-    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d);
+    draw2DCartesianGrid(ctx, width, height, g.cx, g.cy, state.vis2d, 40, state.cameraPerspective);
 
     // Main Circle
     ctx.strokeStyle = PALETTE.sky;
@@ -158,11 +158,17 @@ export class CanvasView {
     // Angle Text Annotations with protective badge pills
     const showLabels = state.vis2d?.labels !== false;
     if (showAngles && showLabels) {
-      // Central Angle badge placed along central angle bisector
-      const midCentAng = -(state.angleA + state.angleB) / 2;
-      const centBadgeX = g.cx + 52 * Math.cos(midCentAng);
-      const centBadgeY = g.cy + 52 * Math.sin(midCentAng);
-      drawTextBadge(ctx, `2θ\n${g.centralDeg.toFixed(1)}°`, centBadgeX, centBadgeY, PALETTE.yellow);
+      // Central Angle badge placed along central angle bisector outside the 36px wedge
+      const { angA: sAngA, angB: sAngB, anticlockwise: sCcw } = getSubtendedArcCanvas(g.O, g.A, g.B, g.P);
+      const TAU = Math.PI * 2;
+      const nA = ((sAngA % TAU) + TAU) % TAU;
+      const nB = ((sAngB % TAU) + TAU) % TAU;
+      let sweep = (nB - nA) % TAU;
+      if (sweep < 0) sweep += TAU;
+      const midCentAng = sCcw ? (nA - (TAU - sweep) / 2) : (nA + sweep / 2);
+      const centBadgeX = g.cx + 58 * Math.cos(midCentAng);
+      const centBadgeY = g.cy + 58 * Math.sin(midCentAng);
+      drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, centBadgeX, centBadgeY, PALETTE.yellow);
 
       // Inscribed Angle badges
       const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
@@ -171,35 +177,61 @@ export class CanvasView {
       const bisLen = Math.hypot(bisX, bisY);
       const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
       const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-      const inscBadgeX = g.P.x + 64 * nBisX;
-      const inscBadgeY = g.P.y + 64 * nBisY;
-      drawTextBadge(ctx, `θ\n${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
+      const inscBadgeX = g.P.x + 60 * nBisX;
+      const inscBadgeY = g.P.y + 60 * nBisY;
+      drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
 
       // Base angle alpha and beta badges near P:
-      // Radially staggered (alpha at 28px, beta at 50px) and vertically oriented to prevent overlap
-      const bisP_alpha = (angPO + angPA) / 2;
-      const bisP_beta = (angPO + angPB) / 2;
-      drawTextBadge(ctx, `α\n${alphaDeg.toFixed(1)}°`, g.P.x + 28 * Math.cos(bisP_alpha), g.P.y + 28 * Math.sin(bisP_alpha), PALETTE.lime);
-      drawTextBadge(ctx, `β\n${betaDeg.toFixed(1)}°`, g.P.x + 50 * Math.cos(bisP_beta), g.P.y + 50 * Math.sin(bisP_beta), PALETTE.fuchsia);
+      // Uses vector bisectors placed at 48px to clear 30px wedges
+      const uPOx = Math.cos(angPO), uPOy = Math.sin(angPO);
+      const bisAlphaPx = uPOx + uAx, bisAlphaPy = uPOy + uAy;
+      const lAlphaP = Math.hypot(bisAlphaPx, bisAlphaPy) || 1;
+      const bisBetaPx = uPOx + uBx, bisBetaPy = uPOy + uBy;
+      const lBetaP = Math.hypot(bisBetaPx, bisBetaPy) || 1;
+      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.P.x + 48 * (bisAlphaPx / lAlphaP), g.P.y + 48 * (bisAlphaPy / lAlphaP), PALETTE.lime);
+      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.P.x + 48 * (bisBetaPx / lBetaP), g.P.y + 48 * (bisBetaPy / lBetaP), PALETTE.fuchsia);
 
-      // Badges at base vertices A and B
-      const bisA = (angAO + angAP) / 2;
-      const bisB = (angBO + angBP) / 2;
-      drawTextBadge(ctx, `α\n${alphaDeg.toFixed(1)}°`, g.A.x + 32 * Math.cos(bisA), g.A.y + 32 * Math.sin(bisA), PALETTE.lime);
-      drawTextBadge(ctx, `β\n${betaDeg.toFixed(1)}°`, g.B.x + 32 * Math.cos(bisB), g.B.y + 32 * Math.sin(bisB), PALETTE.fuchsia);
+      // Badges at base vertices A and B (outside 26px wedges along bisectors)
+      const uAOx = Math.cos(angAO), uAOy = Math.sin(angAO);
+      const uAPx = Math.cos(angAP), uAPy = Math.sin(angAP);
+      const bisAx = uAOx + uAPx, bisAy = uAOy + uAPy;
+      const lA = Math.hypot(bisAx, bisAy) || 1;
+      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.A.x + 44 * (bisAx / lA), g.A.y + 44 * (bisAy / lA), PALETTE.lime);
+
+      const uBOx = Math.cos(angBO), uBOy = Math.sin(angBO);
+      const uBPx = Math.cos(angBP), uBPy = Math.sin(angBP);
+      const bisBx = uBOx + uBPx, bisBy = uBOy + uBPy;
+      const lB = Math.hypot(bisBx, bisBy) || 1;
+      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.B.x + 44 * (bisBx / lB), g.B.y + 44 * (bisBy / lB), PALETTE.fuchsia);
     }
 
     // Conjugate Reflex Angles (Perigon 360° - θ)
     const showReflex = Boolean(state.vis2d?.reflex);
     if (showReflex) {
-      const angOA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
-      const angOB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
-      drawReflexWedge(ctx, g.O, angOA, angOB, 42, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      const { angA: sAngA, angB: sAngB, anticlockwise: sCcw } = getSubtendedArcCanvas(g.O, g.A, g.B, g.P);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(g.O.x, g.O.y);
+      ctx.arc(g.O.x, g.O.y, 42, sAngA, sAngB, !sCcw);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
+      ctx.fill();
+      ctx.strokeStyle = PALETTE.teal;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.restore();
+
       drawReflexWedge(ctx, g.P, angPA, angPB, 44, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
 
       if (showLabels) {
-        const midCentAng = -(state.angleA + state.angleB) / 2 + Math.PI;
-        drawTextBadge(ctx, `2θ*\n${(360 - g.centralDeg).toFixed(1)}°`, g.cx + 56 * Math.cos(midCentAng), g.cy + 56 * Math.sin(midCentAng), PALETTE.teal);
+        const TAU = Math.PI * 2;
+        const nA = ((sAngA % TAU) + TAU) % TAU;
+        const nB = ((sAngB % TAU) + TAU) % TAU;
+        let sweep = (nB - nA) % TAU;
+        if (sweep < 0) sweep += TAU;
+        const midCentAng = sCcw ? (nA - (TAU - sweep) / 2) : (nA + sweep / 2);
+        drawTextBadge(ctx, `2θ* = ${(360 - g.centralDeg).toFixed(1)}°`, g.cx - 62 * Math.cos(midCentAng), g.cy - 62 * Math.sin(midCentAng), PALETTE.teal);
 
         const uAx = Math.cos(angPA), uAy = Math.sin(angPA);
         const uBx = Math.cos(angPB), uBy = Math.sin(angPB);
@@ -207,7 +239,7 @@ export class CanvasView {
         const bisLen = Math.hypot(bisX, bisY);
         const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
         const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-        drawTextBadge(ctx, `θ*\n${(360 - g.inscribedDeg).toFixed(1)}°`, g.P.x - 56 * nBisX, g.P.y - 56 * nBisY, PALETTE.teal);
+        drawTextBadge(ctx, `θ* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.P.x - 62 * nBisX, g.P.y - 62 * nBisY, PALETTE.teal);
       }
     }
   }
