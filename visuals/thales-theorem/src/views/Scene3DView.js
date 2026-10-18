@@ -33,6 +33,20 @@ export class Scene3DView {
     return this.renderer.domElement;
   }
 
+  setARMode(active) {
+    if (active) {
+      if (this.objects.scene) this.objects.scene.background = null;
+      if (this.renderer && typeof this.renderer.setClearColor === 'function') {
+        this.renderer.setClearColor(0x000000, 0);
+      }
+    } else {
+      if (this.objects.scene) this.objects.scene.background = new this.THREE.Color('#1e293b');
+      if (this.renderer && typeof this.renderer.setClearColor === 'function') {
+        this.renderer.setClearColor(0x1e293b, 1);
+      }
+    }
+  }
+
   resize() {
     const { clientWidth: width, clientHeight: height } = this.container;
     if (!width || !height) return;

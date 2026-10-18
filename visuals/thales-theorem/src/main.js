@@ -19,7 +19,7 @@ import { TelemetryPanel } from './ui/TelemetryPanel.js';
 import { DraggableToolbar } from './ui/DraggableToolbar.js';
 import { TooltipController } from './ui/TooltipController.js';
 import { bindFullscreen } from './ui/fullscreen.js';
-import { UnitSystemConverter } from '../../../js/circle-core.js';
+import { UnitSystemConverter, ARManager } from '../../../js/circle-core.js';
 
 const byId = (id) => {
   const element = document.getElementById(id);
@@ -96,6 +96,55 @@ function bootstrap() {
         affineStatusPill.classList.toggle('is-on', isAffine);
       }
     }, ['affineMode']);
+  }
+
+  let arManager = null;
+  const arToggleBtn = document.getElementById('btn-toggle-ar');
+  const arStatusPill = document.getElementById('ar-status-pill');
+
+  if (scene3d.renderer && scene3d.objects?.scene) {
+    arManager = new ARManager({
+      renderer: scene3d.renderer,
+      scene: scene3d.objects.scene,
+      camera: scene3d.camera,
+      container: byId('canvas-3d-container'),
+      onSessionStart: () => {
+        scene3d.setARMode(true);
+        if (store.get().viewMode === '2d') {
+          store.set(setViewMode('split'));
+        }
+        if (arToggleBtn) {
+          arToggleBtn.classList.add('active');
+          arToggleBtn.setAttribute('aria-pressed', 'true');
+        }
+        if (arStatusPill) {
+          arStatusPill.textContent = 'ON';
+          arStatusPill.classList.add('is-on');
+        }
+      },
+      onSessionEnd: () => {
+        scene3d.setARMode(false);
+        if (arToggleBtn) {
+          arToggleBtn.classList.remove('active');
+          arToggleBtn.setAttribute('aria-pressed', 'false');
+        }
+        if (arStatusPill) {
+          arStatusPill.textContent = 'OFF';
+          arStatusPill.classList.remove('is-on');
+        }
+      },
+    });
+  }
+
+  if (arToggleBtn && arManager) {
+    arToggleBtn.addEventListener('click', async () => {
+      try {
+        await arManager.toggle();
+      } catch (err) {
+        console.warn('AR initiation error:', err);
+        alert(err.message || 'Could not start Augmented Reality mode on this device.');
+      }
+    });
   }
 
   const resetBtn = document.getElementById('btn-reset');

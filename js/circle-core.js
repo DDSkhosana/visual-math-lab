@@ -2070,3 +2070,4 @@ export {
   normalizedConicConjugacy,
   projectPointToAffineEllipse,
 } from './circle-transforms.js';
+export { ARManager } from './ar-manager.js';

@@ -19,4 +19,5 @@ export class NullScene3DView {
   pickSphere() { return null; }
   pickBaselinePlane() { return null; }
   setCameraPreset() {}
+  setARMode() {}
 }
