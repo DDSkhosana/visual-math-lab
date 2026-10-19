@@ -166,7 +166,7 @@ function updateTipsDOMState(enabled) {
     toolbarBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     const label = toolbarBtn.querySelector('.tips-btn-label');
     if (label) {
-      label.innerHTML = `Tips: <span class="tutorial-status-pill ${enabled ? 'is-on' : 'is-off'}" id="toolbar-tips-status">${enabled ? 'ON' : 'OFF'}</span>`;
+      label.innerHTML = `Guide &amp; Tips: <span class="tutorial-status-pill ${enabled ? 'is-on' : 'is-off'}" id="toolbar-tips-status">${enabled ? 'ON' : 'OFF'}</span>`;
     }
   }
 

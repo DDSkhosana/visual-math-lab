@@ -84,7 +84,7 @@ function describeLabels(state) {
     { key: 's', at: { x: (p.x + ax) / 2, y: (p.y + ay) / 2 + 0.4, z: p.z / 2 }, text: 's', show: labelsAndArea, color: 'color-blue' },
     { key: 't', at: { x: (p.x + bx) / 2, y: (p.y + by) / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
     { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(Math.acos(Math.max(-1, Math.min(1, p.y / r)))))}°`, show: Boolean(vis3d.labels && show3dAngles), color: 'color-yellow' },
-    { key: 'phi', at: phiMid, text: `φ = ${Math.round(toDegrees(Math.atan2(p.x, p.z)))}°`, show: Boolean(vis3d.labels && show3dAngles), color: 'color-fuchsia' },
+    { key: 'phi', at: phiMid, text: `φ (lon.) = ${Math.round(toDegrees(Math.atan2(p.x, p.z)))}°`, show: Boolean(vis3d.labels && show3dAngles), color: 'color-fuchsia' },
     { key: 'alpha', at: alphaMid, text: `α = ${alphaDeg.toFixed(1)}°`, show: Boolean(vis3d.labels && show3dAngles && toPALen > 1.5), color: 'color-lime' },
     { key: 'beta', at: betaMid, text: `β = ${betaDeg.toFixed(1)}°`, show: Boolean(vis3d.labels && show3dAngles && toPBLen > 1.5), color: 'color-orange' },
     { key: 'right', at: rightAt, text: '90.0° (3D Invariant)', show: Boolean(vis3d.labels && show3dAngles), color: 'color-teal' },

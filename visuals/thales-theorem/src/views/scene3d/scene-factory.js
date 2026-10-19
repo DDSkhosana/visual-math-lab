@@ -94,6 +94,7 @@ export function createThalesScene(THREE) {
     altitudeLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.lime, dashSize: 0.4, gapSize: 0.25 }))),
     thetaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.yellow, 0.25))),
     phiSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.magenta, 0.25))),
+    phiProjectionLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.magenta, dashSize: 0.4, gapSize: 0.25, transparent: true, opacity: 0.75 }))),
     rightAngle: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.8))),
     alphaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.35))),
     betaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.amber, 0.35))),

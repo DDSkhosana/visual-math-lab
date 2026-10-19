@@ -137,8 +137,16 @@ export class Scene3DView {
     }
 
     const origin = new THREE.Vector3();
+    const floorProj = new THREE.Vector3(x * scaleX, 0, z * scaleZ);
     this.updateSector(o.thetaSector, origin, new THREE.Vector3(0, 1, 0), p, r * 0.35);
-    this.updateSector(o.phiSector, origin, new THREE.Vector3(0, 0, 1), new THREE.Vector3(x, 0, z), r * 0.45);
+    this.updateSector(o.phiSector, origin, new THREE.Vector3(0, 0, 1), floorProj, r * 0.45);
+    o.thetaSector.visible = state.show3dAngles;
+    o.phiSector.visible = state.show3dAngles;
+    if (o.phiProjectionLine) {
+      o.phiProjectionLine.geometry.setFromPoints([origin, floorProj, p]);
+      o.phiProjectionLine.computeLineDistances();
+      o.phiProjectionLine.visible = state.show3dAngles;
+    }
     if (toA.lengthSq() > 1e-4 && toB.lengthSq() > 1e-4) {
       setPositions(THREE, o.rightAngle.geometry, rightAngleVertices(THREE, p, toA.clone().normalize(), toB.clone().normalize(), 0.8));
       o.rightAngle.visible = state.show3dAngles;

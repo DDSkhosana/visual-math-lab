@@ -2176,3 +2176,49 @@ test('Granular Interactive Controls: Geometry Notation Legend and Tutorial & Tip
   assert.strictEqual(tipsIcon.textContent, '▶', 'Tips icon must return to ▶');
 });
 
+test('Refinements A, B, and C: Thales phi floor projection & omega symbol, universal Affine Conic Mode across all 8 theorems, and Guide & Tips toolbar label', () => {
+  // Refinement A: Verify Thales LabelOverlayView, scene-factory, Scene3DView, index.html, and DerivationView
+  const labelOverlaySrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  assert.ok(labelOverlaySrc.includes('φ (lon.) ='), 'LabelOverlayView must label 3D longitude phi as φ (lon.) =');
+
+  const sceneFactorySrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/scene3d/scene-factory.js'), 'utf8');
+  assert.ok(sceneFactorySrc.includes('phiProjectionLine'), 'scene-factory.js must create phiProjectionLine');
+
+  const scene3dViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/Scene3DView.js'), 'utf8');
+  assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.geometry.setFromPoints([origin, floorProj, p])'), 'Scene3DView must update phiProjectionLine points');
+  assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.visible = state.show3dAngles'), 'Scene3DView must sync phiProjectionLine visibility with show3dAngles');
+
+  const thalesHtml = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/index.html'), 'utf8');
+  assert.ok(thalesHtml.includes('Deformation Axis (ω)'), 'Thales index.html must use (ω) for Affine Deformation Axis');
+
+  const derivViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/DerivationView.js'), 'utf8');
+  assert.ok(derivViewSrc.includes('ω = ${Math.round(toDegrees(state.affineAxisAngle ?? 0))}°'), 'DerivationView.js must use ω for Affine Deformation Axis');
+
+  // Refinement B: Verify universal Affine Conic Mode in circle-core.js and circle-3d.js
+  const circleCoreSrc = fs.readFileSync(path.join(rootDir, 'js/circle-core.js'), 'utf8');
+  assert.ok(circleCoreSrc.includes('btn-toggle-affine'), 'bindStandardToggles in circle-core.js must mount/bind #btn-toggle-affine');
+  assert.ok(circleCoreSrc.includes('section-affine-conic'), 'bindStandardToggles in circle-core.js must mount/bind #section-affine-conic');
+  assert.ok(circleCoreSrc.includes('Erlangen Conic Invariant Preserved'), 'circle-core.js must render 2D Affine Conic HUD overlay');
+
+  const circle3dSrc = fs.readFileSync(path.join(rootDir, 'js/circle-3d.js'), 'utf8');
+  assert.ok(circle3dSrc.includes('this.scene.scale.set(scaleX, 1, 1)'), 'BaseScene3DView.applyCommonVis must scale 3D scene along X in affineMode');
+  assert.ok(circle3dSrc.includes('this.overlay.sceneScaleX = scaleX'), 'BaseScene3DView.applyCommonVis must sync overlay.sceneScaleX');
+
+  // Refinement C: Verify Guide & Tips: label across visual-page.js, tutorial-walkthrough.js, and all 8 visuals/*/index.html
+  const visualPageSrc = fs.readFileSync(path.join(rootDir, 'js/visual-page.js'), 'utf8');
+  assert.ok(visualPageSrc.includes('Guide &amp; Tips:'), 'js/visual-page.js must use Guide & Tips: label');
+
+  const walkthroughSrc = fs.readFileSync(path.join(rootDir, 'js/tutorial-walkthrough.js'), 'utf8');
+  assert.ok(walkthroughSrc.includes('Guide &amp; Tips:'), 'js/tutorial-walkthrough.js must use Guide & Tips: label');
+
+  const visualDirs = fs.readdirSync(path.join(rootDir, 'visuals'));
+  for (const dir of visualDirs) {
+    const htmlPath = path.join(rootDir, 'visuals', dir, 'index.html');
+    if (fs.existsSync(htmlPath)) {
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      assert.ok(html.includes('Guide &amp; Tips:'), `${dir}/index.html must include Guide & Tips: toolbar label`);
+    }
+  }
+});
+
+

@@ -591,9 +591,19 @@ export class BaseScene3DView {
     if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
     if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
-    if (this.overlay && this.overlay.overlayContainer) {
-      const showLabels = (state?.vis3d?.labels !== false) || Boolean(state?.vis3d?.coords);
-      this.overlay.overlayContainer.style.display = showLabels ? '' : 'none';
+    const scaleX = state?.affineMode ? (state?.affineStretch ?? 1.35) : 1.0;
+    if (this.scene?.scale?.set) {
+      this.scene.scale.set(scaleX, 1, 1);
+    }
+    const invScaleX = scaleX ? 1 / scaleX : 1;
+    if (this.grid?.scale?.set) this.grid.scale.set(invScaleX, 1, 1);
+    if (this.axes?.scale?.set) this.axes.scale.set(invScaleX, 1, 1);
+    if (this.overlay) {
+      this.overlay.sceneScaleX = scaleX;
+      if (this.overlay.overlayContainer) {
+        const showLabels = (state?.vis3d?.labels !== false) || Boolean(state?.vis3d?.coords);
+        this.overlay.overlayContainer.style.display = showLabels ? '' : 'none';
+      }
     }
   }
 
@@ -918,11 +928,12 @@ export class LabelOverlay3D {
     this.elements = new Map();
   }
 
-  project(point) {
+  project(point, isAxis = false) {
     if (!this.container || !this.camera || !point) return null;
     const { clientWidth: width, clientHeight: height } = this.container;
     if (!width || !height) return null;
-    const v = new this.THREE.Vector3(point.x, point.y, point.z).project(this.camera);
+    const sx = isAxis ? 1 : (this.sceneScaleX || 1);
+    const v = new this.THREE.Vector3(point.x * sx, point.y, point.z).project(this.camera);
     if (v.z > 1) return null;
     return { x: (v.x * 0.5 + 0.5) * width, y: (v.y * -0.5 + 0.5) * height };
   }
@@ -955,7 +966,7 @@ export class LabelOverlay3D {
         if (vis3d.axes === false) shouldShow = false;
       }
 
-      const screen = shouldShow ? this.project(label.at) : null;
+      const screen = shouldShow ? this.project(label.at, Boolean(label.isAxis)) : null;
       if (!screen) {
         el.classList.remove('visible');
         el.style.display = 'none';

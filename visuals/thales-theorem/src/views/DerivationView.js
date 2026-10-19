@@ -304,7 +304,7 @@ export class DerivationView {
     if (this.slots2D.step8Sub) {
       if (state.affineMode && affine) {
         this.slots2D.step8Sub.innerHTML =
-          `↳ Active Affine Mode: ${tag('yellow', `Stretch s = ${(state.affineStretch ?? 1.0).toFixed(2)}`)}, Axis ${tag('cyan', `φ = ${Math.round(toDegrees(state.affineAxisAngle ?? 0))}°`)}<br>` +
+          `↳ Active Affine Mode: ${tag('yellow', `Stretch s = ${(state.affineStretch ?? 1.0).toFixed(2)}`)}, Axis ${tag('cyan', `ω = ${Math.round(toDegrees(state.affineAxisAngle ?? 0))}°`)}<br>` +
           `↳ Ellipse Semi-Axes: ${tag('indigo', `a = ${affine.semiMajor.toFixed(2)}`)}, ${tag('indigo', `b = ${affine.semiMinor.toFixed(2)}`)}, Eccentricity ${tag('cyan', `e = ${affine.eccentricity.toFixed(3)}`)}<br>` +
           `↳ Euclidean Angle at P: ${tag('rose', `∠APB = ${affine.angleEuclidDeg.toFixed(1)}°`)} (perturbed from 90°)<br>` +
           `↳ Apollonius Invariant: ${tag('teal', `v_PAᵀ Q v_PB = ${Math.abs(affine.apolloniusConjugacy) < 1e-6 ? '0.000' : affine.apolloniusConjugacy.toFixed(4)}`)} (strictly conjugate)`;

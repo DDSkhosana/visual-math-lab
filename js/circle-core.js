@@ -2,6 +2,7 @@
  * Shared core utilities, math helpers, and UI widgets for Circle Geometry Visualisations.
  */
 import { syncPanelElevationTurn } from './workspace-dock.js';
+import { ARManager } from './ar-manager.js';
 
 export const PALETTE = Object.freeze({
   red: '#ef4444',
@@ -1101,6 +1102,31 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
   }
 
   ctx.restore();
+
+  if (ctx && ctx._pendingAffineState && !ctx._affineSaved) {
+    const st = ctx._pendingAffineState;
+    const s = st.affineStretch ?? 1.35;
+    const omega = st.affineAxisAngle ?? 0;
+    const r = st.radius || 180;
+    ctx.save?.();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.32)';
+    ctx.lineWidth = 1.25;
+    ctx.setLineDash?.([4, 4]);
+    ctx.beginPath?.();
+    ctx.arc?.(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke?.();
+    ctx.setLineDash?.([]);
+    ctx.restore?.();
+
+    ctx.save?.();
+    ctx._affineSaved = true;
+    ctx._affineCenter = { cx, cy };
+    ctx.translate?.(cx, cy);
+    ctx.rotate?.(-omega);
+    ctx.scale?.(s, 1);
+    ctx.rotate?.(omega);
+    ctx.translate?.(-cx, -cy);
+  }
 }
 
 /**
@@ -1361,6 +1387,9 @@ export function createDefaultVisState() {
     lengthUnit: 'px',
     angleUnit: 'deg',
     cameraMode: 'arcball',
+    affineMode: false,
+    affineStretch: 1.0,
+    affineAxisAngle: 0,
     vis2d: {
       grid: true,
       axes: true,
@@ -1679,6 +1708,9 @@ export function bindStandardToggles(store, ...args) {
         splitDirection: 'horizontal',
         splitRatio: 50,
         cameraMode: 'arcball',
+        affineMode: false,
+        affineStretch: 1.0,
+        affineAxisAngle: 0,
       });
       sceneTarget?.controls?.setMode?.('arcball');
       presetBars.forEach((bar) => {
@@ -1698,6 +1730,230 @@ export function bindStandardToggles(store, ...args) {
   const unitConverterContainer = document.getElementById('content-unit-converter');
   if (unitConverterContainer) {
     new UnitSystemConverter(unitConverterContainer, store);
+  }
+
+  // Mount Affine Conic Mode & AR Toolbar buttons if not already present
+  const toolbarContent = document.getElementById('toolbar-content');
+  if (toolbarContent && typeof document.createElement === 'function') {
+    const refBtn = document.getElementById('btn-reset');
+    if (!document.getElementById('btn-toggle-affine')) {
+      const affineBtn = document.createElement('button');
+      affineBtn.type = 'button';
+      affineBtn.className = 'btn-toolbar';
+      affineBtn.id = 'btn-toggle-affine';
+      affineBtn.title = 'Toggle between Euclidean Circle Mode and Affine Conic Mode';
+      affineBtn.setAttribute('aria-pressed', 'false');
+      affineBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><ellipse cx="12" cy="12" rx="9" ry="5.5"/></svg><span>Affine: <b class="toggle-state-text" id="affine-status-pill">OFF</b></span>`;
+      if (refBtn && refBtn.parentNode === toolbarContent && typeof toolbarContent.insertBefore === 'function') {
+        toolbarContent.insertBefore(affineBtn, refBtn);
+      } else {
+        toolbarContent.appendChild?.(affineBtn);
+      }
+    }
+    if (!document.getElementById('btn-toggle-ar')) {
+      const arBtn = document.createElement('button');
+      arBtn.type = 'button';
+      arBtn.className = 'btn-toolbar';
+      arBtn.id = 'btn-toggle-ar';
+      arBtn.title = 'Enter Augmented Reality mode (WebXR / Camera Pass-Through)';
+      arBtn.setAttribute('aria-pressed', 'false');
+      arBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/><circle cx="12" cy="12" r="2.5"/></svg><span>AR: <b class="toggle-state-text" id="ar-status-pill">OFF</b></span>`;
+      if (refBtn && refBtn.parentNode === toolbarContent && typeof toolbarContent.insertBefore === 'function') {
+        toolbarContent.insertBefore(arBtn, refBtn);
+      } else {
+        toolbarContent.appendChild?.(arBtn);
+      }
+    }
+  }
+
+  // Mount Affine Conic Mode subpanel inside primary Interactive Controls panel if not present
+  if (!document.getElementById('section-affine-conic') && typeof document.createElement === 'function') {
+    const controlsBody = document.querySelector?.(
+      '#controls-panel .panel-body, #angle-at-centre-panel .panel-body, #ui-panel-container .panel-body, .ui-panel:not(#toolbar-2d-panel):not(#toolbar-3d-panel):not(#derivations-panel) .panel-body'
+    );
+    if (controlsBody) {
+      const affineSection = document.createElement('div');
+      affineSection.className = 'collapsible-section collapsed';
+      affineSection.id = 'section-affine-conic';
+      affineSection.innerHTML = `
+        <div class="collapsible-header" id="header-affine-conic" aria-expanded="false">
+          <span>Affine Conic Mode</span><span class="icon">▶</span>
+        </div>
+        <div class="collapsible-content collapsed">
+          <div class="toggle-tooltips-container" style="margin-bottom: 12px;">
+            <span class="text-xs font-semibold text-slate-200">Affine Conic Mode</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-affine-mode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <p class="text-xs text-slate-400 mb-3" style="line-height: 1.4;">Deforms the circle into an ellipse. While Euclidean metric angles perturb, projective &amp; affine conic invariants (<b class="color-yellow">v₁ᵀ Q v₂</b>) remain strictly preserved under the Erlangen hierarchy.</p>
+          <div class="slider-container">
+            <label><span class="color-yellow">Aspect Stretch (s)</span><span id="affine-stretch-label" class="color-yellow font-bold">1.00</span></label>
+            <input type="range" id="affine-stretch-slider" min="0.4" max="2.5" step="0.05" value="1.0">
+          </div>
+          <div class="slider-container">
+            <label><span class="color-cyan">Deformation Axis (ω)</span><span id="affine-angle-label" class="color-cyan font-bold">0°</span></label>
+            <input type="range" id="affine-angle-slider" min="0" max="180" step="1" value="0">
+          </div>
+        </div>
+      `;
+      const legendSec = controlsBody.querySelector?.('#section-geometry-legend');
+      if (legendSec && legendSec.parentNode === controlsBody && typeof controlsBody.insertBefore === 'function') {
+        controlsBody.insertBefore(affineSection, legendSec);
+      } else {
+        controlsBody.appendChild?.(affineSection);
+      }
+    }
+  }
+
+  // Wrap viewTarget.render to apply 2D affine transformation and HUD overlay when affineMode is active
+  if (viewTarget && typeof viewTarget.render === 'function' && !viewTarget._affineWrapped) {
+    const origRender = viewTarget.render.bind(viewTarget);
+    viewTarget._affineWrapped = true;
+    viewTarget.render = (st) => {
+      const ctx = viewTarget.ctx;
+      if (ctx) {
+        ctx._pendingAffineState = st?.affineMode ? st : null;
+        ctx._affineSaved = false;
+      }
+      origRender(st);
+      if (ctx && ctx._affineSaved) {
+        ctx.restore?.();
+        ctx._affineSaved = false;
+        ctx._pendingAffineState = null;
+
+        const s = st?.affineStretch ?? 1.35;
+        const omegaDeg = Math.round(((st?.affineAxisAngle ?? 0) * 180) / Math.PI);
+        const r = st?.radius || 180;
+        const a = r * Math.max(s, 1);
+        const b = r * Math.min(s, 1);
+        const ecc = a > 0 ? Math.sqrt(Math.max(0, 1 - (b * b) / (a * a))) : 0;
+        drawHaloText(
+          ctx,
+          `Affine Conic Mode: s = ${s.toFixed(2)}, ω = ${omegaDeg}°, e = ${ecc.toFixed(3)} | Erlangen Conic Invariant Preserved ✓`,
+          14,
+          36,
+          PALETTE.yellow,
+          'bold 11px monospace',
+          'left'
+        );
+      }
+    };
+  }
+
+  // Bind Affine Conic Mode controls to store
+  const affineBtnEl = document.getElementById('btn-toggle-affine');
+  const affinePillEl = document.getElementById('affine-status-pill');
+  const affineCheckEl = document.getElementById('toggle-affine-mode');
+  const stretchSliderEl = document.getElementById('affine-stretch-slider');
+  const stretchLabelEl = document.getElementById('affine-stretch-label');
+  const angleSliderEl = document.getElementById('affine-angle-slider');
+  const angleLabelEl = document.getElementById('affine-angle-label');
+
+  const setAffine = (enabled) => {
+    const cur = store.get();
+    const curStretch = cur.affineStretch ?? 1.0;
+    const nextStretch = enabled && Math.abs(curStretch - 1.0) < 1e-3 ? 1.35 : curStretch;
+    store.set({ affineMode: Boolean(enabled), affineStretch: nextStretch });
+  };
+
+  if (affineBtnEl && !affineBtnEl._affineBound) {
+    affineBtnEl._affineBound = true;
+    affineBtnEl.addEventListener('click', () => {
+      setAffine(!store.get().affineMode);
+    });
+  }
+  if (affineCheckEl && !affineCheckEl._affineBound) {
+    affineCheckEl._affineBound = true;
+    affineCheckEl.addEventListener('change', (e) => {
+      setAffine(e.target.checked);
+    });
+  }
+  if (stretchSliderEl && !stretchSliderEl._affineBound) {
+    stretchSliderEl._affineBound = true;
+    stretchSliderEl.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (Number.isFinite(val)) {
+        store.set({ affineStretch: val, affineMode: true });
+      }
+    });
+  }
+  if (angleSliderEl && !angleSliderEl._affineBound) {
+    angleSliderEl._affineBound = true;
+    angleSliderEl.addEventListener('input', (e) => {
+      const deg = parseFloat(e.target.value);
+      if (Number.isFinite(deg)) {
+        store.set({ affineAxisAngle: (deg * Math.PI) / 180, affineMode: true });
+      }
+    });
+  }
+
+  const syncAffineUI = (st = {}) => {
+    const isAffine = Boolean(st.affineMode);
+    const stretch = st.affineStretch ?? 1.0;
+    const angleDeg = Math.round(((st.affineAxisAngle ?? 0) * 180) / Math.PI);
+    if (affineBtnEl) {
+      affineBtnEl.classList?.toggle('active', isAffine);
+      affineBtnEl.setAttribute?.('aria-pressed', String(isAffine));
+    }
+    if (affinePillEl) {
+      affinePillEl.textContent = isAffine ? 'ON' : 'OFF';
+      affinePillEl.classList?.toggle('is-on', isAffine);
+    }
+    if (affineCheckEl) affineCheckEl.checked = isAffine;
+    if (stretchSliderEl) stretchSliderEl.value = String(stretch);
+    if (stretchLabelEl) stretchLabelEl.textContent = Number(stretch).toFixed(2);
+    if (angleSliderEl) angleSliderEl.value = String(angleDeg);
+    if (angleLabelEl) angleLabelEl.textContent = `${angleDeg}°`;
+  };
+  syncAffineUI(store.get());
+  store.subscribe((st) => {
+    syncAffineUI(st);
+    viewTarget?.render?.(st);
+    sceneTarget?.render?.(st);
+  }, ['affineMode', 'affineStretch', 'affineAxisAngle']);
+
+  // Bind AR Manager to #btn-toggle-ar if 3D scene is present
+  const arBtnEl = document.getElementById('btn-toggle-ar');
+  const arPillEl = document.getElementById('ar-status-pill');
+  const arSceneObj = sceneTarget?.scene || sceneTarget?.objects?.scene;
+  if (arBtnEl && sceneTarget?.renderer && arSceneObj && !arBtnEl._hasClickBound) {
+    arBtnEl._hasClickBound = true;
+    const arManager = new ARManager({
+      renderer: sceneTarget.renderer,
+      scene: arSceneObj,
+      camera: sceneTarget.camera,
+      container: sceneTarget.container || document.getElementById('canvas-3d-container'),
+      onSessionStart: () => {
+        sceneTarget.setARMode?.(true);
+        if (store.get().viewMode === '2d') {
+          store.set({ viewMode: 'split' });
+        }
+        arBtnEl.classList?.add('active');
+        arBtnEl.setAttribute?.('aria-pressed', 'true');
+        if (arPillEl) {
+          arPillEl.textContent = 'ON';
+          arPillEl.classList?.add('is-on');
+        }
+      },
+      onSessionEnd: () => {
+        sceneTarget.setARMode?.(false);
+        arBtnEl.classList?.remove('active');
+        arBtnEl.setAttribute?.('aria-pressed', 'false');
+        if (arPillEl) {
+          arPillEl.textContent = 'OFF';
+          arPillEl.classList?.remove('is-on');
+        }
+      },
+    });
+    arBtnEl.addEventListener('click', async () => {
+      try {
+        await arManager.toggle();
+      } catch (err) {
+        console.warn('AR initiation error:', err);
+      }
+    });
   }
 
   // Set initial camera perspective to match 2D and 3D orientation on first load
