@@ -1300,3 +1300,198 @@ test('Granular Dimension Conservation: Level 2 and Level 3 overflow: visible and
   assert.ok(css.includes('.slide-backward'), '.slide-backward CSS class must be defined');
 });
 
+// ============================================================================
+// SUITE 4: FLOATING WINDOWS LIFECYCLE & NON-EMPTY RENDERING ACROSS ALL THEOREMS
+// ============================================================================
+
+test('Granular Floating Windows: All 32 panels across 8 theorems float out with rendered content, un-hidden body, close, and re-dock', () => {
+  const slugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  let totalTestedPanels = 0;
+
+  for (const slug of slugs) {
+    const { mockDoc, root } = setupTestEnvironment();
+
+    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    const panelIds = [...html.matchAll(/<div[^>]*class="[^"]*ui-panel[^"]*"[^>]*id="([^"]+)"/g)].map((m) => m[1]);
+
+    assert.strictEqual(panelIds.length, 4, `${slug} must declare exactly 4 panels in HTML`);
+
+    // Build DOM representation matching each visualizer's HTML structure
+    for (const id of panelIds) {
+      const panel = mockDoc.createElement('div');
+      panel.className = 'ui-panel';
+      panel.id = id;
+
+      const content = mockDoc.createElement('div');
+      content.className = 'panel-content';
+
+      const header = mockDoc.createElement('div');
+      header.className = 'panel-header';
+      const h1 = mockDoc.createElement('h1');
+      h1.textContent = `${slug} ${id}`;
+      header.appendChild(h1);
+
+      const actions = mockDoc.createElement('div');
+      actions.className = 'panel-header-actions';
+      header.appendChild(actions);
+      content.appendChild(header);
+
+      // The theorem HTMLs statically declare panel-body with the hidden class
+      const body = mockDoc.createElement('div');
+      body.className = 'panel-body hidden';
+
+      const sec = mockDoc.createElement('div');
+      sec.className = 'collapsible-section collapsed';
+      body.appendChild(sec);
+      content.appendChild(body);
+
+      panel.appendChild(content);
+      root.appendChild(panel);
+    }
+
+    const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+    for (const id of panelIds) {
+      totalTestedPanels++;
+      const record = dock.panels.get(id);
+      assert.ok(record, `${slug} -> ${id} must be registered in WorkspaceDockManager`);
+      assert.strictEqual(record.isFloating, false, `${id} must start docked`);
+
+      const panel = record.element;
+      const body = panel.querySelector('.panel-body');
+      assert.ok(body, `${id} must have a .panel-body element`);
+
+      // 1. Float out panel into floating workspace layer
+      dock.floatPanel(id);
+      assert.strictEqual(record.isFloating, true, `${id} must be marked isFloating=true`);
+      assert.strictEqual(panel.classList.contains('is-floating'), true, `${id} must have class .is-floating`);
+      assert.strictEqual(panel.parentElement, dock.floatingLayer, `${id} must be mounted in floatingLayer`);
+
+      // Critical invariant: floating panel body MUST NOT be hidden or empty
+      assert.strictEqual(body.classList.contains('hidden'), false, `${id} .hidden class must be removed on float`);
+      assert.notStrictEqual(body.style.display, 'none', `${id} body display must not be 'none'`);
+
+      // Controls and headers check
+      assert.strictEqual(record.dockToggleBtn.innerHTML, '🗁', `${id} dock toggle button must show redock glyph 🗁`);
+      assert.ok(record.dockToggleBtn.getAttribute('aria-label').includes('Dock'), `${id} aria-label must say Dock`);
+      assert.ok(record.closeBtn, `${id} must have a close button mounted`);
+
+      // 2. Close floating window via close button
+      record.closeBtn.click();
+      assert.strictEqual(record.isHidden, true, `${id} must be hidden after close click`);
+      assert.strictEqual(panel.style.display, 'none', `${id} style.display must be none when closed`);
+
+      // Re-open via dock manager setPanelVisible
+      dock.setPanelVisible(id, true);
+      assert.strictEqual(record.isHidden, false, `${id} must be un-hidden`);
+      assert.strictEqual(panel.style.display, '', `${id} style.display must be restored`);
+
+      // 3. Re-dock panel back into dockBody via dockToggleBtn
+      record.dockToggleBtn.click();
+      assert.strictEqual(record.isFloating, false, `${id} must return to isFloating=false`);
+      assert.strictEqual(panel.classList.contains('is-floating'), false, `${id} must lose .is-floating class`);
+      assert.strictEqual(panel.parentElement, dock.dockBody, `${id} must be reparented into dockBody`);
+      assert.strictEqual(panel.style.position, '', `${id} absolute position must be cleared`);
+      assert.strictEqual(panel.style.left, '', `${id} inline left must be cleared`);
+      assert.strictEqual(panel.style.top, '', `${id} inline top must be cleared`);
+      assert.strictEqual(record.dockToggleBtn.innerHTML, '⧉', `${id} dock toggle button must revert to float glyph ⧉`);
+      assert.strictEqual(body.classList.contains('hidden'), false, `${id} body must remain visible inside dock container`);
+    }
+  }
+
+  assert.strictEqual(totalTestedPanels, 32, 'All 32 panels across 8 theorems must be fully tested');
+});
+
+test('Granular Floating Windows: Auto-expansion of collapsed dock when re-docking floating panels', () => {
+  const { mockDoc, root } = setupTestEnvironment();
+
+  const panel = mockDoc.createElement('div');
+  panel.className = 'ui-panel';
+  panel.id = 'panel-auto-expand';
+
+  const content = mockDoc.createElement('div');
+  content.className = 'panel-content';
+  const header = mockDoc.createElement('div');
+  header.className = 'panel-header';
+  const body = mockDoc.createElement('div');
+  body.className = 'panel-body hidden';
+  content.appendChild(header);
+  content.appendChild(body);
+  panel.appendChild(content);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // 1. Float out panel
+  dock.floatPanel('panel-auto-expand');
+  const record = dock.panels.get('panel-auto-expand');
+  assert.strictEqual(record.isFloating, true);
+
+  // 2. Collapse dock bar
+  dock.setDockCollapsed(true);
+  assert.strictEqual(dock.isCollapsed, true);
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), true);
+  assert.strictEqual(root.classList.contains('dock-is-collapsed'), true);
+
+  // 3. Re-dock floating panel: dock must auto-expand so user can see returned panel
+  record.dockToggleBtn.click();
+  assert.strictEqual(record.isFloating, false);
+  assert.strictEqual(dock.isCollapsed, false, 'Dock must automatically un-collapse when a panel is docked');
+  assert.strictEqual(dock.dockElement.classList.contains('is-collapsed'), false, 'Dock class must clear is-collapsed');
+  assert.strictEqual(root.classList.contains('dock-is-collapsed'), false, 'Root class must clear dock-is-collapsed');
+  assert.strictEqual(panel.parentElement, dock.dockBody);
+});
+
+test('Granular Floating Windows: CSS zero-clip header actions, title ellipsis, and non-empty floating body contracts', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // 1. Floating panel body forced display flex contract
+  assert.ok(
+    css.includes('.ui-panel.is-floating .panel-body') && css.includes('display: flex !important;'),
+    'Floating panels must force display: flex !important on .panel-body to prevent blank windows'
+  );
+  assert.ok(
+    css.includes('.ui-panel.is-floating:not(.is-shaded) .panel-body.hidden') && css.includes('display: flex !important;'),
+    'Floating panels must override .hidden class with display: flex !important when not shaded'
+  );
+
+  // 2. Panel header actions zero-shrink & min-width contract
+  assert.ok(
+    css.includes('.panel-header-actions') &&
+    css.includes('flex-shrink: 0 !important;') &&
+    css.includes('min-width: max-content !important;'),
+    'Panel header actions must enforce flex-shrink: 0 !important and min-width: max-content !important so buttons are never clipped'
+  );
+
+  // 3. Panel header titles text-overflow contract
+  assert.ok(
+    css.includes('text-overflow: ellipsis') &&
+    css.includes('white-space: nowrap'),
+    'Panel header titles must have ellipsis and nowrap to prevent action button clipping'
+  );
+
+  // 4. Shading must only target .panel-body, not .panel-content (which would hide header)
+  assert.ok(
+    css.includes('.ui-panel.is-shaded .panel-body'),
+    'Shaded class must only target .panel-body so the window title and action buttons remain visible'
+  );
+  assert.strictEqual(
+    css.includes('.ui-panel.is-shaded .panel-content'),
+    false,
+    'Shaded class must never hide .panel-content'
+  );
+});
+
+

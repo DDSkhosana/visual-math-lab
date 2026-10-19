@@ -1101,18 +1101,39 @@
 /* ==========================================================================
    Panel Window Controls: Pop-out, Re-dock, Close, Minimize, Shade
    ========================================================================== */
+.panel-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  gap: 0.5rem !important;
+}
+
+.panel-header h1,
+.panel-header h2,
+.panel-header h3,
+.panel-header .panel-title {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
 .panel-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  flex-shrink: 0 !important;
+  min-width: max-content !important;
 }
 
 .panel-window-btn {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(51, 65, 85, 0.65);
   color: #cbd5e1;
-  padding: 0.2rem 0.35rem;
-  font-size: 0.72rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
   border-radius: 0.25rem;
   cursor: pointer;
   display: inline-flex;
@@ -1120,6 +1141,13 @@
   justify-content: center;
   line-height: 1;
   transition: all 0.15s ease;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.panel-window-btn svg {
+  display: block;
+  pointer-events: none;
 }
 
 .panel-window-btn:hover {
@@ -1134,9 +1162,9 @@
   border-color: #38bdf8;
 }
 
-/* Shaded / Rolled-up Window State */
-.ui-panel.is-shaded .panel-content,
-.ui-panel.is-shaded .panel-body {
+/* Shaded / Rolled-up Window State: only roll up panel-body, keep header and actions fully visible */
+.ui-panel.is-shaded .panel-body,
+.workspace-dock-body > .ui-panel.is-shaded .panel-body {
   display: none !important;
 }
 
@@ -1163,7 +1191,31 @@
   border-radius: 0.5rem;
   overflow: visible !important;
   pointer-events: auto;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex !important;
+  flex-direction: column !important;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ui-panel.is-floating .panel-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.ui-panel.is-floating .panel-body,
+.ui-panel.is-floating:not(.is-shaded) .panel-body.hidden {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
 }
 
 .ui-panel.is-floating.is-focused {
@@ -1490,7 +1542,6 @@
   max-height: none !important;
 }
 
-.workspace-dock-body > .ui-panel.is-shaded .panel-content,
 .workspace-dock-body > .ui-panel.is-shaded .panel-body {
   display: none !important;
 }

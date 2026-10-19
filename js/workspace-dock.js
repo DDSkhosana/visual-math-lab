@@ -16,6 +16,16 @@ const STORAGE_KEY = 'vml_workspace_dock_state';
 
 import { stepSpring, VelocityTracker, computeEdgeSnapTarget } from './motion-physics.js';
 
+export const DOCK_POPOUT_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>`;
+
+export const DOCK_RETURN_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M16 12l-3-3m3 3l-3 3"></path></svg>`;
+
+export const WINDOW_CLOSE_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+export const WINDOW_SHADE_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+
+export const WINDOW_UNSHADE_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>`;
+
 function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
@@ -641,6 +651,13 @@ export class WorkspaceDockManager {
       this.activePanelId = id;
     }
 
+    // Ensure panel-body is visible and rendered (subcomponents remain cleanly collapsed)
+    const body = panelElement.querySelector('.panel-body');
+    if (body) {
+      body.classList.remove('hidden');
+      body.style.display = '';
+    }
+
     // Initial placement: default into the dock body unless marked floating
     if (!panelElement.classList.contains('is-floating')) {
       this.dockBody.appendChild(panelElement);
@@ -774,10 +791,11 @@ export class WorkspaceDockManager {
       dockToggleBtn.type = 'button';
       dockToggleBtn.className = 'panel-window-btn panel-dock-toggle-btn';
       dockToggleBtn.setAttribute('aria-label', 'Pop out panel to floating window or dock back');
-      dockToggleBtn.title = 'Pop out to floating window';
-      dockToggleBtn.innerHTML = `⧉`;
+      dockToggleBtn.title = record.isFloating ? 'Dock back into sidebar' : 'Pop out to floating window';
+      dockToggleBtn.innerHTML = record.isFloating ? `🗁` : `⧉`;
       actionsContainer.prepend(dockToggleBtn);
 
+      dockToggleBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
       dockToggleBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         if (record.isFloating) {
@@ -797,9 +815,10 @@ export class WorkspaceDockManager {
       shadeBtn.className = 'panel-window-btn panel-shade-btn';
       shadeBtn.setAttribute('aria-label', 'Roll up or restore window');
       shadeBtn.title = 'Roll up / restore window';
-      shadeBtn.innerHTML = `─`;
+      shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
       actionsContainer.appendChild(shadeBtn);
 
+      shadeBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
       shadeBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         record.element.classList.toggle('is-shaded');
@@ -819,6 +838,7 @@ export class WorkspaceDockManager {
       closeBtn.innerHTML = `✕`;
       actionsContainer.appendChild(closeBtn);
 
+      closeBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
       closeBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         this.setPanelVisible(record.id, false);
@@ -1011,6 +1031,13 @@ export class WorkspaceDockManager {
     const panel = record.element;
     panel.classList.add('is-floating');
 
+    // Ensure panel-body is visible and rendered (not hidden)
+    const body = panel.querySelector('.panel-body');
+    if (body) {
+      body.classList.remove('hidden');
+      body.style.display = '';
+    }
+
     // Move DOM node into floating layer
     this.floatingLayer.appendChild(panel);
 
@@ -1053,9 +1080,21 @@ export class WorkspaceDockManager {
     panel.style.height = '';
     panel.style.zIndex = '';
 
+    // If dock is currently collapsed, automatically expand it so user sees the returned panel
+    if (this.isCollapsed) {
+      this.setDockCollapsed(false);
+    }
+
     // Move DOM node back to dock body
     this.dockBody.appendChild(panel);
     this.collapseSubComponents(panel);
+
+    // Ensure panel-body remains visible and rendered
+    const body = panel.querySelector('.panel-body');
+    if (body) {
+      body.classList.remove('hidden');
+      body.style.display = '';
+    }
 
     if (record.dockToggleBtn) {
       record.dockToggleBtn.innerHTML = `⧉`;
@@ -1277,6 +1316,7 @@ export class WorkspaceDockManager {
       floatBtn.title = record.isFloating ? 'Dock panel back to sidebar' : 'Pop out panel to floating window';
       floatBtn.setAttribute('aria-label', record.isFloating ? `Dock ${record.title}` : `Float ${record.title}`);
       floatBtn.textContent = record.isFloating ? '🗁' : '⧉';
+      floatBtn.innerHTML = record.isFloating ? '🗁' : '⧉';
       floatBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
         e?.preventDefault?.();

@@ -281,7 +281,7 @@ export class Panel {
     if (!header) return;
     header.addEventListener('pointerdown', (event) => {
       if (this.compact.matches || event.target.closest('button, input, a, select')) return;
-      if (this.element.closest('.workspace-dock-body')) return;
+      if (this.element.closest('.workspace-dock-body') || this.element.classList.contains('is-floating') || this.element.closest('.floating-workspace')) return;
       const parentEl = this.element.offsetParent ?? document.body;
       const parent = parentEl.getBoundingClientRect();
       const box = this.element.getBoundingClientRect();
@@ -2140,6 +2140,11 @@ export {
   stepSpring,
   VelocityTracker,
   computeEdgeSnapTarget,
+  DOCK_POPOUT_SVG,
+  DOCK_RETURN_SVG,
+  WINDOW_CLOSE_SVG,
+  WINDOW_SHADE_SVG,
+  WINDOW_UNSHADE_SVG,
 } from './workspace-dock.js';
 export {
   AffineTransform2D,
