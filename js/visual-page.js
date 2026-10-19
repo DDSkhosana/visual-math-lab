@@ -25,7 +25,17 @@ async function getVisual(slug) {
     throw new Error(`Could not load visual metadata (${response.status}).`);
   }
   const visuals = await response.json();
-  return visuals.find((visual) => visual.slug === slug && visual.published);
+  const found = visuals.find((visual) => visual.slug === slug && visual.published);
+  if (found) return found;
+
+  try {
+    const trigRes = await fetch(`${root}/visuals/trigonometry/data/trig-visuals.json`, { cache: "no-cache" });
+    if (trigRes.ok) {
+      const trigVisuals = await trigRes.json();
+      return trigVisuals.find((visual) => visual.slug === slug && visual.published);
+    }
+  } catch (_) {}
+  return undefined;
 }
 
 function renderVideo(visual) {

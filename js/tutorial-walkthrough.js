@@ -99,6 +99,47 @@ const THEOREM_TIPS = {
       'Inspect the telemetry to verify |AM| = |MB| with 0.000 px invariant difference.'
     ],
     highlightPoint: 'Chord endpoints A, B, or Midpoint M'
+  },
+  'unit-circle-helix': {
+    name: 'Unit Circle, Six Trig Functions & 3D Helix Waves',
+    interactionTip2D: 'Drag Point P around the unit circle to observe sin θ, cos θ, tan θ, cot θ, sec θ, and csc θ alongside the 3D cylindrical helix wave projections.',
+    theoremSpecifics: [
+      'Drag Point P around the circumference or use Play to sweep θ ∈ [0, 2π) continuously.',
+      'Observe the exterior tangent line at P intersecting the X-axis at sec θ and Y-axis at csc θ, forming complementary right triangles.',
+      'In the 3D viewport, see how the cylindrical helix r(θ) = (R cos θ, kθ, R sin θ) projects orthogonally onto Cosine and Sine wave walls.',
+      'Toggle Coordinates (x, y) and Reflex Angles (360° − θ) in 2D/3D Controls to inspect full quadrant telemetry.'
+    ],
+    highlightPoint: 'Point P on Unit Circle'
+  },
+  'law-of-sines': {
+    name: 'Law of Sines & Circumcircle Invariant',
+    interactionTip2D: 'Drag vertices A, B, and C around the circumcircle. Every chord-to-sine ratio a/sin A = b/sin B = c/sin C equals the circumdiameter 2R.',
+    theoremSpecifics: [
+      'Drag any vertex A, B, or C along the circumcircle and verify that a/sin A = b/sin B = c/sin C = 2R remains strictly invariant.',
+      'Toggle the Thales Diameter Bridge (A\'B) to see why ∠A\'CB = 90° immediately proves a = 2R sin A.',
+      'Toggle the Idempotent Altitude Projection (h_c) to verify h_c = b sin A = a sin B across all acute and obtuse configurations.'
+    ],
+    highlightPoint: 'Vertices A, B, and C'
+  },
+  'law-of-cosines': {
+    name: 'Law of Cosines & Generalized Pythagorean Projection',
+    interactionTip2D: 'Drag vertex B or adjust sides a, b and included angle C. Observe how c² = a² + b² − 2ab cos C generalizes Pythagoras via idempotent projection.',
+    theoremSpecifics: [
+      'Drag Vertex B in 2D or 3D to sweep ∠C across acute (< 90°), right (90°), and obtuse (> 90°) regimes.',
+      'Inspect the orthogonal projection foot D = P_∥(B) on side AC, decomposing side b into a cos C and b − a cos C.',
+      'In 3D, compare the extruded area slabs for a², b², and c² and verify the 4-corner mixed partial coefficient −2 cos C.'
+    ],
+    highlightPoint: 'Vertex B and Projection Foot D'
+  },
+  'angle-sum-identities': {
+    name: 'Angle Sum, Difference & Rotation Matrix Composition',
+    interactionTip2D: 'Drag ray tips for α and β to see how composing 2×2 rotation matrices R(α) ∘ R(β) = R(α + β) proves sin(α ± β) and cos(α ± β).',
+    theoremSpecifics: [
+      'Drag Point P (angle α + β) or Point A (angle α) to dynamically reshape the stacked right triangles.',
+      'Observe projection point Q = R cos β (cos α, sin α) on the α-ray, decomposing cos(α + β) = cos α cos β − sin α sin β and sin(α + β) = sin α cos β + cos α sin β.',
+      'Toggle the Difference Ray (α − β) to compare sum and difference vectors simultaneously in 2D and 3D.'
+    ],
+    highlightPoint: 'Compound Ray P(α+β) and Base Ray A(α)'
   }
 };
 

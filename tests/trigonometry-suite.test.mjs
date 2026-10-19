@@ -135,5 +135,61 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
         assert.equal(rootHtml.includes('visuals/circle-theorems/'), true);
         assert.equal(rootHtml.includes('visuals/trigonometry/'), true);
     });
+
+    test('All 4 Trigonometry visualizers share the unified UI/UX DOM architecture with Circle Theorems', () => {
+        const trigSlugs = [
+            'unit-circle-helix',
+            'law-of-sines',
+            'law-of-cosines',
+            'angle-sum-identities',
+        ];
+        const requiredMarkers = [
+            'class="circle-explorer"',
+            'id="viewport-toolbar"',
+            'id="telemetry-panel"',
+            'id="stats-3d"',
+            'id="labels-3d-container"',
+            'id="derivations-panel"',
+            'id="toolbar-2d-panel"',
+            'id="toolbar-3d-panel"',
+            'id="vis-2d-grid"',
+            'id="vis-2d-axes"',
+            'id="vis-2d-points"',
+            'id="vis-2d-labels"',
+            'id="vis-2d-lengths"',
+            'id="vis-2d-coords"',
+            'id="vis-2d-angles"',
+            'id="vis-2d-area"',
+            'id="vis-2d-reflex"',
+            'id="vis-3d-grid"',
+            'id="vis-3d-axes"',
+            'id="vis-3d-sphere"',
+            'id="vis-3d-wire"',
+            'id="vis-3d-labels"',
+            'id="vis-3d-coords"',
+            'id="vis-3d-angles"',
+            'id="vis-3d-area"',
+            'id="section-unit-converter"',
+            'js/visual-page.js',
+        ];
+
+        for (const slug of trigSlugs) {
+            const htmlPath = path.join(ROOT_DIR, 'visuals/trigonometry', slug, 'index.html');
+            const html = fs.readFileSync(htmlPath, 'utf8');
+            for (const marker of requiredMarkers) {
+                assert.equal(
+                    html.includes(marker),
+                    true,
+                    `Expected ${slug}/index.html to contain unified UI/UX marker '${marker}'`
+                );
+            }
+            assert.equal(
+                html.includes(`id="${slug}-panel"`),
+                true,
+                `Expected ${slug}/index.html to contain #${slug}-panel`
+            );
+        }
+    });
 });
+
 

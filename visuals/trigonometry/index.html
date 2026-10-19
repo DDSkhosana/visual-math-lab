@@ -4,82 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Trigonometry Suite | Visual Mathematics Lab</title>
-  <meta name="description" content="Interactive 2D and 3D Trigonometry visualisations: Unit Circle & 3D Helix Waves, Law of Sines, Law of Cosines, and Angle Sum Rotation Matrix Identities.">
-  <link rel="stylesheet" href="css/trig-suite.css">
+  <meta name="description" content="Interactive 2D and 3D Trigonometry Suite: Unit Circle & 3D Helix Waves, Law of Sines, Law of Cosines, and Angle Sum Rotation Matrix Identities.">
+  <link rel="icon" type="image/svg+xml" href="../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="../../css/site.css?v=20260523">
+  <script type="module" src="../../js/site.js?v=20260523"></script>
 </head>
-<body>
-  <header class="trig-header">
-    <div class="trig-brand-group">
-      <a class="trig-brand" href="../../index.html">Visual Mathematics Lab</a>
-      <span class="trig-sep">/</span>
-      <span class="trig-suite-pill">Trigonometry Suite</span>
-    </div>
-    <nav class="trig-toolbar" aria-label="Suite Navigation">
-      <a class="trig-btn trig-btn-pill" href="../circle-theorems/index.html">Circle Theorems Suite</a>
-      <a class="trig-btn trig-btn-pill" href="../../index.html">&larr; Main Lab</a>
-    </nav>
-  </header>
-
-  <main class="trig-landing">
-    <section class="trig-hero">
-      <p class="trig-eyebrow">Interactive 2D &amp; 3D Mathematical Proofs</p>
-      <h1>Trigonometry Suite</h1>
-      <p>
-        Explore circular functions, cylindrical 3D wave projections, circumcircle invariants, idempotent orthogonal projections,
-        and 2&times;2 rotation matrix compositions with real-time algebraic verification.
-      </p>
+<body data-root="../..">
+  <header data-site-header></header>
+  <main>
+    <section class="hero" aria-labelledby="hero-heading">
+      <p class="eyebrow">Suite 02 &middot; Circular Functions, Projections &amp; Rotation Groups</p>
+      <h1 id="hero-heading">Trigonometry Suite</h1>
+      <p class="lede">Explore circular functions, cylindrical 3D wave projections, circumcircle invariants, idempotent orthogonal projections, and 2&times;2 rotation matrix compositions with live telemetry and derivations.</p>
+      <div class="actions">
+        <a class="button" href="#visuals">Explore Trigonometry</a>
+        <a class="button" href="../circle-theorems/index.html" style="margin-left: 0.75rem; background: rgba(56, 189, 248, 0.14); border-color: rgba(56, 189, 248, 0.4);">&larr; Switch to Circle Theorems Suite</a>
+      </div>
     </section>
-
-    <section class="trig-catalog-grid" aria-label="Trigonometry Visualisations">
-      <a class="trig-catalog-card" href="unit-circle-helix/index.html">
-        <div>
-          <span class="trig-suite-pill">Suite 01</span>
-          <h2>Unit Circle, Six Trig Functions &amp; 3D Helix Waves</h2>
-          <p>
-            Interact with all six trigonometric functions (sin, cos, tan, cot, sec, csc) as geometric segments on the 2D unit circle
-            and as orthogonal XZ/YZ wave projections of a 3D cylindrical helix.
-          </p>
-        </div>
-        <div class="trig-catalog-formula">sin²θ + cos²θ = 1 &nbsp;|&nbsp; r(θ) = (R cos θ, R sin θ, kθ)</div>
-      </a>
-
-      <a class="trig-catalog-card" href="law-of-sines/index.html">
-        <div>
-          <span class="trig-suite-pill">Suite 02</span>
-          <h2>Law of Sines &amp; Circumcircle Invariant</h2>
-          <p>
-            Drag vertices A, B, and C around the circumcircle to verify why each chord divided by the sine of its opposite angle
-            equals the circumdiameter 2R via Thales' antipodal right-triangle bridge.
-          </p>
-        </div>
-        <div class="trig-catalog-formula">a / sin A = b / sin B = c / sin C = 2R</div>
-      </a>
-
-      <a class="trig-catalog-card" href="law-of-cosines/index.html">
-        <div>
-          <span class="trig-suite-pill">Suite 03</span>
-          <h2>Law of Cosines &amp; Generalized Pythagorean Projection</h2>
-          <p>
-            Decompose acute, right, and obtuse triangles using idempotent orthogonal projection P² = P and extract the
-            −2ab cos C bilinear interaction term via the 4-corner difference quotient.
-          </p>
-        </div>
-        <div class="trig-catalog-formula">c² = a² + b² &minus; 2ab cos C</div>
-      </a>
-
-      <a class="trig-catalog-card" href="angle-sum-identities/index.html">
-        <div>
-          <span class="trig-suite-pill">Suite 04</span>
-          <h2>Angle Sum, Difference &amp; Rotation Matrix Composition</h2>
-          <p>
-            Compose 2&times;2 rotation operators R(α) &circ; R(β) = R(α + β) and inspect the stacked right-triangle geometric proof
-            for sin(α &plusmn; β) and cos(α &plusmn; β).
-          </p>
-        </div>
-        <div class="trig-catalog-formula">R(α + β) = R(α) &circ; R(β)</div>
-      </a>
+    <section class="section" id="visuals" aria-labelledby="visuals-heading">
+      <div class="section-heading">
+        <h2 id="visuals-heading">Trigonometry (4 Visuals)</h2>
+        <span class="eyebrow">Trigonometry</span>
+      </div>
+      <div class="catalog-grid" data-trig-catalogue aria-live="polite"></div>
     </section>
   </main>
+  <footer data-site-footer></footer>
 </body>
 </html>
-

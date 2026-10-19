@@ -3,193 +3,332 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Law of Cosines &amp; Generalized Pythagorean Projection | Trigonometry Suite</title>
-  <link rel="stylesheet" href="../css/trig-suite.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <title>Law of Cosines &amp; Orthogonal Projection | Visual Mathematics Lab</title>
+  <meta name="description" content="Explore how idempotent orthogonal projection and the 4-corner mixed partial quotient generalize Pythagoras into c² = a² + b² - 2ab cos C.">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/trigonometry/law-of-cosines/">
+  <link rel="icon" type="image/svg+xml" href="../../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Law of Cosines & Orthogonal Projection | Visual Mathematics Lab",
+    "headline": "Interactive 2D & 3D Proof of the Law of Cosines (c² = a² + b² - 2ab cos C)",
+    "description": "Explore how idempotent orthogonal projection and the 4-corner mixed partial quotient generalize the Pythagorean theorem into c² = a² + b² - 2ab cos C.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/trigonometry/law-of-cosines/"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="../../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../css/trig-suite.css?v=20260523">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
+  <script type="module">
+    import { mountTrigVisual } from '../js/trig-core.js';
+    window.addEventListener('DOMContentLoaded', () => {
+      mountTrigVisual({ visualId: 'law-of-cosines' });
+    });
+  </script>
 </head>
-<body>
-  <header class="trig-header">
-    <div class="trig-brand-group">
-      <a class="trig-brand" href="../../../index.html">Visual Math Lab</a>
-      <span class="trig-sep">/</span>
-      <a class="trig-suite-pill" href="../index.html">Trigonometry Suite</a>
-      <span class="trig-sep">/</span>
-      <span class="trig-visual-title">03. Law of Cosines &amp; Pythagorean Projection</span>
-    </div>
+<body data-root="../../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
 
-    <div class="trig-toolbar">
-      <div class="trig-btn-group" role="group" aria-label="View Mode">
-        <button type="button" id="btn-split" class="trig-btn active">Split</button>
-        <button type="button" id="btn-flip-split" class="trig-btn" title="Flip Split Orientation">Flip</button>
-        <button type="button" id="btn-2d" class="trig-btn">2D</button>
-        <button type="button" id="btn-3d" class="trig-btn">3D</button>
-      </div>
-      <button type="button" id="btn-toggle-ar" class="trig-btn trig-btn-pill" aria-pressed="false">
-        <span>AR:</span>
-        <span id="ar-status-pill" class="trig-status-dot">OFF</span>
-      </button>
-      <a class="trig-btn trig-btn-pill" href="../angle-sum-identities/index.html">Next: Angle Sum &rarr;</a>
-    </div>
-  </header>
-
-  <main class="trig-explorer">
-    <aside id="workspace-dock" class="trig-dock" aria-label="Interactive Controls and Proof">
-      <div class="trig-dock-header">
-        <span class="trig-dock-title">Law of Cosines (c² = a² + b² − 2ab cos C)</span>
-        <button type="button" id="dock-collapse-btn" class="trig-btn" title="Collapse or Expand Dock">&#9776;</button>
-      </div>
-      <div class="trig-dock-tabs" role="tablist">
-        <button type="button" class="trig-dock-tab active" data-dock-tab="controls">Controls &amp; Telemetry</button>
-        <button type="button" class="trig-dock-tab" data-dock-tab="proof">Idempotent Projection &amp; 4-Corner Quotient</button>
-      </div>
-
-      <div class="trig-dock-body" data-dock-pane="controls">
-        <div class="trig-card">
-          <h3 class="trig-card-title">
-            <span>Sides a, b &amp; Included Angle C</span>
-            <span id="val-regime" style="color: #38bdf8;">Acute</span>
-          </h3>
-          <div class="trig-slider-row">
-            <div class="trig-slider-label">
-              <span>Side a (|CB|)</span>
-              <strong id="label-side-a">8.0</strong>
-            </div>
-            <input type="range" id="slider-side-a" min="3" max="14" step="0.5" value="8">
-          </div>
-          <div class="trig-slider-row">
-            <div class="trig-slider-label">
-              <span>Side b (|CA|)</span>
-              <strong id="label-side-b">10.0</strong>
-            </div>
-            <input type="range" id="slider-side-b" min="3" max="14" step="0.5" value="10">
-          </div>
-          <div class="trig-slider-row">
-            <div class="trig-slider-label">
-              <span>Included Angle C</span>
-              <strong id="label-angle-c">60°</strong>
-            </div>
-            <input type="range" id="slider-angle-c" min="15" max="165" step="1" value="60">
-          </div>
-          <div class="trig-Presets-grid">
-            <button type="button" class="trig-preset-chip" data-c-angle="60">60° (Acute)</button>
-            <button type="button" class="trig-preset-chip" data-c-angle="90">90° (Pythagoras)</button>
-            <button type="button" class="trig-preset-chip" data-c-angle="120">120° (Obtuse)</button>
-          </div>
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Law of Cosines and Orthogonal Projection visualisation">
+      <!-- Floating Header Toolbar -->
+      <div class="viewport-header-toolbar is-collapsed" id="viewport-toolbar" role="toolbar" aria-label="Viewport options">
+        <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
+          <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
         </div>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand toolbar" aria-expanded="false" title="Expand viewport modes panel">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" id="btn-split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" aria-pressed="false">3D</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
+            <span>Flip</span>
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" class="btn-toolbar" id="btn-playback" title="Auto-sweep Angle C continuously">
+            <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg class="icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span class="playback-label">Play</span>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+          <span class="toolbar-divider" aria-hidden="true"></span>
+          <button type="button" class="btn-toolbar btn-toolbar--badge btn-toolbar-tips" id="btn-toolbar-tips" aria-label="Walkthrough Tutorial &amp; Interaction Tips" title="Toggle Tips / Open Walkthrough (Shortcut: ?)" aria-pressed="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+            <span class="tips-btn-label">Guide &amp; Tips: <span class="tutorial-status-pill is-on" id="toolbar-tips-status">ON</span></span>
+          </button>
+          <button type="button" class="btn-toolbar btn-toolbar--badge btn-toolbar-legend" id="btn-toolbar-legend" aria-label="Geometry Notation Legend" title="Open Geometry Notation Legend &amp; Cheatsheet (Shortcut: L)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span>Legend</span>
+          </button>
+        </div>
+      </div>
 
-        <div class="trig-card">
-          <h3 class="trig-card-title">Quadratic Area Decomposition</h3>
-          <div class="trig-telemetry-grid">
-            <div class="trig-stat-box">
-              <span class="trig-stat-label">a² + b² (Pythagorean Sum)</span>
-              <span id="val-a2b2" class="trig-stat-val" style="color: #38bdf8;">164.00</span>
+      <!-- View Container -->
+      <div class="view-container layout-split horizontal-split" id="main-view">
+        <div id="canvas-2d-container" class="perspective-top">
+          <canvas id="main-canvas"></canvas>
+          <div class="view-title">2D: Law of Cosines (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2ab cos C</span>)</div>
+
+          <!-- 2D Telemetry -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">2D Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand 2D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
-            <div class="trig-stat-box">
-              <span class="trig-stat-label">2ab cos C (Interaction)</span>
-              <span id="val-2abcos" class="trig-stat-val" style="color: #f59e0b;">80.00</span>
-            </div>
-            <div class="trig-stat-box">
-              <span class="trig-stat-label">c² = a² + b² − 2ab cos C</span>
-              <span id="val-c2" class="trig-stat-val" style="color: #f43f5e;">84.00</span>
-            </div>
-            <div class="trig-stat-box">
-              <span class="trig-stat-label">Side c = √(c²)</span>
-              <span id="val-side-c" class="trig-stat-val" style="color: #10b981;">9.17</span>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span class="color-sky">Side a:</span><strong class="color-sky" id="tel-a">7.00</strong></div>
+              <div class="stat-line"><span class="color-emerald">Side b:</span><strong class="color-emerald" id="tel-b">9.00</strong></div>
+              <div class="stat-line"><span class="color-rose">Opposite Side c:</span><strong class="color-rose" id="tel-c">8.185</strong></div>
+              <div class="stat-line"><span class="color-rose">Included Angle ∠C:</span><strong class="color-rose" id="tel-ang-c">60.0°</strong></div>
+              <div class="stat-line"><span class="color-teal">Pythagorean a² + b²:</span><strong class="color-teal" id="tel-a2b2">130.00</strong></div>
+              <div class="stat-line"><span class="color-amber">Interaction 2ab cos C:</span><strong class="color-amber" id="tel-2abcos">63.00</strong></div>
+              <div class="stat-line"><span class="color-rose">Resulting c²:</span><strong class="color-rose" id="tel-c2">67.00</strong></div>
+              <div class="stat-line"><span class="color-amber">Mixed Partial −2 cos C:</span><strong class="color-amber" id="tel-mixed">-1.0000</strong></div>
             </div>
           </div>
         </div>
 
-        <div class="trig-invariant-banner">
-          <span>✓ Generalized Pythagorean Identity Verified:</span>
-          <code id="val-cosine-invariant">c² = 64.0 + 100.0 − 80.0 = 84.00</code>
+        <div class="viewport-resizer" id="viewport-resizer"></div>
+
+        <div id="canvas-3d-container">
+          <div class="view-title">3D: Orthogonal Projection &amp; 4-Corner Mixed Partial Quotient (<span class="color-amber">−2 cos C</span>)</div>
+          <div class="camera-presets-bar">
+            <button type="button" data-preset="top">Top</button>
+            <button type="button" data-preset="front">Front</button>
+            <button type="button" data-preset="side">Side</button>
+            <button type="button" data-preset="iso" class="active">Iso</button>
+          </div>
+          <div id="labels-3d-container" class="labels-3d-container"></div>
+
+          <!-- 3D Telemetry -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">3D Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
+            </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-rose">3D Squared Side c²:</span><strong class="color-rose" id="val-3d-c2">67.00</strong></div>
+              <div class="stat-line"><span class="color-amber">Projection a cos C:</span><strong class="color-amber" id="val-3d-proj">3.500</strong></div>
+              <div class="stat-line"><span class="color-amber">Altitude h = a sin C:</span><strong class="color-amber" id="val-3d-alt">6.062</strong></div>
+              <div class="stat-line"><span class="color-teal">Mixed Partial ∂²c²/(∂a∂b):</span><strong class="color-teal" id="val-3d-mixed">-1.0000</strong></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="trig-dock-body" data-dock-pane="proof" hidden>
-        <div class="trig-step-card">
-          <h4>1. Idempotent Orthogonal Split (P_∥ + P_⊥ = I)</h4>
-          Projecting vertex B onto line CA via P_∥ yields foot D with signed coordinate p = a cos C and orthogonal altitude h = a sin C:
-          <div class="trig-formula-block" id="proof-cos-1">c² = (a sin C)² + (b − a cos C)² = a² + b² − 2ab cos C</div>
+      <!-- Interactive Controls Panel -->
+      <div class="ui-panel" id="law-of-cosines-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="controls-header">
+            <h1 class="color-sky">Interactive Controls</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Controls Panel"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
+              <button type="button" id="toggle-controls-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Geometry Parameters</span><span class="icon">▶</span></div>
+              <div class="collapsible-content">
+                <div class="slider-container">
+                  <label for="slider-radius"><span class="color-indigo">Viewport Scale r:</span><span id="label-radius" class="color-indigo font-bold">175px</span></label>
+                  <input type="range" id="slider-radius" min="100" max="260" value="175">
+                </div>
+                <div class="slider-container">
+                  <label for="slider-side-a"><span class="color-sky">Side Length a (BC):</span><span id="label-side-a" class="color-sky font-bold">7.0</span></label>
+                  <input type="range" id="slider-side-a" min="2" max="12" step="0.5" value="7">
+                </div>
+                <div class="slider-container">
+                  <label for="slider-side-b"><span class="color-emerald">Side Length b (AC):</span><span id="label-side-b" class="color-emerald font-bold">9.0</span></label>
+                  <input type="range" id="slider-side-b" min="2" max="12" step="0.5" value="9">
+                </div>
+                <div class="slider-container">
+                  <label for="slider-angle-c"><span class="color-rose">Included Angle ∠C:</span><span id="label-angle-c" class="color-rose font-bold">60.0°</span></label>
+                  <input type="range" id="slider-angle-c" min="10" max="170" step="1" value="60">
+                </div>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed" id="section-unit-converter">
+              <div class="collapsible-header" id="header-unit-converter" aria-expanded="false">
+                <span>Unit System Conversion</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content" id="content-unit-converter"></div>
+            </div>
+          </div>
         </div>
-        <div class="trig-step-card">
-          <h4>2. 4-Corner Mixed Partial Difference Quotient</h4>
-          Applying the 4-corner rectangle difference quotient [f(a,b) − f(a,0) − f(0,b) + f(0,0)] / (ab) to f(a,b) = c²(a,b)
-          cancels the pure a² and b² terms and isolates the exact bilinear interaction coefficient:
-          <div class="trig-formula-block" id="proof-cos-2">∂²(c²)/(∂a ∂b) = −2 cos C</div>
-        </div>
+        <div class="resize-handle" id="controls-resize"></div>
       </div>
-    </aside>
 
-    <div id="main-view" class="layout-split horizontal-split">
-      <div id="canvas-2d-container">
-        <div class="trig-canvas-badge">2D Triangle ABC &amp; Idempotent Projection Foot D(a cos C, 0)</div>
-        <canvas id="canvas-2d"></canvas>
-      </div>
-      <div id="split-resizer" title="Drag to resize"></div>
-      <div id="canvas-3d-container">
-        <div class="trig-canvas-badge">3D Spatial Triangle &amp; Orthogonal Projection</div>
-        <div class="trig-camera-bar">
-          <button type="button" class="active" data-cam-preset="isometric">Iso</button>
-          <button type="button" data-cam-preset="top">Top</button>
-          <button type="button" data-cam-preset="front">Front</button>
-          <button type="button" data-cam-preset="side">Side</button>
+      <!-- Live Derivations Panel -->
+      <div class="ui-panel" id="derivations-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="deriv-header">
+            <h1 class="color-indigo">Live Math Derivations</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-deriv-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Derivations Panel"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
+              <button type="button" id="toggle-deriv-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div id="live-derivations-content"></div>
+          </div>
         </div>
       </div>
+
+      <!-- 2D Controls & Toggles -->
+      <div class="ui-panel" id="toolbar-2d-panel">
+        <div class="panel-content">
+          <div class="panel-header" id="toolbar-2d-header">
+            <h1 class="color-sky" style="font-size: 0.95rem; font-weight: 700; margin: 0;">2D Controls &amp; Toggles</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-toolbar-2d-minimize" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand 2D Controls"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
+              <button type="button" id="toggle-toolbar-2d-btn" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>2D Grids &amp; Axes</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-grid" checked><span class="checkmark"></span><span class="color-steel">Cartesian Grid</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-axes" checked><span class="checkmark"></span>Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span>)</label>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>2D Overlays</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span><span class="color-violet">Point Markers</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-emerald">A</span>, <span class="color-sky">B</span>, <span class="color-rose">C</span>, <span class="color-amber">D</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span><span class="color-indigo">Side &amp; Projection Lengths</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-rose">Angle C Wedge &amp; Right Angle</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Triangle △ABC Area Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angle (360° − C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-projection-loc" checked><span class="checkmark"></span><span class="color-amber">Orthogonal Projection (a cos C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-interaction-rect" checked><span class="checkmark"></span><span class="color-amber">Bilinear Correction (−2ab cos C)</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Camera Perspective</span><span class="icon">▶</span></div>
+              <div class="collapsible-content camera-presets-content" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                <button type="button" class="btn text-xs" data-camera-preset="top">Top</button>
+                <button type="button" class="btn text-xs" data-camera-preset="front">Front</button>
+                <button type="button" class="btn text-xs" data-camera-preset="side">Side</button>
+                <button type="button" class="btn text-xs active" data-camera-preset="iso">Iso</button>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Snapshot Export</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
+                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="resize-handle" id="toolbar-2d-resize"></div>
+      </div>
+
+      <!-- 3D Controls & Toggles -->
+      <div class="ui-panel" id="toolbar-3d-panel">
+        <div class="resize-handle-left" id="toolbar-3d-resize"></div>
+        <div class="panel-content">
+          <div class="panel-header" id="toolbar-3d-header">
+            <h1 class="color-sky" style="font-size: 0.95rem; font-weight: 700; margin: 0;">3D Controls &amp; Toggles</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-toolbar-3d-minimize" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand 3D Controls"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
+              <button type="button" id="toggle-toolbar-3d-btn" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>3D Guides</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-grid" checked><span class="checkmark"></span><span class="color-steel">XZ Reference Grid</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-axes" checked><span class="checkmark"></span>XYZ Coordinate Axes (<span class="color-amber">X</span> / <span class="color-lime">Y</span> / <span class="color-steel">Z</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span><span class="color-sky">Reference Sphere Mesh</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-wire" checked><span class="checkmark"></span><span class="color-sky">Equatorial Wireframe</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-emerald">A</span>, <span class="color-sky">B</span>, <span class="color-rose">C</span>, <span class="color-amber">D</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>3D Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-rose">3D Angle Badge</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Triangle Mesh</span></label>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false"><span>Camera Presets</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <button type="button" class="btn active" data-preset="iso">Isometric</button>
+                <button type="button" class="btn" data-preset="top">Top (+Y)</button>
+                <button type="button" class="btn" data-preset="front">Front (+Z)</button>
+                <button type="button" class="btn" data-preset="side">Side (+X)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="visual-page__content">
+      <article class="visual-page__intro" id="about-visual">
+        <p class="eyebrow" data-visual-category>Trigonometry</p>
+        <h1 data-visual-title>Law of Cosines &amp; Orthogonal Projection</h1>
+        <p class="lede" data-visual-description>Explore how idempotent orthogonal projection and the 4-corner mixed partial quotient generalize Pythagoras into c² = a² + b² - 2ab cos C.</p>
+        <div class="meta-bar" data-visual-meta></div>
+        <div class="callout">
+          <p class="callout__title">The Theorem</p>
+          <p>For any triangle with sides <em>a</em>, <em>b</em>, <em>c</em> and included angle <em>C</em> opposite side <em>c</em>, <strong>c² = a² + b² − 2ab cos C</strong>. The bilinear interaction term <strong>−2ab cos C</strong> is isolated by the 4-corner mixed partial quotient <em>∂²(c²)/(∂a∂b) = −2 cos C</em>.</p>
+        </div>
+      </article>
+      <aside class="visual-page__More-panel" aria-label="More visuals">
+        <h2>More Visuals</h2>
+        <div class="more-grid" data-related-visuals></div>
+      </aside>
     </div>
   </main>
 
-  <script type="module">
-    import { computeLawOfCosines, toRadians } from '../js/trig-math.js';
-    import { initTrigVisualPage, renderLawOfCosines2D } from '../js/trig-core.js';
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initTrigVisualPage({
-        mode: 'law-of-cosines',
-        initialState: {
-          sideA: 8,
-          sideB: 10,
-          angleC: toRadians(60),
-          showProof: true,
-        },
-        render2D: renderLawOfCosines2D,
-        updateUI(st) {
-          const m = computeLawOfCosines(st.sideA, st.sideB, st.angleC);
-          document.getElementById('label-side-a').textContent = m.a.toFixed(1);
-          document.getElementById('label-side-b').textContent = m.b.toFixed(1);
-          document.getElementById('label-angle-c').textContent = `${Math.round(m.angleCDeg)}°`;
-          document.getElementById('val-regime').textContent =
-            m.regime === 'right' ? 'Right (90° — Pythagoras)' : m.regime === 'acute' ? 'Acute (< 90°)' : 'Obtuse (> 90°)';
-
-          document.getElementById('val-a2b2').textContent = m.squares.pythagoreanSum.toFixed(2);
-          document.getElementById('val-2abcos').textContent = m.squares.interaction2abCosC.toFixed(2);
-          document.getElementById('val-c2').textContent = m.squares.c2.toFixed(2);
-          document.getElementById('val-side-c').textContent = m.c.toFixed(2);
-          document.getElementById('val-cosine-invariant').textContent =
-            `c² = ${m.squares.a2.toFixed(1)} + ${m.squares.b2.toFixed(1)} − (${m.squares.interaction2abCosC.toFixed(1)}) = ${m.squares.c2.toFixed(2)}`;
-          document.getElementById('proof-cos-2').textContent =
-            `∂²(c²)/(∂a ∂b) = −2 cos(${Math.round(m.angleCDeg)}°) = ${m.mixedPartialCoeff.toFixed(3)}`;
-        },
-        bindControls(store) {
-          document.getElementById('slider-side-a')?.addEventListener('input', (e) => {
-            store.set({ sideA: Number(e.target.value) });
-          });
-          document.getElementById('slider-side-b')?.addEventListener('input', (e) => {
-            store.set({ sideB: Number(e.target.value) });
-          });
-          document.getElementById('slider-angle-c')?.addEventListener('input', (e) => {
-            store.set({ angleC: toRadians(Number(e.target.value)) });
-          });
-          document.querySelectorAll('[data-c-angle]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-              const deg = Number(btn.getAttribute('data-c-angle'));
-              document.getElementById('slider-angle-c').value = String(deg);
-              store.set({ angleC: toRadians(deg) });
-            });
-          });
-        },
-      });
-    });
-  </script>
+  <footer data-site-footer></footer>
 </body>
 </html>
-
