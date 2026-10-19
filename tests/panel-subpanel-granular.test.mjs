@@ -2219,6 +2219,19 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
       assert.ok(html.includes('Guide &amp; Tips:'), `${dir}/index.html must include Guide & Tips: toolbar label`);
     }
   }
+
+  // Flip Mode Alignment: Verify circle-visual.css matches Thales layout.css for horizontal-split and vertical-split
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css/circle-visual.css'), 'utf8');
+  assert.ok(
+    circleVisualCss.includes('.layout-split.horizontal-split #canvas-2d-container') &&
+    circleVisualCss.includes('width: auto; height: 100%;'),
+    'circle-visual.css must align horizontal-split containers with width: auto; height: 100%'
+  );
+  assert.ok(
+    circleVisualCss.includes('.layout-split.vertical-split #canvas-2d-container') &&
+    circleVisualCss.includes('width: 100%; height: auto;'),
+    'circle-visual.css must align vertical-split (Flip mode) containers with width: 100%; height: auto'
+  );
 });
 
 

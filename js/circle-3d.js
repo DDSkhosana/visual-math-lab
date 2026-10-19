@@ -131,6 +131,9 @@ export class ViewModeController {
     if (this.toolbar3d) this.toolbar3d.style.display = viewMode === '2d' ? 'none' : '';
 
     this.onResize?.();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => this.onResize?.());
+    }
   }
 
   #enableDividerDrag(resizer) {
@@ -147,6 +150,7 @@ export class ViewModeController {
           ? ((e.clientX - rect.left) / rect.width) * 100
           : ((e.clientY - rect.top) / rect.height) * 100;
         this.store.set({ splitRatio: clamp(ratio, 10, 90) });
+        this.onResize?.();
       };
 
       const end = () => {
