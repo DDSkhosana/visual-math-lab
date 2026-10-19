@@ -778,7 +778,7 @@ test('WorkspaceDockManager: Nested Sub Components Collapsed By Default in Dock P
   ];
 
   for (const slug of visualSlugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(html.includes('class="collapsible-section collapsed"'), `${slug}/index.html must have collapsible sections collapsed by default`);
     assert.ok(!html.includes('<div class="collapsible-section">'), `${slug}/index.html must not contain uncollapsed <div class="collapsible-section">`);

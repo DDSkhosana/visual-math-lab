@@ -15,7 +15,7 @@ import {
     computeLawOfSines,
     computeLawOfCosines,
     computeAngleSumIdentities,
-} from '../trigonometry/js/trig-math.js';
+} from '../visuals/trigonometry/js/trig-math.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,18 +98,27 @@ describe('Trigonometry Suite — Visual Invariants', () => {
     });
 });
 
-describe('Trigonometry Suite — Self-Contained Folder Structure', () => {
-    test('All 4 visualizers and suite catalog exist inside trigonometry/', () => {
+describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigonometry/', () => {
+    test('All 4 Trigonometry visualizers and 8 Circle Theorem visualizers live in their own suite folders under visuals/', () => {
         const expectedFiles = [
-            'trigonometry/index.html',
-            'trigonometry/data/trig-visuals.json',
-            'trigonometry/css/trig-suite.css',
-            'trigonometry/js/trig-math.js',
-            'trigonometry/js/trig-core.js',
-            'trigonometry/unit-circle-helix/index.html',
-            'trigonometry/law-of-sines/index.html',
-            'trigonometry/law-of-cosines/index.html',
-            'trigonometry/angle-sum-identities/index.html',
+            'visuals/circle-theorems/index.html',
+            'visuals/circle-theorems/thales-theorem/index.html',
+            'visuals/circle-theorems/angle-at-centre/index.html',
+            'visuals/circle-theorems/angles-in-same-segment/index.html',
+            'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+            'visuals/circle-theorems/tangent-radius/index.html',
+            'visuals/circle-theorems/alternate-segment/index.html',
+            'visuals/circle-theorems/tangents-from-external-point/index.html',
+            'visuals/circle-theorems/perpendicular-chord-bisector/index.html',
+            'visuals/trigonometry/index.html',
+            'visuals/trigonometry/data/trig-visuals.json',
+            'visuals/trigonometry/css/trig-suite.css',
+            'visuals/trigonometry/js/trig-math.js',
+            'visuals/trigonometry/js/trig-core.js',
+            'visuals/trigonometry/unit-circle-helix/index.html',
+            'visuals/trigonometry/law-of-sines/index.html',
+            'visuals/trigonometry/law-of-cosines/index.html',
+            'visuals/trigonometry/angle-sum-identities/index.html',
         ];
         for (const relPath of expectedFiles) {
             const fullPath = path.join(ROOT_DIR, relPath);
@@ -117,9 +126,14 @@ describe('Trigonometry Suite — Self-Contained Folder Structure', () => {
         }
 
         const catalog = JSON.parse(
-            fs.readFileSync(path.join(ROOT_DIR, 'trigonometry/data/trig-visuals.json'), 'utf8')
+            fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/data/trig-visuals.json'), 'utf8')
         );
         assert.equal(Array.isArray(catalog), true);
         assert.equal(catalog.length, 4);
+
+        const rootHtml = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
+        assert.equal(rootHtml.includes('visuals/circle-theorems/'), true);
+        assert.equal(rootHtml.includes('visuals/trigonometry/'), true);
     });
 });
+

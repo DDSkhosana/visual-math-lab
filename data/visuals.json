@@ -1,6 +1,7 @@
 [
   {
     "slug": "thales-theorem",
+    "suite": "circle-theorems",
     "title": "Thales' Theorem",
     "category": "Geometry",
     "description": "Explore why an angle subtended by a diameter is always a right angle.",
@@ -16,6 +17,7 @@
   },
   {
     "slug": "angle-at-centre",
+    "suite": "circle-theorems",
     "title": "Angle at the Centre Theorem",
     "category": "Geometry",
     "description": "Demonstrate that the angle subtended by an arc at the centre is twice the angle subtended at the circumference.",
@@ -31,6 +33,7 @@
   },
   {
     "slug": "angles-in-same-segment",
+    "suite": "circle-theorems",
     "title": "Angles in the Same Segment",
     "category": "Geometry",
     "description": "Explore how angles subtended by the same chord or arc in the same segment of a circle are equal.",
@@ -46,6 +49,7 @@
   },
   {
     "slug": "cyclic-quadrilateral",
+    "suite": "circle-theorems",
     "title": "Cyclic Quadrilateral Theorem",
     "category": "Geometry",
     "description": "Verify that opposite angles of an inscribed cyclic quadrilateral sum to exactly 180 degrees.",
@@ -61,6 +65,7 @@
   },
   {
     "slug": "tangent-radius",
+    "suite": "circle-theorems",
     "title": "Tangent-Radius Perpendicularity",
     "category": "Geometry",
     "description": "Investigate why a tangent to a circle is perpendicular to the radius at the point of contact.",
@@ -76,6 +81,7 @@
   },
   {
     "slug": "alternate-segment",
+    "suite": "circle-theorems",
     "title": "Alternate Segment Theorem",
     "category": "Geometry",
     "description": "Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment.",
@@ -91,6 +97,7 @@
   },
   {
     "slug": "tangents-from-external-point",
+    "suite": "circle-theorems",
     "title": "Tangents from an External Point",
     "category": "Geometry",
     "description": "Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre.",
@@ -106,6 +113,7 @@
   },
   {
     "slug": "perpendicular-chord-bisector",
+    "suite": "circle-theorems",
     "title": "Perpendicular Chord Bisector",
     "category": "Geometry",
     "description": "Demonstrate that the perpendicular line from the centre of a circle to a chord bisects the chord.",

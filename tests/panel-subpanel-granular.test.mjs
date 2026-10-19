@@ -1140,7 +1140,7 @@ test('Granular All 8 Theorems: HTML structure contract for panels, headers, acti
   ];
 
   for (const slug of slugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `File must exist: ${htmlPath}`);
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -1336,7 +1336,7 @@ test('Granular Floating Windows: All 32 panels across 8 theorems float out with 
   for (const slug of slugs) {
     const { mockDoc, root } = setupTestEnvironment();
 
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
     const panelIds = [...html.matchAll(/<div[^>]*class="[^"]*ui-panel[^"]*"[^>]*id="([^"]+)"/g)].map((m) => m[1]);
 
@@ -2178,20 +2178,20 @@ test('Granular Interactive Controls: Geometry Notation Legend and Tutorial & Tip
 
 test('Refinements A, B, and C: Thales phi floor projection & omega symbol, universal Affine Conic Mode across all 8 theorems, and Guide & Tips toolbar label', () => {
   // Refinement A: Verify Thales LabelOverlayView, scene-factory, Scene3DView, index.html, and DerivationView
-  const labelOverlaySrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  const labelOverlaySrc = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
   assert.ok(labelOverlaySrc.includes('φ (lon.) ='), 'LabelOverlayView must label 3D longitude phi as φ (lon.) =');
 
-  const sceneFactorySrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/scene3d/scene-factory.js'), 'utf8');
+  const sceneFactorySrc = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/scene3d/scene-factory.js'), 'utf8');
   assert.ok(sceneFactorySrc.includes('phiProjectionLine'), 'scene-factory.js must create phiProjectionLine');
 
-  const scene3dViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/Scene3DView.js'), 'utf8');
+  const scene3dViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js'), 'utf8');
   assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.geometry.setFromPoints([origin, floorProj, p])'), 'Scene3DView must update phiProjectionLine points');
   assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.visible = state.show3dAngles'), 'Scene3DView must sync phiProjectionLine visibility with show3dAngles');
 
-  const thalesHtml = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/index.html'), 'utf8');
+  const thalesHtml = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/index.html'), 'utf8');
   assert.ok(thalesHtml.includes('Deformation Axis (ω)'), 'Thales index.html must use (ω) for Affine Deformation Axis');
 
-  const derivViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/DerivationView.js'), 'utf8');
+  const derivViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/DerivationView.js'), 'utf8');
   assert.ok(derivViewSrc.includes('ω = ${Math.round(toDegrees(state.affineAxisAngle ?? 0))}°'), 'DerivationView.js must use ω for Affine Deformation Axis');
 
   // Refinement B: Verify universal Affine Conic Mode in circle-core.js and circle-3d.js
@@ -2211,9 +2211,9 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
   const walkthroughSrc = fs.readFileSync(path.join(rootDir, 'js/tutorial-walkthrough.js'), 'utf8');
   assert.ok(walkthroughSrc.includes('Guide &amp; Tips:'), 'js/tutorial-walkthrough.js must use Guide & Tips: label');
 
-  const visualDirs = fs.readdirSync(path.join(rootDir, 'visuals'));
+  const visualDirs = fs.readdirSync(path.join(rootDir, 'visuals', 'circle-theorems'));
   for (const dir of visualDirs) {
-    const htmlPath = path.join(rootDir, 'visuals', dir, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', dir, 'index.html');
     if (fs.existsSync(htmlPath)) {
       const html = fs.readFileSync(htmlPath, 'utf8');
       assert.ok(html.includes('Guide &amp; Tips:'), `${dir}/index.html must include Guide & Tips: toolbar label`);

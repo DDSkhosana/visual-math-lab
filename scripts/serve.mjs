@@ -75,8 +75,10 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n  🚀 Visual Math Lab is running at:`);
-  console.log(`  ➜ Local:   http://localhost:${PORT}/`);
-  console.log(`  ➜ Thales:  http://localhost:${PORT}/visuals/thales-theorem/`);
+  console.log(`  ➜ Local:         http://localhost:${PORT}/`);
+  console.log(`  ➜ Circle Suite:  http://localhost:${PORT}/visuals/circle-theorems/`);
+  console.log(`  ➜ Thales:        http://localhost:${PORT}/visuals/circle-theorems/thales-theorem/`);
+  console.log(`  ➜ Trig Suite:    http://localhost:${PORT}/visuals/trigonometry/`);
   console.log(`\n  Press Ctrl+C to stop.\n`);
 });
 

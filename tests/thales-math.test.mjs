@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {
   angle2DToLongitude, cartesianToSpherical, greatCircleTo3D, longitudeToAngle2D, point3DToGreatCircle, pointerToAngle,
   sphereStats, sphericalToCartesian, thalesStats2D, toDegrees, toRadians,
-} from '../visuals/thales-theorem/src/model/thales-math.js';
-import { rotateBaseline90, setBaselineRotation, setPlane2D } from '../visuals/thales-theorem/src/model/actions.js';
-import { computeFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
-import { createInitialState } from '../visuals/thales-theorem/src/config/defaults.js';
-import { Canvas2DInteraction } from '../visuals/thales-theorem/src/controllers/Canvas2DInteraction.js';
+} from '../visuals/circle-theorems/thales-theorem/src/model/thales-math.js';
+import { rotateBaseline90, setBaselineRotation, setPlane2D } from '../visuals/circle-theorems/thales-theorem/src/model/actions.js';
+import { computeFrame } from '../visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js';
+import { createInitialState } from '../visuals/circle-theorems/thales-theorem/src/config/defaults.js';
+import { Canvas2DInteraction } from '../visuals/circle-theorems/thales-theorem/src/controllers/Canvas2DInteraction.js';
 
 const close = (actual, expected, eps = 1e-9) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
@@ -446,7 +446,7 @@ test('Thales: Viewport Dimension Adaptation & Collapsible Modes Panel Contract',
   assert.ok(narrowFrame.cx + narrowFrame.r <= 300, 'Right rim must remain inside canvas');
 
   // 2. Verify controls.css contains collapsible modes toolbar styles
-  const controlsCssPath = path.resolve('visuals/thales-theorem/styles/controls.css');
+  const controlsCssPath = path.resolve('visuals/circle-theorems/thales-theorem/styles/controls.css');
   const controlsCss = fs.readFileSync(controlsCssPath, 'utf8');
   assert.ok(controlsCss.includes('.toolbar-collapse-btn'), 'controls.css must style .toolbar-collapse-btn');
   assert.ok(controlsCss.includes('.viewport-header-toolbar.is-collapsed .toolbar-content'), 'controls.css must hide .toolbar-content when collapsed');

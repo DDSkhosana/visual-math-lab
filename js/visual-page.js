@@ -19,7 +19,8 @@ function isValidYouTubeId(value) {
 }
 
 async function getVisual(slug) {
-  const response = await fetch("../../data/visuals.json", { cache: "no-cache" });
+  const root = document.body?.dataset?.root || "../../..";
+  const response = await fetch(`${root}/data/visuals.json`, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`Could not load visual metadata (${response.status}).`);
   }
@@ -121,7 +122,7 @@ async function initializeVisualPage() {
   }
 
   document.title = `${visual.title} | Visual Mathematics Lab`;
-  const root = document.body.dataset.root || "../..";
+  const root = document.body.dataset.root || "../../..";
   if (visual.thumbnail) {
     setFavicon(`${root}/${visual.thumbnail.replace(/^\//, "")}`);
   }

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Angle Sum, Difference &amp; Rotation Matrix Composition | Trigonometry Suite</title>
+  <link rel="stylesheet" href="../css/trig-suite.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+</head>
+<body>
+  <header class="trig-header">
+    <div class="trig-brand-group">
+      <a class="trig-brand" href="../../../index.html">Visual Math Lab</a>
+      <span class="trig-sep">/</span>
+      <a class="trig-suite-pill" href="../index.html">Trigonometry Suite</a>
+      <span class="trig-sep">/</span>
+      <span class="trig-visual-title">04. Angle Sum &amp; Rotation Matrix Composition</span>
+    </div>
+
+    <div class="trig-toolbar">
+      <div class="trig-btn-group" role="group" aria-label="View Mode">
+        <button type="button" id="btn-split" class="trig-btn active">Split</button>
+        <button type="button" id="btn-flip-split" class="trig-btn" title="Flip Split Orientation">Flip</button>
+        <button type="button" id="btn-2d" class="trig-btn">2D</button>
+        <button type="button" id="btn-3d" class="trig-btn">3D</button>
+      </div>
+      <button type="button" id="btn-toggle-ar" class="trig-btn trig-btn-pill" aria-pressed="false">
+        <span>AR:</span>
+        <span id="ar-status-pill" class="trig-status-dot">OFF</span>
+      </button>
+      <a class="trig-btn trig-btn-pill" href="../unit-circle-helix/index.html">&larr; Suite 01</a>
+    </div>
+  </header>
+
+  <main class="trig-explorer">
+    <aside id="workspace-dock" class="trig-dock" aria-label="Interactive Controls and Proof">
+      <div class="trig-dock-header">
+        <span class="trig-dock-title">R(α + β) = R(α) ∘ R(β)</span>
+        <button type="button" id="dock-collapse-btn" class="trig-btn" title="Collapse or Expand Dock">&#9776;</button>
+      </div>
+      <div class="trig-dock-tabs" role="tablist">
+        <button type="button" class="trig-dock-tab active" data-dock-tab="controls">Controls &amp; Telemetry</button>
+        <button type="button" class="trig-dock-tab" data-dock-tab="proof">Matrix Composition Proof</button>
+      </div>
+
+      <div class="trig-dock-body" data-dock-pane="controls">
+        <div class="trig-card">
+          <h3 class="trig-card-title">Base Angle α &amp; Stacked Angle β</h3>
+          <div class="trig-slider-row">
+            <div class="trig-slider-label">
+              <span>Angle α</span>
+              <strong id="label-alpha">30°</strong>
+            </div>
+            <input type="range" id="slider-alpha" min="0" max="180" step="1" value="30">
+          </div>
+          <div class="trig-slider-row">
+            <div class="trig-slider-label">
+              <span>Angle β</span>
+              <strong id="label-beta">45°</strong>
+            </div>
+            <input type="range" id="slider-beta" min="0" max="180" step="1" value="45">
+          </div>
+        </div>
+
+        <div class="trig-card">
+          <h3 class="trig-card-title">Compound Angle Decomposition</h3>
+          <div class="trig-telemetry-grid">
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">cos α cos β</span>
+              <span id="val-cacb" class="trig-stat-val" style="color: #38bdf8;">0.612</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">sin α sin β</span>
+              <span id="val-sasb" class="trig-stat-val" style="color: #f59e0b;">0.354</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">cos(α + β) = cαcβ − sαsβ</span>
+              <span id="val-cos-sum" class="trig-stat-val" style="color: #f43f5e;">0.259</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">sin(α + β) = sαcβ + cαsβ</span>
+              <span id="val-sin-sum" class="trig-stat-val" style="color: #10b981;">0.966</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="trig-invariant-banner">
+          <span>✓ Homomorphism R(α + β) = R(α) ∘ R(β) Verified:</span>
+          <code id="val-sum-invariant">sin(75°) = 0.966, cos(75°) = 0.259</code>
+        </div>
+      </div>
+
+      <div class="trig-dock-body" data-dock-pane="proof" hidden>
+        <div class="trig-step-card">
+          <h4>1. Group Homomorphism R : (ℝ/2πℤ, +) → SO(2)</h4>
+          Rotating the plane by β and then by α is a composition of linear maps R(α) ∘ R(β) = R(α + β):
+          <div class="trig-formula-block" id="proof-rot-matrix">
+            [cos(α+β)  −sin(α+β)] = [cos α  −sin α][cos β  −sin β]
+          </div>
+        </div>
+        <div class="trig-step-card">
+          <h4>2. Stacked Right-Triangle Geometric Proof</h4>
+          Hypotenuse OP = 1 splits along ray α into OQ = cos β and QP = sin β.
+          Projecting OQ and QP onto the X and Y axes yields:
+          <div class="trig-formula-block">
+            cos(α + β) = OM − SQ = cos α cos β − sin α sin β<br>
+            sin(α + β) = MQ + PS = sin α cos β + cos α sin β
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="main-view" class="layout-split horizontal-split">
+      <div id="canvas-2d-container">
+        <div class="trig-canvas-badge">2D Stacked Right-Triangle Proof for sin(α ± β) &amp; cos(α ± β)</div>
+        <canvas id="canvas-2d"></canvas>
+      </div>
+      <div id="split-resizer" title="Drag to resize"></div>
+      <div id="canvas-3d-container">
+        <div class="trig-canvas-badge">3D SO(2) Rotation Frame Composition R(α) ∘ R(β)</div>
+        <div class="trig-camera-bar">
+          <button type="button" class="active" data-cam-preset="isometric">Iso</button>
+          <button type="button" data-cam-preset="top">Top</button>
+          <button type="button" data-cam-preset="front">Front</button>
+          <button type="button" data-cam-preset="side">Side</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { computeAngleSumIdentities, toRadians } from '../js/trig-math.js';
+    import { initTrigVisualPage, renderAngleSum2D } from '../js/trig-core.js';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTrigVisualPage({
+        mode: 'angle-sum-identities',
+        initialState: {
+          alpha: toRadians(30),
+          beta: toRadians(45),
+          showProof: true,
+          showSecondary: true,
+        },
+        render2D: renderAngleSum2D,
+        updateUI(st) {
+          const m = computeAngleSumIdentities(st.alpha, st.beta, 1.0);
+          document.getElementById('label-alpha').textContent = `${Math.round(m.alphaDeg)}°`;
+          document.getElementById('label-beta').textContent = `${Math.round(m.betaDeg)}°`;
+          document.getElementById('val-cacb').textContent = m.trig.cosACosB.toFixed(3);
+          document.getElementById('val-sasb').textContent = m.trig.sinASinB.toFixed(3);
+          document.getElementById('val-cos-sum').textContent = m.trig.cosSum.toFixed(3);
+          document.getElementById('val-sin-sum').textContent = m.trig.sinSum.toFixed(3);
+          document.getElementById('val-sum-invariant').textContent =
+            `α+β = ${Math.round(m.sumAngleDeg)}° | cos = ${m.trig.cosSum.toFixed(3)}, sin = ${m.trig.sinSum.toFixed(3)}`;
+        },
+        bindControls(store) {
+          document.getElementById('slider-alpha')?.addEventListener('input', (e) => {
+            store.set({ alpha: toRadians(Number(e.target.value)) });
+          });
+          document.getElementById('slider-beta')?.addEventListener('input', (e) => {
+            store.set({ beta: toRadians(Number(e.target.value)) });
+          });
+        },
+      });
+    });
+  </script>
+</body>
+</html>
+

@@ -172,9 +172,9 @@ test('ARManager: Tier 3 Spatial AR Simulation fallback when no camera or WebXR i
 });
 
 test('Affine Mode: Canvas2DView and Scene3DView stateKeys subscribe to affine state and setAffineMode initializes visible stretch', async () => {
-  const { Canvas2DView } = await import('../visuals/thales-theorem/src/views/Canvas2DView.js');
-  const { Scene3DView } = await import('../visuals/thales-theorem/src/views/Scene3DView.js');
-  const { setAffineMode, setAffineStretch } = await import('../visuals/thales-theorem/src/model/actions.js');
+  const { Canvas2DView } = await import('../visuals/circle-theorems/thales-theorem/src/views/Canvas2DView.js');
+  const { Scene3DView } = await import('../visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js');
+  const { setAffineMode, setAffineStretch } = await import('../visuals/circle-theorems/thales-theorem/src/model/actions.js');
 
   for (const key of ['affineMode', 'affineStretch', 'affineAxisAngle']) {
     assert.ok(Canvas2DView.stateKeys.includes(key), `Canvas2DView.stateKeys must include ${key}`);

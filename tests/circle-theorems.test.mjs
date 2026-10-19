@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import * as AngleAtCentre from '../visuals/angle-at-centre/src/model.js';
-import * as AnglesInSameSegment from '../visuals/angles-in-same-segment/src/model.js';
-import * as CyclicQuad from '../visuals/cyclic-quadrilateral/src/model.js';
-import * as TangentRadius from '../visuals/tangent-radius/src/model.js';
-import * as AlternateSegment from '../visuals/alternate-segment/src/model.js';
-import * as TangentsFromPoint from '../visuals/tangents-from-external-point/src/model.js';
-import * as ChordBisector from '../visuals/perpendicular-chord-bisector/src/model.js';
+import * as AngleAtCentre from '../visuals/circle-theorems/angle-at-centre/src/model.js';
+import * as AnglesInSameSegment from '../visuals/circle-theorems/angles-in-same-segment/src/model.js';
+import * as CyclicQuad from '../visuals/circle-theorems/cyclic-quadrilateral/src/model.js';
+import * as TangentRadius from '../visuals/circle-theorems/tangent-radius/src/model.js';
+import * as AlternateSegment from '../visuals/circle-theorems/alternate-segment/src/model.js';
+import * as TangentsFromPoint from '../visuals/circle-theorems/tangents-from-external-point/src/model.js';
+import * as ChordBisector from '../visuals/circle-theorems/perpendicular-chord-bisector/src/model.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { get3DAngleBisector, get3DAngleDegrees } from '../js/circle-3d.js';
 import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections } from '../js/circle-core.js';
-import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/thales-theorem/src/ui/Accordion.js';
+import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/circle-theorems/thales-theorem/src/ui/Accordion.js';
 
 const close = (actual, expected, eps = 1e-6) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
@@ -365,13 +365,13 @@ test('2D CanvasView.render and generateSVG execute cleanly across all 7 circle t
   };
 
   const visuals = [
-    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
-    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
-    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
-    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
-    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
-    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
-    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/circle-theorems/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/circle-theorems/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/circle-theorems/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/circle-theorems/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/circle-theorems/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/circle-theorems/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js') },
   ];
 
   for (const { name, model, canvasMod } of visuals) {
@@ -427,13 +427,13 @@ test('Unified labeling toggle: disabling labels suppresses all 2D text rendering
   };
 
   const visuals = [
-    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
-    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
-    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
-    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
-    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
-    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
-    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/circle-theorems/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/circle-theorems/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/circle-theorems/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/circle-theorems/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/circle-theorems/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/circle-theorems/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js') },
   ];
 
   for (const { name, model, canvasMod } of visuals) {
@@ -577,7 +577,7 @@ test('Cross-visual compliance: all 8 visual HTML files have collapsible toolbar,
   ];
 
   for (const { dir, expectedPerspective } of visualDirs) {
-    const htmlPath = path.join(rootDir, 'visuals', dir, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', dir, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `File must exist: ${htmlPath}`);
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -624,14 +624,14 @@ test('SEO & Google indexing: all public pages contain canonical URLs, meta tags,
     { file: 'about.html', url: 'https://ddskhosana.github.io/visual-math-lab/about.html' },
     { file: 'contact.html', url: 'https://ddskhosana.github.io/visual-math-lab/contact.html' },
     { file: 'privacy.html', url: 'https://ddskhosana.github.io/visual-math-lab/privacy.html' },
-    { file: 'visuals/thales-theorem/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/thales-theorem/' },
-    { file: 'visuals/angle-at-centre/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/angle-at-centre/' },
-    { file: 'visuals/angles-in-same-segment/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/angles-in-same-segment/' },
-    { file: 'visuals/cyclic-quadrilateral/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/cyclic-quadrilateral/' },
-    { file: 'visuals/tangent-radius/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/tangent-radius/' },
-    { file: 'visuals/alternate-segment/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/alternate-segment/' },
-    { file: 'visuals/tangents-from-external-point/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/tangents-from-external-point/' },
-    { file: 'visuals/perpendicular-chord-bisector/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/perpendicular-chord-bisector/' },
+    { file: 'visuals/circle-theorems/thales-theorem/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/thales-theorem/' },
+    { file: 'visuals/circle-theorems/angle-at-centre/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/angle-at-centre/' },
+    { file: 'visuals/circle-theorems/angles-in-same-segment/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/angles-in-same-segment/' },
+    { file: 'visuals/circle-theorems/cyclic-quadrilateral/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/cyclic-quadrilateral/' },
+    { file: 'visuals/circle-theorems/tangent-radius/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/tangent-radius/' },
+    { file: 'visuals/circle-theorems/alternate-segment/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/alternate-segment/' },
+    { file: 'visuals/circle-theorems/tangents-from-external-point/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/tangents-from-external-point/' },
+    { file: 'visuals/circle-theorems/perpendicular-chord-bisector/index.html', url: 'https://ddskhosana.github.io/visual-math-lab/visuals/circle-theorems/perpendicular-chord-bisector/' },
   ];
 
   for (const page of pages) {
@@ -792,7 +792,7 @@ test('Reflex Angle System: HTML toggles, 2D/3D telemetry, and perigon invariants
   ];
 
   for (const slug of visualSlugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `HTML file must exist: ${slug}`);
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -947,7 +947,7 @@ test('Interactive Canvas Protection: all circle visual canvas containers enforce
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
   const css = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'layout.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'layout.css'), 'utf8');
 
   assert.ok(css.includes('#canvas-2d-container') && css.includes('touch-action: none;'), 'circle-visual.css must style #canvas-2d-container with touch-action: none;');
   assert.ok(css.includes('#canvas-3d-container') && css.includes('touch-action: none;'), 'circle-visual.css must style #canvas-3d-container with touch-action: none;');
@@ -1031,7 +1031,7 @@ test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dra
 });
 
 test('Alternate Segment: showDAngles toggle suppresses Point D interior, exterior, and reflex wedges/badges in 2D and 3D', async () => {
-  const canvasMod = await import('../visuals/alternate-segment/src/canvas.js');
+  const canvasMod = await import('../visuals/circle-theorems/alternate-segment/src/canvas.js');
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
   const circle3dCode = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
@@ -1136,7 +1136,7 @@ test('Alternate Segment: showDAngles toggle suppresses Point D interior, exterio
     circle3dCode.includes('const showTriangles = showArea && Boolean(state.showTriangleShading || state.showTriangles);'),
     'circle-3d.js must guard 3D triangle meshes with showTriangles toggle'
   );
-  const altHtml = fs.readFileSync(path.join(rootDir, 'visuals', 'alternate-segment', 'index.html'), 'utf8');
+  const altHtml = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'alternate-segment', 'index.html'), 'utf8');
   assert.ok(altHtml.includes('id="toggle-triangles"'), 'alternate-segment/index.html must include #toggle-triangles checkbox');
   assert.ok(altHtml.includes('id="toggle-3d-triangles"'), 'alternate-segment/index.html must include #toggle-3d-triangles checkbox');
 });
@@ -1231,7 +1231,7 @@ test('Panel Header Expand/Collapse Affordances: SVG chevrons, accessible labels,
   ];
 
   for (const slug of visualSlugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `File must exist: ${htmlPath}`);
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -1247,7 +1247,7 @@ test('Panel Minimize Chevron Affordances: SVG single chevrons, accessible titles
   const rootDir = path.resolve(__dirname, '..');
   const cssVisual = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
   const cssCircle = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const cssOverlays = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+  const cssOverlays = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
 
   // 1. Verify CSS styling definitions
   assert.ok(cssVisual.includes('.panel-minimize-btn'), 'visual.css must define .panel-minimize-btn');
@@ -1331,7 +1331,7 @@ test('Panel Minimize Chevron Affordances: SVG single chevrons, accessible titles
   ];
 
   for (const slug of visualSlugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     const expectedButtons = (slug === 'thales-theorem')
@@ -1356,7 +1356,7 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
   const circle3d = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
-  const thales3d = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'views', 'Scene3DView.js'), 'utf8');
+  const thales3d = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'views', 'Scene3DView.js'), 'utf8');
 
   // Verify Top-view gimbal lock elimination:
   // Must use (0, d, 0.001) with up = (0, 1, 0) instead of (0, 0, -1) which causes coordinate-frame collapse
@@ -1394,7 +1394,7 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   assert.ok(circleCore.includes("'🔄 Arcball'"), 'circle-core.js must label default button with Arcball');
   assert.ok(circleCore.includes("cameraMode: 'arcball'"), 'createDefaultVisState must set cameraMode: arcball');
 
-  const thalesMain = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'main.js'), 'utf8');
+  const thalesMain = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'main.js'), 'utf8');
   assert.ok(thalesMain.includes("modeBtn.dataset.cameraMode = 'arcball'"), 'Thales main.js must set dataset.cameraMode to arcball on load');
   assert.ok(thalesMain.includes("cameraMode: 'arcball'"), 'Thales reset must restore cameraMode to arcball');
 
@@ -1410,7 +1410,7 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   ];
 
   for (const slug of visualSlugs) {
-    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html'), 'utf8');
     assert.ok(
       (html.includes('data-preset="iso" class="active"') || html.includes('data-preset="isometric" class="active"')),
       `${slug}/index.html camera-presets-bar must have iso active by default`
@@ -1447,7 +1447,7 @@ test('Radius Resizing: click-and-drag circumference and mouse wheel resizing wit
   ];
 
   for (const slug of circleTheorems) {
-    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'src', 'main.js'), 'utf8');
+    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'src', 'main.js'), 'utf8');
     assert.ok(
       mainJs.includes('isNearCircumference'),
       `${slug}/src/main.js must import and use isNearCircumference`
@@ -1468,13 +1468,13 @@ test('Radius Resizing: click-and-drag circumference and mouse wheel resizing wit
   }
 
   // 3. Verify Thales 2D and 3D implementations
-  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
+  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
   assert.ok(thales2D.includes("distCirc < 14"), 'Thales Canvas2DInteraction.js must allow circumference click to enter radius resizing mode');
   assert.ok(thales2D.includes("this.mode = 'radius'"), 'Thales Canvas2DInteraction.js must activate radius resizing mode');
   assert.ok(thales2D.includes("ew-resize"), 'Thales Canvas2DInteraction.js must show ew-resize cursor on circumference hover');
   assert.ok(thales2D.includes("canvas.addEventListener('wheel'"), 'Thales Canvas2DInteraction.js must have wheel listener for 2D canvas');
 
-  const thales3D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Scene3DInteraction.js'), 'utf8');
+  const thales3D = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'controllers', 'Scene3DInteraction.js'), 'utf8');
   assert.ok(thales3D.includes("hitsCircumference"), 'Thales Scene3DInteraction.js must check hitsCircumference');
   assert.ok(thales3D.includes("activeTarget = 'radius'"), 'Thales Scene3DInteraction.js must set activeTarget to radius upon circumference click');
   assert.ok(thales3D.includes("element.addEventListener('wheel'"), 'Thales Scene3DInteraction.js must have 3D mouse wheel listener');
@@ -1531,7 +1531,7 @@ test('2D Canvas Panning Contract: geometry models offset cx and cy by pan, and a
   ];
 
   for (const slug of circleTheorems) {
-    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'src', 'main.js'), 'utf8');
+    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'src', 'main.js'), 'utf8');
     assert.ok(
       mainJs.includes("= 'pan'"),
       `${slug}/src/main.js must set active drag target to 'pan' when dragging background`
@@ -1555,13 +1555,13 @@ test('2D Canvas Panning Contract: geometry models offset cx and cy by pan, and a
   }
 
   // 3. Verify Thales 2D canvas interaction and main.js reset
-  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
+  const thales2D = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'controllers', 'Canvas2DInteraction.js'), 'utf8');
   assert.ok(thales2D.includes("this.mode = 'pan'"), "Thales Canvas2DInteraction.js must support mode 'pan'");
   assert.ok(thales2D.includes("this.view.canvas.style.cursor = 'grab'"), "Thales Canvas2DInteraction.js must use 'grab' cursor");
   assert.ok(thales2D.includes("this.store.set({ pan:"), "Thales Canvas2DInteraction.js must dispatch pan updates to store");
   assert.ok(thales2D.includes("canvas.addEventListener('dblclick', () => store.set({ pan: { x: 0, y: 0 } }))"), "Thales Canvas2DInteraction.js must reset pan on dblclick");
 
-  const thalesMain = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'main.js'), 'utf8');
+  const thalesMain = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'main.js'), 'utf8');
   assert.ok(thalesMain.includes("pan: { x: 0, y: 0 }"), "Thales src/main.js resetBtn must clear pan to { x: 0, y: 0 }");
 });
 
@@ -1588,7 +1588,7 @@ test('Viewport Toolbar Badges & Modes Panel Glow: Tips and Legend moved to modes
   ];
 
   for (const slug of visualSlugs) {
-    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html'), 'utf8');
     assert.ok(
       html.includes('id="btn-toolbar-tips"'),
       `${slug}/index.html must include #btn-toolbar-tips inside viewport toolbar`
@@ -1607,7 +1607,7 @@ test('Viewport Toolbar Badges & Modes Panel Glow: Tips and Legend moved to modes
   const cssFiles = [
     path.join(rootDir, 'css', 'circle-visual.css'),
     path.join(rootDir, 'css', 'visual.css'),
-    path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'controls.css'),
+    path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'controls.css'),
   ];
 
   for (const cssPath of cssFiles) {
@@ -1640,7 +1640,7 @@ test('Modes Panel & Dock Layout: Collapsed by default and left margin aligned on
 
   // 1. Verify all 8 visuals have #viewport-toolbar collapsed by default in HTML
   for (const slug of visualSlugs) {
-    const html = fs.readFileSync(path.join(rootDir, 'visuals', slug, 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html'), 'utf8');
     assert.ok(
       html.includes('class="viewport-header-toolbar is-collapsed"'),
       `${slug}/index.html must have class "viewport-header-toolbar is-collapsed"`
@@ -1666,7 +1666,7 @@ test('Modes Panel & Dock Layout: Collapsed by default and left margin aligned on
   assert.ok(dockCss.includes('top: 3.5rem;'), 'workspace-dock.css must position collapsed dock at top: 3.5rem below modes panel');
 
   // 3. Verify DraggableToolbar setCollapsed calls resetPosition
-  const thalesToolbarJs = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'src', 'ui', 'DraggableToolbar.js'), 'utf8');
+  const thalesToolbarJs = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'src', 'ui', 'DraggableToolbar.js'), 'utf8');
   assert.ok(thalesToolbarJs.includes('this.resetPosition()'), 'Thales DraggableToolbar setCollapsed must call resetPosition on collapse');
 
   const circleCoreJs = fs.readFileSync(path.join(rootDir, 'js', 'circle-core.js'), 'utf8');
@@ -1683,7 +1683,7 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
   const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const { createStore } = await import('../js/circle-core.js');
   const { ViewModeController } = await import('../js/circle-3d.js');
-  const { ViewModeController: ThalesViewModeController } = await import('../visuals/thales-theorem/src/controllers/ViewModeController.js');
+  const { ViewModeController: ThalesViewModeController } = await import('../visuals/circle-theorems/thales-theorem/src/controllers/ViewModeController.js');
   const { WorkspaceDockManager } = await import('../js/workspace-dock.js');
 
   // 1. ViewModeController: Deduces compact viewport and enforces vertical split & hides flip button
@@ -1775,7 +1775,7 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
 
   // 4. CSS Media Query Verification across circle-visual.css, thales responsive.css, and workspace-dock.css
   const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const thalesResponsiveCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
+  const thalesResponsiveCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
   const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
 
   // Canvases guaranteed positive height on mobile
@@ -1821,14 +1821,14 @@ test('Angle Labeling Contract: Single-line labels without newlines and non-obstr
 
   // 2. All 2D visual canvas files must not contain \n inside drawTextBadge calls for angles
   const canvasFiles = [
-    'visuals/angle-at-centre/src/canvas.js',
-    'visuals/angles-in-same-segment/src/canvas.js',
-    'visuals/cyclic-quadrilateral/src/canvas.js',
-    'visuals/perpendicular-chord-bisector/src/canvas.js',
-    'visuals/tangent-radius/src/canvas.js',
-    'visuals/tangents-from-external-point/src/canvas.js',
-    'visuals/alternate-segment/src/canvas.js',
-    'visuals/thales-theorem/src/views/canvas2d-draw.js',
+    'visuals/circle-theorems/angle-at-centre/src/canvas.js',
+    'visuals/circle-theorems/angles-in-same-segment/src/canvas.js',
+    'visuals/circle-theorems/cyclic-quadrilateral/src/canvas.js',
+    'visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js',
+    'visuals/circle-theorems/tangent-radius/src/canvas.js',
+    'visuals/circle-theorems/tangents-from-external-point/src/canvas.js',
+    'visuals/circle-theorems/alternate-segment/src/canvas.js',
+    'visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js',
   ];
 
   for (const relPath of canvasFiles) {
@@ -1847,7 +1847,7 @@ test('Angle Labeling Contract: Single-line labels without newlines and non-obstr
     assert.ok(!m.includes('\\n'), `circle-3d.js: 3D angle label "${m}" must not contain newline \\n`);
   }
 
-  const thalesOverlayContent = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  const thalesOverlayContent = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
   assert.ok(!thalesOverlayContent.includes("key: 'theta'") || !thalesOverlayContent.includes('\\n'), 'LabelOverlayView.js: angle labels must not contain newline \\n');
 
   // 4. CSS for 3D angle labels must enforce single-line nowrap

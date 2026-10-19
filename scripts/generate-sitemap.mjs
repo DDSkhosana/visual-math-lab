@@ -21,9 +21,20 @@ const pages = [
   { path: "/privacy.html", priority: "0.3", changefreq: "yearly" },
 ];
 
+const trigVisuals = JSON.parse(readFileSync(resolve(root, "visuals", "trigonometry", "data", "trig-visuals.json"), "utf8"));
+
 for (const visual of visuals.filter((visual) => visual.published)) {
+  const suite = visual.suite || "circle-theorems";
   pages.push({
-    path: `/visuals/${visual.slug}/`,
+    path: `/visuals/${suite}/${visual.slug}/`,
+    priority: "0.9",
+    changefreq: "weekly",
+  });
+}
+
+for (const visual of trigVisuals.filter((visual) => visual.published)) {
+  pages.push({
+    path: `/visuals/trigonometry/${visual.slug}/`,
     priority: "0.9",
     changefreq: "weekly",
   });

@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../visuals/thales-theorem/src/model/store.js';
-import { createInitialState } from '../visuals/thales-theorem/src/config/defaults.js';
-import { setAngle2D, setFlag, setLongitude, setSpherePoint, toggleSplitDirection, setPlaying } from '../visuals/thales-theorem/src/model/actions.js';
-import { sphereStats, thalesStats2D, toRadians } from '../visuals/thales-theorem/src/model/thales-math.js';
-import { NullScene3DView } from '../visuals/thales-theorem/src/views/NullScene3DView.js';
-import { computeFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
-import { PALETTE } from '../visuals/thales-theorem/src/config/palette.js';
+import { createStore } from '../visuals/circle-theorems/thales-theorem/src/model/store.js';
+import { createInitialState } from '../visuals/circle-theorems/thales-theorem/src/config/defaults.js';
+import { setAngle2D, setFlag, setLongitude, setSpherePoint, toggleSplitDirection, setPlaying } from '../visuals/circle-theorems/thales-theorem/src/model/actions.js';
+import { sphereStats, thalesStats2D, toRadians } from '../visuals/circle-theorems/thales-theorem/src/model/thales-math.js';
+import { NullScene3DView } from '../visuals/circle-theorems/thales-theorem/src/views/NullScene3DView.js';
+import { computeFrame } from '../visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js';
+import { PALETTE } from '../visuals/circle-theorems/thales-theorem/src/config/palette.js';
 
-import { generateSceneSVG } from '../visuals/thales-theorem/src/views/canvas2d-svg.js';
+import { generateSceneSVG } from '../visuals/circle-theorems/thales-theorem/src/views/canvas2d-svg.js';
 
 const close = (actual, expected, eps = 1e-7) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 

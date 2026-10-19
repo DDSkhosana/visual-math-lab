@@ -1,15 +1,22 @@
 import SITE_CONFIG, { hasConfiguredUrl } from "../config/site-config.js?v=20260523";
 import { trackEvent } from "./analytics.js?v=20260523";
 
-const DEFAULT_VISUALS = [
-  { slug: "thales-theorem", title: "Thales' Theorem", category: "Geometry" },
-  { slug: "angle-at-centre", title: "Angle at the Centre Theorem", category: "Geometry" },
-  { slug: "angles-in-same-segment", title: "Angles in the Same Segment", category: "Geometry" },
-  { slug: "cyclic-quadrilateral", title: "Cyclic Quadrilateral Theorem", category: "Geometry" },
-  { slug: "tangent-radius", title: "Tangent-Radius Perpendicularity", category: "Geometry" },
-  { slug: "alternate-segment", title: "Alternate Segment Theorem", category: "Geometry" },
-  { slug: "tangents-from-external-point", title: "Tangents from an External Point", category: "Geometry" },
-  { slug: "perpendicular-chord-bisector", title: "Perpendicular Chord Bisector", category: "Geometry" },
+const DEFAULT_CIRCLE_VISUALS = [
+  { slug: "thales-theorem", suite: "circle-theorems", title: "Thales' Theorem", category: "Geometry" },
+  { slug: "angle-at-centre", suite: "circle-theorems", title: "Angle at the Centre Theorem", category: "Geometry" },
+  { slug: "angles-in-same-segment", suite: "circle-theorems", title: "Angles in the Same Segment", category: "Geometry" },
+  { slug: "cyclic-quadrilateral", suite: "circle-theorems", title: "Cyclic Quadrilateral Theorem", category: "Geometry" },
+  { slug: "tangent-radius", suite: "circle-theorems", title: "Tangent-Radius Perpendicularity", category: "Geometry" },
+  { slug: "alternate-segment", suite: "circle-theorems", title: "Alternate Segment Theorem", category: "Geometry" },
+  { slug: "tangents-from-external-point", suite: "circle-theorems", title: "Tangents from an External Point", category: "Geometry" },
+  { slug: "perpendicular-chord-bisector", suite: "circle-theorems", title: "Perpendicular Chord Bisector", category: "Geometry" },
+];
+
+const DEFAULT_TRIG_VISUALS = [
+  { slug: "unit-circle-helix", suite: "trigonometry", title: "Unit Circle, Six Trig Functions & 3D Helix Waves", category: "Trigonometry" },
+  { slug: "law-of-sines", suite: "trigonometry", title: "Law of Sines & Circumcircle Invariant", category: "Trigonometry" },
+  { slug: "law-of-cosines", suite: "trigonometry", title: "Law of Cosines & Generalized Pythagorean Projection", category: "Trigonometry" },
+  { slug: "angle-sum-identities", suite: "trigonometry", title: "Angle Sum, Difference & Rotation Matrix Composition", category: "Trigonometry" },
 ];
 
 function route(root, path) {
@@ -26,7 +33,17 @@ function getActiveSlug() {
   const segments = pathname.split("/").filter(Boolean);
   const visualsIndex = segments.indexOf("visuals");
   if (visualsIndex !== -1 && visualsIndex + 1 < segments.length) {
-    return segments[visualsIndex + 1].replace(/\.html$/, "");
+    // Supports both visuals/<suite>/<slug> and visuals/<slug>
+    const candidate = segments[segments.length - 1].replace(/\.html$/, "");
+    if (candidate && candidate !== "index" && candidate !== "circle-theorems" && candidate !== "trigonometry") {
+      return candidate;
+    }
+    if (segments.length >= 2 && candidate === "index") {
+      const parent = segments[segments.length - 2];
+      if (parent !== "circle-theorems" && parent !== "trigonometry" && parent !== "visuals") {
+        return parent;
+      }
+    }
   }
   return "";
 }
@@ -37,19 +54,29 @@ function escapeHtml(value) {
   return element.innerHTML;
 }
 
-function renderVisualsList(root, visuals, activeSlug) {
-  return visuals
-    .map((v) => {
-      const isActive = v.slug === activeSlug;
-      const visualUrl = route(root, `visuals/${encodeURIComponent(v.slug)}/index.html`);
-      return `
-        <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""}>
-          <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
-          ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
-        </a>
-      `;
-    })
-    .join("");
+function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS) {
+  const renderItem = (v, defaultSuite) => {
+    const suite = v.suite || defaultSuite;
+    const isActive = v.slug === activeSlug;
+    const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
+    return `
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""}>
+        <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
+        ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
+      </a>
+    `;
+  };
+
+  return `
+    <div class="site-nav__dropdown-suite-label" style="padding: 0.35rem 0.75rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #38bdf8; opacity: 0.9;">
+      Suite 01 &middot; Circle Theorems (${circleVisuals.length})
+    </div>
+    ${circleVisuals.map((v) => renderItem(v, "circle-theorems")).join("")}
+    <div class="site-nav__dropdown-suite-label" style="padding: 0.55rem 0.75rem 0.2rem; margin-top: 0.25rem; border-top: 1px solid rgba(148, 163, 184, 0.14); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #2dd4bf; opacity: 0.9;">
+      Suite 02 &middot; Trigonometry (${trigVisuals.length})
+    </div>
+    ${trigVisuals.map((v) => renderItem(v, "trigonometry")).join("")}
+  `;
 }
 
 export function mountSharedChrome() {
@@ -62,6 +89,7 @@ export function mountSharedChrome() {
 
   if (header) {
     header.className = "site-header";
+    const totalCount = DEFAULT_CIRCLE_VISUALS.length + DEFAULT_TRIG_VISUALS.length;
     header.innerHTML = `
       <a class="brand" href="${route(root, "index.html")}">${SITE_CONFIG.site.name}</a>
       <nav class="site-nav" aria-label="Primary navigation">
@@ -73,11 +101,11 @@ export function mountSharedChrome() {
           </button>
           <div class="site-nav__dropdown-menu" id="nav-visuals-menu" role="menu" aria-label="Visualisations list" hidden>
             <div class="site-nav__dropdown-header">
-              <span class="site-nav__dropdown-title">Geometry Proofs</span>
-              <span class="site-nav__dropdown-count" id="nav-visuals-count">${DEFAULT_VISUALS.length} Visuals</span>
+              <span class="site-nav__dropdown-title">Interactive Suites</span>
+              <span class="site-nav__dropdown-count" id="nav-visuals-count">${totalCount} Visuals</span>
             </div>
             <div class="site-nav__dropdown-list" id="nav-visuals-list" role="none">
-              ${renderVisualsList(root, DEFAULT_VISUALS, activeSlug)}
+              ${renderVisualsList(root, DEFAULT_CIRCLE_VISUALS, activeSlug, DEFAULT_TRIG_VISUALS)}
             </div>
             <div class="site-nav__dropdown-footer">
               <a href="${route(root, "index.html#visuals")}" class="site-nav__dropdown-all-link">Browse Full Gallery &rarr;</a>
@@ -105,7 +133,6 @@ export function mountSharedChrome() {
 
         const viewportWidth = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 1024);
 
-        // If trigger has been scrolled off-screen horizontally, close menu
         if (rect.right < 0 || rect.left > viewportWidth) {
           closeMenu();
           return;
@@ -115,7 +142,6 @@ export function mountSharedChrome() {
         menu.style.top = `${Math.round(rect.bottom + 6)}px`;
         const menuWidth = menu.offsetWidth || 280;
 
-        // Align right edge of menu to right edge of trigger button when possible
         const rightEdge = rect.right;
         const leftCandidate = rightEdge - menuWidth;
         const maxLeft = viewportWidth - menuWidth - 8;
@@ -145,7 +171,6 @@ export function mountSharedChrome() {
         }
       });
 
-      // Close when clicking outside
       document.addEventListener("pointerdown", (e) => {
         if (!dropdown.contains(e.target)) {
           closeMenu();
@@ -199,13 +224,13 @@ export function mountSharedChrome() {
           if (Array.isArray(data) && list) {
             const published = data.filter((v) => v.published);
             if (published.length > 0) {
-              list.innerHTML = renderVisualsList(root, published, activeSlug);
-              if (count) count.textContent = `${published.length} Visuals`;
+              list.innerHTML = renderVisualsList(root, published, activeSlug, DEFAULT_TRIG_VISUALS);
+              if (count) count.textContent = `${published.length + DEFAULT_TRIG_VISUALS.length} Visuals`;
             }
           }
         })
         .catch(() => {
-          // Gracefully keep DEFAULT_VISUALS fallback
+          // Gracefully keep DEFAULT_CIRCLE_VISUALS fallback
         });
     }
   }

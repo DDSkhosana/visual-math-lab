@@ -84,8 +84,9 @@ for (const visual of visuals) {
       report(typeof video.script === "string", `Visual "${visual.slug}" must have string "video.script".`);
       report(typeof video.thumbnailText === "string", `Visual "${visual.slug}" must have string "video.thumbnailText".`);
     }
-  const visualIndex = resolve(root, "visuals", visual.slug, "index.html");
-  report(existsSync(visualIndex), `Visual "${visual.slug}" is missing visuals/${visual.slug}/index.html.`);
+  const suite = visual.suite || "circle-theorems";
+  const visualIndex = resolve(root, "visuals", suite, visual.slug, "index.html");
+  report(existsSync(visualIndex), `Visual "${visual.slug}" is missing visuals/${suite}/${visual.slug}/index.html.`);
   report(typeof visual.thumbnail === "string" && !visual.thumbnail.startsWith("/") && existsSync(resolve(root, visual.thumbnail)), `Visual "${visual.slug}" references a missing thumbnail "${visual.thumbnail}".`);
 
   // DOM Contract Linter: Validate that all static element IDs queried by JS exist in index.html
@@ -98,7 +99,7 @@ for (const visual of visuals) {
       htmlIds.add(idMatch[1]);
     }
 
-    const jsDir = resolve(root, "visuals", visual.slug, "src");
+    const jsDir = resolve(root, "visuals", suite, visual.slug, "src");
     if (existsSync(jsDir)) {
       const jsFiles = walk(jsDir).filter((file) => file.endsWith(".js"));
       for (const jsFile of jsFiles) {
@@ -124,12 +125,12 @@ for (const visual of visuals) {
   }
 }
 
-const visualDirectory = resolve(root, "visuals");
-if (existsSync(visualDirectory)) {
-  for (const entry of readdirSync(visualDirectory)) {
-    const folder = resolve(visualDirectory, entry);
+const circleSuiteDirectory = resolve(root, "visuals", "circle-theorems");
+if (existsSync(circleSuiteDirectory)) {
+  for (const entry of readdirSync(circleSuiteDirectory)) {
+    const folder = resolve(circleSuiteDirectory, entry);
     if (statSync(folder).isDirectory()) {
-      report(slugs.has(entry), `Visual folder "visuals/${entry}" has no matching metadata entry.`);
+      report(slugs.has(entry), `Visual folder "visuals/circle-theorems/${entry}" has no matching metadata entry.`);
     }
   }
 }

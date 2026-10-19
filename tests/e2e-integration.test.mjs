@@ -7,19 +7,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Domain models & derivations
-import { createInitialState as createThalesInitialState } from '../visuals/thales-theorem/src/config/defaults.js';
-import { computeFrame as computeThalesFrame } from '../visuals/thales-theorem/src/views/canvas2d-draw.js';
-import { generateSceneSVG as generateThalesSVG } from '../visuals/thales-theorem/src/views/canvas2d-svg.js';
-import { DerivationView as ThalesDerivations } from '../visuals/thales-theorem/src/views/DerivationView.js';
-import { StatsView } from '../visuals/thales-theorem/src/views/StatsView.js';
+import { createInitialState as createThalesInitialState } from '../visuals/circle-theorems/thales-theorem/src/config/defaults.js';
+import { computeFrame as computeThalesFrame } from '../visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js';
+import { generateSceneSVG as generateThalesSVG } from '../visuals/circle-theorems/thales-theorem/src/views/canvas2d-svg.js';
+import { DerivationView as ThalesDerivations } from '../visuals/circle-theorems/thales-theorem/src/views/DerivationView.js';
+import { StatsView } from '../visuals/circle-theorems/thales-theorem/src/views/StatsView.js';
 
-import * as AngleAtCentre from '../visuals/angle-at-centre/src/model.js';
-import * as AnglesInSameSegment from '../visuals/angles-in-same-segment/src/model.js';
-import * as CyclicQuad from '../visuals/cyclic-quadrilateral/src/model.js';
-import * as TangentRadius from '../visuals/tangent-radius/src/model.js';
-import * as AlternateSegment from '../visuals/alternate-segment/src/model.js';
-import * as TangentsFromPoint from '../visuals/tangents-from-external-point/src/model.js';
-import * as ChordBisector from '../visuals/perpendicular-chord-bisector/src/model.js';
+import * as AngleAtCentre from '../visuals/circle-theorems/angle-at-centre/src/model.js';
+import * as AnglesInSameSegment from '../visuals/circle-theorems/angles-in-same-segment/src/model.js';
+import * as CyclicQuad from '../visuals/circle-theorems/cyclic-quadrilateral/src/model.js';
+import * as TangentRadius from '../visuals/circle-theorems/tangent-radius/src/model.js';
+import * as AlternateSegment from '../visuals/circle-theorems/alternate-segment/src/model.js';
+import * as TangentsFromPoint from '../visuals/circle-theorems/tangents-from-external-point/src/model.js';
+import * as ChordBisector from '../visuals/circle-theorems/perpendicular-chord-bisector/src/model.js';
 
 import {
   AngleAtCentreDerivations,
@@ -197,7 +197,7 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     assert.ok(resRoot.headers.get('content-type')?.includes('text/html'), 'Root must serve text/html');
     const htmlRoot = await resRoot.text();
     assert.ok(htmlRoot.includes('Visual Mathematics Lab'), 'Root HTML must contain lab title');
-    assert.ok(htmlRoot.includes('/visuals/thales-theorem/'), 'Root HTML must link to Thales theorem');
+    assert.ok(htmlRoot.includes('/visuals/circle-theorems/thales-theorem/'), 'Root HTML must link to Thales theorem');
 
     // 2. All 8 visual theorem endpoints
     const visualPaths = [
@@ -212,8 +212,8 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     ];
 
     for (const vPath of visualPaths) {
-      const res = await fetch(`${baseUrl}/visuals/${vPath}/`);
-      assert.strictEqual(res.status, 200, `/visuals/${vPath}/ must serve 200 OK`);
+      const res = await fetch(`${baseUrl}/visuals/circle-theorems/${vPath}/`);
+      assert.strictEqual(res.status, 200, `/visuals/circle-theorems/${vPath}/ must serve 200 OK`);
       assert.ok(res.headers.get('content-type')?.includes('text/html'), `${vPath} must serve text/html`);
       const body = await res.text();
       assert.ok(body.toLowerCase().includes('<!doctype html>'), `${vPath} must return valid DOCTYPE`);
@@ -227,7 +227,7 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
       { path: '/css/circle-visual.css', type: 'text/css' },
       { path: '/css/site.css', type: 'text/css' },
       { path: '/css/visual.css', type: 'text/css' },
-      { path: '/visuals/thales-theorem/styles/layout.css', type: 'text/css' },
+      { path: '/visuals/circle-theorems/thales-theorem/styles/layout.css', type: 'text/css' },
       { path: '/js/circle-core.js', type: 'application/javascript' },
       { path: '/js/circle-derivations.js', type: 'application/javascript' },
       { path: '/js/tutorial-walkthrough.js', type: 'application/javascript' },
@@ -288,7 +288,7 @@ test('E2E Multi-Page UI Contract: 2D & 3D canvas containers, toolbars, telemetry
   ];
 
   for (const { dir, canvasId } of visualDirs) {
-    const htmlPath = path.join(ROOT, 'visuals', dir, 'index.html');
+    const htmlPath = path.join(ROOT, 'visuals', 'circle-theorems', dir, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `HTML file must exist: ${htmlPath}`);
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -326,7 +326,7 @@ test('E2E Multi-Page UI Contract: 2D & 3D canvas containers, toolbars, telemetry
     assert.ok(html.includes('id="content-unit-converter"'), `${dir}: missing #content-unit-converter`);
 
     // 7. Interactive Modal Tools & Walkthrough Integration Script
-    assert.ok(html.includes('src="../../js/visual-page.js'), `${dir}: missing visual-page.js integration script`);
+    assert.ok(html.includes('src="../../../js/visual-page.js'), `${dir}: missing visual-page.js integration script`);
 
     // 8. SEO & Schema.org JSON-LD
     assert.ok(html.includes('rel="canonical"'), `${dir}: missing canonical link`);
@@ -723,13 +723,13 @@ test('E2E Vector SVG Generation: Complete SVG export pipeline across all 8 visua
 
   // 2. 7 Circle Theorems SVG
   const circleTheorems = [
-    { dir: 'angle-at-centre', model: AngleAtCentre, canvasPath: '../visuals/angle-at-centre/src/canvas.js' },
-    { dir: 'angles-in-same-segment', model: AnglesInSameSegment, canvasPath: '../visuals/angles-in-same-segment/src/canvas.js' },
-    { dir: 'cyclic-quadrilateral', model: CyclicQuad, canvasPath: '../visuals/cyclic-quadrilateral/src/canvas.js' },
-    { dir: 'tangent-radius', model: TangentRadius, canvasPath: '../visuals/tangent-radius/src/canvas.js' },
-    { dir: 'alternate-segment', model: AlternateSegment, canvasPath: '../visuals/alternate-segment/src/canvas.js' },
-    { dir: 'tangents-from-external-point', model: TangentsFromPoint, canvasPath: '../visuals/tangents-from-external-point/src/canvas.js' },
-    { dir: 'perpendicular-chord-bisector', model: ChordBisector, canvasPath: '../visuals/perpendicular-chord-bisector/src/canvas.js' },
+    { dir: 'angle-at-centre', model: AngleAtCentre, canvasPath: '../visuals/circle-theorems/angle-at-centre/src/canvas.js' },
+    { dir: 'angles-in-same-segment', model: AnglesInSameSegment, canvasPath: '../visuals/circle-theorems/angles-in-same-segment/src/canvas.js' },
+    { dir: 'cyclic-quadrilateral', model: CyclicQuad, canvasPath: '../visuals/circle-theorems/cyclic-quadrilateral/src/canvas.js' },
+    { dir: 'tangent-radius', model: TangentRadius, canvasPath: '../visuals/circle-theorems/tangent-radius/src/canvas.js' },
+    { dir: 'alternate-segment', model: AlternateSegment, canvasPath: '../visuals/circle-theorems/alternate-segment/src/canvas.js' },
+    { dir: 'tangents-from-external-point', model: TangentsFromPoint, canvasPath: '../visuals/circle-theorems/tangents-from-external-point/src/canvas.js' },
+    { dir: 'perpendicular-chord-bisector', model: ChordBisector, canvasPath: '../visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js' },
   ];
 
   for (const { dir, model, canvasPath } of circleTheorems) {
@@ -807,7 +807,7 @@ class CanvasRenderSpy {
 test('Gap 1: Deterministic Canvas Context Spy & 3D Mesh Visibility — showDAngles toggle strictly alters rendered pixels', async () => {
   globalThis.ResizeObserver = class { observe() {} disconnect() {} };
   globalThis.window = globalThis.window || { devicePixelRatio: 1 };
-  const canvasMod = await import('../visuals/alternate-segment/src/canvas.js');
+  const canvasMod = await import('../visuals/circle-theorems/alternate-segment/src/canvas.js');
   const circle3dCode = fs.readFileSync(path.join(ROOT, 'js', 'circle-3d.js'), 'utf8');
 
   // Test 2D: CanvasRenderSpy on Alternate Segment
@@ -863,13 +863,13 @@ test('Gap 1 (All 8 Visuals): CanvasRenderSpy verifies visual rendering contract 
   globalThis.window = globalThis.window || { devicePixelRatio: 1 };
 
   const visuals = [
-    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/angle-at-centre/src/canvas.js') },
-    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/angles-in-same-segment/src/canvas.js') },
-    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/cyclic-quadrilateral/src/canvas.js') },
-    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/tangent-radius/src/canvas.js') },
-    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/alternate-segment/src/canvas.js') },
-    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/tangents-from-external-point/src/canvas.js') },
-    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/perpendicular-chord-bisector/src/canvas.js') },
+    { name: 'angle-at-centre', model: AngleAtCentre, canvasMod: await import('../visuals/circle-theorems/angle-at-centre/src/canvas.js') },
+    { name: 'angles-in-same-segment', model: AnglesInSameSegment, canvasMod: await import('../visuals/circle-theorems/angles-in-same-segment/src/canvas.js') },
+    { name: 'cyclic-quadrilateral', model: CyclicQuad, canvasMod: await import('../visuals/circle-theorems/cyclic-quadrilateral/src/canvas.js') },
+    { name: 'tangent-radius', model: TangentRadius, canvasMod: await import('../visuals/circle-theorems/tangent-radius/src/canvas.js') },
+    { name: 'alternate-segment', model: AlternateSegment, canvasMod: await import('../visuals/circle-theorems/alternate-segment/src/canvas.js') },
+    { name: 'tangents-from-external-point', model: TangentsFromPoint, canvasMod: await import('../visuals/circle-theorems/tangents-from-external-point/src/canvas.js') },
+    { name: 'perpendicular-chord-bisector', model: ChordBisector, canvasMod: await import('../visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js') },
   ];
 
   for (const { name, model, canvasMod } of visuals) {
@@ -902,7 +902,7 @@ test('Gap 1 (All 8 Visuals): CanvasRenderSpy verifies visual rendering contract 
   }
 
   // Thales 2D CanvasRenderSpy
-  const thalesDraw = await import('../visuals/thales-theorem/src/views/canvas2d-draw.js');
+  const thalesDraw = await import('../visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js');
   const thalesState = createThalesInitialState();
   const thalesFrame = computeThalesFrame(thalesState, 800, 600);
 
@@ -1181,7 +1181,7 @@ test('Gap 2 (All 8 Visuals): Synthetic PointerEvent pipeline & circumference res
   }
 
   // 8th visual: Thales Theorem Canvas2DInteraction
-  const { Canvas2DInteraction } = await import('../visuals/thales-theorem/src/controllers/Canvas2DInteraction.js');
+  const { Canvas2DInteraction } = await import('../visuals/circle-theorems/thales-theorem/src/controllers/Canvas2DInteraction.js');
   assert.ok(Canvas2DInteraction, 'Thales Theorem must export Canvas2DInteraction');
 });
 
@@ -1190,7 +1190,7 @@ test('Gap 2 (All 8 Visuals): Synthetic PointerEvent pipeline & circumference res
 // =============================================================================
 test('Gap 3: Responsive CSS Contract — Media queries enforce stacked layout and hide #split-dir-btn on mobile', () => {
   const circleCss = fs.readFileSync(path.join(ROOT, 'css', 'circle-visual.css'), 'utf8');
-  const thalesCss = fs.readFileSync(path.join(ROOT, 'visuals', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(ROOT, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
 
   // 1. In circle-visual.css under @media (max-width: 48rem)
   assert.ok(circleCss.includes('@media (max-width: 48rem)'), 'circle-visual.css must define @media (max-width: 48rem) breakpoint');
@@ -1212,7 +1212,7 @@ test('Gap 4: DOM Contract Linter — All JS DOM queries match existing HTML elem
   const missingReport = [];
 
   for (const visual of visuals) {
-    const htmlPath = path.join(ROOT, 'visuals', visual.slug, 'index.html');
+    const htmlPath = path.join(ROOT, 'visuals', 'circle-theorems', visual.slug, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `Visual ${visual.slug} must have index.html`);
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
@@ -1223,7 +1223,7 @@ test('Gap 4: DOM Contract Linter — All JS DOM queries match existing HTML elem
       htmlIds.add(m[1]);
     }
 
-    const jsDir = path.join(ROOT, 'visuals', visual.slug, 'src');
+    const jsDir = path.join(ROOT, 'visuals', 'circle-theorems', visual.slug, 'src');
     if (!fs.existsSync(jsDir)) continue;
 
     function walkDir(dir) {
@@ -1269,7 +1269,7 @@ test('Gap 5: HTML Script Loading Contract — Zero blocking scripts in <head> an
   const visuals = JSON.parse(fs.readFileSync(visualsPath, 'utf8'));
 
   const pagesToCheck = [
-    ...visuals.map((v) => path.join('visuals', v.slug, 'index.html')),
+    ...visuals.map((v) => path.join('visuals', 'circle-theorems', v.slug, 'index.html')),
     'index.html',
     'about.html',
     'contact.html',

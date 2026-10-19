@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PALETTE as CORE_PALETTE, Panel, initCollapsibleSections } from '../js/circle-core.js';
-import { PALETTE as THALES_PALETTE } from '../visuals/thales-theorem/src/config/palette.js';
+import { PALETTE as THALES_PALETTE } from '../visuals/circle-theorems/thales-theorem/src/config/palette.js';
 import {
   AngleAtCentreDerivations,
   AnglesInSameSegmentDerivations,
@@ -12,7 +12,7 @@ import {
   TangentsFromPointDerivations,
   ChordBisectorDerivations,
 } from '../js/circle-derivations.js';
-import { DerivationView } from '../visuals/thales-theorem/src/views/DerivationView.js';
+import { DerivationView } from '../visuals/circle-theorems/thales-theorem/src/views/DerivationView.js';
 
 test('Colour Grammar: Core PALETTE and Thales PALETTE tokens are identical', () => {
   const coreKeys = Object.keys(CORE_PALETTE);
@@ -200,7 +200,7 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
 });
 
 test('Reflex Angle Features: TOGGLES configuration and Derivation Step 7 grammar', async () => {
-  const { TOGGLES } = await import('../visuals/thales-theorem/src/controllers/controls-config.js');
+  const { TOGGLES } = await import('../visuals/circle-theorems/thales-theorem/src/controllers/controls-config.js');
   assert.deepEqual(TOGGLES['vis-2d-reflex'], ['vis2d', 'reflex']);
   assert.deepEqual(TOGGLES['vis-3d-reflex'], ['vis3d', 'reflex']);
 
@@ -236,7 +236,7 @@ test('Reflex Angle Features: TOGGLES configuration and Derivation Step 7 grammar
 });
 
 test('Camera Perspective Synchronization: 2D plane and 3D camera presets align bidirectionally', async () => {
-  const { setPlane2D } = await import('../visuals/thales-theorem/src/model/actions.js');
+  const { setPlane2D } = await import('../visuals/circle-theorems/thales-theorem/src/model/actions.js');
   const { normalizeCameraPreset, draw2DCartesianGrid } = await import('../js/circle-core.js');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -327,7 +327,7 @@ test('Camera Perspective Synchronization: 2D plane and 3D camera presets align b
   ];
 
   for (const slug of visualSlugs) {
-    const htmlPath = path.join(rootDir, 'visuals', slug, 'index.html');
+    const htmlPath = path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
       html.includes('class="camera-presets-bar"') || html.includes("class='camera-presets-bar'"),
@@ -356,8 +356,8 @@ test('Thales Grammar Decoupling & Dynamic Angle Annotations', async () => {
   const rootDir = path.resolve(__dirname, '..');
 
   // 1. LabelOverlayView checks
-  const { LabelOverlayView } = await import('../visuals/thales-theorem/src/views/LabelOverlayView.js');
-  const overlayCode = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
+  const { LabelOverlayView } = await import('../visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js');
+  const overlayCode = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js'), 'utf8');
   assert.ok(overlayCode.includes("key: 'diam'"), 'LabelOverlayView must define diam label');
   assert.ok(overlayCode.includes('|d| = ${(2 * r).toFixed(1)}'), 'LabelOverlayView must format dynamic 3D diameter');
   assert.ok(overlayCode.includes("key: 'axis-y'") && overlayCode.includes("color: 'color-emerald'"), 'axis-y must be color-emerald');
@@ -406,7 +406,7 @@ test('Thales Grammar Decoupling & Dynamic Angle Annotations', async () => {
   assert.ok(flatEl.innerHTML.includes('class="color-orange">β*'), '2D Derivations: β* must be orange');
 
   // 3. index.html checks
-  const html = fs.readFileSync(path.join(rootDir, 'visuals/thales-theorem/index.html'), 'utf8');
+  const html = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/index.html'), 'utf8');
   assert.ok(html.includes('id="val-2d-theta"'), 'index.html must have val-2d-theta');
   assert.ok(html.includes('id="val-3d-theta"'), 'index.html must have val-3d-theta');
   assert.ok(html.includes('id="val-3d-phi"'), 'index.html must have val-3d-phi');
@@ -424,14 +424,14 @@ test('Colour Grammar: Telemetry stats across all 8 visual HTML pages enforce col
   const rootDir = path.resolve(__dirname, '..');
 
   const files = [
-    'visuals/thales-theorem/index.html',
-    'visuals/angle-at-centre/index.html',
-    'visuals/angles-in-same-segment/index.html',
-    'visuals/cyclic-quadrilateral/index.html',
-    'visuals/tangent-radius/index.html',
-    'visuals/alternate-segment/index.html',
-    'visuals/tangents-from-external-point/index.html',
-    'visuals/perpendicular-chord-bisector/index.html'
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html'
   ];
 
   for (const relPath of files) {
@@ -461,14 +461,14 @@ test('Flip Split Toggle: Concise "Flip" label, SVG icon, and ratio reset across 
   const rootDir = path.resolve(__dirname, '..');
 
   const files = [
-    'visuals/thales-theorem/index.html',
-    'visuals/angle-at-centre/index.html',
-    'visuals/angles-in-same-segment/index.html',
-    'visuals/cyclic-quadrilateral/index.html',
-    'visuals/tangent-radius/index.html',
-    'visuals/alternate-segment/index.html',
-    'visuals/tangents-from-external-point/index.html',
-    'visuals/perpendicular-chord-bisector/index.html'
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html'
   ];
 
   for (const relPath of files) {
@@ -516,14 +516,14 @@ test('Performance: Multi-origin preconnects and deferred Three.js/OrbitControls 
   const rootDir = path.resolve(__dirname, '..');
 
   const files = [
-    'visuals/thales-theorem/index.html',
-    'visuals/angle-at-centre/index.html',
-    'visuals/angles-in-same-segment/index.html',
-    'visuals/cyclic-quadrilateral/index.html',
-    'visuals/tangent-radius/index.html',
-    'visuals/alternate-segment/index.html',
-    'visuals/tangents-from-external-point/index.html',
-    'visuals/perpendicular-chord-bisector/index.html'
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html'
   ];
 
   for (const relPath of files) {
@@ -572,7 +572,7 @@ test('Camera Presets Bar: Vertically oriented and right-margin aligned across al
   const rootDir = path.resolve(__dirname, '..');
 
   const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
 
   for (const [name, css] of [['circle-visual.css', circleCss], ['overlays.css', thalesCss]]) {
     assert.ok(
@@ -602,7 +602,7 @@ test('Canvas Header Info & Overlay Minimal Styling: Canvas never hides under inf
   const rootDir = path.resolve(__dirname, '..');
 
   const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+  const thalesCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
   const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
 
   for (const [name, css] of [['circle-visual.css', circleCss], ['overlays.css', thalesCss]]) {

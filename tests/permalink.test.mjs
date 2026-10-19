@@ -153,7 +153,7 @@ test('Permalink: copyShareUrl writes URL to clipboard and triggers feedback', as
   };
   const mockLocation = {
     origin: 'https://example.com',
-    pathname: '/visuals/thales-theorem/',
+    pathname: '/visuals/circle-theorems/thales-theorem/',
   };
 
   const origNav = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
@@ -175,7 +175,7 @@ test('Permalink: copyShareUrl writes URL to clipboard and triggers feedback', as
   const store = createStore({ angle2D: toRadians(45), viewMode: '3d' });
   const url = await copyShareUrl(store);
 
-  assert.ok(url.startsWith('https://example.com/visuals/thales-theorem/#angle=45.0'));
+  assert.ok(url.startsWith('https://example.com/visuals/circle-theorems/thales-theorem/#angle=45.0'));
   assert.strictEqual(clipboardText, url);
 
   if (origNav) Object.defineProperty(globalThis, 'navigator', origNav);
