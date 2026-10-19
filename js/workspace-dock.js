@@ -14,6 +14,8 @@
 
 const STORAGE_KEY = 'vml_workspace_dock_state';
 
+import { stepSpring, VelocityTracker, computeEdgeSnapTarget } from './motion-physics.js';
+
 function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
@@ -406,16 +408,14 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointercancel', onUp);
 
         if (hasDragged) {
-          // Magnetic edge snapping (within 24px of edge)
+          // Magnetic edge snapping (within 24px of edge) using quadratic potential well
           const snapMargin = 12;
           const snapDist = 24;
           const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
           const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
           let { x, y } = this.collapsedPos;
-          if (x < snapDist) x = snapMargin;
-          else if (x > maxLeft - snapDist) x = Math.max(snapMargin, maxLeft - snapMargin);
-          if (y < snapDist) y = snapMargin;
-          else if (y > maxTop - snapDist) y = Math.max(snapMargin, maxTop - snapMargin);
+          x = computeEdgeSnapTarget(x, 0, maxLeft, snapDist, snapMargin);
+          y = computeEdgeSnapTarget(y, 0, maxTop, snapDist, snapMargin);
 
           this.collapsedPos = { x, y };
           this.dockElement.style.left = `${x}px`;
@@ -981,6 +981,19 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointermove', onMove);
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
+
+        // Apply magnetic edge potential well to floating panel
+        const curX = record.lastPos.x;
+        const curY = record.lastPos.y;
+        const snappedX = computeEdgeSnapTarget(curX, 0, Math.max(0, maxLeft), 24, 12);
+        const snappedY = computeEdgeSnapTarget(curY, 0, Math.max(0, maxTop), 24, 12);
+        if (snappedX !== curX || snappedY !== curY) {
+          panel.style.left = `${snappedX}px`;
+          panel.style.top = `${snappedY}px`;
+          record.lastPos.x = snappedX;
+          record.lastPos.y = snappedY;
+        }
+
         this.#persistState();
       };
 
@@ -1679,7 +1692,7 @@ export function initWorkspaceDock(root = null, options = {}) {
  * @param {HTMLElement} panel - The .ui-panel container.
  * @param {HTMLElement|null} preferredActiveElement - Optional subpanel or child requesting the top turn.
  */
-export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
+export function syncPanelElevationTurn(panel, preferredActiveElement = null, options = {}) {
   if (!panel) return;
   const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
   if (!body) return;
@@ -1718,7 +1731,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
     }
     allSubpanels.forEach((sub) => {
       sub.removeAttribute?.('data-elevation-turn');
-      sub.classList?.remove('is-elevated-top', 'is-in-deck');
+      sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
       if (totalOpen === 1 && isOpen(sub)) {
         sub.setAttribute?.('data-elevation-level', '2');
       } else {
@@ -1758,6 +1771,22 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
     activeSubpanel = openSubpanels[0];
   }
 
+  const prevActiveSubpanel = deck?._activeSubpanel || null;
+  const prevActiveIdx = prevActiveSubpanel ? openSubpanels.indexOf(prevActiveSubpanel) : -1;
+  const activeIdx = openSubpanels.indexOf(activeSubpanel);
+
+  // Compute turn animation direction (forward vs backward)
+  let direction = options?.direction || null;
+  if (!direction && prevActiveIdx !== -1 && activeIdx !== -1 && prevActiveIdx !== activeIdx) {
+    if (prevActiveIdx === openSubpanels.length - 1 && activeIdx === 0) {
+      direction = 'forward';
+    } else if (prevActiveIdx === 0 && activeIdx === openSubpanels.length - 1) {
+      direction = 'backward';
+    } else {
+      direction = activeIdx > prevActiveIdx ? 'forward' : 'backward';
+    }
+  }
+
   // Ensure deck bar container exists
   const doc = panel.ownerDocument || (typeof document !== 'undefined' ? document : null);
   if (!deck && doc && doc.createElement) {
@@ -1793,10 +1822,10 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
         const delta = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
         if (delta > 0) {
           const nextIdx = (curIdx + 1) % subs.length;
-          syncPanelElevationTurn(deck._panel, subs[nextIdx]);
+          syncPanelElevationTurn(deck._panel, subs[nextIdx], { direction: 'forward' });
         } else if (delta < 0) {
           const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-          syncPanelElevationTurn(deck._panel, subs[prevIdx]);
+          syncPanelElevationTurn(deck._panel, subs[prevIdx], { direction: 'backward' });
         }
       }, { passive: false });
 
@@ -1821,10 +1850,10 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
           const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
           if (dx < 0) {
             const nextIdx = (curIdx + 1) % subs.length;
-            syncPanelElevationTurn(deck._panel, subs[nextIdx]);
+            syncPanelElevationTurn(deck._panel, subs[nextIdx], { direction: 'forward' });
           } else {
             const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-            syncPanelElevationTurn(deck._panel, subs[prevIdx]);
+            syncPanelElevationTurn(deck._panel, subs[prevIdx], { direction: 'backward' });
           }
         }
       }, { passive: false });
@@ -1840,7 +1869,6 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       deck.innerHTML = '';
     }
 
-    const activeIdx = openSubpanels.indexOf(activeSubpanel);
     if (doc && doc.createElement) {
       const badge = doc.createElement('span');
       badge.className = 'elevation-deck-label';
@@ -1858,7 +1886,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       prevBtn.addEventListener('click', (e) => {
         e.stopPropagation?.();
         const prevIdx = (activeIdx - 1 + openSubpanels.length) % openSubpanels.length;
-        syncPanelElevationTurn(panel, openSubpanels[prevIdx]);
+        syncPanelElevationTurn(panel, openSubpanels[prevIdx], { direction: 'backward' });
       });
       deck.appendChild(prevBtn);
 
@@ -1883,13 +1911,14 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
 
         if (isCurrent && typeof pill.scrollIntoView === 'function') {
           try {
-            pill.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            pill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
           } catch (_) {}
         }
 
         pill.addEventListener?.('click', (e) => {
           e.stopPropagation?.();
-          syncPanelElevationTurn(panel, sub);
+          const pDir = i > activeIdx ? 'forward' : 'backward';
+          syncPanelElevationTurn(panel, sub, { direction: pDir });
         });
 
         pill.addEventListener?.('keydown', (e) => {
@@ -1897,7 +1926,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
             e.preventDefault?.();
             e.stopPropagation?.();
             const nextIdx = (i + 1) % openSubpanels.length;
-            syncPanelElevationTurn(panel, openSubpanels[nextIdx]);
+            syncPanelElevationTurn(panel, openSubpanels[nextIdx], { direction: 'forward' });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[nextIdx]?.focus?.();
@@ -1905,7 +1934,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
             e.preventDefault?.();
             e.stopPropagation?.();
             const prevIdx = (i - 1 + openSubpanels.length) % openSubpanels.length;
-            syncPanelElevationTurn(panel, openSubpanels[prevIdx]);
+            syncPanelElevationTurn(panel, openSubpanels[prevIdx], { direction: 'backward' });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[prevIdx]?.focus?.();
@@ -1927,7 +1956,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       nextBtn.addEventListener('click', (e) => {
         e.stopPropagation?.();
         const nextIdx = (activeIdx + 1) % openSubpanels.length;
-        syncPanelElevationTurn(panel, openSubpanels[nextIdx]);
+        syncPanelElevationTurn(panel, openSubpanels[nextIdx], { direction: 'forward' });
       });
       deck.appendChild(nextBtn);
 
@@ -1956,6 +1985,12 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       sub.setAttribute?.('data-elevation-turn', 'top');
       sub.classList?.add('is-elevated-top');
       sub.classList?.remove('is-in-deck');
+      sub.classList?.remove('slide-forward', 'slide-backward');
+      if (direction === 'forward') {
+        sub.classList?.add('slide-forward');
+      } else if (direction === 'backward') {
+        sub.classList?.add('slide-backward');
+      }
 
       if (!isStackMode && openSubpanels.length > 1) {
         const activeContent = sub.querySelector?.('.collapsible-content, .derivation-card-content') || sub;
@@ -1978,7 +2013,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
               e.stopPropagation?.();
               const curIdx = Math.max(0, subs.indexOf(sub));
               const nextIdx = (curIdx + 1) % subs.length;
-              syncPanelElevationTurn(panel, subs[nextIdx]);
+              syncPanelElevationTurn(panel, subs[nextIdx], { direction: 'forward' });
             } else if (e.deltaY < 0 && atTop) {
               const now = Date.now();
               if (activeContent._lastTurnTime && (now - activeContent._lastTurnTime < 240)) return;
@@ -1987,14 +2022,14 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
               e.stopPropagation?.();
               const curIdx = Math.max(0, subs.indexOf(sub));
               const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-              syncPanelElevationTurn(panel, subs[prevIdx]);
+              syncPanelElevationTurn(panel, subs[prevIdx], { direction: 'backward' });
             }
           }, { passive: false });
         }
       }
     } else {
       sub.setAttribute?.('data-elevation-turn', 'deck');
-      sub.classList?.remove('is-elevated-top');
+      sub.classList?.remove('is-elevated-top', 'slide-forward', 'slide-backward');
       if (isStackMode) {
         sub.classList?.remove('is-in-deck');
       } else {
@@ -2006,16 +2041,18 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
   allSubpanels.filter((s) => !isOpen(s)).forEach((sub) => {
     sub.removeAttribute?.('data-elevation-turn');
     sub.removeAttribute?.('data-elevation-level');
-    sub.classList?.remove('is-elevated-top', 'is-in-deck');
+    sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
   });
 
   try {
     const h = activeSubpanel?.querySelector?.('.collapsible-header, .derivation-card-header');
     const title = h?.textContent ? h.textContent.replace(/[▶▼◀▲]/g, '').trim() : null;
     const evt = typeof CustomEvent !== 'undefined'
-      ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel, title } })
-      : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel, title } };
+      ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel, title, direction } })
+      : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel, title, direction } };
     panel.dispatchEvent?.(evt);
   } catch (_) {}
 }
+
+export { stepSpring, VelocityTracker, computeEdgeSnapTarget } from './motion-physics.js';
 

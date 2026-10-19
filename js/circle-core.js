@@ -2133,7 +2133,14 @@ export class PlaybackController {
   }
 }
 
-export { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn } from './workspace-dock.js';
+export {
+  WorkspaceDockManager,
+  initWorkspaceDock,
+  syncPanelElevationTurn,
+  stepSpring,
+  VelocityTracker,
+  computeEdgeSnapTarget,
+} from './workspace-dock.js';
 export {
   AffineTransform2D,
   evaluateConicConjugacy,

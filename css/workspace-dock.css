@@ -531,6 +531,8 @@
   overflow-x: auto !important;
   scrollbar-width: none !important;
   -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  scroll-snap-type: x proximity !important;
 }
 
 .elevation-deck-pills::-webkit-scrollbar {
@@ -556,6 +558,7 @@
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   flex-shrink: 0 !important;
+  scroll-snap-align: center !important;
   transition: all 0.15s ease !important;
   user-select: none !important;
 }
@@ -665,7 +668,7 @@
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 auto !important;
-  min-height: 180px !important;
+  min-height: 0 !important;
   width: 100% !important;
   box-sizing: border-box !important;
   background: rgba(15, 23, 42, 0.98) !important;
@@ -675,9 +678,46 @@
   border: 1px solid rgba(56, 189, 248, 0.45) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55) !important;
   margin: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   height: auto !important;
   max-height: none !important;
+}
+
+/* Directional 1D Horizontal Deck Slide Keyframes */
+@keyframes deckSlideNext {
+  0% {
+    transform: translateX(36px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes deckSlidePrev {
+  0% {
+    transform: translateX(-36px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.collapsible-section.is-elevated-top.slide-forward,
+.derivation-card.is-elevated-top.slide-forward,
+.collapsible-section[data-elevation-turn="top"].slide-forward,
+.derivation-card[data-elevation-turn="top"].slide-forward {
+  animation: deckSlideNext 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.collapsible-section.is-elevated-top.slide-backward,
+.derivation-card.is-elevated-top.slide-backward,
+.collapsible-section[data-elevation-turn="top"].slide-backward,
+.derivation-card[data-elevation-turn="top"].slide-backward {
+  animation: deckSlidePrev 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-elevated-top > .collapsible-header,
@@ -728,7 +768,7 @@
 .workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-content {
   flex: 1 1 auto !important;
   height: auto !important;
-  min-height: 120px !important;
+  min-height: 0 !important;
   max-height: none !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;

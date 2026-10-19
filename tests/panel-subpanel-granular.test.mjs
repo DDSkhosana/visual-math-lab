@@ -12,6 +12,9 @@ import {
   setExpandButtonUI,
   setPanelMinimizeButtonUI,
   Panel,
+  stepSpring,
+  VelocityTracker,
+  computeEdgeSnapTarget,
   CHEVRON_DOWN_SVG,
   CHEVRON_UP_SVG,
   CHEVRON_DOWN_SINGLE_SVG,
@@ -1134,3 +1137,166 @@ test('Granular All 8 Theorems: HTML structure contract for panels, headers, acti
     assert.ok(/class="[^"]*collapsible-section[^"]*"/.test(html), `${slug} must contain collapsible sections`);
   }
 });
+
+// ============================================================================
+// SUITE 3: MATHEMATICAL MOTION PHYSICS & DIMENSION CONSERVATION CONTRACTS
+// ============================================================================
+
+test('Granular Motion Physics: Spring-damper integration, velocity tracking, and potential well snapping', () => {
+  // 1. Semi-Implicit Euler Damped Harmonic Oscillator Convergence
+  let state = { pos: 0, vel: 0, target: 100 };
+  let iterations = 0;
+  for (let i = 0; i < 180; i++) {
+    state = stepSpring({ ...state, k: 280, c: 28, mass: 1, dt: 1 / 60 });
+    iterations++;
+    if (state.done) break;
+  }
+  assert.strictEqual(state.done, true, 'stepSpring must converge to target and report done=true');
+  assert.ok(Math.abs(state.pos - 100) < 0.1, `Position (${state.pos}) must reach target (100) within resting threshold`);
+  assert.ok(Math.abs(state.vel) < 0.1, `Velocity (${state.vel}) must settle to rest`);
+  assert.ok(iterations < 120, `Spring damper must settle quickly (took ${iterations} frames)`);
+
+  // Initial at-rest state returns immediately
+  const atRest = stepSpring({ pos: 200, vel: 0, target: 200 });
+  assert.strictEqual(atRest.done, true);
+  assert.strictEqual(atRest.pos, 200);
+
+  // 2. VelocityTracker Rolling Window Fling Momentum
+  const tracker = new VelocityTracker(150);
+  tracker.push(0, 0);
+  tracker.push(25, 25);
+  tracker.push(50, 50);
+  tracker.push(100, 100);
+  const vel = tracker.getVelocity();
+  assert.strictEqual(vel, 1000, 'VelocityTracker must compute release velocity v = dx / dt = 1000 px/s');
+
+  tracker.reset();
+  assert.strictEqual(tracker.getVelocity(), 0, 'VelocityTracker must return 0 after reset');
+
+  // Single sample returns 0
+  tracker.push(50, 200);
+  assert.strictEqual(tracker.getVelocity(), 0, 'Single sample must return velocity 0');
+
+  // 3. Potential Well Edge Snapping: computeEdgeSnapTarget
+  // Snapping near minBound (0)
+  assert.strictEqual(computeEdgeSnapTarget(10, 0, 800, 24, 12), 12, 'Must snap to minBound + margin');
+  assert.strictEqual(computeEdgeSnapTarget(23, 0, 800, 24, 12), 12, 'Must snap within threshold to minBound + margin');
+
+  // Snapping near maxBound (800)
+  assert.strictEqual(computeEdgeSnapTarget(785, 0, 800, 24, 12), 788, 'Must snap to maxBound - margin');
+  assert.strictEqual(computeEdgeSnapTarget(777, 0, 800, 24, 12), 788, 'Must snap within threshold to maxBound - margin');
+
+  // Neutral zone: unconstrained dragging
+  assert.strictEqual(computeEdgeSnapTarget(400, 0, 800, 24, 12), 400, 'Must preserve position inside neutral zone');
+  assert.strictEqual(computeEdgeSnapTarget(25, 0, 800, 24, 12), 25, 'Outside threshold must not snap');
+  assert.strictEqual(computeEdgeSnapTarget(775, 0, 800, 24, 12), 775, 'Outside threshold must not snap');
+});
+
+test('Granular Motion Deck: Horizontal sliding transitions (slide-forward / slide-backward) on turn changes', () => {
+  const { mockDoc, root } = setupTestEnvironment();
+
+  const panel = mockDoc.createElement('div');
+  panel.className = 'ui-panel';
+  const body = mockDoc.createElement('div');
+  body.className = 'panel-body';
+
+  const sub1 = mockDoc.createElement('div');
+  sub1.className = 'collapsible-section';
+  const h1 = mockDoc.createElement('div');
+  h1.className = 'collapsible-header';
+  h1.textContent = 'Controls';
+  sub1.appendChild(h1);
+  sub1.appendChild(mockDoc.createElement('div'));
+
+  const sub2 = mockDoc.createElement('div');
+  sub2.className = 'collapsible-section';
+  const h2 = mockDoc.createElement('div');
+  h2.className = 'collapsible-header';
+  h2.textContent = 'Telemetry';
+  sub2.appendChild(h2);
+  sub2.appendChild(mockDoc.createElement('div'));
+
+  const sub3 = mockDoc.createElement('div');
+  sub3.className = 'collapsible-section';
+  const h3 = mockDoc.createElement('div');
+  h3.className = 'collapsible-header';
+  h3.textContent = 'Formulas';
+  sub3.appendChild(h3);
+  sub3.appendChild(mockDoc.createElement('div'));
+
+  body.appendChild(sub1);
+  body.appendChild(sub2);
+  body.appendChild(sub3);
+  panel.appendChild(body);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // Open all 3 sections to trigger multi-expansion turn-taking deck
+  sub1.classList.remove('collapsed');
+  sub2.classList.remove('collapsed');
+  sub3.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  const deck = body.querySelector('.panel-elevation-deck');
+  assert.ok(deck, 'Deck must be present');
+  const prevBtn = deck.querySelector('.elevation-deck-nav-btn.prev');
+  const nextBtn = deck.querySelector('.elevation-deck-nav-btn.next');
+  assert.ok(prevBtn && nextBtn);
+
+  // 1. Initial active element is top without backward slide
+  assert.strictEqual(sub1.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(sub1.classList.contains('slide-backward'), false);
+
+  // 2. Next click advances with slide-forward
+  nextBtn.click();
+  assert.strictEqual(sub2.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(sub2.classList.contains('slide-forward'), true);
+  assert.strictEqual(sub2.classList.contains('slide-backward'), false);
+  assert.strictEqual(sub1.classList.contains('is-elevated-top'), false);
+  assert.strictEqual(sub1.classList.contains('slide-forward'), false);
+
+  // 3. Prev click reverses with slide-backward
+  const prevBtn2 = deck.querySelector('.elevation-deck-nav-btn.prev');
+  prevBtn2.click();
+  assert.strictEqual(sub1.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(sub1.classList.contains('slide-backward'), true, 'Moving backward must apply slide-backward');
+  assert.strictEqual(sub1.classList.contains('slide-forward'), false);
+
+  // 4. Direct call to syncPanelElevationTurn with backward direction
+  syncPanelElevationTurn(panel, sub3, { direction: 'backward' });
+  assert.strictEqual(sub3.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(sub3.classList.contains('slide-backward'), true);
+  assert.strictEqual(sub3.classList.contains('slide-forward'), false);
+
+  // 5. Direct call to syncPanelElevationTurn with forward direction
+  syncPanelElevationTurn(panel, sub2, { direction: 'forward' });
+  assert.strictEqual(sub2.classList.contains('is-elevated-top'), true);
+  assert.strictEqual(sub2.classList.contains('slide-forward'), true);
+  assert.strictEqual(sub2.classList.contains('slide-backward'), false);
+});
+
+test('Granular Dimension Conservation: Level 2 and Level 3 overflow: visible and flex: 1 1 auto zero-clipping contracts', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // Verify smooth scroll snapping on deck pills strip
+  assert.ok(css.includes('scroll-behavior: smooth !important'), 'Deck pills strip must enforce scroll-behavior: smooth');
+  assert.ok(css.includes('scroll-snap-type: x proximity !important'), 'Deck pills strip must declare scroll-snap-type: x proximity');
+  assert.ok(css.includes('scroll-snap-align: center !important'), 'Deck pills must declare scroll-snap-align: center');
+
+  // Verify zero-clipping contracts for .is-elevated-top wrapper
+  assert.ok(css.includes('overflow: visible !important'), 'Elevated wrapper must enforce overflow: visible !important to eliminate clipping');
+  assert.ok(css.includes('min-height: 0 !important'), 'Elevated wrapper must enforce min-height: 0 !important for flex dimension conservation');
+
+  // Verify internal content scroll contracts
+  assert.ok(css.includes('overflow-y: auto !important'), 'Content must handle vertical scroll');
+  assert.ok(css.includes('scrollbar-gutter: stable !important'), 'Scrollbar gutter must remain stable to prevent layout shifts');
+
+  // Verify deck slide keyframe animations
+  assert.ok(css.includes('@keyframes deckSlideNext'), 'Deck slide forward keyframe animation must be defined');
+  assert.ok(css.includes('@keyframes deckSlidePrev'), 'Deck slide backward keyframe animation must be defined');
+  assert.ok(css.includes('.slide-forward'), '.slide-forward CSS class must be defined');
+  assert.ok(css.includes('.slide-backward'), '.slide-backward CSS class must be defined');
+});
+
