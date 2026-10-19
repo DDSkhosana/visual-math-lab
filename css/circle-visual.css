@@ -674,10 +674,12 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   font-size: 0.65rem;
   transition: transform 0.2s ease;
   color: #94a3b8;
+  display: inline-block;
+  transform: none;
 }
 
 .collapsible-section.collapsed .icon {
-  transform: rotate(-90deg);
+  transform: none;
 }
 
 .collapsible-content {
@@ -973,10 +975,12 @@ input[type=range] {
   font-size: 0.65rem;
   color: #94a3b8;
   transition: transform 0.2s ease;
+  display: inline-block;
+  transform: none;
 }
 
 .derivation-card-header.open .icon {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 .derivation-card-content.collapsible-content {

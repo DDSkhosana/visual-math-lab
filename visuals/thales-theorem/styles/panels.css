@@ -105,8 +105,8 @@
     transition: background 0.2s;
 }
 .collapsible-header:hover { background: rgba(30, 41, 59, 0.8); }
-.collapsible-header .icon { transition: transform 0.3s ease; }
-.collapsible-header.open .icon { transform: rotate(180deg); }
+.collapsible-header .icon { display: inline-block; transform: none; }
+.collapsible-header.open .icon { transform: none; }
 
 .collapsible-content {
     padding: 1rem;

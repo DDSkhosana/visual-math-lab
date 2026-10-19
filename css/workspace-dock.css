@@ -261,6 +261,7 @@
   max-width: 100% !important;
   min-width: 0 !important;
   height: auto !important;
+  min-height: max-content !important;
   max-height: min(540px, 65vh) !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
@@ -268,28 +269,48 @@
   border: 1px solid rgba(51, 65, 85, 0.75) !important;
   border-radius: 0.5rem !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-content {
   display: flex !important;
   flex-direction: column !important;
-  flex: 0 1 auto !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
   height: auto !important;
+  min-height: max-content !important;
   max-height: 100% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+}
+
+.workspace-dock-body > .ui-panel .panel-header {
+  flex-shrink: 0 !important;
+  min-height: 40px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body {
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
   display: flex !important;
   flex-direction: column !important;
-  min-height: 220px !important;
+  min-height: 0 !important;
+  height: auto !important;
   max-height: min(460px, 55vh) !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   scrollbar-gutter: stable !important;
   scrollbar-width: thin;
+}
+
+.workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body {
+  min-height: 180px !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body.hidden {
@@ -631,13 +652,41 @@
   color: #94a3b8 !important;
 }
 
-/* Left/Right dock panels when multi-expanded with elevation deck */
+/* Left/Right dock panels */
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: max-content !important;
+}
+
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-header,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-header {
+  min-height: 40px !important;
+  flex-shrink: 0 !important;
+}
+
 [data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body,
 [data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body {
   position: relative !important;
   display: flex !important;
   flex-direction: column !important;
-  min-height: 240px !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body {
+  min-height: 180px !important;
+}
+
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.hidden,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.hidden,
+[data-dock-edge="left"] .workspace-dock-body > .ui-panel.is-shaded .panel-body,
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel.is-shaded .panel-body {
+  display: none !important;
+  min-height: 0 !important;
+  height: 0 !important;
 }
 
 /* Level 2: Top-Turn Subpanel in Deck Mode — Zero Overlap Flex Layout */
@@ -1370,12 +1419,16 @@
   display: none !important;
 }
 
-.workspace-dock-body .collapsible-section.collapsed .icon {
-  transform: rotate(-90deg);
+.workspace-dock-body .collapsible-section .icon,
+.workspace-dock-body .derivation-card .icon {
+  display: inline-block;
+  transform: none !important;
 }
 
-.workspace-dock-body .derivation-card:not(.open) .icon {
-  transform: none;
+.workspace-dock-body .collapsible-section.collapsed .icon,
+.workspace-dock-body .derivation-card:not(.open) .icon,
+.workspace-dock-body .derivation-card.open .icon {
+  transform: none !important;
 }
 
 /* Mobile & Narrow Screen Media Query Rules: Dynamic Viewport Adaptation */

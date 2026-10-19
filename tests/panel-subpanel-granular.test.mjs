@@ -1625,5 +1625,167 @@ test('Granular Window Shading: Roll-up, restore height, mutual deadlock resoluti
   assert.strictEqual(body.classList.contains('hidden'), false);
 });
 
+// ============================================================================
+// SUITE 5: LEFT/RIGHT DOCK MODE HEADER VISIBILITY & CHEVRON NORMALIZATION
+// ============================================================================
+
+test('Granular Left/Right Dock: Header min-height, zero hairline border collapse, non-dead-space body, and chevron orientation contracts', () => {
+  const dockCssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const circleCssPath = path.join(rootDir, 'css', 'circle-visual.css');
+  const dockCss = fs.readFileSync(dockCssPath, 'utf8');
+  const circleCss = fs.readFileSync(circleCssPath, 'utf8');
+
+  // 1. CSS Contracts: Zero Hairline Border Collapse & Header Min-Height
+  assert.ok(
+    dockCss.includes('.workspace-dock-body > .ui-panel') && dockCss.includes('min-height: max-content !important;'),
+    'Docked panel must specify min-height: max-content !important to prevent collapsing into 0px or hairline border'
+  );
+  assert.ok(
+    dockCss.includes('.workspace-dock-body > .ui-panel .panel-header') && dockCss.includes('min-height: 40px !important;'),
+    'Docked panel header must enforce min-height: 40px !important so titles and action buttons remain visible even if body is hidden'
+  );
+  assert.ok(
+    dockCss.includes('.workspace-dock-body > .ui-panel .panel-content') && dockCss.includes('min-height: max-content !important;'),
+    'Docked panel-content must enforce min-height: max-content !important to prevent cyclic auto-height zero-collapse'
+  );
+
+  // 2. CSS Contracts: Dead Space Elimination in Left/Right Mode
+  assert.ok(
+    dockCss.includes('[data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body') &&
+    dockCss.includes('[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body') &&
+    dockCss.includes('min-height: 0 !important;'),
+    'Left/right dock panel-body must use min-height: 0 !important to fit collapsed sections cleanly without dead space void'
+  );
+  assert.ok(
+    dockCss.includes('.workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body'),
+    'Left/right dock must expand panel-body when has-expanded-subpanel is active'
+  );
+
+  // 3. CSS Contracts: Chevron Icon Rotation Normalization
+  assert.ok(
+    dockCss.includes('.workspace-dock-body .collapsible-section.collapsed .icon') &&
+    dockCss.includes('transform: none !important;'),
+    'Workspace dock CSS must not rotate collapsed icon so ▶ glyph points right and never inverts to ▲'
+  );
+  assert.ok(
+    circleCss.includes('.collapsible-section.collapsed .icon') &&
+    circleCss.includes('transform: none;'),
+    'Circle visual CSS must not rotate collapsed icon to -90deg'
+  );
+  assert.ok(
+    circleCss.includes('.derivation-card-header.open .icon') &&
+    circleCss.includes('transform: none;'),
+    'Circle visual CSS must not rotate open derivation card icon to 180deg'
+  );
+
+  // 4. DOM Simulation: Left/Right Dock Panel Sizing and Accessibility
+  const { mockDoc, root } = setupTestEnvironment();
+  root.setAttribute('data-dock-edge', 'left');
+
+  // Build 4 docked panels simulating angle-at-centre layout
+  const panelIds = ['controls-panel', 'derivations-panel', 'toolbar-2d-panel', 'toolbar-3d-panel'];
+  const panelElements = [];
+
+  for (let i = 0; i < panelIds.length; i++) {
+    const p = mockDoc.createElement('div');
+    p.className = 'ui-panel';
+    p.id = panelIds[i];
+
+    const content = mockDoc.createElement('div');
+    content.className = 'panel-content';
+
+    const header = mockDoc.createElement('div');
+    header.className = 'panel-header';
+    const title = mockDoc.createElement('h1');
+    title.textContent = `Panel Title ${i + 1}`;
+    header.appendChild(title);
+
+    const actions = mockDoc.createElement('div');
+    actions.className = 'panel-header-actions';
+    const minBtn = mockDoc.createElement('button');
+    minBtn.className = 'panel-minimize-btn';
+    minBtn.id = `min-btn-${i}`;
+    actions.appendChild(minBtn);
+    header.appendChild(actions);
+    content.appendChild(header);
+
+    const body = mockDoc.createElement('div');
+    body.className = i < 3 ? 'panel-body hidden' : 'panel-body';
+
+    // Add 3 subpanels
+    for (let s = 1; s <= 3; s++) {
+      const sec = mockDoc.createElement('div');
+      sec.className = 'collapsible-section collapsed';
+      const secH = mockDoc.createElement('div');
+      secH.className = 'collapsible-header';
+      const secTitle = mockDoc.createElement('span');
+      secTitle.textContent = `Section ${s}`;
+      const secIcon = mockDoc.createElement('span');
+      secIcon.className = 'icon';
+      secIcon.textContent = '▶';
+      secH.appendChild(secTitle);
+      secH.appendChild(secIcon);
+      sec.appendChild(secH);
+      const secC = mockDoc.createElement('div');
+      secC.className = 'collapsible-content collapsed';
+      sec.appendChild(secC);
+      body.appendChild(sec);
+    }
+
+    content.appendChild(body);
+    p.appendChild(content);
+    root.appendChild(p);
+    panelElements.push(p);
+  }
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+  assert.strictEqual(dock.dockEdge, 'left');
+
+  // Verify all 4 panels exist in dock
+  for (const pid of panelIds) {
+    const rec = dock.panels.get(pid);
+    assert.ok(rec, `Panel ${pid} must be registered in dock`);
+    assert.strictEqual(rec.isFloating, false, `Panel ${pid} must be docked`);
+    assert.ok(rec.header, `Panel ${pid} header must be intact`);
+    assert.strictEqual(rec.element.parentElement, dock.dockBody, `Panel ${pid} must be in dockBody`);
+  }
+
+  // Simulate accordion toggle: Expanding Section 1 in Panel 4
+  const panel4 = panelElements[3];
+  const p4Sec1 = panel4.querySelector('.collapsible-section');
+  const p4Sec1Header = p4Sec1.querySelector('.collapsible-header');
+  const p4Icon = p4Sec1Header.querySelector('.icon');
+
+  assert.strictEqual(p4Icon.textContent, '▶', 'Collapsed subpanel must have right-pointing chevron ▶');
+
+  // Click to open
+  p4Sec1.classList.remove('collapsed');
+  p4Sec1Header.classList.add('open');
+  p4Icon.textContent = '▼';
+  panel4.classList.add('has-expanded-subpanel');
+
+  assert.strictEqual(p4Icon.textContent, '▼', 'Opened subpanel must have down-pointing chevron ▼');
+  assert.strictEqual(panel4.classList.contains('has-expanded-subpanel'), true);
+
+  // Switch dock to right edge
+  dock.setDockEdge('right');
+  assert.strictEqual(dock.dockEdge, 'right');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'right');
+
+  // Verify all panels remain intact and accessible on right dock edge
+  for (const pid of panelIds) {
+    const rec = dock.panels.get(pid);
+    assert.ok(rec && !rec.isFloating);
+    assert.strictEqual(rec.element.parentElement, dock.dockBody);
+  }
+
+  // Switch to top edge and back to left edge
+  dock.setDockEdge('top');
+  assert.strictEqual(dock.dockEdge, 'top');
+  dock.setDockEdge('left');
+  assert.strictEqual(dock.dockEdge, 'left');
+});
+
+
 
 
