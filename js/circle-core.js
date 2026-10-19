@@ -632,7 +632,7 @@ export function initCollapsibleSections(root = document) {
       return;
     }
 
-    const header = e.target.closest ? e.target.closest('.collapsible-header') : null;
+    const header = e.target.closest ? e.target.closest('.collapsible-header, .derivation-card-header') : null;
     if (!header || (root.contains && !root.contains(header))) return;
 
     const card = header.closest('.derivation-card');
