@@ -26,6 +26,7 @@ export class Scene3DView {
     this.controls.dampingFactor = 0.05;
 
     new ResizeObserver(() => this.resize()).observe(container);
+    container.__scene3d = this;
     this.resize();
   }
 

@@ -35,4 +35,11 @@ export function createStore(initialState) {
       return () => subscribers.delete(entry);
     },
   };
+  if (typeof window !== 'undefined') {
+    window.__vmlStore = store;
+    try {
+      window.dispatchEvent(new CustomEvent('vml:store-ready', { detail: { store } }));
+    } catch (_) {}
+  }
+  return store;
 }

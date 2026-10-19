@@ -15,6 +15,7 @@ export class NullScene3DView {
   resize() {}
   setCameraPreset() {}
   enableInteraction() {}
+  setARMode() {}
   dispose() {}
 }
 
@@ -593,6 +594,19 @@ export class BaseScene3DView {
     if (this.overlay && this.overlay.overlayContainer) {
       const showLabels = (state?.vis3d?.labels !== false) || Boolean(state?.vis3d?.coords);
       this.overlay.overlayContainer.style.display = showLabels ? '' : 'none';
+    }
+  }
+
+  setARMode(active) {
+    if (this.grid) this.grid.visible = !active;
+    if (this.axes) this.axes.visible = !active;
+    if (this.scene) {
+      if (active) {
+        this.originalSceneBg = this.scene.background;
+        this.scene.background = null;
+      } else {
+        this.scene.background = this.originalSceneBg || new this.THREE.Color(PALETTE.slate800);
+      }
     }
   }
 

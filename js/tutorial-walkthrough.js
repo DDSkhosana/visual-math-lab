@@ -19,6 +19,9 @@ const THEOREM_TIPS = {
       'Drag Point P along the circumference to see the right angle invariant (90°) maintained continuously.',
       'Drag Point A or B to rigidly spin the baseline diameter along the perimeter, maintaining orthogonal geometry.',
       'Click and drag the circle rim, or use mouse wheel, to smoothly resize the circle radius with synchronized 2D/3D scaling.',
+      'Toggle Affine Conic Mode to deform the circle into an ellipse and verify that Apollonius\' conjugate diameter invariant (v_PAᵀ Q v_PB = 0) holds strictly even when the Euclidean 90° angle breaks.',
+      'Click AR Mode to project the interactive 3D spherical proof into your physical space via WebXR or camera pass-through.',
+      'Click Share (or press S) to instantly copy a URL permalink encoding your exact angles, affine stretch, and view layout.',
       'Check the Telemetry panel to observe the Pythagorean sum s² + t² = |d|² and reflex angles sum (900°).'
     ],
     highlightPoint: 'Point P, A, or B'
@@ -347,7 +350,7 @@ function mountTutorialModal(visual, theoremData) {
       <div class="tutorial-hero-box">
         <div class="tutorial-hero-text">
           <h3>Interactive Step-by-Step Walkthrough</h3>
-          <p>Take a 6-step guided tour through the 2D canvas, direct-manipulation 3D spatial controls, dockable windowing toolbar, live proofs, and unit converter.</p>
+          <p>Take an interactive guided tour through the 2D Euclidean canvas, 3D spatial sphere, dockable windowing system, affine conic mode, WebXR spatial AR, live proofs, and shareable permalinks.</p>
         </div>
         <button type="button" class="button button--primary tutorial-start-btn" id="tutorial-start-tour-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -369,10 +372,10 @@ function mountTutorialModal(visual, theoremData) {
         </div>
 
         <div class="tutorial-card-section">
-          <h4>3D Spatial Sphere</h4>
+          <h4>3D Spatial Sphere &amp; AR</h4>
           <ul class="tutorial-feature-list">
             <li><strong>Direct Manipulation Orbit:</strong> Left-click and drag (or 1-finger swipe) to rotate the 3D graphic in the exact direction of your pointer.</li>
-            <li><strong>Arcball &amp; Orbit:</strong> Default Arcball trackball mode with optional Orbit mode toggleable from 3D controls.</li>
+            <li><strong>Spatial WebXR AR:</strong> Click <em>AR</em> in the toolbar to project the 3D sphere into your physical space with WebXR or camera pass-through.</li>
             <li><strong>Pan:</strong> Right-click and drag (or 2-finger drag) to pan spatial coordinates.</li>
             <li><strong>Zoom / Dolly:</strong> Mouse scroll wheel or pinch to zoom.</li>
             <li><strong>Camera Presets:</strong> Click Top, Front, Side, or Iso buttons to align views with zero gimbal lock.</li>
@@ -380,20 +383,21 @@ function mountTutorialModal(visual, theoremData) {
         </div>
 
         <div class="tutorial-card-section">
-          <h4>Viewport Modes &amp; Dockable Toolbar</h4>
+          <h4>Dock System &amp; Navigation</h4>
           <ul class="tutorial-feature-list">
-            <li><strong>Split / 2D / 3D:</strong> Switch layouts instantly from the floating toolbar.</li>
-            <li><strong>Dockable Toolbar:</strong> Grab the 6-dot grip handle to dock the toolbar on any screen margin (Top / Bottom / Left / Right) or collapse it into a freely movable capsule pill.</li>
-            <li><strong>Detachable Panels:</strong> Detach and drag panels outside the dock as floating windows with zero canvas displacement.</li>
-            <li><strong>Flip:</strong> Swap split layout between side-by-side (horizontal) and stacked (vertical).</li>
-            <li><strong>Reset:</strong> Restores default camera, presets, radius, and initial load configuration.</li>
+            <li><strong>Breadcrumb Bar:</strong> Interactive <em>Dock ▸ Panel ▸ Section</em> path lets you ascend or hop across nested levels instantly.</li>
+            <li><strong>Keyboard Ladder:</strong> Press <kbd>Esc</kbd> to ascend from sub-section to section, panel header, and dock bar.</li>
+            <li><strong>Peer Section Roving:</strong> Navigate section headers using <kbd>&darr;</kbd> and <kbd>&uarr;</kbd>, or drill down with <kbd>&rarr;</kbd>.</li>
+            <li><strong>Global Shortcuts:</strong> Press <kbd>Alt + 1..9</kbd> to focus docked panels, and <kbd>Alt + \\</kbd> to cycle floating windows.</li>
+            <li><strong>Detachable Panels:</strong> Detach and drag panels outside the dock as free-floating windows with zero canvas displacement.</li>
           </ul>
         </div>
 
         <div class="tutorial-card-section">
-          <h4>${theoremData.name} Invariants</h4>
+          <h4>${theoremData.name} &amp; Permalinks</h4>
           <ul class="tutorial-feature-list">
             ${theoremData.theoremSpecifics.map((spec) => `<li>${spec}</li>`).join('')}
+            <li><strong>1-Click Permalinks:</strong> Click <em>Share</em> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine stretch, and dock layout.</li>
           </ul>
         </div>
       </div>
@@ -402,10 +406,15 @@ function mountTutorialModal(visual, theoremData) {
       <div class="tutorial-shortcuts-bar">
         <span class="shortcuts-title">Keyboard Shortcuts:</span>
         <div class="shortcuts-pills">
-          <span><kbd>?</kbd> Open Guide</span>
-          <span><kbd>Esc</kbd> Close Overlay</span>
-          <span><kbd>Home</kbd> Reset Toolbar</span>
-          <span><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> Tour Step</span>
+          <span><kbd>S</kbd> Share Link</span>
+          <span><kbd>L</kbd> Legend</span>
+          <span><kbd>?</kbd> Guide</span>
+          <span><kbd>Alt+1..9</kbd> Panels</span>
+          <span><kbd>Alt+\\</kbd> Float Cycle</span>
+          <span><kbd>Esc</kbd> Ascend / Close</span>
+          <span><kbd>&darr;/&uarr;</kbd> Rove</span>
+          <span><kbd>&larr;/&rarr;</kbd> Tour</span>
+          <span><kbd>Home</kbd> Reset</span>
         </div>
       </div>
 
@@ -555,7 +564,7 @@ function createTourController(slug, theoremData) {
   let activeStep = 0;
   let isTourRunning = false;
 
-  // Build the 6 core steps
+  // Build the 10 comprehensive tour steps
   const steps = [
     {
       title: 'Welcome to the Interactive Math Lab',
@@ -600,6 +609,40 @@ function createTourController(slug, theoremData) {
       placement: 'bottom',
     },
     {
+      title: 'Hierarchical Breadcrumbs & Dock Navigation',
+      selector: '.dock-breadcrumb-bar, .workspace-dock, #viewport-toolbar',
+      content: `Navigate deeply nested panels without losing focus or screen space:
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>Breadcrumb Bar:</strong> Visual <em>Dock ▸ Panel ▸ Section</em> path shows active focus; click any crumb to ascend levels immediately.</li>
+          <li><strong>Escape Ladder:</strong> Press <kbd>Escape</kbd> to ascend (Sub-Section &rarr; Section Header &rarr; Panel Header &rarr; Dock Bar).</li>
+          <li><strong>Peer Section Roving:</strong> Navigate section headers using <kbd>&darr;</kbd> and <kbd>&uarr;</kbd>, and drill down with <kbd>&rarr;</kbd>.</li>
+          <li><strong>Direct Jump:</strong> Press <kbd>Alt + 1..9</kbd> to jump directly to docked panel 1 through 9.</li>
+        </ul>`,
+      placement: 'bottom',
+    },
+    {
+      title: 'Dual-Mode Affine Conic Generalization',
+      selector: '#btn-toggle-affine, #section-affine-conic, #toolbar-content',
+      content: `Explore how classical circle theorems generalize into conics under Felix Klein's Erlangen Program (1872):
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>Circle Mode (Default):</strong> Pure Euclidean geometry with 90° right angles and Pythagorean distances.</li>
+          <li><strong>Affine Conic Mode:</strong> Deforms the circle into an ellipse. While Euclidean angles deform (&theta; &ne; 90&deg;), <strong>Apollonius' Conjugate Diameters Invariant</strong> (<em>v_PAᵀ Q v_PB &equiv; 0.000</em>) holds strictly constant!</li>
+          <li><strong>Stretch &amp; Axis:</strong> Adjust aspect ratio (<em>s</em>) and deformation angle (&phi;) interactively.</li>
+        </ul>`,
+      placement: 'bottom',
+    },
+    {
+      title: 'WebXR & Spatial Augmented Reality (AR)',
+      selector: '#btn-toggle-ar, #canvas-3d-container',
+      content: `Bring the 3D spherical theorem into your physical room:
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>Immersive AR:</strong> On supported headsets (Quest, Vision Pro) and Android Chrome, projects the 3D sphere floating in physical 3D space.</li>
+          <li><strong>Camera Pass-Through:</strong> Universal fallback uses device camera feed with transparent WebGL canvas and touch controls.</li>
+          <li><strong>Exit AR:</strong> Tap the on-screen Exit AR button or click the toolbar AR toggle.</li>
+        </ul>`,
+      placement: 'bottom',
+    },
+    {
       title: 'Live Math Derivations & Telemetry',
       selector: '#derivations-panel, #live-derivation-panel',
       content: `Follow the step-by-step deductive geometric and algebraic proof. Variable labels share <strong>synchronized colour tokens</strong> with the canvas points. Inspect the 2D and 3D telemetry panels to check real-time values and 360° perigon invariants.`,
@@ -610,6 +653,17 @@ function createTourController(slug, theoremData) {
       selector: '#section-unit-converter, #toolbar-2d-panel, #controls-panel',
       content: `Customize display layers (Cartesian grids, axes, angle arcs, reflex wedges, Major/Minor circular segments, and dedicated triangle shading toggles). Open the <strong>Unit System Conversion</strong> section to convert measurements across <em>Pixels, Normalized (0-1), Centimeters, Inches</em> and <em>Degrees vs Radians</em>.`,
       placement: 'top',
+    },
+    {
+      title: 'Shareable Permalinks & Notation Legend',
+      selector: '#btn-toolbar-share, #btn-toolbar-legend, #toolbar-content',
+      content: `Collaborate and share exact geometric proofs with 1 click:
+        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li><strong>1-Click Permalink:</strong> Click <strong>Share</strong> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine deformation, view mode, camera angle, and dock layout.</li>
+          <li><strong>Bidirectional Hash:</strong> Bookmarks and URLs load directly into your exact configuration.</li>
+          <li><strong>Geometry Legend:</strong> Click <strong>Legend</strong> (or press <kbd>L</kbd>) to inspect the KaTeX notation cheat-sheet, color tokens, and coordinate conventions.</li>
+        </ul>`,
+      placement: 'bottom',
     },
   ];
 

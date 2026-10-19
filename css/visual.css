@@ -2212,6 +2212,52 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   left: calc(var(--dock-size, 380px) + 1rem);
 }
 
+/* Floating Shareable Permalink Toast */
+.vml-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 9999px;
+  padding: 0.6rem 1.4rem;
+  color: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 999999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vml-toast.vml-toast--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.btn-toolbar-share {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  transition: all 0.18s ease;
+}
+
+.btn-toolbar-share:hover,
+.btn-toolbar-share:focus-visible {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+}
+
 
 
 

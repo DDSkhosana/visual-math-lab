@@ -117,3 +117,36 @@ test('Walkthrough & Tips: tutorial-walkthrough.js supports all 8 visuals with ta
   assert.ok(global.document.body.classList.contains('interaction-tips-enabled'));
 });
 
+test('Walkthrough & Tips: Guide includes steps for Breadcrumb Dock Navigation, Affine Conic Mode, WebXR AR, and Permalinks', () => {
+  const modPath = path.join(rootDir, 'js', 'tutorial-walkthrough.js');
+  const code = fs.readFileSync(modPath, 'utf8');
+
+  // Verify tour steps
+  assert.ok(code.includes('Hierarchical Breadcrumbs & Dock Navigation'), 'Must include dock breadcrumbs step');
+  assert.ok(code.includes('Dual-Mode Affine Conic Generalization'), 'Must include affine conic step');
+  assert.ok(code.includes('WebXR & Spatial Augmented Reality (AR)'), 'Must include WebXR AR step');
+  assert.ok(code.includes('Shareable Permalinks & Notation Legend'), 'Must include permalinks step');
+
+  // Verify Thales specifics
+  assert.ok(code.includes('Apollonius') && code.includes('conjugate diameter'), 'Must explain Apollonius invariant');
+  assert.ok(code.includes('WebXR or camera pass-through'), 'Must describe AR options');
+  assert.ok(code.includes('URL permalink'), 'Must describe permalinks');
+
+  // Verify shortcuts
+  assert.ok(code.includes('<kbd>S</kbd> Share Link'), 'Must include Share shortcut');
+  assert.ok(code.includes('<kbd>L</kbd> Legend'), 'Must include Legend shortcut');
+  assert.ok(code.includes('<kbd>Alt+1..9</kbd>'), 'Must include Alt+1..9 panel jumping shortcut');
+  assert.ok(code.includes('<kbd>Alt+\\\\</kbd>'), 'Must include Alt+\\ float cycle shortcut');
+  assert.ok(code.includes('<kbd>Esc</kbd>'), 'Must include Escape ladder shortcut');
+});
+
+test('Walkthrough & Tips: visual-page.js mounts Share and AR buttons into the toolbar', () => {
+  const jsPath = path.join(rootDir, 'js', 'visual-page.js');
+  const code = fs.readFileSync(jsPath, 'utf8');
+
+  assert.ok(code.includes('btn-toolbar-share'), 'visual-page.js must mount btn-toolbar-share');
+  assert.ok(code.includes('btn-toggle-ar'), 'visual-page.js must handle btn-toggle-ar');
+  assert.ok(code.includes('copyShareUrl'), 'visual-page.js must invoke copyShareUrl');
+  assert.ok(code.includes('initPermalinkSync'), 'visual-page.js must initialize permalink synchronization');
+});
+

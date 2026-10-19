@@ -3,6 +3,7 @@ import { mountSharedChrome } from "./components.js?v=20260523";
 import { initTutorialAndTips, openTutorialModal, isTipsEnabled, setTipsEnabled } from "./tutorial-walkthrough.js?v=20260523";
 import { initGeometryLegend, openLegendModal, toggleLegendModal } from "./geometry-legend.js?v=20260523";
 import { initWorkspaceDock } from "./workspace-dock.js?v=20260523";
+import { initPermalinkSync, copyShareUrl } from "./permalink.js?v=20260523";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -188,6 +189,47 @@ async function initializeVisualPage() {
       toolbarContent.appendChild(legendToolbarBtn);
     }
 
+    let shareToolbarBtn = document.getElementById("btn-toolbar-share") || document.getElementById("visual-share-btn");
+    if (!shareToolbarBtn) {
+      shareToolbarBtn = document.createElement("button");
+      shareToolbarBtn.type = "button";
+      shareToolbarBtn.className = "btn-toolbar btn-toolbar--badge btn-toolbar-share";
+      shareToolbarBtn.id = "btn-toolbar-share";
+      shareToolbarBtn.setAttribute("data-action", "visual-share-btn");
+      shareToolbarBtn.title = "Copy shareable link with current configuration (Shortcut: S)";
+      shareToolbarBtn.setAttribute("aria-label", "Share Geometry Configuration");
+      shareToolbarBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <span>Share</span>
+      `;
+      toolbarContent.appendChild(shareToolbarBtn);
+    }
+
+    const container3d = document.getElementById("canvas-3d-container");
+    let arToolbarBtn = document.getElementById("btn-toggle-ar");
+    if (!arToolbarBtn && container3d) {
+      arToolbarBtn = document.createElement("button");
+      arToolbarBtn.type = "button";
+      arToolbarBtn.className = "btn-toolbar";
+      arToolbarBtn.id = "btn-toggle-ar";
+      arToolbarBtn.title = "Enter Augmented Reality mode (WebXR / Camera Pass-Through)";
+      arToolbarBtn.setAttribute("aria-label", "Augmented Reality");
+      arToolbarBtn.setAttribute("aria-pressed", "false");
+      arToolbarBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+          <path d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          <circle cx="12" cy="12" r="2.5"/>
+        </svg>
+        <span>AR: <b class="toggle-state-text" id="ar-status-pill">OFF</b></span>
+      `;
+      const resetBtn = document.getElementById("btn-reset");
+      if (resetBtn) {
+        toolbarContent.insertBefore(arToolbarBtn, resetBtn);
+      } else {
+        toolbarContent.appendChild(arToolbarBtn);
+      }
+    }
+
     if (tipsToolbarBtn && !tipsToolbarBtn._hasClickBound) {
       tipsToolbarBtn._hasClickBound = true;
       tipsToolbarBtn.addEventListener("click", (e) => {
@@ -206,6 +248,65 @@ async function initializeVisualPage() {
         openLegendModal();
       });
     }
+
+    if (shareToolbarBtn && !shareToolbarBtn._hasClickBound) {
+      shareToolbarBtn._hasClickBound = true;
+      shareToolbarBtn.addEventListener("click", () => {
+        copyShareUrl(window.__vmlStore, window.__vmlDockManager);
+      });
+    }
+
+    if (arToolbarBtn && !arToolbarBtn._hasClickBound && container3d) {
+      let arManager = null;
+      arToolbarBtn._hasClickBound = true;
+      arToolbarBtn.addEventListener("click", async () => {
+        const scene3d = container3d.__scene3d;
+        if (!scene3d?.renderer) {
+          console.warn("3D Scene not ready for AR");
+          return;
+        }
+        if (!arManager) {
+          const { ARManager } = await import("./ar-manager.js?v=20260523");
+          arManager = new ARManager({
+            renderer: scene3d.renderer,
+            scene: scene3d.scene || scene3d.objects?.scene,
+            camera: scene3d.camera,
+            container: container3d,
+            onSessionStart: () => {
+              if (typeof scene3d.setARMode === 'function') scene3d.setARMode(true);
+              arToolbarBtn.classList.add('active');
+              arToolbarBtn.setAttribute('aria-pressed', 'true');
+              const pill = document.getElementById('ar-status-pill');
+              if (pill) { pill.textContent = 'ON'; pill.classList.add('is-on'); }
+            },
+            onSessionEnd: () => {
+              if (typeof scene3d.setARMode === 'function') scene3d.setARMode(false);
+              arToolbarBtn.classList.remove('active');
+              arToolbarBtn.setAttribute('aria-pressed', 'false');
+              const pill = document.getElementById('ar-status-pill');
+              if (pill) { pill.textContent = 'OFF'; pill.classList.remove('is-on'); }
+            },
+          });
+        }
+        try {
+          await arManager.toggle();
+        } catch (err) {
+          console.warn("AR initiation error:", err);
+          alert(err.message || "Could not start Augmented Reality mode on this device.");
+        }
+      });
+    }
+  }
+
+  // Initialize URL State Permalinks
+  if (window.__vmlStore) {
+    initPermalinkSync(window.__vmlStore, window.__vmlDockManager);
+  } else {
+    window.addEventListener("vml:store-ready", (e) => {
+      if (e.detail?.store) {
+        initPermalinkSync(e.detail.store, window.__vmlDockManager);
+      }
+    }, { once: true });
   }
 
   trackEvent("visual_view", { visual: visual.slug });

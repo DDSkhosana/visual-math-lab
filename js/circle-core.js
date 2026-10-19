@@ -119,6 +119,12 @@ export function createStore(initialState) {
       };
     },
   };
+  if (typeof window !== 'undefined') {
+    window.__vmlStore = store;
+    try {
+      window.dispatchEvent(new CustomEvent('vml:store-ready', { detail: { store } }));
+    } catch (_) {}
+  }
   return store;
 }
 
@@ -2071,3 +2077,10 @@ export {
   projectPointToAffineEllipse,
 } from './circle-transforms.js';
 export { ARManager } from './ar-manager.js';
+export {
+  serializeStateToHash,
+  deserializeStateFromHash,
+  copyShareUrl,
+  showShareToast,
+  initPermalinkSync,
+} from './permalink.js';
