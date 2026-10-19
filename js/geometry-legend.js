@@ -645,7 +645,7 @@ function mountControlsToggle() {
   section.className = 'collapsible-section collapsed';
   section.id = 'section-geometry-legend';
   section.innerHTML = `
-    <div class="collapsible-header" id="header-geometry-legend" aria-expanded="false">
+    <div class="collapsible-header" id="header-geometry-legend" role="button" tabindex="0" aria-expanded="false">
       <span>Geometry Notation Legend</span><span class="icon">▶</span>
     </div>
     <div class="collapsible-content collapsed" id="content-geometry-legend" style="display:flex; flex-direction:column; gap:0.5rem; padding: 0.65rem 0.5rem;">
@@ -669,19 +669,6 @@ function mountControlsToggle() {
   }
 
   // Wire events
-  const header = section.querySelector('.collapsible-header');
-  const content = section.querySelector('.collapsible-content');
-  header?.addEventListener('click', () => {
-    if (!content) return;
-    const isCurrentlyHidden = section.classList.contains('collapsed') || content.classList.contains('collapsed') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
-    section.classList.toggle('collapsed', !isCurrentlyHidden);
-    content.classList.toggle('collapsed', !isCurrentlyHidden);
-    content.classList.toggle('open', isCurrentlyHidden);
-    header.setAttribute('aria-expanded', String(isCurrentlyHidden));
-    const icon = header.querySelector('.icon');
-    if (icon) icon.textContent = isCurrentlyHidden ? '▼' : '▶';
-  });
-
   const popoutBtn = section.querySelector('#btn-popout-legend');
   popoutBtn?.addEventListener('click', () => {
     openLegendModal();

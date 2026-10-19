@@ -507,7 +507,7 @@ function mountControlsSection() {
   section.className = 'collapsible-section collapsed';
   section.id = 'section-walkthrough-tips';
   section.innerHTML = `
-    <div class="collapsible-header" id="header-walkthrough-tips" aria-expanded="false">
+    <div class="collapsible-header" id="header-walkthrough-tips" role="button" tabindex="0" aria-expanded="false">
       <span>Tutorial &amp; Interaction Tips</span><span class="icon">▶</span>
     </div>
     <div class="collapsible-content collapsed" id="content-walkthrough-tips" style="display:flex; flex-direction:column; gap:0.6rem; padding: 0.65rem 0.5rem;">
@@ -533,19 +533,6 @@ function mountControlsSection() {
   const chk = section.querySelector('[data-tutorial-toggle-chk]');
   chk?.addEventListener('change', (e) => {
     setTipsEnabled(e.target.checked);
-  });
-
-  const header = section.querySelector('.collapsible-header');
-  const content = section.querySelector('.collapsible-content');
-  header?.addEventListener('click', () => {
-    if (!content) return;
-    const isCurrentlyHidden = section.classList.contains('collapsed') || content.classList.contains('collapsed') || (!content.classList.contains('open') && window.getComputedStyle?.(content).display === 'none');
-    section.classList.toggle('collapsed', !isCurrentlyHidden);
-    content.classList.toggle('collapsed', !isCurrentlyHidden);
-    content.classList.toggle('open', isCurrentlyHidden);
-    header.setAttribute('aria-expanded', String(isCurrentlyHidden));
-    const icon = header.querySelector('.icon');
-    if (icon) icon.textContent = isCurrentlyHidden ? '▼' : '▶';
   });
 
   section.querySelector('#btn-open-guide-panel')?.addEventListener('click', () => {

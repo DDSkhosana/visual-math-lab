@@ -254,6 +254,10 @@ class MockDOMElement {
       const handlers = curr.listeners.get(event.type) || [];
       handlers.forEach((h) => h(event));
       if (stopped) break;
+      if (!curr.parentElement && curr.ownerDocument) {
+        curr.ownerDocument.dispatchEvent(event);
+        break;
+      }
       curr = curr.parentElement;
     }
   }
@@ -2001,3 +2005,174 @@ test('Granular Panel Usability: Simplified header actions, single-click clean ex
   assert.strictEqual(panel.classList.contains('is-hidden'), false, 'Restored panel must not have is-hidden class');
   assert.strictEqual(panel.style.display, '', 'Restored panel must have empty display');
 });
+
+test('Granular Interactive Controls: Geometry Notation Legend and Tutorial & Tips subpanel expansion, popout cheatsheet, guide modal launch, and tour dispatch', async () => {
+  const mockDoc = new MockDocument();
+  const root = mockDoc.createElement('div');
+  root.className = 'visual-root';
+  mockDoc.body.appendChild(root);
+
+  // 1. Set up Controls Panel with Section Geometry Legend
+  const controlsPanel = mockDoc.createElement('div');
+  controlsPanel.className = 'ui-panel';
+  controlsPanel.id = 'controls-panel';
+
+  const controlsBody = mockDoc.createElement('div');
+  controlsBody.className = 'panel-body';
+
+  const legendSec = mockDoc.createElement('div');
+  legendSec.className = 'collapsible-section collapsed';
+  legendSec.id = 'section-geometry-legend';
+
+  const legendHeader = mockDoc.createElement('div');
+  legendHeader.className = 'collapsible-header';
+  legendHeader.id = 'header-geometry-legend';
+  legendHeader.setAttribute('role', 'button');
+  legendHeader.tabIndex = 0;
+  legendHeader.setAttribute('aria-expanded', 'false');
+
+  const legendIcon = mockDoc.createElement('span');
+  legendIcon.className = 'icon';
+  legendIcon.textContent = '▶';
+  legendHeader.appendChild(legendIcon);
+
+  const legendTitle = mockDoc.createElement('span');
+  legendTitle.textContent = 'Geometry Notation Legend';
+  legendHeader.appendChild(legendTitle);
+
+  const legendContent = mockDoc.createElement('div');
+  legendContent.className = 'collapsible-content collapsed';
+  legendContent.id = 'content-geometry-legend';
+
+  const popoutBtn = mockDoc.createElement('button');
+  popoutBtn.id = 'btn-popout-legend';
+  popoutBtn.textContent = 'Pop Out Notation Legend';
+  let popoutClicked = false;
+  popoutBtn.addEventListener('click', () => { popoutClicked = true; });
+  legendContent.appendChild(popoutBtn);
+
+  legendSec.appendChild(legendHeader);
+  legendSec.appendChild(legendContent);
+  controlsBody.appendChild(legendSec);
+  controlsPanel.appendChild(controlsBody);
+  root.appendChild(controlsPanel);
+
+  // 2. Set up 2D Controls Panel with Tutorial & Interaction Tips
+  const toolbar2dPanel = mockDoc.createElement('div');
+  toolbar2dPanel.className = 'ui-panel';
+  toolbar2dPanel.id = 'toolbar-2d-panel';
+
+  const toolbar2dBody = mockDoc.createElement('div');
+  toolbar2dBody.className = 'panel-body';
+
+  const tipsSec = mockDoc.createElement('div');
+  tipsSec.className = 'collapsible-section collapsed';
+  tipsSec.id = 'section-walkthrough-tips';
+
+  const tipsHeader = mockDoc.createElement('div');
+  tipsHeader.className = 'collapsible-header';
+  tipsHeader.id = 'header-walkthrough-tips';
+  tipsHeader.setAttribute('role', 'button');
+  tipsHeader.tabIndex = 0;
+  tipsHeader.setAttribute('aria-expanded', 'false');
+
+  const tipsIcon = mockDoc.createElement('span');
+  tipsIcon.className = 'icon';
+  tipsIcon.textContent = '▶';
+  tipsHeader.appendChild(tipsIcon);
+
+  const tipsTitle = mockDoc.createElement('span');
+  tipsTitle.textContent = 'Tutorial & Interaction Tips';
+  tipsHeader.appendChild(tipsTitle);
+
+  const tipsContent = mockDoc.createElement('div');
+  tipsContent.className = 'collapsible-content collapsed';
+  tipsContent.id = 'content-walkthrough-tips';
+
+  const openGuideBtn = mockDoc.createElement('button');
+  openGuideBtn.id = 'btn-open-guide-panel';
+  openGuideBtn.textContent = '📖 Open Guide';
+  let openGuideClicked = false;
+  openGuideBtn.addEventListener('click', () => { openGuideClicked = true; });
+  tipsContent.appendChild(openGuideBtn);
+
+  const startTourBtn = mockDoc.createElement('button');
+  startTourBtn.id = 'btn-start-tour-panel';
+  startTourBtn.textContent = '🚀 Start Tour';
+  let tourDispatched = false;
+  startTourBtn.addEventListener('click', () => {
+    mockDoc.dispatchEvent({ type: 'vml:start-tour', detail: { step: 0 } });
+  });
+  mockDoc.addEventListener('vml:start-tour', (e) => {
+    tourDispatched = true;
+  });
+  tipsContent.appendChild(startTourBtn);
+
+  tipsSec.appendChild(tipsHeader);
+  tipsSec.appendChild(tipsContent);
+  toolbar2dBody.appendChild(tipsSec);
+  toolbar2dPanel.appendChild(toolbar2dBody);
+  root.appendChild(toolbar2dPanel);
+
+  // Initialize global collapsible sections
+  initCollapsibleSections(mockDoc);
+
+  // Verify initial state: both subpanels collapsed
+  assert.strictEqual(legendSec.classList.contains('collapsed'), true);
+  assert.strictEqual(legendContent.classList.contains('collapsed'), true);
+  assert.strictEqual(legendHeader.getAttribute('aria-expanded'), 'false');
+  assert.strictEqual(legendIcon.textContent, '▶');
+
+  assert.strictEqual(tipsSec.classList.contains('collapsed'), true);
+  assert.strictEqual(tipsContent.classList.contains('collapsed'), true);
+  assert.strictEqual(tipsHeader.getAttribute('aria-expanded'), 'false');
+  assert.strictEqual(tipsIcon.textContent, '▶');
+
+  // CLICK 1 on Legend Header: Must cleanly expand
+  legendHeader.click();
+
+  assert.strictEqual(legendSec.classList.contains('collapsed'), false, 'Legend section must un-collapse on click');
+  assert.strictEqual(legendContent.classList.contains('collapsed'), false, 'Legend content must not have collapsed class');
+  assert.strictEqual(legendContent.classList.contains('open'), true, 'Legend content must have open class');
+  assert.strictEqual(legendHeader.getAttribute('aria-expanded'), 'true', 'Legend header must have aria-expanded=true');
+  assert.strictEqual(legendIcon.textContent, '▼', 'Legend icon must change to ▼');
+
+  // Click on Popout button inside expanded Legend: Must trigger action WITHOUT closing section
+  popoutBtn.click();
+  assert.strictEqual(popoutClicked, true, 'Popout button event must fire');
+  assert.strictEqual(legendSec.classList.contains('collapsed'), false, 'Clicking action button must not collapse legend section');
+
+  // CLICK 2 on Legend Header: Must cleanly collapse back
+  legendHeader.click();
+  assert.strictEqual(legendSec.classList.contains('collapsed'), true, 'Legend section must collapse on second click');
+  assert.strictEqual(legendContent.classList.contains('collapsed'), true, 'Legend content must be collapsed');
+  assert.strictEqual(legendHeader.getAttribute('aria-expanded'), 'false', 'Legend header must have aria-expanded=false');
+  assert.strictEqual(legendIcon.textContent, '▶', 'Legend icon must return to ▶');
+
+  // CLICK 1 on Tips Header: Must cleanly expand
+  tipsHeader.click();
+
+  assert.strictEqual(tipsSec.classList.contains('collapsed'), false, 'Tips section must un-collapse on click');
+  assert.strictEqual(tipsContent.classList.contains('collapsed'), false, 'Tips content must not have collapsed class');
+  assert.strictEqual(tipsContent.classList.contains('open'), true, 'Tips content must have open class');
+  assert.strictEqual(tipsHeader.getAttribute('aria-expanded'), 'true', 'Tips header must have aria-expanded=true');
+  assert.strictEqual(tipsIcon.textContent, '▼', 'Tips icon must change to ▼');
+
+  // Click Open Guide button inside expanded Tips: Must trigger action WITHOUT closing section
+  openGuideBtn.click();
+  assert.strictEqual(openGuideClicked, true, 'Open Guide button event must fire');
+  assert.strictEqual(tipsSec.classList.contains('collapsed'), false, 'Clicking Open Guide must not collapse tips section');
+
+  // Click Start Tour button inside expanded Tips: Must dispatch tour event WITHOUT closing section
+  startTourBtn.click();
+  assert.strictEqual(tourDispatched, true, 'Start Tour must dispatch vml:start-tour event');
+  assert.strictEqual(tipsSec.classList.contains('collapsed'), false, 'Clicking Start Tour must not collapse tips section');
+
+  // CLICK 2 on Tips Header: Must cleanly collapse back
+  tipsHeader.click();
+  assert.strictEqual(tipsSec.classList.contains('collapsed'), true, 'Tips section must collapse on second click');
+  assert.strictEqual(tipsContent.classList.contains('collapsed'), true, 'Tips content must be collapsed');
+  assert.strictEqual(tipsHeader.getAttribute('aria-expanded'), 'false', 'Tips header must have aria-expanded=false');
+  assert.strictEqual(tipsIcon.textContent, '▶', 'Tips icon must return to ▶');
+});
+
