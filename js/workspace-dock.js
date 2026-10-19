@@ -821,8 +821,7 @@ export class WorkspaceDockManager {
       shadeBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
       shadeBtn.addEventListener('click', (e) => {
         e?.stopPropagation?.();
-        record.element.classList.toggle('is-shaded');
-        shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
+        this.setPanelShaded(record.id);
       });
     }
     record.shadeBtn = shadeBtn;
@@ -846,16 +845,19 @@ export class WorkspaceDockManager {
     }
     record.closeBtn = closeBtn;
 
-    // Header double-click to shade/roll-up panel
+    // Header click to restore shaded panel, double-click to toggle shading
     if (record.header && !record.header._hasShadeBound) {
       record.header._hasShadeBound = true;
+      record.header.addEventListener('click', (e) => {
+        if (!e.target.closest('button, input, select, a') && record.element.classList.contains('is-shaded')) {
+          e.stopPropagation?.();
+          this.setPanelShaded(record.id, false);
+        }
+      });
       record.header.addEventListener('dblclick', (e) => {
         if (!e.target.closest('button, input, select, a')) {
           e.stopPropagation?.();
-          record.element.classList.toggle('is-shaded');
-          if (shadeBtn) {
-            shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
-          }
+          this.setPanelShaded(record.id);
         }
       });
     }
@@ -1031,6 +1033,11 @@ export class WorkspaceDockManager {
     const panel = record.element;
     panel.classList.add('is-floating');
 
+    // If panel was shaded, unshade it on float out so the floating window is fully open and accessible
+    if (panel.classList.contains('is-shaded')) {
+      this.setPanelShaded(panelId, false);
+    }
+
     // Ensure panel-body is visible and rendered (not hidden)
     const body = panel.querySelector('.panel-body');
     if (body) {
@@ -1085,6 +1092,11 @@ export class WorkspaceDockManager {
       this.setDockCollapsed(false);
     }
 
+    // If panel was shaded while floating, unshade it so it docks cleanly
+    if (panel.classList.contains('is-shaded')) {
+      this.setPanelShaded(panelId, false);
+    }
+
     // Move DOM node back to dock body
     this.dockBody.appendChild(panel);
     this.collapseSubComponents(panel);
@@ -1117,6 +1129,60 @@ export class WorkspaceDockManager {
     this.#renderTrayItems();
     this.#persistState();
     this.updateDockEmptyState();
+  }
+
+  setPanelShaded(panelId, shaded) {
+    const record = this.panels.get(panelId);
+    if (!record) return;
+
+    const panel = record.element;
+    const body = panel.querySelector('.panel-body');
+    const isShaded = shaded === undefined ? !panel.classList.contains('is-shaded') : Boolean(shaded);
+
+    panel.classList.toggle('is-shaded', isShaded);
+
+    if (body) {
+      if (isShaded) {
+        body.classList.add('hidden');
+      } else {
+        body.classList.remove('hidden');
+        body.style.display = '';
+      }
+    }
+
+    if (record.shadeBtn) {
+      record.shadeBtn.innerHTML = isShaded ? `□` : `─`;
+      record.shadeBtn.title = isShaded ? 'Restore window height' : 'Roll up / restore window';
+      record.shadeBtn.setAttribute('aria-expanded', String(!isShaded));
+    }
+
+    const minBtn = panel.querySelector('.panel-minimize-btn');
+    if (minBtn) {
+      const isExpanded = !isShaded;
+      minBtn.setAttribute('aria-expanded', String(isExpanded));
+      minBtn.title = isExpanded ? `Minimize ${record.title || 'Panel'}` : `Expand ${record.title || 'Panel'}`;
+      let icon = minBtn.querySelector('.panel-minimize-icon');
+      const upSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+      const downSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+      if (!icon) {
+        minBtn.innerHTML = `<span class="panel-minimize-icon" aria-hidden="true">${isExpanded ? upSvg : downSvg}</span>`;
+      } else {
+        icon.innerHTML = isExpanded ? upSvg : downSvg;
+      }
+    }
+
+    if (record.isFloating) {
+      if (isShaded) {
+        record.unshadedHeight = panel.style.height || `${record.lastPos?.height || 380}px`;
+        panel.style.height = 'auto';
+      } else {
+        panel.style.height = record.unshadedHeight || `${record.lastPos?.height || 380}px`;
+      }
+    } else {
+      this.syncSubpanelOverlayState();
+    }
+
+    this.#persistState();
   }
 
   updateDockEmptyState() {

@@ -36,7 +36,20 @@ export class Panel {
   }
 
   setMinimized(minimized) {
+    if (!this.body) return;
     this.body.classList.toggle('hidden', minimized);
+    if (!minimized) {
+      this.body.style.display = '';
+      this.element.classList.remove('is-shaded');
+    } else {
+      this.element.classList.add('is-shaded');
+    }
+    const shadeBtn = this.element.querySelector('.panel-shade-btn');
+    if (shadeBtn) {
+      shadeBtn.innerHTML = minimized ? `□` : `─`;
+      shadeBtn.title = minimized ? 'Restore window height' : 'Roll up / restore window';
+      shadeBtn.setAttribute('aria-expanded', String(!minimized));
+    }
     this.#syncMinimizeButton();
   }
 
@@ -67,7 +80,7 @@ export class Panel {
   #enableDrag(header) {
     header.addEventListener('pointerdown', (event) => {
       if (this.compact.matches || event.target.closest('button')) return;
-      if (this.element.closest('.workspace-dock-body')) return;
+      if (this.element.closest('.workspace-dock-body') || this.element.classList.contains('is-floating') || this.element.closest('.floating-workspace')) return;
       const parent = this.element.offsetParent.getBoundingClientRect();
       const box = this.element.getBoundingClientRect();
       const offsetX = event.clientX - box.left;

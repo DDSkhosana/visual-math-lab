@@ -213,6 +213,18 @@ export class Panel {
   setMinimized(minimized) {
     if (!this.body) return;
     this.body.classList.toggle('hidden', minimized);
+    if (!minimized) {
+      this.body.style.display = '';
+      this.element.classList.remove('is-shaded');
+    } else {
+      this.element.classList.add('is-shaded');
+    }
+    const shadeBtn = this.element.querySelector('.panel-shade-btn');
+    if (shadeBtn) {
+      shadeBtn.innerHTML = minimized ? `□` : `─`;
+      shadeBtn.title = minimized ? 'Restore window height' : 'Roll up / restore window';
+      shadeBtn.setAttribute('aria-expanded', String(!minimized));
+    }
     this.#syncMinimizeButton();
   }
 
@@ -587,6 +599,14 @@ export function initCollapsibleSections(root = document) {
       const shouldExpand = !isCurrentlyExpanded;
 
       body.classList?.remove('hidden');
+      if (body.style) body.style.display = '';
+      panel.classList?.remove('is-shaded');
+      const shadeBtn = panel.querySelector ? panel.querySelector('.panel-shade-btn') : null;
+      if (shadeBtn) {
+        shadeBtn.innerHTML = '─';
+        shadeBtn.title = 'Roll up / restore window';
+        shadeBtn.setAttribute?.('aria-expanded', 'true');
+      }
 
       sections.forEach((s) => {
         s.classList?.toggle('collapsed', !shouldExpand);

@@ -1494,4 +1494,136 @@ test('Granular Floating Windows: CSS zero-clip header actions, title ellipsis, a
   );
 });
 
+test('Granular Window Shading: Roll-up, restore height, mutual deadlock resolution with minimize/expand, header click restore, and shelf dimensions', () => {
+  const { mockDoc, root } = setupTestEnvironment();
+
+  const panel = mockDoc.createElement('div');
+  panel.className = 'ui-panel';
+  panel.id = 'panel-shade-test';
+
+  const content = mockDoc.createElement('div');
+  content.className = 'panel-content';
+  const header = mockDoc.createElement('div');
+  header.className = 'panel-header';
+  const title = mockDoc.createElement('h1');
+  title.textContent = '3D Controls & Toggles';
+  header.appendChild(title);
+
+  const actions = mockDoc.createElement('div');
+  actions.className = 'panel-header-actions';
+  const minBtn = mockDoc.createElement('button');
+  minBtn.className = 'panel-minimize-btn';
+  minBtn.id = 'min-btn-test';
+  actions.appendChild(minBtn);
+
+  const expBtn = mockDoc.createElement('button');
+  expBtn.className = 'panel-expand-btn';
+  expBtn.id = 'exp-btn-test';
+  actions.appendChild(expBtn);
+
+  header.appendChild(actions);
+  content.appendChild(header);
+
+  const body = mockDoc.createElement('div');
+  body.className = 'panel-body';
+
+  const sec1 = mockDoc.createElement('div');
+  sec1.className = 'collapsible-section collapsed';
+  const secH1 = mockDoc.createElement('div');
+  secH1.className = 'collapsible-header';
+  secH1.textContent = 'Section 1';
+  sec1.appendChild(secH1);
+  const secC1 = mockDoc.createElement('div');
+  secC1.className = 'collapsible-content collapsed';
+  sec1.appendChild(secC1);
+  body.appendChild(sec1);
+
+  content.appendChild(body);
+  panel.appendChild(content);
+  root.appendChild(panel);
+
+  const panelController = new Panel(panel, {
+    header,
+    minimizeButton: minBtn,
+    expandButton: expBtn,
+  });
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+  const record = dock.panels.get('panel-shade-test');
+  assert.ok(record);
+  assert.ok(record.shadeBtn);
+
+  // 1. Initial State: Unshaded and Accessible
+  assert.strictEqual(panel.classList.contains('is-shaded'), false);
+  assert.strictEqual(body.classList.contains('hidden'), false);
+  assert.strictEqual(record.shadeBtn.innerHTML, '─');
+
+  // 2. Roll up via shade button
+  record.shadeBtn.click();
+  assert.strictEqual(panel.classList.contains('is-shaded'), true, 'Clicking shadeBtn must shade panel');
+  assert.strictEqual(body.classList.contains('hidden'), true, 'Shading must set hidden on panel-body');
+  assert.strictEqual(record.shadeBtn.innerHTML, '□', 'Shade icon must toggle to restore square □');
+  assert.strictEqual(record.shadeBtn.title, 'Restore window height');
+
+  // 3. Restore height via shade button
+  record.shadeBtn.click();
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Clicking shadeBtn again must un-shade panel');
+  assert.strictEqual(body.classList.contains('hidden'), false, 'Un-shading must remove hidden from panel-body');
+  assert.strictEqual(body.style.display, '', 'Un-shading must clear display none');
+  assert.strictEqual(record.shadeBtn.innerHTML, '─');
+  assert.strictEqual(record.shadeBtn.title, 'Roll up / restore window');
+
+  // 4. Header Click Restore: Roll up again, then click header outside buttons
+  dock.setPanelShaded('panel-shade-test', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true);
+
+  // Clicking on header title must restore window
+  header.dispatchEvent({ type: 'click', target: title });
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Clicking on header must unshade panel');
+  assert.strictEqual(body.classList.contains('hidden'), false);
+  assert.strictEqual(record.shadeBtn.innerHTML, '─');
+
+  // 5. Deadlock Resolution with Minimize Button:
+  // When shaded, clicking minimize button to expand MUST clear is-shaded
+  dock.setPanelShaded('panel-shade-test', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true);
+
+  panelController.setMinimized(false);
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Panel.setMinimized(false) must clear is-shaded');
+  assert.strictEqual(body.classList.contains('hidden'), false);
+  assert.strictEqual(record.shadeBtn.innerHTML, '─');
+
+  // 6. Deadlock Resolution with Expand All:
+  // When shaded, clicking Expand All MUST clear is-shaded and reveal content
+  dock.setPanelShaded('panel-shade-test', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true);
+
+  expBtn.click();
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Expand All click must clear is-shaded');
+  assert.strictEqual(body.classList.contains('hidden'), false);
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), true);
+  assert.strictEqual(record.shadeBtn.innerHTML, '─');
+
+  // 7. Auto-Unshade on Float:
+  // If a docked panel was shaded, popping it out MUST automatically unshade it
+  dock.setPanelShaded('panel-shade-test', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true);
+
+  dock.floatPanel('panel-shade-test');
+  assert.strictEqual(record.isFloating, true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Floating a panel must automatically unshade it');
+  assert.strictEqual(body.classList.contains('hidden'), false);
+
+  // 8. Auto-Unshade on Re-Dock:
+  // If a floating window was shaded, re-docking it MUST automatically unshade it
+  dock.setPanelShaded('panel-shade-test', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true);
+
+  dock.dockPanel('panel-shade-test');
+  assert.strictEqual(record.isFloating, false);
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Re-docking a panel must automatically unshade it');
+  assert.strictEqual(body.classList.contains('hidden'), false);
+});
+
+
 

@@ -1218,6 +1218,10 @@
   min-height: 0 !important;
 }
 
+.ui-panel.is-floating.is-shaded .panel-body {
+  display: none !important;
+}
+
 .ui-panel.is-floating.is-focused {
   border-color: #38bdf8;
   box-shadow: 0 20px 42px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.4);
@@ -1544,6 +1548,17 @@
 
 .workspace-dock-body > .ui-panel.is-shaded .panel-body {
   display: none !important;
+}
+
+/* Docked panel in shelf when NOT shaded: guaranteed visible body and accessibility */
+.workspace-dock-body > .ui-panel:not(.is-shaded) .panel-body {
+  display: flex !important;
+}
+
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel:not(.is-shaded) .panel-body,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:not(.is-shaded) .panel-body {
+  min-height: 120px !important;
+  overflow-y: auto !important;
 }
 
 /* Smooth Elevation Slide-In */
