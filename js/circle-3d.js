@@ -591,7 +591,7 @@ export class BaseScene3DView {
 
   applyCommonVis(state) {
     this.latestVis3d = state?.vis3d || {};
-    if (this.grid) this.grid.visible = state?.vis3d?.gridXZ !== false;
+    if (this.grid) this.grid.visible = this.isARActive ? false : (state?.vis3d?.gridXZ !== false);
     if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
     if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
@@ -612,6 +612,7 @@ export class BaseScene3DView {
   }
 
   setARMode(active) {
+    this.isARActive = Boolean(active);
     if (this.grid) this.grid.visible = active ? false : (this.latestVis3d?.gridXZ !== false);
     if (this.scene) {
       if (active) {

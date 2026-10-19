@@ -2233,12 +2233,18 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
     'circle-visual.css must align vertical-split (Flip mode) containers with width: 100%; height: auto'
   );
 
-  // AR Spatial Immersion Upgrades (1. Auto-Expand Full 3D, 2. Surface-Anchor Reticle & Shadow, 3. Gyroscope Parallax)
+  // AR Spatial Immersion Upgrades (Full 3D, Reticle & Shadow, Gyroscope, Grid Suppression, Mirroring, Dock Collapse, Scale & Placement)
   const arManagerSrc = fs.readFileSync(path.join(rootDir, 'js/ar-manager.js'), 'utf8');
   assert.ok(arManagerSrc.includes('ar-surface-reticle'), 'ARManager must mount #ar-surface-reticle DOM surface anchor');
   assert.ok(arManagerSrc.includes('this.arReticle3D = group'), 'ARManager must mount 3D floor reticle and contact shadow in Three.js scene');
   assert.ok(arManagerSrc.includes("window.addEventListener('deviceorientation', this.gyroHandler, true)"), 'ARManager must bind deviceorientation gyroscope tracking');
   assert.ok(arManagerSrc.includes("doc?.getElementById?.('btn-3d')"), 'ARManager must auto-expand to full 3D viewport on AR start');
+  assert.ok(arManagerSrc.includes("doc?.getElementById?.('dock-collapse-btn')"), 'ARManager must auto-collapse the floating dock on AR start and restore on exit');
+  assert.ok(arManagerSrc.includes('setVideoMirror('), 'ARManager must support front-camera horizontal mirroring');
+  assert.ok(arManagerSrc.includes('setPlacementScale('), 'ARManager must support hologram scale presets (0.6x Desk / 1.0x Std / 1.4x Room)');
+  assert.ok(arManagerSrc.includes('setPlacementOffset('), 'ARManager must support interactive drag-to-place surface reticle offset');
+  assert.ok(scene3dViewSrc.includes('this.isARActive ? false : state.vis3d.gridXZ'), 'Thales Scene3DView must keep synthetic grids suppressed while AR is active');
+  assert.ok(circle3dSrc.includes('this.isARActive ? false : (state?.vis3d?.gridXZ !== false)'), 'BaseScene3DView must keep synthetic grids suppressed while AR is active');
 });
 
 

@@ -35,6 +35,12 @@ export class Scene3DView {
   }
 
   setARMode(active) {
+    this.isARActive = Boolean(active);
+    if (this.objects?.grids) {
+      this.objects.grids.xz.visible = this.isARActive ? false : Boolean(this.latestVis3d?.gridXZ ?? true);
+      this.objects.grids.xy.visible = this.isARActive ? false : Boolean(this.latestVis3d?.gridXY ?? false);
+      this.objects.grids.yz.visible = this.isARActive ? false : Boolean(this.latestVis3d?.gridYZ ?? false);
+    }
     if (active) {
       if (this.objects.scene) this.objects.scene.background = null;
       if (this.renderer && typeof this.renderer.setClearColor === 'function') {
@@ -81,9 +87,10 @@ export class Scene3DView {
     const scaleY = 1.0;
     const scaleZ = 1.0;
 
-    o.grids.xz.visible = state.vis3d.gridXZ;
-    o.grids.xy.visible = state.vis3d.gridXY;
-    o.grids.yz.visible = state.vis3d.gridYZ;
+    this.latestVis3d = state.vis3d;
+    o.grids.xz.visible = this.isARActive ? false : state.vis3d.gridXZ;
+    o.grids.xy.visible = this.isARActive ? false : state.vis3d.gridXY;
+    o.grids.yz.visible = this.isARActive ? false : state.vis3d.gridYZ;
     if (o.axes) {
       o.axes.visible = state.vis3d.axes !== undefined ? Boolean(state.vis3d.axes) : true;
     }

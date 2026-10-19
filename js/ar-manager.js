@@ -36,6 +36,8 @@ export class ARManager {
     this.reticleElement = null;
     this.arReticle3D = null;
     this.previousViewMode = null;
+    this.previousDockCollapsed = null;
+    this.isMirrored = false;
     this.gyroHandler = null;
     this.gyroBase = null;
     this.originalClearColor = 0x0a0f1d;
@@ -44,6 +46,8 @@ export class ARManager {
     // Transform offsets for AR placement
     this.placement = {
       scale: 1.0,
+      offsetX: 0,
+      offsetY: 0,
       position: { x: 0, y: -2, z: -15 },
       rotation: { x: 0, y: 0, z: 0 },
     };
@@ -140,10 +144,31 @@ export class ARManager {
       if (btn3d && this.previousViewMode !== '3d') {
         btn3d.click?.();
       }
-    } else if (this.previousViewMode && this.previousViewMode !== '3d') {
-      const restoreBtn = doc?.getElementById?.(this.previousViewMode === '2d' ? 'btn-2d' : 'btn-split');
-      restoreBtn?.click?.();
-      this.previousViewMode = null;
+
+      // Auto-collapse the Floating Workspace Dock to its compact pill for unobstructed AR view
+      const dockEl = doc?.getElementById?.('workspace-dock');
+      const dockCollapseBtn = doc?.getElementById?.('dock-collapse-btn');
+      if (dockEl && dockCollapseBtn) {
+        this.previousDockCollapsed = Boolean(dockEl.classList?.contains?.('is-collapsed'));
+        if (!this.previousDockCollapsed) {
+          dockCollapseBtn.click?.();
+        }
+      }
+    } else {
+      if (this.previousViewMode && this.previousViewMode !== '3d') {
+        const restoreBtn = doc?.getElementById?.(this.previousViewMode === '2d' ? 'btn-2d' : 'btn-split');
+        restoreBtn?.click?.();
+        this.previousViewMode = null;
+      }
+
+      if (this.previousDockCollapsed === false) {
+        const dockEl = doc?.getElementById?.('workspace-dock');
+        const dockCollapseBtn = doc?.getElementById?.('dock-collapse-btn');
+        if (dockEl?.classList?.contains?.('is-collapsed') && dockCollapseBtn) {
+          dockCollapseBtn.click?.();
+        }
+      }
+      this.previousDockCollapsed = null;
     }
 
     const canvas = this.renderer?.domElement;
@@ -171,19 +196,107 @@ export class ARManager {
       this.#mountSpatialAnchorReticle(doc);
       this.#enableGyroscopeTracking();
     } else {
+      this.setPlacementScale(1.0);
+      this.setPlacementOffset(0, 0);
       this.#removeSpatialAnchorReticle();
       this.#disableGyroscopeTracking();
+    }
+  }
+
+  /**
+   * Toggles horizontal mirroring on the live camera video feed (ideal for laptop/front webcams).
+   * @param {boolean} mirrored
+   */
+  setVideoMirror(mirrored) {
+    this.isMirrored = Boolean(mirrored);
+    if (this.videoElement && this.videoElement.style) {
+      this.videoElement.style.transform = this.isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+    }
+    const mirrorBtn = this.hudElement?.querySelector?.('.btn-ar-mirror');
+    if (mirrorBtn) {
+      mirrorBtn.setAttribute?.('aria-pressed', String(this.isMirrored));
+      mirrorBtn.style.borderColor = this.isMirrored ? '#38bdf8' : '#475569';
+      mirrorBtn.style.color = this.isMirrored ? '#38bdf8' : '#f8fafc';
+    }
+  }
+
+  /**
+   * Scales the anchored 3D hologram & surface reticle (e.g. 0.6x Desk, 1.0x Standard, 1.4x Room).
+   * @param {number} targetScale
+   */
+  setPlacementScale(targetScale) {
+    const nextScale = Math.max(0.4, Math.min(2.0, Number(targetScale) || 1.0));
+    const prevScale = this.placement.scale || 1.0;
+    this.placement.scale = nextScale;
+
+    if (this.camera && prevScale !== nextScale) {
+      const ratio = prevScale / nextScale;
+      if (typeof this.camera.position?.multiplyScalar === 'function') {
+        this.camera.position.multiplyScalar(ratio);
+      } else if (this.camera.position && typeof this.camera.position.set === 'function') {
+        this.camera.position.set(
+          (this.camera.position.x || 0) * ratio,
+          (this.camera.position.y || 0) * ratio,
+          (this.camera.position.z || 32) * ratio
+        );
+      }
+      if (this.gyroBase) {
+        this.gyroBase.dist *= ratio;
+      }
+    }
+
+    if (this.reticleElement && this.reticleElement.style) {
+      const sizePx = Math.round(280 * nextScale);
+      this.reticleElement.style.width = `${sizePx}px`;
+      this.reticleElement.style.height = `${sizePx}px`;
+    }
+
+    const scaleBtn = this.hudElement?.querySelector?.('.btn-ar-scale');
+    if (scaleBtn) {
+      const label = nextScale < 0.8 ? '0.6x Desk' : nextScale > 1.2 ? '1.4x Room' : '1.0x Std';
+      scaleBtn.textContent = `⤢ ${label}`;
+    }
+  }
+
+  /**
+   * Offsets the anchored 3D hologram and floor reticle to place it onto any physical surface in view.
+   * @param {number} offsetX - Horizontal screen offset in pixels
+   * @param {number} offsetY - Vertical screen offset in pixels
+   */
+  setPlacementOffset(offsetX, offsetY) {
+    const dx = Number(offsetX) || 0;
+    const dy = Number(offsetY) || 0;
+    this.placement.offsetX = dx;
+    this.placement.offsetY = dy;
+    this.placement.position.x = dx;
+    this.placement.position.y = dy;
+
+    if (this.reticleElement && this.reticleElement.style) {
+      this.reticleElement.style.left = dx === 0 ? '50%' : `calc(50% + ${Math.round(dx)}px)`;
+      this.reticleElement.style.top = dy === 0 ? '66%' : `calc(66% + ${Math.round(dy)}px)`;
+    }
+
+    if (this.camera) {
+      if (dx === 0 && dy === 0) {
+        this.camera.clearViewOffset?.();
+      } else if (typeof this.camera.setViewOffset === 'function') {
+        const w = this.container?.clientWidth || 1000;
+        const h = this.container?.clientHeight || 700;
+        this.camera.setViewOffset(w, h, -dx, -dy, w, h);
+      }
+      this.camera.updateProjectionMatrix?.();
     }
   }
 
   #mountSpatialAnchorReticle(doc) {
     this.#removeSpatialAnchorReticle();
 
-    // 1. DOM surface-lock reticle & ground shadow beneath the 3D sphere
+    // 1. DOM surface-lock reticle & ground shadow beneath the 3D sphere (draggable to place on surface)
     if (doc && this.container && typeof doc.createElement === 'function') {
       const reticle = doc.createElement('div');
       reticle.id = 'ar-surface-reticle';
       reticle.className = 'ar-surface-reticle';
+      reticle.title = 'Drag to place 3D hologram onto your physical desk or floor';
       reticle.style.position = 'absolute';
       reticle.style.left = '50%';
       reticle.style.top = '66%';
@@ -194,8 +307,47 @@ export class ARManager {
       reticle.style.background = 'radial-gradient(circle, rgba(2, 6, 23, 0.55) 0%, rgba(56, 189, 248, 0.14) 52%, transparent 72%)';
       reticle.style.border = '2px dashed rgba(56, 189, 248, 0.55)';
       reticle.style.boxShadow = '0 0 28px rgba(56, 189, 248, 0.25), inset 0 0 18px rgba(16, 185, 129, 0.2)';
-      reticle.style.zIndex = '1';
-      reticle.style.pointerEvents = 'none';
+      reticle.style.zIndex = '3';
+      reticle.style.cursor = 'grab';
+      reticle.style.pointerEvents = 'auto';
+      reticle.style.touchAction = 'none';
+
+      let draggingReticle = false;
+      let startX = 0;
+      let startY = 0;
+      let baseOffsetX = 0;
+      let baseOffsetY = 0;
+
+      reticle.addEventListener?.('pointerdown', (e) => {
+        e?.stopPropagation?.();
+        draggingReticle = true;
+        startX = e.clientX || 0;
+        startY = e.clientY || 0;
+        baseOffsetX = this.placement.offsetX || 0;
+        baseOffsetY = this.placement.offsetY || 0;
+        reticle.style.cursor = 'grabbing';
+        reticle.setPointerCapture?.(e.pointerId);
+      });
+
+      reticle.addEventListener?.('pointermove', (e) => {
+        if (!draggingReticle) return;
+        e?.stopPropagation?.();
+        const dx = (e.clientX || 0) - startX;
+        const dy = (e.clientY || 0) - startY;
+        this.setPlacementOffset(baseOffsetX + dx, baseOffsetY + dy);
+      });
+
+      const endDrag = (e) => {
+        if (!draggingReticle) return;
+        draggingReticle = false;
+        reticle.style.cursor = 'grab';
+        if (e?.pointerId !== undefined) {
+          reticle.releasePointerCapture?.(e.pointerId);
+        }
+      };
+      reticle.addEventListener?.('pointerup', endDrag);
+      reticle.addEventListener?.('pointercancel', endDrag);
+
       this.container.appendChild(reticle);
       this.reticleElement = reticle;
     }
@@ -398,6 +550,10 @@ export class ARManager {
 
     this.mediaStream = stream;
 
+    const track = stream?.getVideoTracks?.()?.[0];
+    const facingMode = track?.getSettings?.()?.facingMode;
+    this.isMirrored = facingMode !== 'environment';
+
     // 2. Create background video element behind the Three.js canvas
     const video = doc.createElement('video');
     video.id = 'ar-video-background';
@@ -410,6 +566,7 @@ export class ARManager {
     video.style.width = '100%';
     video.style.height = '100%';
     video.style.objectFit = 'cover';
+    video.style.transform = this.isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
     video.style.zIndex = '1';
     video.style.pointerEvents = 'none';
 
@@ -474,15 +631,26 @@ export class ARManager {
     hud.style.display = 'flex';
     hud.style.justifyContent = 'space-between';
     hud.style.alignItems = 'center';
+    hud.style.flexWrap = 'wrap';
+    hud.style.gap = '8px';
     hud.style.zIndex = '30';
     hud.style.pointerEvents = 'auto';
+
+    const mirrorBorder = this.isMirrored ? '#38bdf8' : '#475569';
+    const mirrorColor = this.isMirrored ? '#38bdf8' : '#f8fafc';
 
     hud.innerHTML = `
       <div class="ar-hud-badge" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
         <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite;"></span>
         <span>${labelText}</span>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn-ar-action btn-ar-scale" title="Cycle Hologram Scale (Desk 0.6x / Standard 1.0x / Room 1.4x)" style="background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: #f8fafc; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
+          ⤢ 1.0x Std
+        </button>
+        <button type="button" class="btn-ar-action btn-ar-mirror" aria-pressed="${this.isMirrored}" title="Mirror Camera Feed (for Laptop / Front Webcams)" style="background: rgba(30, 41, 59, 0.9); border: 1px solid ${mirrorBorder}; color: ${mirrorColor}; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
+          ⇄ Mirror Cam
+        </button>
         <button type="button" class="btn-ar-action btn-ar-reset" style="background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: #f8fafc; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
           Reset View
         </button>
@@ -491,6 +659,26 @@ export class ARManager {
         </button>
       </div>
     `;
+
+    const scaleBtn = hud.querySelector('.btn-ar-scale');
+    if (scaleBtn) {
+      const scales = [1.0, 0.6, 1.4];
+      scaleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const curr = this.placement.scale || 1.0;
+        const idx = scales.findIndex((s) => Math.abs(s - curr) < 0.1);
+        const next = scales[(idx + 1) % scales.length];
+        this.setPlacementScale(next);
+      });
+    }
+
+    const mirrorBtn = hud.querySelector('.btn-ar-mirror');
+    if (mirrorBtn) {
+      mirrorBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setVideoMirror(!this.isMirrored);
+      });
+    }
 
     const exitBtn = hud.querySelector('.btn-ar-exit');
     if (exitBtn) {
@@ -504,6 +692,9 @@ export class ARManager {
     if (resetBtn) {
       resetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        this.setPlacementScale(1.0);
+        this.setPlacementOffset(0, 0);
+        this.gyroBase = null;
         if (this.camera && typeof this.camera.position?.set === 'function') {
           this.camera.position.set(0, 0, 32);
           this.camera.lookAt(0, 0, 0);
