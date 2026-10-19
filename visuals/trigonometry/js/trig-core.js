@@ -1,10 +1,17 @@
 /**
  * @file trig-core.js
  * Unified 2D Canvas, 3D Three.js (BaseScene3DView + LabelOverlay3D), Telemetry,
- * Tokenized Derivations, and WorkspaceDockManager Controller for the Trigonometry Suite.
+ * Tokenized Collapsible Derivation Cards, and WorkspaceDockManager Controller
+ * for the Trigonometry Suite.
  *
- * Shares 100% of the UI/UX, Colour Grammar (PALETTE), Camera Presets, UnitSystemConverter,
- * Affine Conic Mode, WebXR/Camera AR, and Granular 2D/3D Visibility Toggles with the Circle Theorems Suite.
+ * Strictly aligned with the Circle Theorems Suite in:
+ * - Mathematical drawing conventions (sharp vector arrowheads with zero apex globes,
+ *   discrete 0.18 3D vertex markers, radial outward halo labels, vector-bisector angle badges).
+ * - 2D & 3D Angle & Area Shading (makeAngleWedgeMesh, setAngleWedgeVertices3D,
+ *   makeRightAngleMesh, setRightAngle3DVertices, 2D/3D conjugate reflex wedges).
+ * - Bidirectional 2D & 3D Canvas interactivity (vertex hit-testing, direct circumference
+ *   radius drag, canvas background pan + double-click reset, wheel zoom, 3D raycast drag).
+ * - UnitSystemConverter-aware numerical deductions and cardTemplate derivation cards.
  */
 
 import {
@@ -25,6 +32,7 @@ import {
   PlaybackController,
   UnitSystemConverter,
   draw2DCartesianGrid,
+  drawHaloText,
   drawLabelledPoint,
   drawRadialLabelledPoint,
   drawTextBadge,
@@ -32,6 +40,7 @@ import {
   drawAngleWedge,
   drawReflexWedge,
   drawArrow,
+  getRadialLabelCoords,
   getPointLabel,
   createDefaultVisState,
 } from '../../../js/circle-core.js';
@@ -44,7 +53,14 @@ import {
   AXES_3D_LABELS,
   makeAngleWedgeMesh,
   makeRightAngleMesh,
+  setAngleWedgeVertices3D,
+  setRightAngle3DVertices,
+  get3DAngleBisector,
+  get3DReflexBisector,
+  get3DAngleDegrees,
 } from '../../../js/circle-3d.js';
+
+import { cardTemplate, tag, fmtAngle, fmtLength } from '../../../js/circle-derivations.js';
 
 import {
   TAU,
@@ -55,7 +71,7 @@ import {
 } from './trig-math.js';
 
 /* ============================================================================
-   1. INITIAL STATE FACTORY PER VISUAL
+   1. INITIAL STATE FACTORY & GEOMETRY HELPERS
    ============================================================================ */
 
 export function createTrigInitialState(visualId) {
@@ -114,15 +130,52 @@ export function createTrigInitialState(visualId) {
   };
 }
 
-function sweepAcuteWedge(ctx, vertex, a1, a2, radius, fill, stroke) {
+/**
+ * Sweeps the interior acute/obtuse angle <= 180° between rays a1 and a2 at vertex.
+ */
+function sweepInteriorWedge(ctx, vertex, a1, a2, radius, fill, stroke) {
   let diff = (a2 - a1) % TAU;
   if (diff < 0) diff += TAU;
   const anticlockwise = diff > Math.PI;
   drawAngleWedge(ctx, vertex, a1, a2, radius, fill, stroke, anticlockwise);
 }
 
+/**
+ * Computes the unit bisector direction vector between two canvas ray angles a1, a2
+ * for non-overlapping angle badge placement.
+ */
+function get2DBisectorOffset(vertex, a1, a2, dist = 46, flip = false) {
+  const ux = Math.cos(a1) + Math.cos(a2);
+  const uy = Math.sin(a1) + Math.sin(a2);
+  const len = Math.hypot(ux, uy);
+  const sign = flip ? -1 : 1;
+  if (len < 1e-4) {
+    return {
+      x: vertex.x + sign * dist * Math.cos(a1 + Math.PI / 2),
+      y: vertex.y + sign * dist * Math.sin(a1 + Math.PI / 2),
+    };
+  }
+  return {
+    x: vertex.x + sign * dist * (ux / len),
+    y: vertex.y + sign * dist * (uy / len),
+  };
+}
+
+/**
+ * Draws a crisp mathematical vector ray from `from` to `to` with a sharp arrowhead
+ * and an outward radial halo label — strictly NO heavy globe on the vector apex.
+ */
+function drawVectorWithApexLabel(ctx, from, to, color, label = '', width = 2.5, head = 10, labelDist = 18) {
+  drawArrow(ctx, from, to, color, width, head);
+  if (label) {
+    const { x, y, ux } = getRadialLabelCoords(to, from, labelDist);
+    const align = ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center';
+    drawHaloText(ctx, label, x, y, color, 'bold 13px monospace', align);
+  }
+}
+
 /* ============================================================================
-   2. UNIFIED 2D CANVAS VIEW (Full PALETTE, Grid/Axes, Coords, Angles, Reflex, Affine, Export)
+   2. UNIFIED 2D CANVAS VIEW
    ============================================================================ */
 
 export class TrigCanvas2DView {
@@ -150,12 +203,84 @@ export class TrigCanvas2DView {
   }
 
   getCenterAndRadius(state) {
-    const pan = state.pan || { x: 0, y: 0 };
+    const pan = state?.pan || { x: 0, y: 0 };
     const cx = this.width / 2 + (pan.x || 0);
     const cy = this.height / 2 + (pan.y || 0);
     const maxSafe = Math.max(60, Math.min(this.width, this.height) * 0.36);
-    const r = Math.min(state.radius || 175, maxSafe);
+    const r = Math.min(state?.radius || 175, maxSafe);
     return { cx, cy, r };
+  }
+
+  /**
+   * Computes interactive 2D screen coordinates for hit-testing and dragging.
+   */
+  getInteractiveHandles2D(state) {
+    const { cx, cy, r } = this.getCenterAndRadius(state);
+    if (this.visualId === 'unit-circle-helix') {
+      const m = computeUnitCircleHelix(state.angleTheta, 1.0, state.helixPitch);
+      return {
+        cx,
+        cy,
+        r,
+        handles: [
+          { id: 'theta', x: cx + m.points2D.P.x * r, y: cy - m.points2D.P.y * r, field: 'angleTheta' },
+        ],
+      };
+    }
+    if (this.visualId === 'law-of-sines') {
+      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
+      const scale = r / 10;
+      return {
+        cx,
+        cy,
+        r,
+        handles: [
+          { id: 'A', x: cx + m.vertices2D.A.x * scale, y: cy - m.vertices2D.A.y * scale, field: 'angleA' },
+          { id: 'B', x: cx + m.vertices2D.B.x * scale, y: cy - m.vertices2D.B.y * scale, field: 'angleB' },
+          { id: 'C', x: cx + m.vertices2D.C.x * scale, y: cy - m.vertices2D.C.y * scale, field: 'angleC' },
+        ],
+      };
+    }
+    if (this.visualId === 'law-of-cosines') {
+      const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
+      const scale = (r * 1.15) / Math.max(m.a, m.b, m.c, 10);
+      const originX = cx - m.b * scale * 0.42;
+      const originY = cy + m.projection.hAlt * scale * 0.35;
+      return {
+        cx: originX,
+        cy: originY,
+        r: m.a * scale,
+        circleCx: cx,
+        circleCy: cy,
+        circleR: r,
+        handles: [
+          {
+            id: 'B',
+            x: originX + m.vertices2D.B.x * scale,
+            y: originY - m.vertices2D.B.y * scale,
+            field: 'angleC',
+          },
+          {
+            id: 'A',
+            x: originX + m.vertices2D.A.x * scale,
+            y: originY - m.vertices2D.A.y * scale,
+            field: 'sideB',
+            scale,
+          },
+        ],
+      };
+    }
+    // angle-sum-identities
+    const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
+    return {
+      cx,
+      cy,
+      r,
+      handles: [
+        { id: 'P', x: cx + m.points2D.P.x * r, y: cy - m.points2D.P.y * r, field: 'angleBeta' },
+        { id: 'A', x: cx + m.points2D.A_ray.x * r, y: cy - m.points2D.A_ray.y * r, field: 'angleAlpha' },
+      ],
+    };
   }
 
   render(state) {
@@ -166,21 +291,9 @@ export class TrigCanvas2DView {
     ctx.clearRect(0, 0, width, height);
     const { cx, cy, r } = this.getCenterAndRadius(state);
 
-    // 1. Standard 2D Cartesian Grid & Perspective-Synchronized Coordinate Axes
+    // 1. Standard 2D Cartesian Grid, Coordinate Axes & Perspective Watermark
+    // Note: draw2DCartesianGrid also applies ctx._pendingAffineState when Affine Conic Mode is active
     draw2DCartesianGrid(ctx, width, height, cx, cy, state.vis2d, 40, state.cameraPerspective);
-
-    // 2. Optional Affine Conic Mode Transformation
-    const scaleX = state.affineMode ? (state.affineStretch ?? 1.35) : 1.0;
-    const rotRad = state.affineMode ? toRadians(state.affineAxisAngle || 0) : 0;
-
-    ctx.save();
-    if (state.affineMode && (Math.abs(scaleX - 1) > 1e-3 || Math.abs(rotRad) > 1e-3)) {
-      ctx.translate(cx, cy);
-      ctx.rotate(rotRad);
-      ctx.scale(scaleX, 1);
-      ctx.rotate(-rotRad);
-      ctx.translate(-cx, -cy);
-    }
 
     if (this.visualId === 'unit-circle-helix') {
       this.#renderUnitCircle(ctx, state, cx, cy, r);
@@ -190,19 +303,6 @@ export class TrigCanvas2DView {
       this.#renderLawOfCosines(ctx, state, cx, cy, r);
     } else {
       this.#renderAngleSum(ctx, state, cx, cy, r);
-    }
-
-    ctx.restore();
-
-    // 3. Affine Conic HUD Banner when active
-    if (state.affineMode) {
-      drawTextBadge(
-        ctx,
-        `Affine Conic Mode (λx = ${scaleX.toFixed(2)}) — Erlangen Conic Invariant Preserved`,
-        width / 2,
-        height - 22,
-        PALETTE.teal
-      );
     }
   }
 
@@ -215,6 +315,7 @@ export class TrigCanvas2DView {
     const showLengths = vis.lengths !== false;
     const showPoints = vis.points !== false;
     const showReflex = Boolean(vis.reflex);
+    const angUnit = state.angleUnit || 'deg';
 
     const toScreen = (pt) => ({ x: cx + pt.x * r, y: cy - pt.y * r });
     const O = toScreen(m.points2D.O);
@@ -228,15 +329,25 @@ export class TrigCanvas2DView {
     const cotBase = toScreen(m.points2D.cotLineBase);
     const cotTip = toScreen(m.points2D.cotLineTip);
 
-    // Unit Circle circumference
+    // Main Circle
     ctx.strokeStyle = PALETTE.sky;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Primary Right Triangle shading (O - projX - P)
+    // Relevant Area Shading (Circular Sector + Orthogonal Right Triangle)
     if (showArea) {
+      const canvasAngP = Math.atan2(P.y - O.y, P.x - O.x);
+      ctx.save();
+      ctx.fillStyle = 'rgba(234, 179, 8, 0.11)';
+      ctx.beginPath();
+      ctx.moveTo(O.x, O.y);
+      ctx.arc(O.x, O.y, r, 0, canvasAngP, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
       ctx.fillStyle = 'rgba(20, 184, 166, 0.16)';
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
@@ -246,31 +357,34 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Angle wedge theta at O
+    // Angle Wedge theta & Right Angle Marker
     const canvasAngP = Math.atan2(P.y - O.y, P.x - O.x);
     if (showAngles) {
-      drawAngleWedge(ctx, O, 0, canvasAngP, 34, 'rgba(251, 191, 36, 0.22)', PALETTE.amber, true);
-      drawRightAngle(ctx, projX, O, P, 11, PALETTE.teal);
+      drawAngleWedge(ctx, O, 0, canvasAngP, 36, 'rgba(251, 191, 36, 0.25)', PALETTE.amber, true);
+      drawRightAngle(ctx, projX, O, P, 12, PALETTE.teal);
+      if (state.showTanSec !== false) {
+        drawRightAngle(ctx, P, O, secPt, 11, PALETTE.rose);
+      }
     }
 
-    // Reflex angle 360 - theta
+    // Conjugate Reflex Angle (Perigon 360° - θ)
     if (showReflex) {
-      drawReflexWedge(ctx, O, 0, canvasAngP, 42, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
+      drawReflexWedge(ctx, O, 0, canvasAngP, 44, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
       if (showLabels) {
         const midRef = -m.theta / 2 + Math.PI;
         drawTextBadge(
           ctx,
-          `θ* = ${(360 - m.thetaDeg).toFixed(1)}°`,
-          cx + 60 * Math.cos(midRef),
-          cy + 60 * Math.sin(midRef),
+          `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`,
+          cx + 64 * Math.cos(midRef),
+          cy + 64 * Math.sin(midRef),
           PALETTE.teal
         );
       }
     }
 
-    // Cosine (amber) & Sine (emerald) segments
-    if (state.showProjections !== false && showLengths) {
-      ctx.lineWidth = 3;
+    // Cosine (amber) & Sine (emerald) orthogonal projections
+    if (state.showProjections !== false) {
+      ctx.lineWidth = 2.8;
       ctx.strokeStyle = PALETTE.amber;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
@@ -286,7 +400,7 @@ export class TrigCanvas2DView {
       ctx.save();
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = PALETTE.emerald;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(projY.x, projY.y);
@@ -295,8 +409,8 @@ export class TrigCanvas2DView {
       ctx.restore();
     }
 
-    // Tangent (rose) & Secant (violet)
-    if (state.showTanSec !== false && showLengths) {
+    // Exterior Tangent (rose) & Secant (violet)
+    if (state.showTanSec !== false) {
       ctx.strokeStyle = PALETTE.rose;
       ctx.lineWidth = 2.4;
       ctx.beginPath();
@@ -317,8 +431,8 @@ export class TrigCanvas2DView {
       ctx.restore();
     }
 
-    // Cotangent (orange) & Cosecant (fuchsia)
-    if (state.showCotCsc !== false && showLengths) {
+    // Exterior Cotangent (orange) & Cosecant (fuchsia)
+    if (state.showCotCsc !== false) {
       ctx.strokeStyle = PALETTE.orange;
       ctx.lineWidth = 2.2;
       ctx.beginPath();
@@ -337,37 +451,60 @@ export class TrigCanvas2DView {
       ctx.restore();
     }
 
-    // Radius OP (indigo)
-    ctx.strokeStyle = PALETTE.indigo;
-    ctx.lineWidth = 2.8;
-    ctx.beginPath();
-    ctx.moveTo(O.x, O.y);
-    ctx.lineTo(P.x, P.y);
-    ctx.stroke();
+    // Radius vector OP (indigo) with sharp arrowhead (no globe on vector apex)
+    drawArrow(ctx, O, P, PALETTE.indigo, 2.6, 10);
 
-    // Segment Badges
+    // Numerical Deductions & Angle Annotations
     if (showLabels) {
       if (showAngles) {
         const bisAng = -m.theta / 2;
-        drawTextBadge(ctx, `θ = ${m.thetaDeg.toFixed(1)}°`, cx + 52 * Math.cos(bisAng), cy + 52 * Math.sin(bisAng), PALETTE.amber);
+        drawTextBadge(
+          ctx,
+          `θ = ${fmtAngle(m.thetaDeg, angUnit)}`,
+          cx + 56 * Math.cos(bisAng),
+          cy + 56 * Math.sin(bisAng),
+          PALETTE.amber
+        );
       }
       if (state.showProjections !== false && showLengths) {
-        drawTextBadge(ctx, `cos θ = ${m.cos.toFixed(3)}`, (O.x + projX.x) / 2, O.y + 18, PALETTE.amber);
-        drawTextBadge(ctx, `sin θ = ${m.sin.toFixed(3)}`, projX.x + 42 * Math.sign(m.cos || 1), (projX.y + P.y) / 2, PALETTE.emerald);
+        drawTextBadge(
+          ctx,
+          `cos θ = ${m.cos.toFixed(3)}`,
+          (O.x + projX.x) / 2,
+          O.y + (m.sin >= 0 ? 18 : -18),
+          PALETTE.amber
+        );
+        drawTextBadge(
+          ctx,
+          `sin θ = ${m.sin.toFixed(3)}`,
+          projX.x + 44 * (m.cos >= 0 ? 1 : -1),
+          (projX.y + P.y) / 2,
+          PALETTE.emerald
+        );
       }
-      if (state.showTanSec !== false && Math.abs(m.tan) < 4) {
-        drawTextBadge(ctx, `tan θ = ${m.tan.toFixed(2)}`, tanTip.x + 42, (tanBase.y + tanTip.y) / 2, PALETTE.rose);
+      if (state.showTanSec !== false && showLengths && Math.abs(m.tan) < 3.5) {
+        drawTextBadge(
+          ctx,
+          `tan θ = ${m.tan.toFixed(2)}`,
+          tanTip.x + 38 * (m.cos >= 0 ? 1 : -1),
+          (tanBase.y + tanTip.y) / 2,
+          PALETTE.rose
+        );
       }
     }
 
-    // Points & Coordinate Badges
+    // Discrete Euclidean Vertex Markers & Outward Radial Labels (no heavy globe on vector apex P)
     if (showPoints) {
       const lblO = getPointLabel('O', 0, 0, vis);
       const lblP = getPointLabel('P', m.cos * r, m.sin * r, vis);
       const lblX = getPointLabel('Cx', m.cos * r, 0, vis);
-      drawLabelledPoint(ctx, O, PALETTE.indigo, lblO, -12, 16);
-      drawLabelledPoint(ctx, projX, PALETTE.amber, lblX, 0, -14, 4);
-      drawRadialLabelledPoint(ctx, P, O, PALETTE.violet, lblP, 22, 6);
+      drawLabelledPoint(ctx, O, PALETTE.indigo, lblO, -12, 16, 4.5);
+      drawLabelledPoint(ctx, projX, PALETTE.amber, lblX, 0, m.sin >= 0 ? 16 : -16, 4);
+      // Outward radial label for P without covering the sharp arrowhead at P
+      if (lblP) {
+        const { x, y, ux } = getRadialLabelCoords(P, O, 20);
+        drawHaloText(ctx, lblP, x, y, PALETTE.violet, 'bold 13px monospace', ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center');
+      }
     }
   }
 
@@ -381,6 +518,7 @@ export class TrigCanvas2DView {
     const showLengths = vis.lengths !== false;
     const showPoints = vis.points !== false;
     const showReflex = Boolean(vis.reflex);
+    const angUnit = state.angleUnit || 'deg';
 
     const toScreen = (pt) => ({ x: cx + pt.x * scale, y: cy - pt.y * scale });
     const O = { x: cx, y: cy };
@@ -392,12 +530,12 @@ export class TrigCanvas2DView {
 
     // Circumcircle
     ctx.strokeStyle = PALETTE.sky;
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Inscribed Triangle Shading
+    // Inscribed Triangle & Thales Right Triangle Shading
     if (showArea) {
       ctx.fillStyle = 'rgba(59, 130, 246, 0.14)';
       ctx.beginPath();
@@ -406,6 +544,16 @@ export class TrigCanvas2DView {
       ctx.lineTo(C.x, C.y);
       ctx.closePath();
       ctx.fill();
+
+      if (state.showCircumcircleDiameter !== false) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.08)';
+        ctx.beginPath();
+        ctx.moveTo(antipodeA.x, antipodeA.y);
+        ctx.lineTo(B.x, B.y);
+        ctx.lineTo(C.x, C.y);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
 
     // Circumradii OA, OB, OC
@@ -413,16 +561,19 @@ export class TrigCanvas2DView {
       ctx.save();
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = PALETTE.indigo;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(O.x, O.y); ctx.lineTo(A.x, A.y);
-      ctx.moveTo(O.x, O.y); ctx.lineTo(B.x, B.y);
-      ctx.moveTo(O.x, O.y); ctx.lineTo(C.x, C.y);
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(A.x, A.y);
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(C.x, C.y);
       ctx.stroke();
       ctx.restore();
     }
 
-    // Thales Antipodal Diameter Bridge A'B
+    // Thales Antipodal Diameter Bridge A'B = 2R
     if (state.showCircumcircleDiameter !== false) {
       ctx.save();
       ctx.setLineDash([6, 4]);
@@ -439,7 +590,24 @@ export class TrigCanvas2DView {
         drawRightAngle(ctx, C, antipodeA, B, 12, PALETTE.amber);
       }
       if (showPoints) {
-        drawRadialLabelledPoint(ctx, antipodeA, O, PALETTE.amber, showLabels ? "A'" : '', 18, 4.5);
+        drawRadialLabelledPoint(
+          ctx,
+          antipodeA,
+          O,
+          PALETTE.amber,
+          getPointLabel("A'", m.vertices2D.antipodeA.x * scale, m.vertices2D.antipodeA.y * scale, vis),
+          18,
+          4.5
+        );
+      }
+      if (showLabels && showLengths) {
+        drawTextBadge(
+          ctx,
+          `2R = ${m.diameter2R.toFixed(1)}`,
+          (B.x + antipodeA.x) / 2 - 14,
+          (B.y + antipodeA.y) / 2 - 10,
+          PALETTE.amber
+        );
       }
     }
 
@@ -458,12 +626,21 @@ export class TrigCanvas2DView {
       if (showAngles) {
         drawRightAngle(ctx, footHc, C, B, 10, PALETTE.teal);
       }
+      if (showPoints) {
+        drawLabelledPoint(ctx, footHc, PALETTE.teal, showLabels ? 'Hc' : '', 0, 15, 4);
+      }
       if (showLabels && showLengths) {
-        drawTextBadge(ctx, `hc = ${m.altitudeHc.toFixed(2)}`, (C.x + footHc.x) / 2 + 16, (C.y + footHc.y) / 2, PALETTE.teal);
+        drawTextBadge(
+          ctx,
+          `hc = ${m.altitudeHc.toFixed(2)}`,
+          (C.x + footHc.x) / 2 + 28,
+          (C.y + footHc.y) / 2,
+          PALETTE.teal
+        );
       }
     }
 
-    // Interior Angle Wedges at A, B, C
+    // Interior Angle Wedges & Bisector Badges at A, B, C
     const angAB = Math.atan2(B.y - A.y, B.x - A.x);
     const angAC = Math.atan2(C.y - A.y, C.x - A.x);
     const angBA = Math.atan2(A.y - B.y, A.x - B.x);
@@ -472,38 +649,68 @@ export class TrigCanvas2DView {
     const angCB = Math.atan2(B.y - C.y, B.x - C.x);
 
     if (showAngles) {
-      sweepAcuteWedge(ctx, A, angAB, angAC, 28, 'rgba(239, 68, 68, 0.25)', PALETTE.red);
-      sweepAcuteWedge(ctx, B, angBC, angBA, 28, 'rgba(34, 197, 94, 0.25)', PALETTE.green);
-      sweepAcuteWedge(ctx, C, angCA, angCB, 28, 'rgba(168, 85, 247, 0.25)', PALETTE.violet);
+      sweepInteriorWedge(ctx, A, angAB, angAC, 28, 'rgba(239, 68, 68, 0.25)', PALETTE.red);
+      sweepInteriorWedge(ctx, B, angBC, angBA, 28, 'rgba(34, 197, 94, 0.25)', PALETTE.green);
+      sweepInteriorWedge(ctx, C, angCA, angCB, 28, 'rgba(168, 85, 247, 0.25)', PALETTE.violet);
+
+      if (showLabels) {
+        const bA = get2DBisectorOffset(A, angAB, angAC, 46);
+        const bB = get2DBisectorOffset(B, angBC, angBA, 46);
+        const bC = get2DBisectorOffset(C, angCA, angCB, 46);
+        drawTextBadge(ctx, `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, bA.x, bA.y, PALETTE.red);
+        drawTextBadge(ctx, `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, bB.x, bB.y, PALETTE.green);
+        drawTextBadge(ctx, `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, bC.x, bC.y, PALETTE.violet);
+      }
     }
 
     if (showReflex) {
-      drawReflexWedge(ctx, C, angCA, angCB, 36, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
+      drawReflexWedge(ctx, A, angAB, angAC, 36, 'rgba(239, 68, 68, 0.12)', PALETTE.red);
+      drawReflexWedge(ctx, B, angBC, angBA, 36, 'rgba(34, 197, 94, 0.12)', PALETTE.green);
+      drawReflexWedge(ctx, C, angCA, angCB, 36, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      if (showLabels) {
+        const rC = get2DBisectorOffset(C, angCA, angCB, 54, true);
+        drawTextBadge(ctx, `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, rC.x, rC.y, PALETTE.teal);
+      }
     }
 
-    // Sides a (BC - red), b (AC - green), c (AB - violet)
-    ctx.lineWidth = 2.8;
-    ctx.strokeStyle = PALETTE.red;
-    ctx.beginPath(); ctx.moveTo(B.x, B.y); ctx.lineTo(C.x, C.y); ctx.stroke();
+    // Chords a (BC - red), b (AC - green), c (AB - violet)
+    if (vis.chords !== false) {
+      ctx.lineWidth = 2.6;
+      ctx.strokeStyle = PALETTE.red;
+      ctx.beginPath();
+      ctx.moveTo(B.x, B.y);
+      ctx.lineTo(C.x, C.y);
+      ctx.stroke();
 
-    ctx.strokeStyle = PALETTE.green;
-    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(C.x, C.y); ctx.stroke();
+      ctx.strokeStyle = PALETTE.green;
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(C.x, C.y);
+      ctx.stroke();
 
-    ctx.strokeStyle = PALETTE.violet;
-    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      ctx.strokeStyle = PALETTE.violet;
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.stroke();
+    }
 
-    // Side Length & Angle Labels
+    // Chord Length & Ratio Deductions
     if (showLabels && showLengths) {
-      drawTextBadge(ctx, `a = ${m.sides.a.toFixed(2)}`, (B.x + C.x) / 2, (B.y + C.y) / 2 - 10, PALETTE.red);
-      drawTextBadge(ctx, `b = ${m.sides.b.toFixed(2)}`, (A.x + C.x) / 2, (A.y + C.y) / 2 - 10, PALETTE.green);
-      drawTextBadge(ctx, `c = ${m.sides.c.toFixed(2)}`, (A.x + B.x) / 2, (A.y + B.y) / 2 + 14, PALETTE.violet);
+      const midBC = getRadialLabelCoords({ x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 }, O, 18);
+      const midAC = getRadialLabelCoords({ x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 }, O, 18);
+      const midAB = getRadialLabelCoords({ x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 }, O, 18);
+      drawTextBadge(ctx, `a = ${m.sides.a.toFixed(2)}`, midBC.x, midBC.y, PALETTE.red);
+      drawTextBadge(ctx, `b = ${m.sides.b.toFixed(2)}`, midAC.x, midAC.y, PALETTE.green);
+      drawTextBadge(ctx, `c = ${m.sides.c.toFixed(2)}`, midAB.x, midAB.y, PALETTE.violet);
     }
 
+    // Discrete Euclidean Vertices & Outward Radial Labels
     if (showPoints) {
-      drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), 10, 14);
-      drawRadialLabelledPoint(ctx, A, O, PALETTE.red, getPointLabel('A', m.vertices2D.A.x, m.vertices2D.A.y, vis), 20);
-      drawRadialLabelledPoint(ctx, B, O, PALETTE.green, getPointLabel('B', m.vertices2D.B.x, m.vertices2D.B.y, vis), 20);
-      drawRadialLabelledPoint(ctx, C, O, PALETTE.violet, getPointLabel('C', m.vertices2D.C.x, m.vertices2D.C.y, vis), 20);
+      drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), 10, 15, 4.5);
+      drawRadialLabelledPoint(ctx, A, O, PALETTE.red, getPointLabel('A', m.vertices2D.A.x * scale, m.vertices2D.A.y * scale, vis), 20, 5);
+      drawRadialLabelledPoint(ctx, B, O, PALETTE.green, getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis), 20, 5);
+      drawRadialLabelledPoint(ctx, C, O, PALETTE.violet, getPointLabel('C', m.vertices2D.C.x * scale, m.vertices2D.C.y * scale, vis), 20, 5);
     }
   }
 
@@ -517,42 +724,62 @@ export class TrigCanvas2DView {
     const showLengths = vis.lengths !== false;
     const showPoints = vis.points !== false;
     const showReflex = Boolean(vis.reflex);
+    const angUnit = state.angleUnit || 'deg';
 
-    const originX = cx - (m.b * scale) * 0.42;
-    const originY = cy + (m.projection.hAlt * scale) * 0.35;
+    const originX = cx - m.b * scale * 0.42;
+    const originY = cy + m.projection.hAlt * scale * 0.35;
     const toScreen = (pt) => ({ x: originX + pt.x * scale, y: originY - pt.y * scale });
 
     const C = toScreen(m.vertices2D.C);
     const A = toScreen(m.vertices2D.A);
     const B = toScreen(m.vertices2D.B);
     const D = toScreen(m.vertices2D.D);
+    const centroid = { x: (A.x + B.x + C.x) / 3, y: (A.y + B.y + C.y) / 3 };
 
-    // Triangle Shading
+    // Reference Circle centered at C with radius a = BC (shows locus of B as angle C sweeps)
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(C.x, C.y, m.a * scale, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+
+    // Sub-triangle Area Shading (△CDB and △ADB)
     if (showArea) {
-      ctx.fillStyle = 'rgba(20, 184, 166, 0.14)';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.13)';
       ctx.beginPath();
       ctx.moveTo(C.x, C.y);
+      ctx.lineTo(D.x, D.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(D.x, D.y);
       ctx.lineTo(A.x, A.y);
       ctx.lineTo(B.x, B.y);
       ctx.closePath();
       ctx.fill();
     }
 
-    // Interaction Rectangle 2ab cos C preview below AC
+    // Bilinear Interaction Rectangle (2ab cos C) below AC
     if (state.showInteractionRect !== false && showArea) {
       const rectW = m.projection.pProj * scale;
-      const rectH = Math.min(75, m.b * scale * 0.32);
-      ctx.fillStyle = m.cosC >= 0 ? 'rgba(251, 191, 36, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+      const rectH = Math.min(68, m.b * scale * 0.3);
+      ctx.fillStyle = m.cosC >= 0 ? 'rgba(251, 191, 36, 0.14)' : 'rgba(244, 63, 94, 0.14)';
       ctx.strokeStyle = m.cosC >= 0 ? PALETTE.amber : PALETTE.rose;
       ctx.lineWidth = 1.5;
-      ctx.fillRect(C.x, C.y + 8, rectW, rectH);
-      ctx.strokeRect(C.x, C.y + 8, rectW, rectH);
+      ctx.fillRect(C.x, C.y + 10, rectW, rectH);
+      ctx.strokeRect(C.x, C.y + 10, rectW, rectH);
       if (showLabels) {
         drawTextBadge(
           ctx,
           `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
           C.x + rectW / 2,
-          C.y + 8 + rectH / 2,
+          C.y + 10 + rectH / 2,
           m.cosC >= 0 ? PALETTE.amber : PALETTE.rose
         );
       }
@@ -576,47 +803,78 @@ export class TrigCanvas2DView {
         drawRightAngle(ctx, D, B, A, 11, PALETTE.amber);
       }
       if (showPoints) {
-        drawLabelledPoint(ctx, D, PALETTE.amber, showLabels ? 'D' : '', 0, 18, 4.5);
+        drawLabelledPoint(ctx, D, PALETTE.amber, showLabels ? 'D' : '', 0, -14, 4);
       }
       if (showLabels && showLengths) {
         drawTextBadge(ctx, `a cos C = ${m.projection.pProj.toFixed(2)}`, (C.x + D.x) / 2, C.y - 14, PALETTE.amber);
-        drawTextBadge(ctx, `h = ${m.projection.hAlt.toFixed(2)}`, D.x + 36, (B.y + D.y) / 2, PALETTE.amber);
+        drawTextBadge(ctx, `h = ${m.projection.hAlt.toFixed(2)}`, D.x + 38, (B.y + D.y) / 2, PALETTE.amber);
       }
     }
 
-    // Angle C wedge at C
+    // Interior Angle Wedges at C, A, B
     const angCB = Math.atan2(B.y - C.y, B.x - C.x);
+    const angCA = Math.atan2(A.y - C.y, A.x - C.x);
+    const angAC = Math.atan2(C.y - A.y, C.x - A.x);
+    const angAB = Math.atan2(B.y - A.y, B.x - A.x);
+    const angBC = Math.atan2(C.y - B.y, C.x - B.x);
+    const angBA = Math.atan2(A.y - B.y, A.x - B.x);
+
     if (showAngles) {
-      drawAngleWedge(ctx, C, 0, angCB, 32, 'rgba(244, 63, 94, 0.24)', PALETTE.rose, true);
+      sweepInteriorWedge(ctx, C, angCA, angCB, 32, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
+      sweepInteriorWedge(ctx, A, angAB, angAC, 26, 'rgba(16, 185, 129, 0.22)', PALETTE.emerald);
+      sweepInteriorWedge(ctx, B, angBC, angBA, 26, 'rgba(2, 132, 199, 0.22)', PALETTE.sky);
       if (showLabels) {
-        drawTextBadge(ctx, `∠C = ${m.angleCDeg.toFixed(1)}°`, C.x + 48 * Math.cos(angCB / 2), C.y + 48 * Math.sin(angCB / 2), PALETTE.rose);
+        const bC = get2DBisectorOffset(C, angCA, angCB, 48);
+        drawTextBadge(ctx, `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, bC.x, bC.y, PALETTE.rose);
       }
     }
+
     if (showReflex) {
-      drawReflexWedge(ctx, C, 0, angCB, 40, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      drawReflexWedge(ctx, C, angCA, angCB, 40, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      if (showLabels) {
+        const rC = get2DBisectorOffset(C, angCA, angCB, 56, true);
+        drawTextBadge(ctx, `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, rC.x, rC.y, PALETTE.teal);
+      }
     }
 
     // Sides: b = AC (emerald), a = BC (sky), c = AB (rose)
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.8;
     ctx.strokeStyle = PALETTE.emerald;
-    ctx.beginPath(); ctx.moveTo(C.x, C.y); ctx.lineTo(A.x, A.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(C.x, C.y);
+    ctx.lineTo(A.x, A.y);
+    ctx.stroke();
 
     ctx.strokeStyle = PALETTE.sky;
-    ctx.beginPath(); ctx.moveTo(C.x, C.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(C.x, C.y);
+    ctx.lineTo(B.x, B.y);
+    ctx.stroke();
 
     ctx.strokeStyle = PALETTE.rose;
-    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y);
+    ctx.lineTo(B.x, B.y);
+    ctx.stroke();
 
     if (showLabels && showLengths) {
-      drawTextBadge(ctx, `a = ${m.a.toFixed(2)}`, (C.x + B.x) / 2 - 22, (C.y + B.y) / 2 - 10, PALETTE.sky);
+      drawTextBadge(ctx, `a = ${m.a.toFixed(2)}`, (C.x + B.x) / 2 - 24, (C.y + B.y) / 2 - 12, PALETTE.sky);
       drawTextBadge(ctx, `b = ${m.b.toFixed(2)}`, (C.x + A.x) / 2, C.y + 24, PALETTE.emerald);
-      drawTextBadge(ctx, `c = ${m.c.toFixed(2)}`, (A.x + B.x) / 2 + 24, (A.y + B.y) / 2 - 10, PALETTE.rose);
+      drawTextBadge(ctx, `c = ${m.c.toFixed(2)}`, (A.x + B.x) / 2 + 26, (A.y + B.y) / 2 - 12, PALETTE.rose);
     }
 
     if (showPoints) {
-      drawLabelledPoint(ctx, C, PALETTE.rose, getPointLabel('C', 0, 0, vis), -16, 16, 5.5);
-      drawLabelledPoint(ctx, A, PALETTE.emerald, getPointLabel('A', m.b, 0, vis), 16, 16, 5.5);
-      drawLabelledPoint(ctx, B, PALETTE.sky, getPointLabel('B', m.vertices2D.B.x, m.vertices2D.B.y, vis), 0, -16, 6);
+      drawRadialLabelledPoint(ctx, C, centroid, PALETTE.rose, getPointLabel('C', 0, 0, vis), 20, 5);
+      drawRadialLabelledPoint(ctx, A, centroid, PALETTE.emerald, getPointLabel('A', m.b * scale, 0, vis), 20, 5);
+      drawRadialLabelledPoint(
+        ctx,
+        B,
+        centroid,
+        PALETTE.sky,
+        getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis),
+        20,
+        5
+      );
     }
   }
 
@@ -629,6 +887,7 @@ export class TrigCanvas2DView {
     const showLengths = vis.lengths !== false;
     const showPoints = vis.points !== false;
     const showReflex = Boolean(vis.reflex);
+    const angUnit = state.angleUnit || 'deg';
 
     const toScreen = (pt) => ({ x: cx + pt.x * r, y: cy - pt.y * r });
     const O = toScreen(m.points2D.O);
@@ -642,21 +901,27 @@ export class TrigCanvas2DView {
 
     // Unit Circle
     ctx.strokeStyle = PALETTE.sky;
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Stacked Right Triangles Shading (O-M-Q and O-Q-P)
+    // Stacked Right Triangles Shading (△OMQ and △OQP)
     if (state.showStackedTriangles !== false && showArea) {
       ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
       ctx.beginPath();
-      ctx.moveTo(O.x, O.y); ctx.lineTo(M.x, M.y); ctx.lineTo(Q.x, Q.y); ctx.closePath();
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(M.x, M.y);
+      ctx.lineTo(Q.x, Q.y);
+      ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
       ctx.beginPath();
-      ctx.moveTo(O.x, O.y); ctx.lineTo(Q.x, Q.y); ctx.lineTo(P.x, P.y); ctx.closePath();
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(Q.x, Q.y);
+      ctx.lineTo(P.x, P.y);
+      ctx.closePath();
       ctx.fill();
     }
 
@@ -666,10 +931,14 @@ export class TrigCanvas2DView {
       ctx.strokeStyle = PALETTE.amber;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(Q.x, Q.y); ctx.lineTo(M.x, M.y);
-      ctx.moveTo(P.x, P.y); ctx.lineTo(N.x, N.y);
-      ctx.moveTo(Q.x, Q.y); ctx.lineTo(S.x, S.y);
-      ctx.moveTo(P.x, P.y); ctx.lineTo(S.x, S.y);
+      ctx.moveTo(Q.x, Q.y);
+      ctx.lineTo(M.x, M.y);
+      ctx.moveTo(P.x, P.y);
+      ctx.lineTo(N.x, N.y);
+      ctx.moveTo(Q.x, Q.y);
+      ctx.lineTo(S.x, S.y);
+      ctx.moveTo(P.x, P.y);
+      ctx.lineTo(S.x, S.y);
       ctx.stroke();
       ctx.restore();
 
@@ -681,7 +950,8 @@ export class TrigCanvas2DView {
       ctx.stroke();
 
       if (showAngles) {
-        drawRightAngle(ctx, Q, O, P, 10, PALETTE.violet);
+        drawRightAngle(ctx, Q, O, P, 11, PALETTE.violet);
+        drawRightAngle(ctx, M, O, Q, 10, PALETTE.amber);
       }
     }
 
@@ -690,37 +960,50 @@ export class TrigCanvas2DView {
     const angP = Math.atan2(P.y - O.y, P.x - O.x);
     if (showAngles) {
       drawAngleWedge(ctx, O, 0, angA, 34, 'rgba(56, 189, 248, 0.24)', PALETTE.sky, true);
-      drawAngleWedge(ctx, O, angA, angP, 46, 'rgba(168, 85, 247, 0.24)', PALETTE.violet, true);
+      drawAngleWedge(ctx, O, angA, angP, 48, 'rgba(168, 85, 247, 0.24)', PALETTE.violet, true);
+      if (showLabels) {
+        const bAlpha = get2DBisectorOffset(O, 0, angA, 52);
+        const bBeta = get2DBisectorOffset(O, angA, angP, 64);
+        drawTextBadge(ctx, `α = ${fmtAngle(m.alphaDeg, angUnit)}`, bAlpha.x, bAlpha.y, PALETTE.sky);
+        drawTextBadge(ctx, `β = ${fmtAngle(m.betaDeg, angUnit)}`, bBeta.x, bBeta.y, PALETTE.violet);
+      }
     }
     if (showReflex) {
-      drawReflexWedge(ctx, O, 0, angP, 54, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
+      drawReflexWedge(ctx, O, 0, angP, 56, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
+      if (showLabels) {
+        const midRef = -(state.angleAlpha + state.angleBeta) / 2 + Math.PI;
+        drawTextBadge(
+          ctx,
+          `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`,
+          cx + 72 * Math.cos(midRef),
+          cy + 72 * Math.sin(midRef),
+          PALETTE.teal
+        );
+      }
     }
 
-    // Base ray OA (alpha - sky)
-    drawArrow(ctx, O, Aray, PALETTE.sky, 2.4, 10);
+    // Crisp Mathematical Vectors WITHOUT heavy globes on vector apexes:
+    const lblA = showPoints ? getPointLabel('A(α)', m.points2D.A_ray.x * r, m.points2D.A_ray.y * r, vis) : '';
+    const lblP = showPoints ? getPointLabel('P(α+β)', m.points2D.P.x * r, m.points2D.P.y * r, vis) : '';
+    drawVectorWithApexLabel(ctx, O, Aray, PALETTE.sky, lblA, 2.4, 10, 20);
+    drawVectorWithApexLabel(ctx, O, P, PALETTE.emerald, lblP, 2.8, 11, 22);
 
-    // Compound sum ray OP (alpha + beta - emerald)
-    drawArrow(ctx, O, P, PALETTE.emerald, 3.0, 11);
-
-    // Difference ray OP_diff (alpha - beta - rose)
     if (state.showDifferenceRay !== false) {
-      drawArrow(ctx, O, Pdiff, PALETTE.rose, 2.2, 9);
-      if (showPoints) {
-        drawRadialLabelledPoint(ctx, Pdiff, O, PALETTE.rose, showLabels ? 'P(α−β)' : '', 22, 4.5);
-      }
+      const lblDiff = showPoints && showLabels ? 'P(α−β)' : '';
+      drawVectorWithApexLabel(ctx, O, Pdiff, PALETTE.rose, lblDiff, 2.2, 9, 20);
     }
 
     if (showLabels && showLengths) {
       drawTextBadge(ctx, `cos(α+β) = ${m.trig.cosSum.toFixed(3)}`, (O.x + N.x) / 2, O.y + 18, PALETTE.amber);
-      drawTextBadge(ctx, `sin(α+β) = ${m.trig.sinSum.toFixed(3)}`, N.x - 42, (N.y + P.y) / 2, PALETTE.emerald);
+      drawTextBadge(ctx, `sin(α+β) = ${m.trig.sinSum.toFixed(3)}`, N.x - 44, (N.y + P.y) / 2, PALETTE.emerald);
     }
 
+    // Discrete Euclidean Markers for Origin O and internal foot Q (NOT on vector apexes)
     if (showPoints) {
-      drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), -12, 16);
-      drawRadialLabelledPoint(ctx, Aray, O, PALETTE.sky, getPointLabel('A(α)', m.points2D.A_ray.x, m.points2D.A_ray.y, vis), 20, 5);
-      drawRadialLabelledPoint(ctx, P, O, PALETTE.emerald, getPointLabel('P(α+β)', m.points2D.P.x, m.points2D.P.y, vis), 22, 6);
+      drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), -12, 16, 4.5);
       if (state.showStackedTriangles !== false) {
-        drawLabelledPoint(ctx, Q, PALETTE.amber, showLabels ? 'Q' : '', 12, -10, 4.5);
+        drawLabelledPoint(ctx, Q, PALETTE.amber, showLabels ? 'Q' : '', 12, -10, 4);
+        drawLabelledPoint(ctx, M, PALETTE.amber, showLabels ? 'M' : '', 0, 15, 3.5);
       }
     }
   }
@@ -750,7 +1033,7 @@ export class TrigCanvas2DView {
 }
 
 /* ============================================================================
-   3. UNIFIED 3D SCENE VIEW (Extends BaseScene3DView + LabelOverlay3D + 3D Drag)
+   3. UNIFIED 3D SCENE VIEW (Extends BaseScene3DView + 3D Angle Wedges + Crisp Vectors)
    ============================================================================ */
 
 export class TrigScene3DView extends BaseScene3DView {
@@ -759,87 +1042,87 @@ export class TrigScene3DView extends BaseScene3DView {
     this.visualId = visualId;
     this.R = 10;
 
-    // Scale base sphere and great circle wire to R = 10 (matching Circle Theorems 3D scale)
     this.sphere.scale.setScalar(this.R);
     this.circleWire.scale.setScalar(this.R);
 
     this.dynamicGroup = new THREE.Group();
     this.scene.add(this.dynamicGroup);
 
-    // Interactive 3D draggable handle meshes
-    const makeHandle = (col) =>
+    // Discrete Euclidean vertex markers (radius 0.18, matching Circle Theorems makeMarker)
+    const makeMarker3D = (col, radius = 0.18) =>
       new THREE.Mesh(
-        new THREE.SphereGeometry(0.42, 24, 24),
-        new THREE.MeshStandardMaterial({ color: col, roughness: 0.25, metalness: 0.15 })
+        new THREE.SphereGeometry(radius, 24, 24),
+        new THREE.MeshStandardMaterial({ color: col, roughness: 0.25, metalness: 0.1 })
       );
 
-    this.handleP = makeHandle(PALETTE.violet);
-    this.handleA = makeHandle(PALETTE.red);
-    this.handleB = makeHandle(PALETTE.green);
-    this.handleC = makeHandle(PALETTE.violet);
-    this.scene.add(this.handleP, this.handleA, this.handleB, this.handleC);
+    this.markerO = makeMarker3D(PALETTE.indigo, 0.16);
+    this.handleP = makeMarker3D(PALETTE.violet, 0.18);
+    this.handleA = makeMarker3D(PALETTE.red, 0.18);
+    this.handleB = makeMarker3D(PALETTE.green, 0.18);
+    this.handleC = makeMarker3D(PALETTE.violet, 0.18);
+    this.scene.add(this.markerO, this.handleP, this.handleA, this.handleB, this.handleC);
+
+    // Reusable 3D Angle Wedge & Right-Angle Meshes (matching Circle Theorems)
+    this.wedge1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
+    this.wedge2 = makeAngleWedgeMesh(THREE, PALETTE.green, 0.28);
+    this.wedge3 = makeAngleWedgeMesh(THREE, PALETTE.violet, 0.28);
+    this.reflexWedge1 = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.22);
+    this.rightAngle1 = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
+    this.rightAngle2 = makeRightAngleMesh(THREE, PALETTE.amber, 0.75);
+    this.scene.add(this.wedge1, this.wedge2, this.wedge3, this.reflexWedge1, this.rightAngle1, this.rightAngle2);
 
     this.#configureDraggableTargets();
   }
 
   #configureDraggableTargets() {
+    // Note: BaseScene3DView.enableInteraction calls onDrag(angle, hit, store, lat)
+    // or sets activeTarget.field = angle!
     if (this.visualId === 'unit-circle-helix') {
       this.handleA.visible = false;
       this.handleB.visible = false;
       this.handleC.visible = false;
       this.draggableTargets = [
         {
+          id: 'P',
           mesh: this.handleP,
-          onDrag: (pt, store) => {
-            const ang = normalizeAngle(Math.atan2(pt.z, pt.x));
-            store.set({ angleTheta: ang });
-          },
+          field: 'angleTheta',
         },
       ];
     } else if (this.visualId === 'law-of-sines') {
       this.handleP.visible = false;
       this.draggableTargets = [
-        {
-          mesh: this.handleA,
-          onDrag: (pt, store) => store.set({ angleA: normalizeAngle(Math.atan2(pt.z, pt.x)) }),
-        },
-        {
-          mesh: this.handleB,
-          onDrag: (pt, store) => store.set({ angleB: normalizeAngle(Math.atan2(pt.z, pt.x)) }),
-        },
-        {
-          mesh: this.handleC,
-          onDrag: (pt, store) => store.set({ angleC: normalizeAngle(Math.atan2(pt.z, pt.x)) }),
-        },
+        { id: 'A', mesh: this.handleA, field: 'angleA' },
+        { id: 'B', mesh: this.handleB, field: 'angleB' },
+        { id: 'C', mesh: this.handleC, field: 'angleC' },
       ];
     } else if (this.visualId === 'law-of-cosines') {
-      this.handleA.visible = false;
-      this.handleC.visible = false;
       this.handleP.visible = false;
       this.draggableTargets = [
         {
+          id: 'B',
           mesh: this.handleB,
-          onDrag: (pt, store) => {
-            const ang = clamp(Math.atan2(Math.abs(pt.z), pt.x), 0.1, Math.PI - 0.1);
-            store.set({ angleC: ang });
+          onDrag: (angle, hit, store) => {
+            const clamped = clamp(Math.atan2(Math.abs(hit.z), hit.x), 0.18, Math.PI - 0.18);
+            store.set({ angleC: clamped });
           },
         },
       ];
     } else {
-      // angle-sum-identities
+      // angle-sum-identities: vector apexes have invisible pick targets (no visible globes)
       this.handleB.visible = false;
       this.handleC.visible = false;
+      this.handleA.material.transparent = true;
+      this.handleA.material.opacity = 0.01;
+      this.handleP.material.transparent = true;
+      this.handleP.material.opacity = 0.01;
       this.draggableTargets = [
+        { id: 'A', mesh: this.handleA, field: 'angleAlpha' },
         {
-          mesh: this.handleA,
-          onDrag: (pt, store) => store.set({ angleAlpha: normalizeAngle(Math.atan2(pt.z, pt.x)) }),
-        },
-        {
+          id: 'P',
           mesh: this.handleP,
-          onDrag: (pt, store) => {
-            const total = normalizeAngle(Math.atan2(pt.z, pt.x));
+          onDrag: (angle, _hit, store) => {
             const alpha = store.get().angleAlpha || 0;
-            store.set({ angleBeta: normalizeAngle(total - alpha) });
+            store.set({ angleBeta: normalizeAngle(angle - alpha) });
           },
         },
       ];
@@ -867,24 +1150,45 @@ export class TrigScene3DView extends BaseScene3DView {
     const vis3d = state.vis3d || {};
     const showArea = vis3d.area !== false;
     const showAngles = vis3d.angles !== false;
+    const showReflex = Boolean(vis3d.reflex);
+    const angUnit = state.angleUnit || 'deg';
     const labels = [...AXES_3D_LABELS];
+
+    // Reset reusable angle/right-angle meshes
+    this.wedge1.visible = false;
+    this.wedge2.visible = false;
+    this.wedge3.visible = false;
+    this.reflexWedge1.visible = false;
+    this.rightAngle1.visible = false;
+    this.rightAngle2.visible = false;
 
     const addSeg = (p1, p2, color, dashed = false) => {
       const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
       const mat = dashed
         ? new THREE.LineDashedMaterial({ color, dashSize: 0.45, gapSize: 0.28 })
-        : new THREE.LineBasicMaterial({ color, linewidth: 2.4 });
+        : new THREE.LineBasicMaterial({ color, linewidth: 2.2 });
       const line = new THREE.Line(geom, mat);
       if (dashed) line.computeLineDistances();
       this.dynamicGroup.add(line);
     };
 
+    const addVectorArrow = (origin, target, color) => {
+      const diff = new THREE.Vector3().subVectors(target, origin);
+      const len = diff.length();
+      if (len < 1e-4) return;
+      const dir = diff.normalize();
+      const arrow = new THREE.ArrowHelper(dir, origin, len, color, 0.65, 0.32);
+      this.dynamicGroup.add(arrow);
+    };
+
     if (this.visualId === 'unit-circle-helix') {
       const m = computeUnitCircleHelix(state.angleTheta, R, state.helixPitch);
       const O = new THREE.Vector3(0, 0, 0);
+      const X_ref = new THREE.Vector3(R, 0, 0);
       const P_eq = new THREE.Vector3(R * m.cos, 0, R * m.sin);
       const projX = new THREE.Vector3(R * m.cos, 0, 0);
 
+      this.markerO.position.copy(O);
       this.handleP.position.copy(P_eq);
 
       // 3D Cylindrical Helix Curve r(t) = (R cos t, y(t), R sin t)
@@ -923,10 +1227,20 @@ export class TrigScene3DView extends BaseScene3DView {
 
       const yNow = R * (state.helixPitch || 0.35) * (m.theta - Math.PI);
       const P_helix = new THREE.Vector3(R * m.cos, yNow, R * m.sin);
-      addSeg(O, P_eq, PALETTE.indigo);
+
+      addVectorArrow(O, P_eq, PALETTE.indigo);
       addSeg(O, projX, PALETTE.amber);
       addSeg(projX, P_eq, PALETTE.emerald);
       addSeg(P_eq, P_helix, PALETTE.violet, true);
+
+      // 3D Angle Wedge theta, Right-Angle Marker, and Reflex Wedge
+      setAngleWedgeVertices3D(this.wedge1, O, X_ref, P_eq, 2.4, 24, THREE, m.theta > Math.PI);
+      this.wedge1.visible = showAngles;
+      setRightAngle3DVertices(this.rightAngle1, projX, O, P_eq, 0.9, THREE);
+      this.rightAngle1.visible = showAngles && Math.abs(m.cos) > 0.1 && Math.abs(m.sin) > 0.1;
+
+      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P_eq, 3.1, 32, THREE, m.theta <= Math.PI);
+      this.reflexWedge1.visible = showReflex;
 
       if (showArea) {
         const triGeom = new THREE.BufferGeometry().setFromPoints([O, projX, P_eq]);
@@ -939,20 +1253,26 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
+      const bisPos = get3DAngleBisector(O, X_ref, P_eq, 3.4, THREE);
+      const refPos = get3DReflexBisector(O, X_ref, P_eq, 4.0, THREE);
+
       labels.push(
-        { key: 'O', name: 'O', at: { x: 0, y: 0.4, z: 0 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-indigo' },
-        { key: 'P', name: 'P(θ)', at: { x: P_eq.x * 1.12, y: 0.4, z: P_eq.z * 1.12 }, coords: { x: P_eq.x, y: 0, z: P_eq.z }, color: 'color-violet' },
-        { key: 'H', name: 'Helix(θ)', at: { x: P_helix.x * 1.1, y: P_helix.y + 0.5, z: P_helix.z * 1.1 }, coords: { x: P_helix.x, y: P_helix.y, z: P_helix.z }, color: 'color-teal' },
-        { key: 'ang-theta', text: `θ = ${m.thetaDeg.toFixed(1)}°`, at: { x: 2.5 * Math.cos(m.theta / 2), y: 0.3, z: 2.5 * Math.sin(m.theta / 2) }, color: 'color-amber', isAngle: true }
+        { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-indigo' },
+        { key: 'P', name: 'P(θ)', at: { x: P_eq.x * 1.15, y: 0.4, z: P_eq.z * 1.15 }, coords: { x: P_eq.x, y: 0, z: P_eq.z }, color: 'color-violet' },
+        { key: 'H', name: 'Helix(θ)', at: { x: P_helix.x * 1.12, y: P_helix.y + 0.6, z: P_helix.z * 1.12 }, coords: { x: P_helix.x, y: P_helix.y, z: P_helix.z }, color: 'color-teal' },
+        { key: 'ang-theta', text: `θ = ${fmtAngle(m.thetaDeg, angUnit)}`, at: bisPos, color: 'color-amber', isAngle: true, show: showAngles },
+        { key: 'ref-theta', text: `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`, at: refPos, color: 'color-teal', isAngle: true, show: showReflex }
       );
     } else if (this.visualId === 'law-of-sines') {
       const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, R);
+      const O = new THREE.Vector3(0, 0, 0);
       const A = new THREE.Vector3(m.vertices2D.A.x, 0, m.vertices2D.A.y);
       const B = new THREE.Vector3(m.vertices2D.B.x, 0, m.vertices2D.B.y);
       const C = new THREE.Vector3(m.vertices2D.C.x, 0, m.vertices2D.C.y);
       const Ap = new THREE.Vector3(m.vertices2D.antipodeA.x, 0, m.vertices2D.antipodeA.y);
       const Hc = new THREE.Vector3(m.vertices2D.footHc.x, 0, m.vertices2D.footHc.y);
 
+      this.markerO.position.copy(O);
       this.handleA.position.copy(A);
       this.handleB.position.copy(B);
       this.handleC.position.copy(C);
@@ -961,13 +1281,38 @@ export class TrigScene3DView extends BaseScene3DView {
       addSeg(A, C, PALETTE.green);
       addSeg(A, B, PALETTE.violet);
 
+      if (state.showRadii !== false) {
+        addSeg(O, A, PALETTE.indigo, true);
+        addSeg(O, B, PALETTE.indigo, true);
+        addSeg(O, C, PALETTE.indigo, true);
+      }
+
       if (state.showCircumcircleDiameter !== false) {
         addSeg(B, Ap, PALETTE.amber, true);
         addSeg(Ap, C, PALETTE.amber, true);
+        setRightAngle3DVertices(this.rightAngle2, C, Ap, B, 0.95, THREE);
+        this.rightAngle2.visible = showAngles;
       }
       if (state.showAltitude !== false) {
         addSeg(C, Hc, PALETTE.teal, true);
+        setRightAngle3DVertices(this.rightAngle1, Hc, C, B, 0.85, THREE);
+        this.rightAngle1.visible = showAngles;
       }
+
+      // 3D Interior Angle Wedges at A, B, C & Reflex Wedge at C
+      this.wedge1.material.color.set(PALETTE.red);
+      this.wedge1.arcLine.material.color.set(PALETTE.red);
+      setAngleWedgeVertices3D(this.wedge1, A, B, C, 2.2, 24, THREE);
+      this.wedge2.material.color.set(PALETTE.green);
+      this.wedge2.arcLine.material.color.set(PALETTE.green);
+      setAngleWedgeVertices3D(this.wedge2, B, A, C, 2.2, 24, THREE);
+      this.wedge3.material.color.set(PALETTE.violet);
+      this.wedge3.arcLine.material.color.set(PALETTE.violet);
+      setAngleWedgeVertices3D(this.wedge3, C, A, B, 2.2, 24, THREE);
+      this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
+
+      setAngleWedgeVertices3D(this.reflexWedge1, C, A, B, 2.9, 32, THREE, true);
+      this.reflexWedge1.visible = showReflex;
 
       if (showArea) {
         const triGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
@@ -980,11 +1325,20 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
+      const bisA = get3DAngleBisector(A, B, C, 3.2, THREE);
+      const bisB = get3DAngleBisector(B, A, C, 3.2, THREE);
+      const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
+      const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
+
       labels.push(
-        { key: 'A', name: 'A', at: { x: A.x * 1.12, y: 0.4, z: A.z * 1.12 }, coords: { x: A.x, y: 0, z: A.z }, color: 'color-red' },
-        { key: 'B', name: 'B', at: { x: B.x * 1.12, y: 0.4, z: B.z * 1.12 }, coords: { x: B.x, y: 0, z: B.z }, color: 'color-green' },
-        { key: 'C', name: 'C', at: { x: C.x * 1.12, y: 0.4, z: C.z * 1.12 }, coords: { x: C.x, y: 0, z: C.z }, color: 'color-violet' },
-        { key: 'inv-2R', text: `a/sin A = 2R = ${m.diameter2R.toFixed(2)}`, at: { x: 0, y: 1.4, z: 0 }, color: 'color-amber', isAngle: true }
+        { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
+        { key: 'A', name: 'A', at: { x: A.x * 1.15, y: 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
+        { key: 'B', name: 'B', at: { x: B.x * 1.15, y: 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
+        { key: 'C', name: 'C', at: { x: C.x * 1.15, y: 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
+        { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
+        { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
+        { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
+        { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
       );
     } else if (this.visualId === 'law-of-cosines') {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
@@ -994,14 +1348,38 @@ export class TrigScene3DView extends BaseScene3DView {
       const B = new THREE.Vector3(m.vertices2D.B.x * s, 0, m.vertices2D.B.y * s);
       const D = new THREE.Vector3(m.vertices2D.D.x * s, 0, 0);
 
+      this.markerO.position.copy(C);
+      this.handleA.position.copy(A);
       this.handleB.position.copy(B);
+      this.handleC.position.copy(D);
+      this.handleA.visible = true;
+      this.handleB.visible = true;
+      this.handleC.visible = state.showProjection !== false;
 
       addSeg(C, A, PALETTE.emerald);
       addSeg(C, B, PALETTE.sky);
       addSeg(A, B, PALETTE.rose);
       if (state.showProjection !== false) {
         addSeg(B, D, PALETTE.amber, true);
+        addSeg(C, D, PALETTE.amber, true);
+        setRightAngle3DVertices(this.rightAngle2, D, B, A, 0.9, THREE);
+        this.rightAngle2.visible = showAngles;
       }
+
+      // 3D Angle Wedges at C, A, B
+      this.wedge1.material.color.set(PALETTE.rose);
+      this.wedge1.arcLine.material.color.set(PALETTE.rose);
+      setAngleWedgeVertices3D(this.wedge1, C, A, B, 2.2, 24, THREE);
+      this.wedge2.material.color.set(PALETTE.emerald);
+      this.wedge2.arcLine.material.color.set(PALETTE.emerald);
+      setAngleWedgeVertices3D(this.wedge2, A, C, B, 1.9, 24, THREE);
+      this.wedge3.material.color.set(PALETTE.sky);
+      this.wedge3.arcLine.material.color.set(PALETTE.sky);
+      setAngleWedgeVertices3D(this.wedge3, B, C, A, 1.9, 24, THREE);
+      this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
+
+      setAngleWedgeVertices3D(this.reflexWedge1, C, A, B, 2.9, 32, THREE, true);
+      this.reflexWedge1.visible = showReflex;
 
       if (showArea) {
         const triGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
@@ -1009,40 +1387,67 @@ export class TrigScene3DView extends BaseScene3DView {
         this.dynamicGroup.add(
           new THREE.Mesh(
             triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+            new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
           )
         );
       }
 
+      const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
+      const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
+
       labels.push(
-        { key: 'C', name: 'C', at: { x: -0.8, y: 0.4, z: -0.8 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-rose' },
-        { key: 'A', name: 'A', at: { x: A.x + 0.8, y: 0.4, z: 0 }, coords: { x: A.x, y: 0, z: 0 }, color: 'color-emerald' },
-        { key: 'B', name: 'B', at: { x: B.x, y: 0.5, z: B.z + 0.8 }, coords: { x: B.x, y: 0, z: B.z }, color: 'color-sky' },
-        { key: 'D', name: 'D', at: { x: D.x, y: 0.4, z: -0.8 }, coords: { x: D.x, y: 0, z: 0 }, color: 'color-amber' },
-        { key: 'ang-C', text: `∠C = ${m.angleCDeg.toFixed(1)}°`, at: { x: 1.8, y: 0.5, z: 1.2 }, color: 'color-rose', isAngle: true }
+        { key: 'C', name: 'C', at: { x: -0.9, y: 0.5, z: -0.9 }, coords: C, color: 'color-rose' },
+        { key: 'A', name: 'A', at: { x: A.x + 0.9, y: 0.5, z: 0 }, coords: A, color: 'color-emerald' },
+        { key: 'B', name: 'B', at: { x: B.x, y: 0.6, z: B.z + 0.9 }, coords: B, color: 'color-sky' },
+        { key: 'D', name: 'D', at: { x: D.x, y: 0.4, z: -0.9 }, coords: D, color: 'color-amber', show: state.showProjection !== false },
+        { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
+        { key: 'ref-C', text: `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
       );
     } else {
-      // angle-sum-identities
+      // angle-sum-identities: crisp 3D ArrowHelper vectors (no visible spheres on vector apexes)
       const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, R);
       const O = new THREE.Vector3(0, 0, 0);
+      const X_ref = new THREE.Vector3(R, 0, 0);
       const Aray = new THREE.Vector3(m.points2D.A_ray.x, 0, m.points2D.A_ray.y);
       const P = new THREE.Vector3(m.points2D.P.x, 0, m.points2D.P.y);
       const Pdiff = new THREE.Vector3(m.points2D.P_diff.x, 0, m.points2D.P_diff.y);
       const Q = new THREE.Vector3(m.points2D.Q.x, 0, m.points2D.Q.y);
       const M = new THREE.Vector3(m.points2D.M.x, 0, 0);
 
+      this.markerO.position.copy(O);
       this.handleA.position.copy(Aray);
       this.handleP.position.copy(P);
 
-      addSeg(O, Aray, PALETTE.sky);
-      addSeg(O, P, PALETTE.emerald);
-      addSeg(Q, P, PALETTE.violet);
-      addSeg(Q, M, PALETTE.amber, true);
+      // Crisp 3D Conical Vector Arrows (no spherical globes on vector apexes)
+      addVectorArrow(O, Aray, PALETTE.sky);
+      addVectorArrow(O, P, PALETTE.emerald);
       if (state.showDifferenceRay !== false) {
-        addSeg(O, Pdiff, PALETTE.rose, true);
+        addVectorArrow(O, Pdiff, PALETTE.rose);
       }
 
-      if (showArea) {
+      if (state.showStackedTriangles !== false) {
+        addSeg(O, Q, PALETTE.amber);
+        addSeg(Q, P, PALETTE.violet);
+        addSeg(Q, M, PALETTE.amber, true);
+        setRightAngle3DVertices(this.rightAngle1, Q, O, P, 0.85, THREE);
+        setRightAngle3DVertices(this.rightAngle2, M, O, Q, 0.75, THREE);
+        this.rightAngle1.visible = showAngles;
+        this.rightAngle2.visible = showAngles;
+      }
+
+      // 3D Angle Wedges alpha and beta
+      this.wedge1.material.color.set(PALETTE.sky);
+      this.wedge1.arcLine.material.color.set(PALETTE.sky);
+      setAngleWedgeVertices3D(this.wedge1, O, X_ref, Aray, 2.2, 24, THREE, state.angleAlpha > Math.PI);
+      this.wedge2.material.color.set(PALETTE.violet);
+      this.wedge2.arcLine.material.color.set(PALETTE.violet);
+      setAngleWedgeVertices3D(this.wedge2, O, Aray, P, 3.0, 24, THREE, state.angleBeta > Math.PI);
+      this.wedge1.visible = this.wedge2.visible = showAngles;
+
+      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P, 3.6, 32, THREE, true);
+      this.reflexWedge1.visible = showReflex;
+
+      if (showArea && state.showStackedTriangles !== false) {
         const g1 = new THREE.BufferGeometry().setFromPoints([O, M, Q]);
         g1.setIndex([0, 1, 2]);
         const g2 = new THREE.BufferGeometry().setFromPoints([O, Q, P]);
@@ -1053,11 +1458,16 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
+      const bisAlpha = get3DAngleBisector(O, X_ref, Aray, 3.2, THREE);
+      const bisBeta = get3DAngleBisector(O, Aray, P, 4.0, THREE);
+
       labels.push(
-        { key: 'O', name: 'O', at: { x: 0, y: 0.4, z: 0 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-indigo' },
-        { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.12, y: 0.4, z: Aray.z * 1.12 }, coords: { x: Aray.x, y: 0, z: Aray.z }, color: 'color-sky' },
-        { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.12, y: 0.4, z: P.z * 1.12 }, coords: { x: P.x, y: 0, z: P.z }, color: 'color-emerald' },
-        { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: { x: Q.x, y: 0, z: Q.z }, color: 'color-amber' }
+        { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
+        { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
+        { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
+        { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
+        { key: 'angAlpha', text: `α = ${fmtAngle(m.alphaDeg, angUnit)}`, at: bisAlpha, color: 'color-sky', isAngle: true, show: showAngles },
+        { key: 'angBeta', text: `β = ${fmtAngle(m.betaDeg, angUnit)}`, at: bisBeta, color: 'color-violet', isAngle: true, show: showAngles }
       );
     }
 
@@ -1067,144 +1477,294 @@ export class TrigScene3DView extends BaseScene3DView {
 }
 
 /* ============================================================================
-   4. TOKENIZED LIVE MATH DERIVATIONS VIEW (Strict PALETTE Colour Grammar)
+   4. COLLAPSIBLE TOKENIZED LIVE MATH DERIVATIONS (Uses Circle Theorems cardTemplate)
    ============================================================================ */
-
-const tag = (color, text) => `<span class="color-${color} font-bold">${text}</span>`;
 
 export class TrigDerivationsView {
   constructor(container, visualId) {
     this.container = container;
     this.visualId = visualId;
+    this.initialized = false;
+  }
+
+  #initDOM() {
+    if (!this.container) return;
+
+    if (this.visualId === 'unit-circle-helix') {
+      this.container.innerHTML = `
+        ${cardTemplate(
+          'uch-step-1',
+          'Step 1',
+          `Quotient Group Angle & Bijection (${tag('amber', 'θ')} ↦ ${tag('violet', 'P(cos θ, sin θ)')})`,
+          `Modular quotient ${tag('amber', 'θ ∈ ℝ / 2πℤ')} maps bijectively onto the unit circle:<br>` +
+          `${tag('violet', 'P')} = (${tag('amber', 'r cos θ')}, ${tag('emerald', 'r sin θ')}) with radius ${tag('indigo', 'r')}`
+        )}
+        ${cardTemplate(
+          'uch-step-2',
+          'Step 2',
+          `Primary Pythagorean Invariant (${tag('amber', 'cos²θ')} + ${tag('emerald', 'sin²θ')} = ${tag('teal', '1')})`,
+          `In right triangle ${tag('teal', '△OCₓP')} with right angle at ${tag('amber', 'Cₓ')}:<br>` +
+          `${tag('amber', 'cos²θ')} + ${tag('emerald', 'sin²θ')} = (${tag('amber', 'x/r')})² + (${tag('emerald', 'y/r')})² = ${tag('teal', '1.000000')}`,
+          true
+        )}
+        ${cardTemplate(
+          'uch-step-3',
+          'Step 3',
+          `Exterior Tangent & Secant Duality (${tag('teal', '1')} + ${tag('rose', 'tan²θ')} = ${tag('violet', 'sec²θ')})`,
+          `At contact point ${tag('violet', 'P')}, exterior tangent ${tag('rose', 'tan θ = sin θ / cos θ')} and secant ${tag('violet', 'sec θ = 1 / cos θ')} satisfy:<br>` +
+          `${tag('teal', '1')} + ${tag('rose', 'tan²θ')} = ${tag('violet', 'sec²θ')} &nbsp;|&nbsp; ${tag('teal', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')}`,
+          true
+        )}
+        ${cardTemplate(
+          'uch-step-4',
+          'Step 4',
+          `3D Cylindrical Helix & Perigon Identity (${tag('teal', '360°')})`,
+          `Lifting ${tag('violet', 'P')} along pitch axis ${tag('lime', 'Y')} forms helix ${tag('violet', 'r(θ) = (R cos θ, kθ, R sin θ)')}.<br>` +
+          `Conjugate reflex angle ${tag('teal', 'θ* = 360° − θ')} completes the ${tag('teal', '360°')} perigon.`,
+          true
+        )}
+      `;
+    } else if (this.visualId === 'law-of-sines') {
+      this.container.innerHTML = `
+        ${cardTemplate(
+          'los-step-1',
+          'Step 1',
+          `Idempotent Altitude Bridge (${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')})`,
+          `Projecting vertex ${tag('violet', 'C')} orthogonally onto ${tag('violet', 'AB')} at foot ${tag('teal', 'Hc')} gives:<br>` +
+          `${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')} ⟹ ${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')}`
+        )}
+        ${cardTemplate(
+          'los-step-2',
+          'Step 2',
+          `Thales Antipodal Diameter Bridge (${tag('red', 'a / sin A')} = ${tag('amber', '2R')})`,
+          `Drawing circumdiameter ${tag('amber', "A'B = 2R")} through center ${tag('indigo', 'O')} subtends ${tag('amber', "∠A'CB = 90°")}:<br>` +
+          `In right ${tag('amber', "△A'CB")}, sin ${tag('red', 'A')} = ${tag('red', 'a')} / ${tag('amber', '2R')} ⟹ ${tag('red', 'a / sin A')} = ${tag('amber', '2R')}`,
+          true
+        )}
+        ${cardTemplate(
+          'los-step-3',
+          'Step 3',
+          `Three-Way Circumcircle Invariant (${tag('red', 'a/sin A')} = ${tag('green', 'b/sin B')} = ${tag('violet', 'c/sin C')} = ${tag('amber', '2R')})`,
+          `By symmetry across all three chords of the circumcircle:<br>` +
+          `${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')} = ${tag('violet', 'c / sin C')} = ${tag('amber', '2R')}`,
+          true
+        )}
+        ${cardTemplate(
+          'los-step-4',
+          'Step 4',
+          `Interior Sum (${tag('emerald', '180°')}) & Conjugate Reflex Perigon (${tag('teal', '360°')})`,
+          `Interior angles sum to ${tag('emerald', '∠A + ∠B + ∠C = 180°')}; each vertex forms a ${tag('teal', '360°')} perigon with its reflex conjugate.`,
+          true
+        )}
+      `;
+    } else if (this.visualId === 'law-of-cosines') {
+      this.container.innerHTML = `
+        ${cardTemplate(
+          'loc-step-1',
+          'Step 1',
+          `Idempotent Orthogonal Decomposition (${tag('amber', 'P∥ + P⊥ = I')})`,
+          `Projecting ${tag('sky', 'B')} onto ${tag('emerald', 'CA')} decomposes side ${tag('sky', 'a')} at foot ${tag('amber', 'D')}:<br>` +
+          `Parallel leg ${tag('amber', 'CD = a cos C')}, perpendicular altitude ${tag('amber', 'h = BD = a sin C')}`
+        )}
+        ${cardTemplate(
+          'loc-step-2',
+          'Step 2',
+          `Right-Triangle Expansion in ${tag('teal', '△ADB')} (${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2ab cos C')})`,
+          `Applying Pythagoras to ${tag('teal', '△ADB')}:<br>` +
+          `${tag('rose', 'c²')} = (${tag('amber', 'a sin C')})² + (${tag('emerald', 'b')} − ${tag('amber', 'a cos C')})² = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2ab cos C')}`,
+          true
+        )}
+        ${cardTemplate(
+          'loc-step-3',
+          'Step 3',
+          `4-Corner Mixed Partial Quotient (${tag('teal', '∂²(c²)/(∂a∂b)')} = ${tag('amber', '−2 cos C')})`,
+          `Evaluating the 4-corner rectangle quotient ${tag('teal', '[f(a,b) − f(a,0) − f(0,b) + f(0,0)] / (ab)')}:<br>` +
+          `Isolates the exact bilinear interaction coefficient ${tag('amber', '−2 cos C')}`,
+          true
+        )}
+        ${cardTemplate(
+          'loc-step-4',
+          'Step 4',
+          `Regime Classification & Reflex Conjugate (${tag('teal', '∠C* = 360° − ∠C')})`,
+          `Sign of ${tag('amber', 'cos C')} classifies ${tag('teal', 'ACUTE (>0)')}, ${tag('teal', 'RIGHT (=0)')}, or ${tag('rose', 'OBTUSE (<0)')}.`,
+          true
+        )}
+      `;
+    } else {
+      this.container.innerHTML = `
+        ${cardTemplate(
+          'asi-step-1',
+          'Step 1',
+          `SO(2) Rotation Matrix Homomorphism (${tag('emerald', 'R(α)R(β) = R(α+β)')})`,
+          `Composing planar rotations ${tag('sky', 'R(α)')} and ${tag('violet', 'R(β)')} on the unit circle:<br>` +
+          `${tag('emerald', 'R(α + β)')} = ${tag('sky', 'R(α)')} · ${tag('violet', 'R(β)')} with determinant ${tag('teal', 'det(R) = 1')}`
+        )}
+        ${cardTemplate(
+          'asi-step-2',
+          'Step 2',
+          `Cosine Addition Identity (${tag('amber', 'cos(α + β)')})`,
+          `From stacked right triangles ${tag('sky', '△OMQ')} and ${tag('violet', '△OQP')}:<br>` +
+          `${tag('amber', 'cos(α + β)')} = ${tag('amber', 'cos α cos β')} − ${tag('rose', 'sin α sin β')}`,
+          true
+        )}
+        ${cardTemplate(
+          'asi-step-3',
+          'Step 3',
+          `Sine Addition Identity (${tag('emerald', 'sin(α + β)')})`,
+          `Vertical projection of ${tag('emerald', 'P(α + β)')} equals:<br>` +
+          `${tag('emerald', 'sin(α + β)')} = ${tag('sky', 'sin α cos β')} + ${tag('violet', 'cos α sin β')}`,
+          true
+        )}
+        ${cardTemplate(
+          'asi-step-4',
+          'Step 4',
+          `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
+          `Replacing ${tag('violet', 'β ↦ −β')} (transpose inverse ${tag('violet', 'R(−β) = R(β)ᵀ')}):<br>` +
+          `${tag('rose', 'cos(α − β)')} = cos α cos β + sin α sin β &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = sin α cos β − cos α sin β`,
+          true
+        )}
+      `;
+    }
+
+    this.initialized = true;
   }
 
   render(state) {
     if (!this.container) return;
-    let steps = [];
+    if (!this.initialized || !this.container.firstElementChild) {
+      this.#initDOM();
+    }
+
+    const angUnit = state.angleUnit || 'deg';
+    const lenUnit = state.lengthUnit || 'px';
+    const r = state.radius || 175;
+    const setSlot = (sel, html) => {
+      const el = this.container.querySelector(sel);
+      if (el) el.innerHTML = html;
+    };
 
     if (this.visualId === 'unit-circle-helix') {
       const m = computeUnitCircleHelix(state.angleTheta, 1.0, state.helixPitch);
-      steps = [
-        {
-          id: 'uch-step-1',
-          num: '1',
-          title: 'Quotient Group Angle & Circular Coordinates',
-          body: `Angle ${tag('amber', `θ = ${m.thetaDeg.toFixed(1)}°`)} (${tag('sky', `${m.theta.toFixed(3)} rad`)}) in ${tag('teal', `Quadrant Q${m.quadrant}`)} maps bijectively onto ${tag('violet', `P = (${m.cos.toFixed(3)}, ${m.sin.toFixed(3)})`)}.`,
-        },
-        {
-          id: 'uch-step-2',
-          num: '2',
-          title: 'Primary Pythagorean Invariant (cos²θ + sin²θ = 1)',
-          body: `Orthogonal legs ${tag('amber', `cos²θ = ${(m.cos * m.cos).toFixed(4)}`)} + ${tag('emerald', `sin²θ = ${(m.sin * m.sin).toFixed(4)}`)} = ${tag('teal', m.invariants.pythagoreanPrimary.toFixed(6))}.`,
-        },
-        {
-          id: 'uch-step-3',
-          num: '3',
-          title: 'Exterior Tangent, Secant & Cosecant Duality',
-          body: `At ${tag('violet', 'P')}, tangent ${tag('rose', `tan θ = ${m.tan.toFixed(3)}`)} and secant ${tag('violet', `sec θ = ${m.sec.toFixed(3)}`)} satisfy ${tag('teal', `1 + tan²θ = sec²θ`)} (residual ${tag('emerald', Math.abs(m.invariants.pythagoreanTanSec).toExponential(2))}).`,
-        },
-        {
-          id: 'uch-step-4',
-          num: '4',
-          title: '3D Cylindrical Helix & Reflex Perigon (360° − θ)',
-          body: `Helix ${tag('violet', `r(θ) = (R cos θ, kθ, R sin θ)`)} projects onto orthogonal wave walls; conjugate reflex angle ${tag('lavender', `θ* = ${(360 - m.thetaDeg).toFixed(1)}°`)} completes ${tag('lavender', '360.0°')}.`,
-        },
-      ];
+      setSlot(
+        '#uch-step-1 [data-sub]',
+        `↳ ${tag('amber', `θ = ${fmtAngle(m.thetaDeg, angUnit)}`)} in ${tag('teal', `Quadrant Q${m.quadrant}`)}, Radius ${tag('indigo', `r = ${fmtLength(r, lenUnit, r)}`)}<br>` +
+          `↳ ${tag('violet', 'P')} = (${tag('amber', m.cos.toFixed(4))}, ${tag('emerald', m.sin.toFixed(4))})`
+      );
+      setSlot(
+        '#uch-step-2 [data-sub]',
+        `↳ ${tag('amber', `cos²θ = ${(m.cos * m.cos).toFixed(4)}`)} + ${tag('emerald', `sin²θ = ${(m.sin * m.sin).toFixed(4)}`)} = ${tag('teal', m.invariants.pythagoreanPrimary.toFixed(6))}`
+      );
+      setSlot(
+        '#uch-step-2 [data-eval]',
+        `<span>${tag('teal', `cos²θ + sin²θ = ${m.invariants.pythagoreanPrimary.toFixed(6)}`)}</span><span class="derivation-check">✓ Unit Invariant</span>`
+      );
+      setSlot(
+        '#uch-step-3 [data-sub]',
+        `↳ ${tag('rose', `tan θ = ${m.tan.toFixed(3)}`)}, ${tag('violet', `sec θ = ${m.sec.toFixed(3)}`)} | ${tag('orange', `cot θ = ${m.cot.toFixed(3)}`)}, ${tag('fuchsia', `csc θ = ${m.csc.toFixed(3)}`)}`
+      );
+      setSlot(
+        '#uch-step-3 [data-eval]',
+        `<span>${tag('violet', `1 + tan²θ = sec²θ`)} (Residual: ${tag('teal', Math.abs(m.invariants.pythagoreanTanSec).toExponential(1))})</span><span class="derivation-check">✓ Verified</span>`
+      );
+      setSlot(
+        '#uch-step-4 [data-sub]',
+        `↳ Helix height ${tag('violet', `z(θ) = ${m.points3D.point3D.z.toFixed(3)}`)} | Reflex ${tag('teal', `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`)}`
+      );
+      setSlot(
+        '#uch-step-4 [data-eval]',
+        `<span>${tag('teal', `Perigon: θ + θ* = ${fmtAngle(360, angUnit)}`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`
+      );
     } else if (this.visualId === 'law-of-sines') {
       const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
-      steps = [
-        {
-          id: 'los-step-1',
-          num: '1',
-          title: 'Altitude Projection Bridge (hc = b sin A = a sin B)',
-          body: `Idempotent projection of ${tag('violet', 'C')} onto ${tag('violet', 'AB')} yields ${tag('teal', `hc = ${m.altitudeHc.toFixed(3)}`)}, proving ${tag('red', `a / sin A = ${m.ratios.ratioA.toFixed(3)}`)} = ${tag('green', `b / sin B = ${m.ratios.ratioB.toFixed(3)}`)}.`,
-        },
-        {
-          id: 'los-step-2',
-          num: '2',
-          title: "Thales Antipodal Diameter Bridge (a / sin A = 2R)",
-          body: `Drawing circumdiameter ${tag('amber', "A'B = 2R")} creates right angle ${tag('amber', "∠A'CB = 90°")}, giving ${tag('red', `a / sin A`)} = ${tag('amber', `2R = ${m.diameter2R.toFixed(3)}`)}.`,
-        },
-        {
-          id: 'los-step-3',
-          num: '3',
-          title: 'Three-Way Circumcircle Ratio Equality',
-          body: `${tag('red', `a/sin A = ${m.ratios.ratioA.toFixed(2)}`)} | ${tag('green', `b/sin B = ${m.ratios.ratioB.toFixed(2)}`)} | ${tag('violet', `c/sin C = ${m.ratios.ratioC.toFixed(2)}`)} = ${tag('amber', `2R = ${m.diameter2R.toFixed(2)}`)}.`,
-        },
-        {
-          id: 'los-step-4',
-          num: '4',
-          title: 'Interior Sum (180°) & Reflex Sum (900°)',
-          body: `Interior sum ${tag('emerald', `∠A + ∠B + ∠C = ${m.interiorAngles.sumDeg.toFixed(1)}°`)}; conjugate reflex sum ${tag('lavender', `A* + B* + C* = ${(1080 - m.interiorAngles.sumDeg).toFixed(1)}°`)}.`,
-        },
-      ];
+      setSlot(
+        '#los-step-1 [data-sub]',
+        `↳ Altitude ${tag('teal', `hc = ${m.altitudeHc.toFixed(3)}`)} | ${tag('red', `a = ${m.sides.a.toFixed(2)}`)}, ${tag('green', `b = ${m.sides.b.toFixed(2)}`)}, ${tag('violet', `c = ${m.sides.c.toFixed(2)}`)}`
+      );
+      setSlot(
+        '#los-step-2 [data-sub]',
+        `↳ ${tag('red', `a / sin A`)} = ${m.sides.a.toFixed(2)} / sin(${fmtAngle(m.interiorAngles.degA, angUnit)}) = ${tag('amber', m.ratios.ratioA.toFixed(3))}`
+      );
+      setSlot(
+        '#los-step-2 [data-eval]',
+        `<span>${tag('red', `a / sin A = ${m.ratios.ratioA.toFixed(3)}`)} ≝ ${tag('amber', `2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ Thales Bridge</span>`
+      );
+      setSlot(
+        '#los-step-3 [data-sub]',
+        `↳ ${tag('red', `a/sin A = ${m.ratios.ratioA.toFixed(3)}`)} | ${tag('green', `b/sin B = ${m.ratios.ratioB.toFixed(3)}`)} | ${tag('violet', `c/sin C = ${m.ratios.ratioC.toFixed(3)}`)}`
+      );
+      setSlot(
+        '#los-step-3 [data-eval]',
+        `<span>${tag('amber', `a/sin A = b/sin B = c/sin C = 2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ 2R Invariant</span>`
+      );
+      setSlot(
+        '#los-step-4 [data-sub]',
+        `↳ ${tag('red', fmtAngle(m.interiorAngles.degA, angUnit))} + ${tag('green', fmtAngle(m.interiorAngles.degB, angUnit))} + ${tag('violet', fmtAngle(m.interiorAngles.degC, angUnit))} = ${tag('emerald', fmtAngle(m.interiorAngles.sumDeg, angUnit))}`
+      );
+      setSlot(
+        '#los-step-4 [data-eval]',
+        `<span>${tag('emerald', `Interior Sum = ${fmtAngle(m.interiorAngles.sumDeg, angUnit)}`)}</span><span class="derivation-check">✓ Euclidean Sum</span>`
+      );
     } else if (this.visualId === 'law-of-cosines') {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
-      steps = [
-        {
-          id: 'loc-step-1',
-          num: '1',
-          title: 'Idempotent Orthogonal Decomposition (P∥ + P⊥ = I)',
-          body: `Projecting ${tag('sky', 'B')} onto ${tag('emerald', 'AC')} gives foot ${tag('amber', `D = (${m.projection.pProj.toFixed(2)}, 0)`)} and altitude ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(2)}`)}.`,
-        },
-        {
-          id: 'loc-step-2',
-          num: '2',
-          title: 'Right-Triangle Expansion in △ADB',
-          body: `${tag('rose', `c² = ${m.squares.c2.toFixed(2)}`)} = ${tag('amber', `(a sin C)²`)} + ${tag('emerald', `(b − a cos C)²`)} = ${tag('sky', `a² (${m.squares.a2.toFixed(1)})`)} + ${tag('emerald', `b² (${m.squares.b2.toFixed(1)})`)} − ${tag('amber', `2ab cos C (${m.squares.interaction2abCosC.toFixed(1)})`)}.`,
-        },
-        {
-          id: 'loc-step-3',
-          num: '3',
-          title: '4-Corner Mixed Partial Quotient (1 − 2 − 3 + 4)',
-          body: `Evaluating ${tag('teal', '[f(a,b) − f(a,0) − f(0,b) + f(0,0)] / (ab)')} isolates ${tag('amber', `∂²(c²)/(∂a∂b) = −2 cos C = ${m.mixedPartialCoeff.toFixed(4)}`)}.`,
-        },
-        {
-          id: 'loc-step-4',
-          num: '4',
-          title: 'Regime Classification (Acute / Right / Obtuse)',
-          body: `At ${tag('rose', `∠C = ${m.angleCDeg.toFixed(1)}°`)}, regime is ${tag('teal', m.regime.toUpperCase())} with residual ${tag('emerald', m.invariants.cosineLawResidual.toExponential(2))}.`,
-        },
-      ];
+      setSlot(
+        '#loc-step-1 [data-sub]',
+        `↳ ${tag('amber', `CD = a cos C = ${m.projection.pProj.toFixed(3)}`)}, ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(3)}`)}`
+      );
+      setSlot(
+        '#loc-step-2 [data-sub]',
+        `↳ ${tag('sky', `a² = ${m.squares.a2.toFixed(2)}`)}, ${tag('emerald', `b² = ${m.squares.b2.toFixed(2)}`)}, ${tag('amber', `2ab cos C = ${m.squares.interaction2abCosC.toFixed(2)}`)}`
+      );
+      setSlot(
+        '#loc-step-2 [data-eval]',
+        `<span>${tag('rose', `c² = ${m.squares.c2.toFixed(2)}`)} ≝ ${tag('teal', `${m.squares.pythagoreanSum.toFixed(2)} − ${m.squares.interaction2abCosC.toFixed(2)}`)}</span><span class="derivation-check">✓ Cosine Law</span>`
+      );
+      setSlot(
+        '#loc-step-3 [data-sub]',
+        `↳ 4-Corner Quotient = ${tag('amber', m.mixedPartialCoeff.toFixed(4))} | ${tag('amber', `−2 cos(${fmtAngle(m.angleCDeg, angUnit)}) = ${(-2 * m.cosC).toFixed(4)}`)}`
+      );
+      setSlot(
+        '#loc-step-3 [data-eval]',
+        `<span>${tag('amber', `∂²(c²)/(∂a∂b) = −2 cos C = ${m.mixedPartialCoeff.toFixed(4)}`)}</span><span class="derivation-check">✓ Exact Bilinear</span>`
+      );
+      setSlot(
+        '#loc-step-4 [data-sub]',
+        `↳ At ${tag('rose', `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`)}, Reflex ${tag('teal', `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`)}`
+      );
+      setSlot(
+        '#loc-step-4 [data-eval]',
+        `<span>Regime: ${tag('teal', m.regime.toUpperCase())} | Side ${tag('rose', `c = ${m.c.toFixed(3)}`)}</span><span class="derivation-check">✓ Verified</span>`
+      );
     } else {
       const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
-      steps = [
-        {
-          id: 'asi-step-1',
-          num: '1',
-          title: 'SO(2) Rotation Matrix Group Homomorphism',
-          body: `Composing ${tag('sky', `R(α = ${m.alphaDeg.toFixed(1)}°)`)} and ${tag('violet', `R(β = ${m.betaDeg.toFixed(1)}°)`)} yields ${tag('emerald', `R(α+β = ${m.sumAngleDeg.toFixed(1)}°)`)}.`,
-        },
-        {
-          id: 'asi-step-2',
-          num: '2',
-          title: 'Cosine Addition Formula (cos(α + β))',
-          body: `${tag('amber', `cos α cos β (${m.trig.cosACosB.toFixed(3)})`)} − ${tag('rose', `sin α sin β (${m.trig.sinASinB.toFixed(3)})`)} = ${tag('emerald', `cos(α+β) = ${m.trig.cosSum.toFixed(4)}`)}.`,
-        },
-        {
-          id: 'asi-step-3',
-          num: '3',
-          title: 'Sine Addition Formula (sin(α + β))',
-          body: `${tag('sky', `sin α cos β (${m.trig.sinACosB.toFixed(3)})`)} + ${tag('violet', `cos α sin β (${m.trig.cosASinB.toFixed(3)})`)} = ${tag('emerald', `sin(α+β) = ${m.trig.sinSum.toFixed(4)}`)}.`,
-        },
-        {
-          id: 'asi-step-4',
-          num: '4',
-          title: 'Inverse Rotation & Difference Identities (α − β)',
-          body: `Replacing ${tag('violet', 'β → −β')} gives ${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} and ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}.`,
-        },
-      ];
+      setSlot(
+        '#asi-step-1 [data-sub]',
+        `↳ ${tag('sky', `α = ${fmtAngle(m.alphaDeg, angUnit)}`)}, ${tag('violet', `β = ${fmtAngle(m.betaDeg, angUnit)}`)} ⟹ ${tag('emerald', `α + β = ${fmtAngle(m.sumAngleDeg, angUnit)}`)}`
+      );
+      setSlot(
+        '#asi-step-2 [data-sub]',
+        `↳ ${tag('amber', `cos α cos β (${m.trig.cosACosB.toFixed(4)})`)} − ${tag('rose', `sin α sin β (${m.trig.sinASinB.toFixed(4)})`)} = ${tag('emerald', m.trig.cosSum.toFixed(4))}`
+      );
+      setSlot(
+        '#asi-step-2 [data-eval]',
+        `<span>${tag('amber', `cos(α + β) = ${m.trig.cosSum.toFixed(4)}`)}</span><span class="derivation-check">✓ Exact Identity</span>`
+      );
+      setSlot(
+        '#asi-step-3 [data-sub]',
+        `↳ ${tag('sky', `sin α cos β (${m.trig.sinACosB.toFixed(4)})`)} + ${tag('violet', `cos α sin β (${m.trig.cosASinB.toFixed(4)})`)} = ${tag('emerald', m.trig.sinSum.toFixed(4))}`
+      );
+      setSlot(
+        '#asi-step-3 [data-eval]',
+        `<span>${tag('emerald', `sin(α + β) = ${m.trig.sinSum.toFixed(4)}`)}</span><span class="derivation-check">✓ Exact Identity</span>`
+      );
+      setSlot(
+        '#asi-step-4 [data-sub]',
+        `↳ Difference Angle ${tag('rose', `α − β = ${fmtAngle(m.diffAngleDeg, angUnit)}`)}: ${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
+      );
+      setSlot(
+        '#asi-step-4 [data-eval]',
+        `<span>${tag('teal', `det(R(α)R(β)) = 1.000000`)}</span><span class="derivation-check">✓ SO(2) Group</span>`
+      );
     }
-
-    this.container.innerHTML = steps
-      .map(
-        (s) => `
-      <div class="derivation-step" id="${s.id}" style="padding:0.65rem 0.75rem; margin-bottom:0.5rem; border-radius:0.5rem; background:rgba(15,23,42,0.65); border:1px solid rgba(148,163,184,0.16);">
-        <div style="font-size:0.78rem; font-weight:700; color:#38bdf8; margin-bottom:0.25rem;">Step ${s.num}: ${s.title}</div>
-        <div style="font-size:0.8rem; line-height:1.45; color:#e2e8f0;">${s.body}</div>
-      </div>`
-      )
-      .join('');
   }
 }
 
@@ -1260,7 +1820,9 @@ export function mountTrigVisual({ visualId }) {
   });
 
   // Panels (compatible with WorkspaceDockManager)
-  const controlsPanelEl = document.querySelector('.ui-panel[id$="-panel"]:not(#derivations-panel):not(#toolbar-2d-panel):not(#toolbar-3d-panel)');
+  const controlsPanelEl = document.querySelector(
+    '.ui-panel[id$="-panel"]:not(#derivations-panel):not(#toolbar-2d-panel):not(#toolbar-3d-panel)'
+  );
   if (controlsPanelEl) {
     new Panel(controlsPanelEl, {
       header: document.getElementById('controls-header'),
@@ -1291,6 +1853,7 @@ export function mountTrigVisual({ visualId }) {
   }
 
   const derivations = new TrigDerivationsView(document.getElementById('live-derivations-content'), visualId);
+  derivations.render(store.get());
   initCollapsibleSections(document);
 
   // Playback Controller
@@ -1303,19 +1866,15 @@ export function mountTrigVisual({ visualId }) {
   const playBtn = document.getElementById('btn-playback');
   new PlaybackController(store, playBtn, { field: playFieldMap[visualId] || 'angleTheta', speed: 0.65 });
 
-  // Snapshot Exports
-  document.getElementById('btn-export-png')?.addEventListener('click', () => view2d.exportPNG());
-  document.getElementById('btn-export-svg')?.addEventListener('click', () => view2d.exportSVG());
-
-  // Bind visual-specific sliders & checkboxes
+  // Bind visual-specific sliders, checkboxes, and full 2D Canvas interaction
   bindVisualSpecificControls(store, visualId, view2d);
 
-  // Subscribe 2D, 3D, Telemetry, and Derivations
+  // Subscribe 2D, 3D, Telemetry, Sliders, and Derivations
   const update = (state) => {
     view2d.render(state);
     scene3d.render(state);
     derivations.render(state);
-    updateTelemetryDOM(state, visualId);
+    updateTelemetryAndSlidersDOM(state, visualId);
   };
 
   store.subscribe(update);
@@ -1366,7 +1925,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
-  // 2D Canvas Interactive Pointer Dragging + Wheel Zoom
+  // 2D Canvas Wheel Zoom (synchronized with 3D and radius slider)
   canvas.addEventListener(
     'wheel',
     (e) => {
@@ -1378,59 +1937,113 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     { passive: false }
   );
 
+  // Full Circle Theorems 2D Hit-Testing: Vertex Drag, Circumference Radius Drag, Background Pan, Double-Click Reset
   let activeDrag = null;
   let panOrigin = { x: 0, y: 0 };
 
+  const findHoveredHandle = (x, y, handles, radius = 22) => {
+    let best = null;
+    let bestDist = radius;
+    for (const h of handles) {
+      const d = Math.hypot(x - h.x, y - h.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = h;
+      }
+    }
+    return best;
+  };
+
   canvas.addEventListener('pointerdown', (e) => {
+    if (e.button && e.button !== 0) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const st = store.get();
-    const { cx, cy, r } = view2d.getCenterAndRadius(st);
+    const info = view2d.getInteractiveHandles2D(st);
+    const hitHandle = findHoveredHandle(x, y, info.handles, 24);
+    const circCx = info.circleCx ?? info.cx;
+    const circCy = info.circleCy ?? info.cy;
+    const circR = info.circleR ?? info.r;
 
-    if (isNearCircumference(x, y, cx, cy, r, 14) && e.shiftKey) {
-      activeDrag = 'radius';
+    if (hitHandle) {
+      activeDrag = { type: 'handle', handle: hitHandle };
+      canvas.style.cursor = 'grabbing';
+    } else if (isNearCircumference(x, y, circCx, circCy, circR, 14)) {
+      activeDrag = { type: 'radius', cx: circCx, cy: circCy };
+      canvas.style.cursor = 'ew-resize';
     } else {
-      activeDrag = 'point';
+      const curPan = st.pan || { x: 0, y: 0 };
+      panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
+      activeDrag = { type: 'pan' };
+      canvas.style.cursor = 'grabbing';
     }
+
     if (st.playing) store.set({ playing: false });
     try {
       canvas.setPointerCapture(e.pointerId);
     } catch (_) {}
-    updateFromPointer(x, y, cx, cy);
   });
 
-  const updateFromPointer = (x, y, cx, cy) => {
-    const ang = pointerToAngle(x - cx, cy - y);
-    const st = store.get();
-    if (visualId === 'unit-circle-helix') {
-      store.set({ angleTheta: ang });
-    } else if (visualId === 'law-of-sines') {
-      const candidates = [
-        { k: 'angleA', d: Math.abs(Math.atan2(Math.sin(ang - st.angleA), Math.cos(ang - st.angleA))) },
-        { k: 'angleB', d: Math.abs(Math.atan2(Math.sin(ang - st.angleB), Math.cos(ang - st.angleB))) },
-        { k: 'angleC', d: Math.abs(Math.atan2(Math.sin(ang - st.angleC), Math.cos(ang - st.angleC))) },
-      ].sort((a, b) => a.d - b.d);
-      store.set({ [candidates[0].k]: ang });
-    } else if (visualId === 'law-of-cosines') {
-      store.set({ angleC: clamp(ang > Math.PI ? TAU - ang : ang, 0.1, Math.PI - 0.1) });
-    } else {
-      store.set({ angleBeta: normalizeAngle(ang - (st.angleAlpha || 0)) });
-    }
-  };
-
   canvas.addEventListener('pointermove', (e) => {
-    if (!activeDrag) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const { cx, cy } = view2d.getCenterAndRadius(store.get());
-    updateFromPointer(x, y, cx, cy);
+    const st = store.get();
+    const info = view2d.getInteractiveHandles2D(st);
+    const circCx = info.circleCx ?? info.cx;
+    const circCy = info.circleCy ?? info.cy;
+    const circR = info.circleR ?? info.r;
+
+    if (!activeDrag) {
+      const hoverH = findHoveredHandle(x, y, info.handles, 24);
+      const hoverCirc = !hoverH && isNearCircumference(x, y, circCx, circCy, circR, 14);
+      canvas.style.cursor = hoverH ? 'pointer' : hoverCirc ? 'ew-resize' : 'grab';
+      return;
+    }
+
+    if (activeDrag.type === 'pan') {
+      canvas.style.cursor = 'grabbing';
+      store.set({
+        pan: {
+          x: e.clientX - panOrigin.x,
+          y: e.clientY - panOrigin.y,
+        },
+      });
+      return;
+    }
+
+    if (activeDrag.type === 'radius') {
+      canvas.style.cursor = 'ew-resize';
+      const dist = Math.hypot(x - activeDrag.cx, y - activeDrag.cy);
+      store.set({ radius: clamp(Math.round(dist), 100, 260) });
+      return;
+    }
+
+    if (activeDrag.type === 'handle') {
+      canvas.style.cursor = 'grabbing';
+      const h = activeDrag.handle;
+      const ang = pointerToAngle(x - info.cx, info.cy - y);
+      if (visualId === 'law-of-cosines') {
+        if (h.field === 'angleC') {
+          const raw = Math.atan2(Math.abs(info.cy - y), x - info.cx);
+          store.set({ angleC: clamp(raw, 0.18, Math.PI - 0.18) });
+        } else if (h.field === 'sideB' && h.scale) {
+          const nextB = clamp((x - info.cx) / h.scale, 2, 12);
+          store.set({ sideB: Math.round(nextB * 2) / 2 });
+        }
+      } else if (visualId === 'angle-sum-identities' && h.field === 'angleBeta') {
+        store.set({ angleBeta: normalizeAngle(ang - (st.angleAlpha || 0)) });
+      } else {
+        store.set({ [h.field]: ang });
+      }
+    }
   });
 
   const stop = (e) => {
     if (activeDrag) {
       activeDrag = null;
+      canvas.style.cursor = 'grab';
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch (_) {}
@@ -1438,6 +2051,13 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   };
   canvas.addEventListener('pointerup', stop);
   canvas.addEventListener('pointercancel', stop);
+  window.addEventListener('pointerup', stop);
+  window.addEventListener('pointercancel', stop);
+
+  // Double-click canvas to recenter pan (matching Circle Theorems)
+  canvas.addEventListener('dblclick', () => {
+    store.set({ pan: { x: 0, y: 0 } });
+  });
 }
 
 function setText(id, val) {
@@ -1445,14 +2065,26 @@ function setText(id, val) {
   if (el) el.textContent = val;
 }
 
-function updateTelemetryDOM(state, visualId) {
+function syncSlider(id, val) {
+  const el = document.getElementById(id);
+  if (el && document.activeElement !== el) {
+    el.value = String(val);
+  }
+}
+
+function updateTelemetryAndSlidersDOM(state, visualId) {
   const angUnit = state.angleUnit || 'deg';
+  const lenUnit = state.lengthUnit || 'px';
+  const r = state.radius || 175;
   const fmtAng = (deg) => UnitSystemConverter.formatAngle(deg, angUnit);
 
-  setText('label-radius', `${state.radius || 175}px`);
+  setText('label-radius', UnitSystemConverter.formatLength(r, lenUnit, r));
+  syncSlider('slider-radius', Math.round(r));
 
   if (visualId === 'unit-circle-helix') {
     const m = computeUnitCircleHelix(state.angleTheta, 1.0, state.helixPitch);
+    syncSlider('slider-theta', Math.round(m.thetaDeg));
+    syncSlider('slider-pitch', (state.helixPitch || 0.35).toFixed(2));
     setText('label-theta', fmtAng(m.thetaDeg));
     setText('label-pitch', (state.helixPitch || 0.35).toFixed(2));
     setText('tel-theta', fmtAng(m.thetaDeg));
@@ -1465,16 +2097,22 @@ function updateTelemetryDOM(state, visualId) {
     setText('tel-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
     setText('tel-reflex', fmtAng(360 - m.thetaDeg));
 
-    setText('val-3d-r', ((state.radius || 175) / 17.5).toFixed(2));
+    setText('val-3d-r', (r / 17.5).toFixed(2));
     setText('val-3d-px', m.cos.toFixed(3));
     setText('val-3d-pz', m.sin.toFixed(3));
     setText('val-3d-py', m.points3D.point3D.z.toFixed(3));
     setText('val-3d-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
   } else if (visualId === 'law-of-sines') {
     const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
-    setText('label-angle-a', fmtAng(toDegrees(state.angleA)));
-    setText('label-angle-b', fmtAng(toDegrees(state.angleB)));
-    setText('label-angle-c', fmtAng(toDegrees(state.angleC)));
+    const degAPolar = ((toDegrees(state.angleA) % 360) + 360) % 360;
+    const degBPolar = ((toDegrees(state.angleB) % 360) + 360) % 360;
+    const degCPolar = ((toDegrees(state.angleC) % 360) + 360) % 360;
+    syncSlider('slider-angle-a', Math.round(degAPolar));
+    syncSlider('slider-angle-b', Math.round(degBPolar));
+    syncSlider('slider-angle-c', Math.round(degCPolar));
+    setText('label-angle-a', fmtAng(degAPolar));
+    setText('label-angle-b', fmtAng(degBPolar));
+    setText('label-angle-c', fmtAng(degCPolar));
     setText('tel-ang-a', fmtAng(m.interiorAngles.degA));
     setText('tel-ang-b', fmtAng(m.interiorAngles.degB));
     setText('tel-ang-c', fmtAng(m.interiorAngles.degC));
@@ -1491,6 +2129,9 @@ function updateTelemetryDOM(state, visualId) {
     setText('val-3d-area', m.area.toFixed(2));
   } else if (visualId === 'law-of-cosines') {
     const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
+    syncSlider('slider-side-a', m.a);
+    syncSlider('slider-side-b', m.b);
+    syncSlider('slider-angle-c', Math.round(m.angleCDeg));
     setText('label-side-a', m.a.toFixed(1));
     setText('label-side-b', m.b.toFixed(1));
     setText('label-angle-c', fmtAng(m.angleCDeg));
@@ -1509,6 +2150,8 @@ function updateTelemetryDOM(state, visualId) {
     setText('val-3d-mixed', m.mixedPartialCoeff.toFixed(4));
   } else {
     const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
+    syncSlider('slider-alpha', Math.round(m.alphaDeg));
+    syncSlider('slider-beta', Math.round(m.betaDeg));
     setText('label-alpha', fmtAng(m.alphaDeg));
     setText('label-beta', fmtAng(m.betaDeg));
     setText('tel-alpha', fmtAng(m.alphaDeg));

@@ -169,6 +169,7 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
             'id="vis-3d-coords"',
             'id="vis-3d-angles"',
             'id="vis-3d-area"',
+            'id="vis-3d-reflex"',
             'id="section-unit-converter"',
             'js/visual-page.js',
         ];
@@ -193,3 +194,53 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
 });
 
 
+
+describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle Theorems', () => {
+    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+
+    test('reuses shared Circle Theorems 3D angle, right-angle and bisector helpers', () => {
+        for (const sym of [
+            'makeAngleWedgeMesh',
+            'setAngleWedgeVertices3D',
+            'makeRightAngleMesh',
+            'setRightAngle3DVertices',
+            'get3DAngleBisector',
+            'get3DReflexBisector',
+        ]) {
+            assert.ok(src.includes(sym), `trig-core.js should use ${sym}`);
+        }
+        assert.ok(/from '\.\.\/\.\.\/\.\.\/js\/circle-3d\.js'/.test(src), 'imports from js/circle-3d.js');
+    });
+
+    test('vectors use sharp arrowheads (no heavy apex globes) with discrete vertex markers', () => {
+        assert.ok(src.includes('THREE.ArrowHelper'), '3D vectors should use THREE.ArrowHelper');
+        assert.ok(src.includes('drawVectorWithApexLabel'), '2D vectors should use arrowhead + radial halo label');
+        assert.ok(src.includes('getRadialLabelCoords') && src.includes('drawHaloText'));
+        assert.equal(/SphereGeometry\(\s*0\.4\d/.test(src), false, 'no oversized 0.4x apex spheres');
+        const markerRadii = [...src.matchAll(/makeMarker3D\([^,]+,\s*([\d.]+)\)/g)].map((m) => Number(m[1]));
+        assert.ok(markerRadii.length >= 4, 'discrete 3D markers declared');
+        for (const r of markerRadii) assert.ok(r <= 0.2, `marker radius ${r} should be <= 0.2`);
+    });
+
+    test('3D drag targets follow BaseScene3DView onDrag(angle, hit, store) contract', () => {
+        assert.ok(src.includes("field: 'angleTheta'"));
+        assert.ok(src.includes("field: 'angleA'"));
+        assert.equal(/onDrag:\s*\(\s*pt\s*,\s*store\s*\)/.test(src), false, 'legacy 2-arg onDrag removed');
+        assert.ok(/onDrag:\s*\(\s*angle\s*,\s*_?hit\s*,\s*store\s*\)/.test(src));
+    });
+
+    test('2D canvas is fully interactive (handle hit-test, radius resize, pan, reset, zoom)', () => {
+        assert.ok(src.includes('getInteractiveHandles2D'));
+        assert.ok(src.includes("'ew-resize'"));
+        assert.ok(src.includes("'grabbing'"));
+        assert.ok(src.includes("'dblclick'"));
+        assert.ok(src.includes("'wheel'"));
+    });
+
+    test('derivations use collapsible cardTemplate with unit-aware formatting and reflex shading', () => {
+        assert.ok(/import \{[^}]*cardTemplate[^}]*\} from '\.\.\/\.\.\/\.\.\/js\/circle-derivations\.js'/.test(src));
+        assert.ok(src.includes('fmtAngle(') && src.includes('fmtLength'));
+        assert.ok(src.includes('drawReflexWedge'));
+        assert.ok(src.includes('vis3d.reflex'));
+    });
+});
