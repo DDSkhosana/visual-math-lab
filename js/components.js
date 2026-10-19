@@ -68,13 +68,13 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
   };
 
   return `
-    <div class="site-nav__dropdown-suite-label" style="padding: 0.35rem 0.75rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #38bdf8; opacity: 0.9;">
-      Suite 01 &middot; Circle Theorems (${circleVisuals.length})
-    </div>
+    <a href="${route(root, "visuals/circle-theorems/index.html")}" class="site-nav__dropdown-suite-label">
+      <span>Suite 01 &middot; Circle Theorems (${circleVisuals.length})</span>
+    </a>
     ${circleVisuals.map((v) => renderItem(v, "circle-theorems")).join("")}
-    <div class="site-nav__dropdown-suite-label" style="padding: 0.55rem 0.75rem 0.2rem; margin-top: 0.25rem; border-top: 1px solid rgba(148, 163, 184, 0.14); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #2dd4bf; opacity: 0.9;">
-      Suite 02 &middot; Trigonometry (${trigVisuals.length})
-    </div>
+    <a href="${route(root, "visuals/trigonometry/index.html")}" class="site-nav__dropdown-suite-label site-nav__dropdown-suite-label--divider">
+      <span>Suite 02 &middot; Trigonometry (${trigVisuals.length})</span>
+    </a>
     ${trigVisuals.map((v) => renderItem(v, "trigonometry")).join("")}
   `;
 }

@@ -61,12 +61,16 @@ if (existsSync(configPath)) {
 }
 
 const visuals = existsSync(visualsPath) ? readJson(visualsPath) : [];
+const trigVisualsPath = resolve(root, "visuals", "trigonometry", "data", "trig-visuals.json");
+const trigVisuals = existsSync(trigVisualsPath) ? readJson(trigVisualsPath) : [];
 report(Array.isArray(visuals), "data/visuals.json must contain an array.");
+report(Array.isArray(trigVisuals), "visuals/trigonometry/data/trig-visuals.json must contain an array.");
+const allVisuals = [...visuals, ...trigVisuals];
 const slugs = new Set();
 
-for (const visual of visuals) {
+for (const visual of allVisuals) {
   for (const field of requiredFields) {
-    report(Object.hasOwn(visual, field), `Visual entry is missing required field "${field}".`);
+    report(Object.hasOwn(visual, field), `Visual entry "${visual.slug}" is missing required field "${field}".`);
   }
 
   report(typeof visual.slug === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(visual.slug), `Invalid slug "${visual.slug}".`);
@@ -147,4 +151,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Site validation passed for ${visuals.length} visual metadata entries.`);
+console.log(`Site validation passed for ${allVisuals.length} visual metadata entries (${visuals.length} Circle Theorems + ${trigVisuals.length} Trigonometry).`);

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Unit Circle, Radian Wrapping &amp; 3D Helix illustration</title>
+  <desc id="desc">The unit circle showing orthogonal cosine and sine legs, exterior tangent and secant segments, and a Right-Angle marker.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+
+  <!-- Axes -->
+  <line x1="210" y1="390" x2="990" y2="390" stroke="#94a3b8" stroke-width="6" stroke-dasharray="10,8"/>
+  <line x1="560" y1="90" x2="560" y2="670" stroke="#94a3b8" stroke-width="6" stroke-dasharray="10,8"/>
+
+  <!-- Right triangle O - (cos,0) - P fill -->
+  <polygon points="560,390 740,390 740,210" fill="rgba(20, 184, 166, 0.14)" stroke="none"/>
+
+  <!-- Unit Circle (r = 254) -->
+  <circle cx="560" cy="390" r="254" fill="none" stroke="#111111" stroke-width="16"/>
+
+  <!-- Exterior Tangent Line from P(740,210) to X-axis secant intercept (919,390) -->
+  <line x1="740" y1="210" x2="919" y2="390" stroke="#f43f5e" stroke-width="12" stroke-linecap="round"/>
+  <!-- Secant Line along X-axis -->
+  <line x1="560" y1="390" x2="919" y2="390" stroke="#a855f7" stroke-width="8" stroke-dasharray="12,8"/>
+
+  <!-- Cosine Leg (Amber) -->
+  <line x1="560" y1="390" x2="740" y2="390" stroke="#f59e0b" stroke-width="14" stroke-linecap="round"/>
+  <!-- Sine Leg (Emerald) -->
+  <line x1="740" y1="390" x2="740" y2="210" stroke="#10b981" stroke-width="14" stroke-linecap="round"/>
+  <!-- Radius OP = 1 (Indigo) -->
+  <line x1="560" y1="390" x2="740" y2="210" stroke="#6366f1" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Right angle at (740, 390) -->
+  <path d="M 716 390 L 716 366 L 740 366" fill="none" stroke="#10b981" stroke-width="6"/>
+
+  <!-- Angle Wedge theta -->
+  <path d="M 635 390 A 75 75 0 0 0 613 337" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+  <text x="652" y="366" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#d97706">θ</text>
+
+  <!-- Points -->
+  <circle cx="560" cy="390" r="14" fill="#111111"/>
+  <text x="515" y="435" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#111111">O</text>
+
+  <circle cx="740" cy="210" r="15" fill="#a855f7"/>
+  <text x="758" y="195" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#a855f7">P(cos θ, sin θ)</text>
+
+  <!-- Labels -->
+  <text x="645" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#d97706">cos θ</text>
+  <text x="705" y="305" text-anchor="end" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#059669">sin θ</text>
+  <text x="850" y="295" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#e11d48">tan θ</text>
+
+  <text x="600" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" fill="#111111">UNIT CIRCLE &amp; 3D HELIX WAVES</text>
+</svg>
