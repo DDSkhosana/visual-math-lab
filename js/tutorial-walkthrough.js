@@ -488,13 +488,15 @@ export function closeTutorialModal() {
 }
 
 /**
- * Injects a Walkthrough Tips toggle in the 2D Controls / Toggles panel.
+ * Injects a Walkthrough Tips toggle in the Interactive Controls panel.
  */
 function mountControlsSection() {
-  // Try to find the controls container (controls-panel, toolbar-2d-panel, or accordion)
+  // Find the primary controls container (Interactive Controls / Thales Controls)
   const panels = [
-    document.querySelector('#toolbar-2d-panel .panel-body'),
     document.querySelector('#controls-panel .panel-body'),
+    document.querySelector('#ui-panel-container .panel-body'),
+    document.querySelector('#angle-at-centre-panel .panel-body'),
+    document.querySelector('#toolbar-2d-panel .panel-body'),
     document.querySelector('.thales-explorer #accordion-controls'),
   ].filter(Boolean);
 
@@ -527,7 +529,16 @@ function mountControlsSection() {
     </div>
   `;
 
-  target.appendChild(section);
+  // Place it near the legend or unit converter, or append to controls
+  const legendSec = target.querySelector('#section-geometry-legend');
+  const unitSec = target.querySelector('#section-unit-converter');
+  if (legendSec && legendSec.nextSibling) {
+    target.insertBefore(section, legendSec.nextSibling);
+  } else if (unitSec && unitSec.nextSibling) {
+    target.insertBefore(section, unitSec.nextSibling);
+  } else {
+    target.appendChild(section);
+  }
 
   // Wire events
   const chk = section.querySelector('[data-tutorial-toggle-chk]');

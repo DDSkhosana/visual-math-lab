@@ -2110,9 +2110,9 @@ test('Granular Interactive Controls: Geometry Notation Legend and Tutorial & Tip
 
   tipsSec.appendChild(tipsHeader);
   tipsSec.appendChild(tipsContent);
-  toolbar2dBody.appendChild(tipsSec);
-  toolbar2dPanel.appendChild(toolbar2dBody);
-  root.appendChild(toolbar2dPanel);
+  controlsBody.appendChild(tipsSec);
+  controlsPanel.appendChild(controlsBody);
+  root.appendChild(controlsPanel);
 
   // Initialize global collapsible sections
   initCollapsibleSections(mockDoc);
