@@ -449,20 +449,24 @@ export class WorkspaceDockManager {
         let newSize = startSize;
         if (this.dockEdge === 'left') {
           newSize = startSize + (moveEv.clientX - startX);
-          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.55));
+          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.65));
           this.dockSizeVertical = newSize;
         } else if (this.dockEdge === 'right') {
           newSize = startSize - (moveEv.clientX - startX);
-          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.55));
+          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.65));
           this.dockSizeVertical = newSize;
         } else if (this.dockEdge === 'top') {
           newSize = startSize + (moveEv.clientY - startY);
-          newSize = clamp(newSize, 180, Math.floor(rootRect.height * 0.55));
+          const maxDockH = Math.max(220, Math.floor((rootRect.height || this.win?.innerHeight || 800) * 0.85));
+          newSize = clamp(newSize, 160, maxDockH);
           this.dockSizeHorizontal = newSize;
+          this.dockElement.style.height = `${newSize}px`;
         } else if (this.dockEdge === 'bottom') {
           newSize = startSize - (moveEv.clientY - startY);
-          newSize = clamp(newSize, 180, Math.floor(rootRect.height * 0.55));
+          const maxDockH = Math.max(220, Math.floor((rootRect.height || this.win?.innerHeight || 800) * 0.85));
+          newSize = clamp(newSize, 160, maxDockH);
           this.dockSizeHorizontal = newSize;
+          this.dockElement.style.height = `${newSize}px`;
         }
 
         this.dockSize = newSize;
@@ -480,6 +484,7 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
         this.#persistState();
+        this.#dispatchResize();
       };
 
       this.win?.addEventListener?.('pointermove', onMove);
@@ -502,8 +507,13 @@ export class WorkspaceDockManager {
       this.dockElement.style.top = '';
       this.dockElement.style.right = '';
       this.dockElement.style.bottom = '';
-      this.dockElement.style.width = '';
-      this.dockElement.style.height = '';
+      if (isHorizontal) {
+        this.dockElement.style.width = '100%';
+        this.dockElement.style.height = `${this.dockSize}px`;
+      } else {
+        this.dockElement.style.width = `${this.dockSize}px`;
+        this.dockElement.style.height = '100%';
+      }
     }
 
     // Update active button state
@@ -1763,6 +1773,63 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
   }
 
   if (deck) {
+    deck._panel = panel;
+    deck._openSubpanels = openSubpanels;
+    deck._activeSubpanel = activeSubpanel;
+
+    if (!deck._wheelBound) {
+      deck._wheelBound = true;
+      deck.addEventListener?.('wheel', (wheelEv) => {
+        const subs = deck._openSubpanels || [];
+        if (subs.length <= 1) return;
+        wheelEv.preventDefault?.();
+        wheelEv.stopPropagation?.();
+        const now = Date.now();
+        if (deck._lastWheelTime && (now - deck._lastWheelTime < 180)) return;
+        deck._lastWheelTime = now;
+        const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
+        const dy = wheelEv.deltaY || 0;
+        const dx = wheelEv.deltaX || 0;
+        const delta = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
+        if (delta > 0) {
+          const nextIdx = (curIdx + 1) % subs.length;
+          syncPanelElevationTurn(deck._panel, subs[nextIdx]);
+        } else if (delta < 0) {
+          const prevIdx = (curIdx - 1 + subs.length) % subs.length;
+          syncPanelElevationTurn(deck._panel, subs[prevIdx]);
+        }
+      }, { passive: false });
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      deck.addEventListener?.('touchstart', (tEv) => {
+        const t = tEv.touches?.[0];
+        if (t) {
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+        }
+      }, { passive: true });
+      deck.addEventListener?.('touchend', (tEv) => {
+        const subs = deck._openSubpanels || [];
+        if (subs.length <= 1) return;
+        const t = tEv.changedTouches?.[0];
+        if (!t) return;
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+        if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+          tEv.preventDefault?.();
+          const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
+          if (dx < 0) {
+            const nextIdx = (curIdx + 1) % subs.length;
+            syncPanelElevationTurn(deck._panel, subs[nextIdx]);
+          } else {
+            const prevIdx = (curIdx - 1 + subs.length) % subs.length;
+            syncPanelElevationTurn(deck._panel, subs[prevIdx]);
+          }
+        }
+      }, { passive: false });
+    }
+
     deck.style.display = 'flex';
     if (Array.isArray(deck.children)) {
       deck.children.length = 0;
@@ -1778,14 +1845,14 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       const badge = doc.createElement('span');
       badge.className = 'elevation-deck-label';
       badge.textContent = `Deck (${activeIdx + 1}/${openSubpanels.length})`;
-      badge.title = 'Subpanels elevation deck: click any pill to bring that subpanel to the top';
+      badge.title = 'Subpanels elevation deck: click any pill or scroll mousewheel to cycle turns';
       deck.appendChild(badge);
 
       // Previous Turn Button
       const prevBtn = doc.createElement('button');
       prevBtn.type = 'button';
       prevBtn.className = 'elevation-deck-nav-btn prev';
-      prevBtn.title = 'Previous elevated subpanel (Shortcut: [)';
+      prevBtn.title = 'Previous elevated subpanel (Shortcut: [ or Wheel Up)';
       prevBtn.setAttribute('aria-label', 'Previous subpanel');
       prevBtn.textContent = '◀';
       prevBtn.addEventListener('click', (e) => {
@@ -1854,7 +1921,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       const nextBtn = doc.createElement('button');
       nextBtn.type = 'button';
       nextBtn.className = 'elevation-deck-nav-btn next';
-      nextBtn.title = 'Next elevated subpanel (Shortcut: ])';
+      nextBtn.title = 'Next elevated subpanel (Shortcut: ] or Wheel Down)';
       nextBtn.setAttribute('aria-label', 'Next subpanel');
       nextBtn.textContent = '▶';
       nextBtn.addEventListener('click', (e) => {
@@ -1889,6 +1956,42 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
       sub.setAttribute?.('data-elevation-turn', 'top');
       sub.classList?.add('is-elevated-top');
       sub.classList?.remove('is-in-deck');
+
+      if (!isStackMode && openSubpanels.length > 1) {
+        const activeContent = sub.querySelector?.('.collapsible-content, .derivation-card-content') || sub;
+        if (activeContent && !activeContent._overscrollBound) {
+          activeContent._overscrollBound = true;
+          activeContent.addEventListener?.('wheel', (e) => {
+            if (body.getAttribute?.('data-deck-mode') === 'stack') return;
+            const subs = deck?._openSubpanels || openSubpanels || [];
+            if (subs.length <= 1) return;
+
+            const isScrollable = activeContent.scrollHeight > (activeContent.clientHeight || 0) + 4;
+            const atBottom = !isScrollable || (activeContent.scrollTop + (activeContent.clientHeight || 0) >= activeContent.scrollHeight - 3);
+            const atTop = !isScrollable || (activeContent.scrollTop || 0) <= 2;
+
+            if (e.deltaY > 0 && atBottom) {
+              const now = Date.now();
+              if (activeContent._lastTurnTime && (now - activeContent._lastTurnTime < 240)) return;
+              activeContent._lastTurnTime = now;
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              const curIdx = Math.max(0, subs.indexOf(sub));
+              const nextIdx = (curIdx + 1) % subs.length;
+              syncPanelElevationTurn(panel, subs[nextIdx]);
+            } else if (e.deltaY < 0 && atTop) {
+              const now = Date.now();
+              if (activeContent._lastTurnTime && (now - activeContent._lastTurnTime < 240)) return;
+              activeContent._lastTurnTime = now;
+              e.preventDefault?.();
+              e.stopPropagation?.();
+              const curIdx = Math.max(0, subs.indexOf(sub));
+              const prevIdx = (curIdx - 1 + subs.length) % subs.length;
+              syncPanelElevationTurn(panel, subs[prevIdx]);
+            }
+          }, { passive: false });
+        }
+      }
     } else {
       sub.setAttribute?.('data-elevation-turn', 'deck');
       sub.classList?.remove('is-elevated-top');

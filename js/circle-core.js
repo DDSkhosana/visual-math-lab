@@ -568,8 +568,72 @@ export function initCollapsibleSections(root = document) {
   });
 
   root.addEventListener?.('click', (e) => {
-    const header = e.target.closest('.collapsible-header');
-    if (!header || !root.contains(header)) return;
+    const expandBtn = e.target.closest ? e.target.closest('.panel-expand-btn, [id$="-expand"]') : null;
+    if (expandBtn && (!root.contains || root.contains(expandBtn))) {
+      if (expandBtn.id === 'nav-visuals-btn' || expandBtn.id?.startsWith('nav-') || expandBtn.classList?.contains?.('site-nav__dropdown-trigger')) {
+        return;
+      }
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      const panel = expandBtn.closest ? expandBtn.closest('.ui-panel') : null;
+      if (!panel) return;
+      const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+      if (!body) return;
+
+      const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
+      const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
+      const isCurrentlyExpanded = expandBtn.getAttribute?.('aria-expanded') === 'true' ||
+        (expandBtn.textContent && expandBtn.textContent.includes('Collapse'));
+      const shouldExpand = !isCurrentlyExpanded;
+
+      body.classList?.remove('hidden');
+
+      sections.forEach((s) => {
+        s.classList?.toggle('collapsed', !shouldExpand);
+        const h = s.querySelector ? s.querySelector('.collapsible-header') : null;
+        if (h) {
+          h.setAttribute?.('aria-expanded', String(shouldExpand));
+          h.classList?.toggle('open', shouldExpand);
+          const icon = h.querySelector ? h.querySelector('.icon') : null;
+          if (icon) icon.textContent = shouldExpand ? '▼' : '▶';
+        }
+        const c = s.querySelector ? s.querySelector('.collapsible-content') : null;
+        if (c) {
+          c.classList?.toggle('open', shouldExpand);
+          c.classList?.toggle('collapsed', !shouldExpand);
+        }
+      });
+
+      cards.forEach((c) => {
+        const h = c.querySelector ? c.querySelector('.derivation-card-header') : null;
+        const content = c.querySelector ? c.querySelector('.derivation-card-content') : null;
+        if (h) {
+          h.classList?.toggle('open', shouldExpand);
+          h.setAttribute?.('aria-expanded', String(shouldExpand));
+          const icon = h.querySelector ? h.querySelector('.icon') : null;
+          if (icon) icon.textContent = shouldExpand ? '▼' : '▶';
+        }
+        if (content) {
+          content.classList?.toggle('open', shouldExpand);
+        }
+        c.classList?.toggle('open', shouldExpand);
+      });
+
+      const totalOpen = shouldExpand ? (sections.length + cards.length) : 0;
+      panel.classList?.toggle('has-expanded-subpanel', totalOpen > 0);
+      body.classList?.toggle('is-all-expanded', totalOpen > 1);
+
+      const isSingle = totalOpen === 1;
+      sections.forEach((s) => s.classList?.toggle('is-subpanel-overlay', isSingle && !s.classList?.contains('collapsed')));
+      cards.forEach((c) => c.classList?.toggle('is-subpanel-overlay', isSingle && (c.classList?.contains('open') || Boolean(c.querySelector?.('.derivation-card-header')?.classList?.contains('open')))));
+
+      setExpandButtonUI(expandBtn, shouldExpand);
+      syncPanelElevationTurn(panel);
+      return;
+    }
+
+    const header = e.target.closest ? e.target.closest('.collapsible-header') : null;
+    if (!header || (root.contains && !root.contains(header))) return;
 
     const card = header.closest('.derivation-card');
     if (card) {

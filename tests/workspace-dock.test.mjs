@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn } from '../js/circle-core.js';
+import { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn, initCollapsibleSections } from '../js/circle-core.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -200,14 +200,25 @@ class MockDOMElement {
 
   dispatchEvent(event) {
     if (!event.target) event.target = this;
-    if (!event.stopPropagation) event.stopPropagation = () => {};
+    let stopped = false;
+    const origStop = event.stopPropagation;
+    event.stopPropagation = () => {
+      stopped = true;
+      if (origStop) origStop.call(event);
+    };
     if (!event.preventDefault) event.preventDefault = () => {};
-    const handlers = this.listeners.get(event.type) || [];
-    handlers.forEach((h) => h(event));
+
+    let curr = this;
+    while (curr) {
+      const handlers = curr.listeners.get(event.type) || [];
+      handlers.forEach((h) => h(event));
+      if (stopped) break;
+      curr = curr.parentElement;
+    }
   }
 
   click() {
-    this.dispatchEvent({ type: 'click', target: this, stopPropagation: () => {}, preventDefault: () => {} });
+    this.dispatchEvent({ type: 'click', target: this });
   }
 
   focus() {
@@ -1961,6 +1972,178 @@ test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling
   updatedToggle.click();
   assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
   assert.strictEqual(sec2.classList.contains('is-in-deck'), true);
+});
+
+test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Dock Height Adjustment & Responsive Reflow Pipeline', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // 1. Verify Responsive Reflow & Non-Dead-Space CSS Contracts
+  assert.ok(css.includes('flex-wrap: wrap !important'), 'Top/bottom dock body must flex-wrap to reflow panels across viewports');
+  assert.ok(css.includes('flex: 1 1 320px !important'), 'Panels must use flex: 1 1 320px to grow and eliminate dead space');
+  assert.ok(css.includes('min-width: 280px !important'), 'Panels must enforce min-width: 280px');
+  assert.ok(css.includes('max-width: 620px !important'), 'Panels must enforce max-width: 620px on standard screens');
+  assert.ok(css.includes('@media (max-width: 768px)'), 'CSS must define mobile breakpoint for docked panels');
+  assert.ok(css.includes('flex: 1 1 100% !important'), 'Panels on compact screens must reflow to full 100% width');
+  assert.ok(css.includes('@media (min-width: 1400px)'), 'CSS must define wide viewport breakpoint for docked panels');
+  assert.ok(css.includes('max-width: 720px !important'), 'Panels on wide viewports can expand up to 720px to eliminate dead space');
+
+  // 2. Setup mock DOM with Top Dock and multi-section panel with expand button
+  globalThis.localStorage?.clear?.();
+  const mockDoc = new MockDocument();
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    listeners: new Map(),
+    addEventListener(event, handler) {
+      if (!this.listeners.has(event)) this.listeners.set(event, []);
+      this.listeners.get(event).push(handler);
+    },
+    removeEventListener(event, handler) {
+      if (!this.listeners.has(event)) return;
+      this.listeners.set(event, this.listeners.get(event).filter((h) => h !== handler));
+    },
+    dispatchEvent(event) {
+      const handlers = this.listeners.get(event.type) || [];
+      handlers.forEach((h) => h(event));
+    },
+  };
+  mockDoc.defaultView = mockWin;
+
+  const root = mockDoc.createElement('div');
+  root.className = 'circle-explorer';
+  mockDoc.body.appendChild(root);
+
+  const panel = mockDoc.createElement('div');
+  panel.className = 'ui-panel';
+  panel.id = 'panel-controls';
+
+  const panelHeader = mockDoc.createElement('div');
+  panelHeader.className = 'panel-header';
+
+  const expandBtn = mockDoc.createElement('button');
+  expandBtn.type = 'button';
+  expandBtn.className = 'panel-expand-btn';
+  expandBtn.id = 'controls-expand';
+  expandBtn.setAttribute('aria-expanded', 'false');
+  expandBtn.innerHTML = '<span class="panel-expand-label">Expand All</span>';
+  panelHeader.appendChild(expandBtn);
+  panel.appendChild(panelHeader);
+
+  const panelBody = mockDoc.createElement('div');
+  panelBody.className = 'panel-body';
+
+  const sec1 = mockDoc.createElement('div');
+  sec1.className = 'collapsible-section collapsed';
+  const h1 = mockDoc.createElement('div');
+  h1.className = 'collapsible-header';
+  h1.textContent = 'Section Alpha';
+  const c1 = mockDoc.createElement('div');
+  c1.className = 'collapsible-content collapsed';
+  c1.textContent = 'Content Alpha';
+  sec1.appendChild(h1);
+  sec1.appendChild(c1);
+
+  const sec2 = mockDoc.createElement('div');
+  sec2.className = 'collapsible-section collapsed';
+  const h2 = mockDoc.createElement('div');
+  h2.className = 'collapsible-header';
+  h2.textContent = 'Section Beta';
+  const c2 = mockDoc.createElement('div');
+  c2.className = 'collapsible-content collapsed';
+  c2.textContent = 'Content Beta';
+  sec2.appendChild(h2);
+  sec2.appendChild(c2);
+
+  const sec3 = mockDoc.createElement('div');
+  sec3.className = 'collapsible-section collapsed';
+  const h3 = mockDoc.createElement('div');
+  h3.className = 'collapsible-header';
+  h3.textContent = 'Section Gamma';
+  const c3 = mockDoc.createElement('div');
+  c3.className = 'collapsible-content collapsed';
+  c3.textContent = 'Content Gamma';
+  sec3.appendChild(h3);
+  sec3.appendChild(c3);
+
+  panelBody.appendChild(sec1);
+  panelBody.appendChild(sec2);
+  panelBody.appendChild(sec3);
+  panel.appendChild(panelBody);
+  root.appendChild(panel);
+
+  initCollapsibleSections(root);
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+  dock.setDockEdge('top');
+
+  // Test 2A: Expand All click functionality in top dock mode
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'false');
+  expandBtn.click();
+
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'true', 'Clicking expandBtn must set aria-expanded="true"');
+  assert.strictEqual(sec1.classList.contains('collapsed'), false, 'Section 1 must not be collapsed');
+  assert.strictEqual(sec2.classList.contains('collapsed'), false, 'Section 2 must not be collapsed');
+  assert.strictEqual(sec3.classList.contains('collapsed'), false, 'Section 3 must not be collapsed');
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), true);
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), true);
+
+  const deckEl = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, 'Elevation deck must be generated when Expand All is activated');
+  assert.strictEqual(deckEl.style.display, 'flex');
+
+  // Verify pills generated
+  const pills = deckEl.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(pills.length, 3, 'Deck must have 3 pills for 3 sections');
+
+  // Initial active turn is Section 1
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'deck');
+  assert.strictEqual(sec3.getAttribute('data-elevation-turn'), 'deck');
+
+  // Test 2B: Elevation Subpanel Mouse Wheel Scrolling
+  // Dispatch wheel down on deckEl -> advances turn to Section 2
+  deckEl.dispatchEvent({ type: 'wheel', deltaY: 100 });
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Wheel down on deck must advance turn to Section 2');
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'deck');
+
+  // Dispatch wheel up on deckEl -> retreats turn back to Section 1
+  deckEl._lastWheelTime = 0; // reset throttle for instant test
+  deckEl.dispatchEvent({ type: 'wheel', deltaY: -100 });
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Wheel up on deck must retreat turn to Section 1');
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'deck');
+
+  // Test 2C: Boundary overscroll chaining on active subpanel content
+  c1._lastTurnTime = 0;
+  c1.dispatchEvent({ type: 'wheel', deltaY: 50 });
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Boundary overscroll down on active content must cycle to Section 2');
+
+  // Test 2D: Touch swipe navigation on deck
+  deckEl.dispatchEvent({ type: 'touchstart', touches: [{ clientX: 150, clientY: 20 }] });
+  deckEl.dispatchEvent({ type: 'touchend', changedTouches: [{ clientX: 50, clientY: 20 }] });
+  assert.strictEqual(sec3.getAttribute('data-elevation-turn'), 'top', 'Swipe left on deck must advance turn to Section 3');
+
+  // Test 2E: Collapse All click functionality
+  expandBtn.click();
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'false', 'Clicking expandBtn again must set aria-expanded="false"');
+  assert.strictEqual(sec1.classList.contains('collapsed'), true);
+  assert.strictEqual(sec2.classList.contains('collapsed'), true);
+  assert.strictEqual(sec3.classList.contains('collapsed'), true);
+  assert.strictEqual(panel.classList.contains('has-expanded-subpanel'), false);
+  assert.strictEqual(panelBody.classList.contains('is-all-expanded'), false);
+  assert.strictEqual(deckEl.style.display, 'none');
+
+  // Test 3: Parent Dock Height Resizer Adjustment in Top Dock Mode
+  const resizer = dock.dockResizer;
+  assert.ok(resizer, 'Dock resizer divider must exist');
+
+  // Drag resizer downwards to increase dock height by 120px
+  resizer.dispatchEvent({ type: 'pointerdown', pointerId: 2, clientX: 200, clientY: 340, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 200, clientY: 460 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 2 });
+
+  assert.strictEqual(dock.dockSizeHorizontal, 460, 'Top dock height must adjust smoothly from resizer drag');
+  assert.strictEqual(dock.dockElement.style.height, '460px', 'dockElement inline height must reflect adjusted height');
+  assert.strictEqual(dock.dockElement.style.getPropertyValue('--dock-size'), '460px');
 });
 
 

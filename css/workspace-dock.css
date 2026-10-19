@@ -101,8 +101,9 @@
   left: 0;
   right: 0;
   bottom: auto;
-  height: auto;
-  max-height: var(--dock-size, 340px);
+  height: var(--dock-size, 340px);
+  max-height: 85vh;
+  min-height: 160px;
   width: 100%;
   border-left: none;
   border-right: none;
@@ -115,8 +116,9 @@
   left: 0;
   right: 0;
   top: auto;
-  height: auto;
-  max-height: var(--dock-size, 340px);
+  height: var(--dock-size, 340px);
+  max-height: 85vh;
+  min-height: 160px;
   width: 100%;
   border-left: none;
   border-right: none;
@@ -323,23 +325,46 @@
   display: none !important;
 }
 
-/* Horizontal Dock Body for Top/Bottom edges */
+/* Horizontal Dock Body for Top/Bottom edges: Responsive Reflow & Zero Dead Space */
 [data-dock-edge="top"] .workspace-dock-body,
 [data-dock-edge="bottom"] .workspace-dock-body {
   flex-direction: row !important;
+  flex-wrap: wrap !important;
   overflow-x: auto !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   align-items: flex-start !important;
   gap: 0.75rem !important;
+  padding: 0.5rem 0.75rem !important;
+  box-sizing: border-box !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
-  flex: 0 0 320px !important;
-  max-width: 360px !important;
+  flex: 1 1 320px !important;
+  min-width: 280px !important;
+  max-width: 620px !important;
   height: auto !important;
   max-height: calc(var(--dock-size, 340px) - 2.5rem) !important;
   align-self: flex-start !important;
+  box-sizing: border-box !important;
+  transition: flex-basis 0.2s ease, max-width 0.2s ease !important;
+}
+
+/* Responsive reflow breakpoints for docked shelf */
+@media (max-width: 768px) {
+  [data-dock-edge="top"] .workspace-dock-body > .ui-panel,
+  [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
+    flex: 1 1 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  [data-dock-edge="top"] .workspace-dock-body > .ui-panel,
+  [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel {
+    max-width: 720px !important;
+  }
 }
 
 /* Top/Bottom Dock Sub-Panel Overlay & Internal Scrolling:
@@ -350,6 +375,8 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body {
   position: relative !important;
   max-height: calc(var(--dock-size, 340px) - 5rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel.has-expanded-subpanel,
@@ -384,7 +411,8 @@
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body {
   height: calc(100% - 2.5rem) !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 /* Expanded Sub-Panel Overlay Card */
