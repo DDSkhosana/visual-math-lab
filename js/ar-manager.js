@@ -28,11 +28,16 @@ export class ARManager {
     this.onSessionEnd = options.onSessionEnd || null;
 
     this.isActive = false;
-    this.mode = null; // 'webxr' | 'video-passthrough' | null
+    this.mode = null; // 'webxr' | 'video-passthrough' | 'spatial-simulation' | null
     this.videoElement = null;
     this.mediaStream = null;
     this.xrSession = null;
     this.hudElement = null;
+    this.reticleElement = null;
+    this.arReticle3D = null;
+    this.previousViewMode = null;
+    this.gyroHandler = null;
+    this.gyroBase = null;
     this.originalClearColor = 0x0a0f1d;
     this.originalClearAlpha = 1.0;
 
@@ -122,6 +127,25 @@ export class ARManager {
   }
 
   #applyCanvasARLayering(active) {
+    const doc = this.container?.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    const mainView = doc?.getElementById?.('main-view');
+
+    if (active) {
+      if (mainView?.classList) {
+        if (mainView.classList.contains('layout-2d')) this.previousViewMode = '2d';
+        else if (mainView.classList.contains('layout-3d')) this.previousViewMode = '3d';
+        else this.previousViewMode = 'split';
+      }
+      const btn3d = doc?.getElementById?.('btn-3d');
+      if (btn3d && this.previousViewMode !== '3d') {
+        btn3d.click?.();
+      }
+    } else if (this.previousViewMode && this.previousViewMode !== '3d') {
+      const restoreBtn = doc?.getElementById?.(this.previousViewMode === '2d' ? 'btn-2d' : 'btn-split');
+      restoreBtn?.click?.();
+      this.previousViewMode = null;
+    }
+
     const canvas = this.renderer?.domElement;
     if (canvas && canvas.style) {
       if (active) {
@@ -142,6 +166,155 @@ export class ARManager {
         this.scene.background = this.originalSceneBackground;
       }
     }
+
+    if (active) {
+      this.#mountSpatialAnchorReticle(doc);
+      this.#enableGyroscopeTracking();
+    } else {
+      this.#removeSpatialAnchorReticle();
+      this.#disableGyroscopeTracking();
+    }
+  }
+
+  #mountSpatialAnchorReticle(doc) {
+    this.#removeSpatialAnchorReticle();
+
+    // 1. DOM surface-lock reticle & ground shadow beneath the 3D sphere
+    if (doc && this.container && typeof doc.createElement === 'function') {
+      const reticle = doc.createElement('div');
+      reticle.id = 'ar-surface-reticle';
+      reticle.className = 'ar-surface-reticle';
+      reticle.style.position = 'absolute';
+      reticle.style.left = '50%';
+      reticle.style.top = '66%';
+      reticle.style.width = '280px';
+      reticle.style.height = '280px';
+      reticle.style.transform = 'translate(-50%, -50%) perspective(500px) rotateX(68deg)';
+      reticle.style.borderRadius = '50%';
+      reticle.style.background = 'radial-gradient(circle, rgba(2, 6, 23, 0.55) 0%, rgba(56, 189, 248, 0.14) 52%, transparent 72%)';
+      reticle.style.border = '2px dashed rgba(56, 189, 248, 0.55)';
+      reticle.style.boxShadow = '0 0 28px rgba(56, 189, 248, 0.25), inset 0 0 18px rgba(16, 185, 129, 0.2)';
+      reticle.style.zIndex = '1';
+      reticle.style.pointerEvents = 'none';
+      this.container.appendChild(reticle);
+      this.reticleElement = reticle;
+    }
+
+    // 2. Three.js 3D floor reticle & contact shadow at y = -10.5 in world space
+    const THREE = globalThis.THREE || (typeof window !== 'undefined' ? window.THREE : null);
+    if (THREE && this.scene && typeof this.scene.add === 'function' && THREE.Group && THREE.RingGeometry && THREE.CircleGeometry) {
+      try {
+        const group = new THREE.Group();
+        group.position.set(0, -10.5, 0);
+
+        const shadowGeom = new THREE.CircleGeometry(9.5, 48);
+        const shadowMat = new THREE.MeshBasicMaterial({
+          color: 0x020617,
+          transparent: true,
+          opacity: 0.42,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const shadowMesh = new THREE.Mesh(shadowGeom, shadowMat);
+        shadowMesh.rotation.x = -Math.PI / 2;
+        group.add(shadowMesh);
+
+        const outerRingGeom = new THREE.RingGeometry(9.6, 10.0, 64);
+        const outerRingMat = new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.65,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const outerRing = new THREE.Mesh(outerRingGeom, outerRingMat);
+        outerRing.rotation.x = -Math.PI / 2;
+        group.add(outerRing);
+
+        const innerRingGeom = new THREE.RingGeometry(5.6, 5.85, 48);
+        const innerRingMat = new THREE.MeshBasicMaterial({
+          color: 0x10b981,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const innerRing = new THREE.Mesh(innerRingGeom, innerRingMat);
+        innerRing.rotation.x = -Math.PI / 2;
+        group.add(innerRing);
+
+        this.scene.add(group);
+        this.arReticle3D = group;
+      } catch (_) {}
+    }
+  }
+
+  #removeSpatialAnchorReticle() {
+    if (this.reticleElement) {
+      this.reticleElement.remove?.();
+      this.reticleElement = null;
+    }
+    if (this.arReticle3D && this.scene && typeof this.scene.remove === 'function') {
+      try {
+        this.scene.remove(this.arReticle3D);
+      } catch (_) {}
+      this.arReticle3D = null;
+    }
+  }
+
+  #enableGyroscopeTracking() {
+    this.#disableGyroscopeTracking();
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
+
+    this.gyroBase = null;
+    this.gyroHandler = (event) => {
+      if (!this.isActive || !this.camera || event.beta === null || event.gamma === null) return;
+      if (!this.gyroBase) {
+        const cx = this.camera.position?.x ?? 26;
+        const cy = this.camera.position?.y ?? 18;
+        const cz = this.camera.position?.z ?? 26;
+        const dist = Math.hypot(cx, cy, cz) || 36;
+        const baseTheta = Math.atan2(cx, cz);
+        const basePhi = Math.acos(Math.max(-1, Math.min(1, cy / dist)));
+        this.gyroBase = {
+          beta: event.beta,
+          gamma: event.gamma,
+          dist,
+          baseTheta,
+          basePhi,
+        };
+        return;
+      }
+
+      const dGamma = ((event.gamma - this.gyroBase.gamma) * Math.PI) / 180;
+      const dBeta = ((event.beta - this.gyroBase.beta) * Math.PI) / 180;
+      const theta = this.gyroBase.baseTheta - dGamma * 0.85;
+      const phi = Math.max(0.2, Math.min(Math.PI - 0.2, this.gyroBase.basePhi - dBeta * 0.65));
+      const r = this.gyroBase.dist;
+
+      if (typeof this.camera.position?.set === 'function') {
+        this.camera.position.set(
+          r * Math.sin(phi) * Math.sin(theta),
+          r * Math.cos(phi),
+          r * Math.sin(phi) * Math.cos(theta)
+        );
+        this.camera.lookAt?.(0, 0, 0);
+      }
+    };
+
+    window.addEventListener('deviceorientation', this.gyroHandler, true);
+  }
+
+  #disableGyroscopeTracking() {
+    if (this.gyroHandler && typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+      window.removeEventListener('deviceorientation', this.gyroHandler, true);
+    }
+    this.gyroHandler = null;
+    this.gyroBase = null;
   }
 
   #startSpatialSimulation() {

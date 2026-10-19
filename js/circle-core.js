@@ -1920,6 +1920,7 @@ export function bindStandardToggles(store, ...args) {
   const arSceneObj = sceneTarget?.scene || sceneTarget?.objects?.scene;
   if (arBtnEl && sceneTarget?.renderer && arSceneObj && !arBtnEl._hasClickBound) {
     arBtnEl._hasClickBound = true;
+    let preARViewMode = null;
     const arManager = new ARManager({
       renderer: sceneTarget.renderer,
       scene: arSceneObj,
@@ -1927,8 +1928,11 @@ export function bindStandardToggles(store, ...args) {
       container: sceneTarget.container || document.getElementById('canvas-3d-container'),
       onSessionStart: () => {
         sceneTarget.setARMode?.(true);
-        if (store.get().viewMode === '2d') {
-          store.set({ viewMode: 'split' });
+        if (!preARViewMode) {
+          preARViewMode = arManager?.previousViewMode || store.get().viewMode || 'split';
+        }
+        if (store.get().viewMode !== '3d') {
+          store.set({ viewMode: '3d' });
         }
         arBtnEl.classList?.add('active');
         arBtnEl.setAttribute?.('aria-pressed', 'true');
@@ -1939,6 +1943,10 @@ export function bindStandardToggles(store, ...args) {
       },
       onSessionEnd: () => {
         sceneTarget.setARMode?.(false);
+        if (preARViewMode && preARViewMode !== '3d') {
+          store.set({ viewMode: preARViewMode });
+        }
+        preARViewMode = null;
         arBtnEl.classList?.remove('active');
         arBtnEl.setAttribute?.('aria-pressed', 'false');
         if (arPillEl) {

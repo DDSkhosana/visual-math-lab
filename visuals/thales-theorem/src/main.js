@@ -103,6 +103,7 @@ function bootstrap() {
   const arToggleBtn = document.getElementById('btn-toggle-ar');
   const arStatusPill = document.getElementById('ar-status-pill');
 
+  let preARViewMode = null;
   if (scene3d.renderer && scene3d.objects?.scene) {
     arManager = new ARManager({
       renderer: scene3d.renderer,
@@ -111,8 +112,11 @@ function bootstrap() {
       container: byId('canvas-3d-container'),
       onSessionStart: () => {
         scene3d.setARMode(true);
-        if (store.get().viewMode === '2d') {
-          store.set(setViewMode('split'));
+        if (!preARViewMode) {
+          preARViewMode = arManager?.previousViewMode || store.get().viewMode || 'split';
+        }
+        if (store.get().viewMode !== '3d') {
+          store.set(setViewMode('3d'));
         }
         if (arToggleBtn) {
           arToggleBtn.classList.add('active');
@@ -125,6 +129,10 @@ function bootstrap() {
       },
       onSessionEnd: () => {
         scene3d.setARMode(false);
+        if (preARViewMode && preARViewMode !== '3d') {
+          store.set(setViewMode(preARViewMode));
+        }
+        preARViewMode = null;
         if (arToggleBtn) {
           arToggleBtn.classList.remove('active');
           arToggleBtn.setAttribute('aria-pressed', 'false');
