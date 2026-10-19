@@ -236,7 +236,11 @@ class MockDOMElement {
       stopped = true;
       if (origStop) origStop.call(event);
     };
-    if (!event.preventDefault) event.preventDefault = () => {};
+    const origPrevent = event.preventDefault;
+    event.preventDefault = () => {
+      event.defaultPrevented = true;
+      if (origPrevent) origPrevent.call(event);
+    };
 
     let curr = this;
     while (curr) {
@@ -1786,6 +1790,189 @@ test('Granular Left/Right Dock: Header min-height, zero hairline border collapse
   assert.strictEqual(dock.dockEdge, 'left');
 });
 
+test('Granular Panel Usability: Simplified header actions, single-click clean expansion, and float/minimise/dock recovery', async (t) => {
+  // 1. CSS Contract Verification: Simplified Header Controls Layout & Floating Rules
+  const cssPath = path.resolve(rootDir, 'css/workspace-dock.css');
+  const cssContent = fs.readFileSync(cssPath, 'utf8');
 
+  // Verify redundant accordion minimize chevron is hidden on standard windowed panels
+  assert.ok(
+    cssContent.includes('.ui-panel:not(.stats-overlay) .panel-header-actions .panel-minimize-btn'),
+    'CSS must hide redundant accordion minimize chevron in standard windowed panels'
+  );
+  assert.ok(
+    cssContent.includes('display: none !important'),
+    'CSS must set display: none !important on hidden accordion minimize button'
+  );
 
+  // Verify flex order: Expand All (1), Pop-out (2), Shade (3), Close (4)
+  assert.ok(cssContent.includes('.panel-header-actions .panel-expand-btn') && cssContent.includes('order: 1 !important;'), 'panel-expand-btn must have flex order: 1');
+  assert.ok(cssContent.includes('.panel-header-actions .panel-dock-toggle-btn') && cssContent.includes('order: 2 !important;'), 'panel-dock-toggle-btn must have flex order: 2');
+  assert.ok(cssContent.includes('.panel-header-actions .panel-shade-btn') && cssContent.includes('order: 3 !important;'), 'panel-shade-btn must have flex order: 3');
+  assert.ok(cssContent.includes('.panel-header-actions .panel-close-btn') && cssContent.includes('order: 4 !important;'), 'panel-close-btn must have flex order: 4');
 
+  // Verify floating shaded min-height protection
+  assert.ok(cssContent.includes('.ui-panel.is-floating.is-shaded'), 'CSS must style floating shaded panel');
+  assert.ok(cssContent.includes('min-height: 40px !important'), 'Floating shaded panel must guarantee min-height: 40px !important');
+
+  // 2. DOM Setup & Double-Toggle Elimination Test
+  const { mockDoc, mockWin, root } = setupTestEnvironment();
+
+  // Build a test panel with collapsible sections and header actions
+  const panel = mockDoc.createElement('div');
+  panel.className = 'ui-panel math-panel';
+  panel.id = 'test-usability-panel';
+
+  const header = mockDoc.createElement('div');
+  header.className = 'panel-header';
+  const title = mockDoc.createElement('h2');
+  title.className = 'panel-title';
+  title.textContent = 'Usability Controls';
+  header.appendChild(title);
+
+  const actions = mockDoc.createElement('div');
+  actions.className = 'panel-header-actions';
+
+  const expandBtn = mockDoc.createElement('button');
+  expandBtn.type = 'button';
+  expandBtn.className = 'panel-expand-btn';
+  expandBtn.id = 'test-expand-btn';
+  actions.appendChild(expandBtn);
+
+  const minBtn = mockDoc.createElement('button');
+  minBtn.type = 'button';
+  minBtn.className = 'panel-minimize-btn';
+  minBtn.id = 'test-minimize-btn';
+  actions.appendChild(minBtn);
+
+  header.appendChild(actions);
+  panel.appendChild(header);
+
+  const body = mockDoc.createElement('div');
+  body.className = 'panel-body';
+
+  // Add 2 collapsible sections
+  const sec1 = mockDoc.createElement('div');
+  sec1.className = 'collapsible-section collapsed';
+  const sec1Head = mockDoc.createElement('div');
+  sec1Head.className = 'collapsible-header';
+  const sec1Icon = mockDoc.createElement('span');
+  sec1Icon.className = 'icon';
+  sec1Icon.textContent = '▶';
+  sec1Head.appendChild(sec1Icon);
+  const sec1Body = mockDoc.createElement('div');
+  sec1Body.className = 'collapsible-content collapsed';
+  sec1.appendChild(sec1Head);
+  sec1.appendChild(sec1Body);
+  body.appendChild(sec1);
+
+  const sec2 = mockDoc.createElement('div');
+  sec2.className = 'collapsible-section collapsed';
+  const sec2Head = mockDoc.createElement('div');
+  sec2Head.className = 'collapsible-header';
+  const sec2Icon = mockDoc.createElement('span');
+  sec2Icon.className = 'icon';
+  sec2Icon.textContent = '▶';
+  sec2Head.appendChild(sec2Icon);
+  const sec2Body = mockDoc.createElement('div');
+  sec2Body.className = 'collapsible-content collapsed';
+  sec2.appendChild(sec2Head);
+  sec2.appendChild(sec2Body);
+  body.appendChild(sec2);
+
+  panel.appendChild(body);
+  root.appendChild(panel);
+
+  // Initialize both initCollapsibleSections and Panel class (as in production)
+  initCollapsibleSections(mockDoc);
+  const panelInstance = new Panel(panel, {
+    header,
+    minimizeButton: minBtn,
+    expandButton: expandBtn,
+  });
+
+  // Verify initial state: sections collapsed
+  assert.strictEqual(sec1.classList.contains('collapsed'), true);
+  assert.strictEqual(sec2.classList.contains('collapsed'), true);
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'false');
+  assert.ok(expandBtn.textContent.includes('Expand All'));
+
+  // Test single click on Expand All: Must cleanly expand all without double-toggle cancellation
+  expandBtn.click();
+
+  assert.strictEqual(sec1.classList.contains('collapsed'), false, 'Section 1 must be expanded after 1 click');
+  assert.strictEqual(sec2.classList.contains('collapsed'), false, 'Section 2 must be expanded after 1 click');
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'true', 'Button must show aria-expanded=true');
+  assert.ok(expandBtn.textContent.includes('Collapse All'), 'Button text must become Collapse All');
+
+  // Test second click: Must cleanly collapse all sections
+  expandBtn.click();
+
+  assert.strictEqual(sec1.classList.contains('collapsed'), true, 'Section 1 must be collapsed after 2nd click');
+  assert.strictEqual(sec2.classList.contains('collapsed'), true, 'Section 2 must be collapsed after 2nd click');
+  assert.strictEqual(expandBtn.getAttribute('aria-expanded'), 'false', 'Button must show aria-expanded=false');
+  assert.ok(expandBtn.textContent.includes('Expand All'), 'Button text must return to Expand All');
+
+  // 3. Workspace Dock Floating & Shading Lifecycle Test
+  const dock = new WorkspaceDockManager(root, { document: mockDoc, window: mockWin });
+
+  const record = dock.panels.get('test-usability-panel');
+  assert.ok(record, 'Panel record must exist');
+
+  // Verify header has all 4 action buttons
+  const dockToggleBtn = record.dockToggleBtn;
+  const shadeBtn = record.shadeBtn;
+  const closeBtn = record.closeBtn;
+  assert.ok(dockToggleBtn, 'Pop-out/dock toggle button must be generated');
+  assert.ok(shadeBtn, 'Shade button must be generated');
+  assert.ok(closeBtn, 'Close button must be generated');
+  assert.strictEqual(dockToggleBtn.innerHTML, '⧉', 'Docked panel pop-out icon must be ⧉');
+  assert.strictEqual(shadeBtn.innerHTML, '─', 'Unshaded panel shade icon must be ─');
+
+  // Float panel out
+  dock.floatPanel('test-usability-panel');
+  assert.strictEqual(record.isFloating, true, 'Panel must be flagged isFloating=true');
+  assert.strictEqual(panel.classList.contains('is-floating'), true, 'Panel element must have is-floating class');
+  assert.strictEqual(panel.parentElement, dock.floatingLayer, 'Panel must reside inside floatingLayer');
+  assert.strictEqual(dockToggleBtn.innerHTML, '🗁', 'Floating panel toggle icon must change to dock icon 🗁');
+  assert.strictEqual(body.classList.contains('hidden'), false, 'Floating panel body must NOT be hidden');
+
+  // Shade the floating panel (minimise window)
+  panel.style.height = '450px';
+  dock.setPanelShaded('test-usability-panel', true);
+
+  assert.strictEqual(panel.classList.contains('is-shaded'), true, 'Floating panel must have is-shaded class');
+  assert.strictEqual(body.classList.contains('hidden'), true, 'Shaded body must have hidden class');
+  assert.strictEqual(shadeBtn.innerHTML, '□', 'Shaded panel icon must change to restore □');
+  assert.strictEqual(panel.style.height, 'auto', 'Shaded floating panel style.height must be auto');
+  assert.strictEqual(record.unshadedHeight, '450px', 'Unshaded height 450px must be preserved in record');
+
+  // Unshade / restore the floating panel
+  dock.setPanelShaded('test-usability-panel', false);
+
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Unshaded panel must lose is-shaded class');
+  assert.strictEqual(body.classList.contains('hidden'), false, 'Restored body must NOT have hidden class');
+  assert.strictEqual(shadeBtn.innerHTML, '─', 'Restored panel icon must return to ─');
+  assert.strictEqual(panel.style.height, '450px', 'Floating panel style.height must be restored to 450px');
+
+  // Re-dock panel back into sidebar
+  dock.dockPanel('test-usability-panel');
+
+  assert.strictEqual(record.isFloating, false, 'Re-docked panel must have isFloating=false');
+  assert.strictEqual(panel.classList.contains('is-floating'), false, 'Re-docked panel must lose is-floating class');
+  assert.strictEqual(panel.parentElement, dock.dockBody, 'Re-docked panel must reside in dockBody');
+  assert.strictEqual(dockToggleBtn.innerHTML, '⧉', 'Re-docked toggle icon must return to ⧉');
+  assert.strictEqual(body.classList.contains('hidden'), false, 'Re-docked panel body must remain visible');
+
+  // Close panel
+  closeBtn.click();
+  assert.strictEqual(record.isHidden, true, 'Panel must be hidden after close');
+  assert.strictEqual(panel.style.display, 'none', 'Panel element must have display: none');
+
+  // Float panel directly from hidden state
+  dock.floatPanel('test-usability-panel');
+  assert.strictEqual(record.isHidden, false, 'Floating a closed panel must unhide it');
+  assert.strictEqual(panel.hidden, false, 'panel.hidden must be false');
+  assert.strictEqual(panel.style.display, '', 'panel.style.display must be empty/visible');
+  assert.strictEqual(record.isFloating, true);
+});

@@ -795,8 +795,12 @@ export class WorkspaceDockManager {
       dockToggleBtn.innerHTML = record.isFloating ? `🗁` : `⧉`;
       actionsContainer.prepend(dockToggleBtn);
 
-      dockToggleBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
+      dockToggleBtn.addEventListener('pointerdown', (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      });
       dockToggleBtn.addEventListener('click', (e) => {
+        e?.preventDefault?.();
         e?.stopPropagation?.();
         if (record.isFloating) {
           this.dockPanel(record.id);
@@ -818,8 +822,12 @@ export class WorkspaceDockManager {
       shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
       actionsContainer.appendChild(shadeBtn);
 
-      shadeBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
+      shadeBtn.addEventListener('pointerdown', (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      });
       shadeBtn.addEventListener('click', (e) => {
+        e?.preventDefault?.();
         e?.stopPropagation?.();
         this.setPanelShaded(record.id);
       });
@@ -837,13 +845,32 @@ export class WorkspaceDockManager {
       closeBtn.innerHTML = `✕`;
       actionsContainer.appendChild(closeBtn);
 
-      closeBtn.addEventListener('pointerdown', (e) => e?.stopPropagation?.());
+      closeBtn.addEventListener('pointerdown', (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      });
       closeBtn.addEventListener('click', (e) => {
+        e?.preventDefault?.();
         e?.stopPropagation?.();
         this.setPanelVisible(record.id, false);
       });
     }
     record.closeBtn = closeBtn;
+
+    // Wire minBtn if present in header actions
+    const minBtn = actionsContainer.querySelector('.panel-minimize-btn');
+    if (minBtn && !minBtn._hasWorkspaceDockBound) {
+      minBtn._hasWorkspaceDockBound = true;
+      minBtn.addEventListener('pointerdown', (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      });
+      minBtn.addEventListener('click', (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        this.setPanelShaded(record.id);
+      });
+    }
 
     // Header click to restore shaded panel, double-click to toggle shading
     if (record.header && !record.header._hasShadeBound) {
@@ -946,12 +973,18 @@ export class WorkspaceDockManager {
           }
         } catch (_) {}
         handle.classList.remove('active');
+        handle.removeEventListener?.('pointermove', onMove);
+        handle.removeEventListener?.('pointerup', onUp);
+        handle.removeEventListener?.('pointercancel', onUp);
         this.win?.removeEventListener?.('pointermove', onMove);
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
         this.#persistState();
       };
 
+      handle.addEventListener?.('pointermove', onMove);
+      handle.addEventListener?.('pointerup', onUp);
+      handle.addEventListener?.('pointercancel', onUp);
       this.win?.addEventListener?.('pointermove', onMove);
       this.win?.addEventListener?.('pointerup', onUp);
       this.win?.addEventListener?.('pointercancel', onUp);
@@ -1000,6 +1033,9 @@ export class WorkspaceDockManager {
             header.releasePointerCapture(upEv.pointerId);
           }
         } catch (_) {}
+        header.removeEventListener?.('pointermove', onMove);
+        header.removeEventListener?.('pointerup', onUp);
+        header.removeEventListener?.('pointercancel', onUp);
         this.win?.removeEventListener?.('pointermove', onMove);
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
@@ -1019,6 +1055,9 @@ export class WorkspaceDockManager {
         this.#persistState();
       };
 
+      header.addEventListener?.('pointermove', onMove);
+      header.addEventListener?.('pointerup', onUp);
+      header.addEventListener?.('pointercancel', onUp);
       this.win?.addEventListener?.('pointermove', onMove);
       this.win?.addEventListener?.('pointerup', onUp);
       this.win?.addEventListener?.('pointercancel', onUp);
@@ -1030,7 +1069,12 @@ export class WorkspaceDockManager {
     if (!record) return;
 
     record.isFloating = true;
+    record.isHidden = false;
     const panel = record.element;
+    panel.hidden = false;
+    if (panel.style.display === 'none') {
+      panel.style.display = '';
+    }
     panel.classList.add('is-floating');
 
     // If panel was shaded, unshade it on float out so the floating window is fully open and accessible
@@ -1074,7 +1118,12 @@ export class WorkspaceDockManager {
     if (!record) return;
 
     record.isFloating = false;
+    record.isHidden = false;
     const panel = record.element;
+    panel.hidden = false;
+    if (panel.style.display === 'none') {
+      panel.style.display = '';
+    }
     panel.classList.remove('is-floating', 'is-focused');
 
     // Reset inline floating styles so it fits neatly into the dock body

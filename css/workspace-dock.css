@@ -1172,9 +1172,31 @@
 .panel-header-actions {
   display: flex !important;
   align-items: center !important;
-  gap: 0.3rem !important;
+  gap: 0.35rem !important;
   flex-shrink: 0 !important;
   min-width: max-content !important;
+}
+
+/* In windowed panels: hide redundant legacy accordion minimize chevron, unified into .panel-shade-btn */
+.ui-panel:not(.stats-overlay) .panel-header-actions .panel-minimize-btn {
+  display: none !important;
+}
+
+.panel-header-actions .panel-expand-btn {
+  order: 1 !important;
+  margin-right: 0.2rem !important;
+}
+
+.panel-header-actions .panel-dock-toggle-btn {
+  order: 2 !important;
+}
+
+.panel-header-actions .panel-shade-btn {
+  order: 3 !important;
+}
+
+.panel-header-actions .panel-close-btn {
+  order: 4 !important;
 }
 
 .panel-window-btn {
@@ -1219,7 +1241,7 @@
 
 .ui-panel.is-floating.is-shaded {
   height: auto !important;
-  min-height: 0 !important;
+  min-height: 40px !important;
 }
 
 .panel-close-btn:hover {
@@ -1245,6 +1267,7 @@
   -webkit-backdrop-filter: blur(14px);
   display: flex !important;
   flex-direction: column !important;
+  min-height: max-content !important;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -1252,10 +1275,23 @@
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 auto !important;
-  min-height: 0 !important;
-  height: 100% !important;
+  min-height: max-content !important;
+  height: auto !important;
+  max-height: 100% !important;
   width: 100% !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+}
+
+.ui-panel.is-floating .panel-header {
+  flex-shrink: 0 !important;
+  min-height: 40px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  cursor: grab;
 }
 
 .ui-panel.is-floating .panel-body,

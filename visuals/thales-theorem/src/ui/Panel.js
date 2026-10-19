@@ -22,9 +22,16 @@ export class Panel {
     this.compact.addEventListener('change', () => this.#resetLayout());
 
     this.#enableDrag(header);
-    if (resizeHandle) this.#enableResize(resizeHandle, resizeFrom);
-    minimizeButton?.addEventListener('click', () => this.setMinimized(!this.minimized));
-    expandButton?.addEventListener('click', () => this.#toggleAll());
+    minimizeButton?.addEventListener('click', (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      this.setMinimized(!this.minimized);
+    });
+    expandButton?.addEventListener('click', (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      this.#toggleAll();
+    });
     this.#syncMinimizeButton();
     if (expandButton) {
       setExpandButtonUI(expandButton, false);
@@ -41,8 +48,15 @@ export class Panel {
     if (!minimized) {
       this.body.style.display = '';
       this.element.classList.remove('is-shaded');
+      if (this.element.classList.contains('is-floating')) {
+        this.element.style.height = this.unshadedHeight || '380px';
+      }
     } else {
       this.element.classList.add('is-shaded');
+      if (this.element.classList.contains('is-floating')) {
+        this.unshadedHeight = this.element.style.height || '380px';
+        this.element.style.height = 'auto';
+      }
     }
     const shadeBtn = this.element.querySelector('.panel-shade-btn');
     if (shadeBtn) {
