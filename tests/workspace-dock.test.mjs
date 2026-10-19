@@ -1848,6 +1848,121 @@ test('WorkspaceDockManager: Cross-Level Hierarchical Navigation & Peer Roving Pi
   dock.dockPanel('panel-derivations');
 });
 
+test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling Contract', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // 1. Zero Overlap In-Flow CSS Contracts
+  assert.ok(
+    css.includes('.panel-elevation-deck'),
+    'CSS must define .panel-elevation-deck'
+  );
+  assert.ok(
+    !css.includes('top: 2.25rem !important'),
+    'CSS must NOT contain hardcoded top: 2.25rem on elevated subpanels which causes collisions'
+  );
+  assert.ok(
+    css.includes('margin-bottom: 0.4rem !important'),
+    'Elevation deck bar must have margin-bottom separating it cleanly from section headers'
+  );
+  assert.ok(
+    css.includes('min-width: 0 !important'),
+    'Pills container must have min-width: 0 !important to prevent displacing nav buttons'
+  );
+  assert.ok(
+    css.includes('max-width: 140px !important'),
+    'Deck pills must enforce max-width: 140px to prevent awkward horizontal ballooning'
+  );
+  assert.ok(
+    css.includes('text-overflow: ellipsis !important'),
+    'Deck pills must use text-overflow: ellipsis for elegant truncation'
+  );
+  assert.ok(
+    css.includes('[data-deck-mode="stack"]'),
+    'CSS must define dedicated rules for Stack mode'
+  );
+
+  // 2. DOM Multi-Section Expansion & Deck Synchronization
+  globalThis.localStorage?.clear?.();
+  const mockDoc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer');
+  mockDoc.body.appendChild(root);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'unit-panel');
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  const panelTitle = new MockDOMElement('span', 'panel-title');
+  panelTitle.textContent = 'Interactive Controls';
+  panelHeader.appendChild(panelTitle);
+  const panelBody = new MockDOMElement('div', 'panel-body');
+
+  const sec1 = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-units');
+  const h1 = new MockDOMElement('div', 'collapsible-header');
+  h1.textContent = '▶ Unit System Conversion';
+  const c1 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec1.appendChild(h1);
+  sec1.appendChild(c1);
+
+  const sec2 = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-legend');
+  const h2 = new MockDOMElement('div', 'collapsible-header');
+  h2.textContent = '▶ Geometry Notation Legend';
+  const c2 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec2.appendChild(h2);
+  sec2.appendChild(c2);
+
+  const sec3 = new MockDOMElement('div', 'collapsible-section collapsed', 'sec-angles');
+  const h3 = new MockDOMElement('div', 'collapsible-header');
+  h3.textContent = '▶ 2D Angles & Coordinates';
+  const c3 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec3.appendChild(h3);
+  sec3.appendChild(c3);
+
+  panelBody.appendChild(sec1);
+  panelBody.appendChild(sec2);
+  panelBody.appendChild(sec3);
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelBody);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { document: mockDoc });
+
+  // Open Section 1
+  sec1.classList.remove('collapsed');
+  c1.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  let deck = panelBody.querySelector('.panel-elevation-deck');
+  // Single open section: deck bar should be hidden or inactive
+  assert.ok(!deck || deck.style.display === 'none', 'Deck bar should not be active for 1 section');
+
+  // Open Section 2: multi-expand trigger
+  sec2.classList.remove('collapsed');
+  c2.classList.remove('collapsed');
+  dock.syncSubpanelOverlayState();
+
+  deck = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deck, 'Deck bar must be created on multi-expand');
+  assert.strictEqual(deck.style.display, 'flex', 'Deck bar must be visible with display: flex');
+
+  const pills = deck.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(pills.length, 2, 'Must have 2 pills for 2 open sections');
+  assert.strictEqual(pills[0].title, 'Bring "Unit System Conversion" to top elevation');
+  assert.strictEqual(pills[1].title, 'Bring "Geometry Notation Legend" to top elevation');
+
+  // Mode Toggle to Stack
+  const toggleBtn = deck.querySelector('.elevation-deck-mode-toggle');
+  assert.ok(toggleBtn, 'Mode toggle button must exist');
+  toggleBtn.click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'stack');
+  assert.strictEqual(sec1.classList.contains('is-in-deck'), false);
+  assert.strictEqual(sec2.classList.contains('is-in-deck'), false);
+
+  // Mode Toggle back to Deck
+  const updatedToggle = deck.querySelector('.elevation-deck-mode-toggle');
+  updatedToggle.click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
+  assert.strictEqual(sec2.classList.contains('is-in-deck'), true);
+});
+
 
 
 

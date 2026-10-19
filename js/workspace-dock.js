@@ -1807,14 +1807,18 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null) {
         pill.setAttribute('aria-selected', String(isCurrent));
 
         const headerEl = sub.querySelector ? sub.querySelector('.collapsible-header, .derivation-card-header') : null;
-        let titleText = headerEl?.textContent ? headerEl.textContent.replace(/[▶▼◀▲]/g, '').trim() : `Section ${i + 1}`;
-        titleText = titleText.replace(/\s+/g, ' ');
-        if (titleText.length > 22) {
-          titleText = titleText.slice(0, 20) + '…';
-        }
+        let fullTitle = headerEl?.textContent ? headerEl.textContent.replace(/[▶▼◀▲]/g, '').trim() : `Section ${i + 1}`;
+        fullTitle = fullTitle.replace(/\s+/g, ' ');
+        const displayTitle = fullTitle.length > 24 ? fullTitle.slice(0, 22) + '…' : fullTitle;
 
-        pill.textContent = `${i + 1}. ${titleText}${isCurrent ? ' ★' : ''}`;
-        pill.title = `Bring "${titleText}" to top elevation`;
+        pill.textContent = `${i + 1}. ${displayTitle}${isCurrent ? ' ★' : ''}`;
+        pill.title = `Bring "${fullTitle}" to top elevation`;
+
+        if (isCurrent && typeof pill.scrollIntoView === 'function') {
+          try {
+            pill.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          } catch (_) {}
+        }
 
         pill.addEventListener?.('click', (e) => {
           e.stopPropagation?.();
