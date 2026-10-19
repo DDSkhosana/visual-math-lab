@@ -608,14 +608,22 @@ export class BaseScene3DView {
   }
 
   setARMode(active) {
-    if (this.grid) this.grid.visible = !active;
-    if (this.axes) this.axes.visible = !active;
+    if (this.grid) this.grid.visible = active ? false : (this.latestVis3d?.gridXZ !== false);
     if (this.scene) {
       if (active) {
-        this.originalSceneBg = this.scene.background;
+        if (this.scene.background !== null) {
+          this.originalSceneBg = this.scene.background;
+        }
         this.scene.background = null;
       } else {
         this.scene.background = this.originalSceneBg || new this.THREE.Color(PALETTE.slate800);
+      }
+    }
+    if (this.renderer && typeof this.renderer.setClearColor === 'function') {
+      if (active) {
+        this.renderer.setClearColor(0x000000, 0);
+      } else {
+        this.renderer.setClearColor(PALETTE.slate800, 1);
       }
     }
   }

@@ -273,7 +273,12 @@ async function initializeVisualPage() {
             camera: scene3d.camera,
             container: container3d,
             onSessionStart: () => {
+              const mainView = document.getElementById('main-view');
+              if (mainView && mainView.classList.contains('layout-2d')) {
+                document.getElementById('btn-split')?.click();
+              }
               if (typeof scene3d.setARMode === 'function') scene3d.setARMode(true);
+              if (typeof scene3d.resize === 'function') scene3d.resize();
               arToolbarBtn.classList.add('active');
               arToolbarBtn.setAttribute('aria-pressed', 'true');
               const pill = document.getElementById('ar-status-pill');

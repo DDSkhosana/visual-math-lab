@@ -72,6 +72,8 @@ body.header-collapsed .circle-explorer {
 #canvas-2d-container canvas,
 #canvas-3d-container canvas {
   display: block;
+  position: relative;
+  z-index: 2;
   width: 100% !important;
   height: 100% !important;
   touch-action: none;

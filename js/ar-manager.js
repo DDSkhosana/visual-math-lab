@@ -121,6 +121,29 @@ export class ARManager {
     return true;
   }
 
+  #applyCanvasARLayering(active) {
+    const canvas = this.renderer?.domElement;
+    if (canvas && canvas.style) {
+      if (active) {
+        canvas.style.position = 'relative';
+        canvas.style.zIndex = '2';
+        canvas.style.background = 'transparent';
+      } else {
+        canvas.style.background = '';
+      }
+    }
+    if (this.scene) {
+      if (active) {
+        if (this.scene.background !== null) {
+          this.originalSceneBackground = this.scene.background;
+        }
+        this.scene.background = null;
+      } else if (this.originalSceneBackground !== undefined) {
+        this.scene.background = this.originalSceneBackground;
+      }
+    }
+  }
+
   #startSpatialSimulation() {
     const doc = this.container?.ownerDocument || (typeof document !== 'undefined' ? document : null);
     if (!doc) return false;
@@ -131,12 +154,12 @@ export class ARManager {
     backdrop.style.inset = '0';
     backdrop.style.width = '100%';
     backdrop.style.height = '100%';
-    backdrop.style.zIndex = '0';
+    backdrop.style.zIndex = '1';
     backdrop.style.pointerEvents = 'none';
     backdrop.style.background =
-      'radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.16) 0%, rgba(15, 23, 42, 0.88) 65%, #020617 100%), ' +
-      'repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.08) 0px, rgba(148, 163, 184, 0.08) 1px, transparent 1px, transparent 36px), ' +
-      'repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.08) 0px, rgba(148, 163, 184, 0.08) 1px, transparent 1px, transparent 36px)';
+      'radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.18) 0%, rgba(15, 23, 42, 0.85) 65%, #020617 100%), ' +
+      'repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.1) 0px, rgba(148, 163, 184, 0.1) 1px, transparent 1px, transparent 36px), ' +
+      'repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.1) 0px, rgba(148, 163, 184, 0.1) 1px, transparent 1px, transparent 36px)';
 
     if (this.container) {
       this.container.classList.add('is-ar-active');
@@ -150,10 +173,16 @@ export class ARManager {
     }
     this.videoElement = backdrop;
 
+    this.#applyCanvasARLayering(true);
+
     if (this.renderer) {
       if (typeof this.renderer.getClearColor === 'function') {
-        const c = this.renderer.getClearColor();
-        this.originalClearColor = c.getHex ? c.getHex() : 0x0a0f1d;
+        try {
+          const c = this.renderer.getClearColor();
+          this.originalClearColor = c?.getHex ? c.getHex() : 0x1e293b;
+        } catch (_) {
+          this.originalClearColor = 0x1e293b;
+        }
         this.originalClearAlpha = typeof this.renderer.getClearAlpha === 'function' ? this.renderer.getClearAlpha() : 1.0;
       }
       if (typeof this.renderer.setClearColor === 'function') {
@@ -161,7 +190,7 @@ export class ARManager {
       }
     }
 
-    this.#createARHUD(doc, 'AR Mode: Spatial Environment (Simulated Pass-Through)');
+    this.#createARHUD(doc, 'AR Mode: Spatial Environment (3D Projected Overlay)');
 
     this.mode = 'spatial-simulation';
     this.isActive = true;
@@ -208,7 +237,7 @@ export class ARManager {
     video.style.width = '100%';
     video.style.height = '100%';
     video.style.objectFit = 'cover';
-    video.style.zIndex = '0';
+    video.style.zIndex = '1';
     video.style.pointerEvents = 'none';
 
     if (typeof video.play === 'function') {
@@ -230,11 +259,17 @@ export class ARManager {
     }
     this.videoElement = video;
 
-    // 3. Make WebGL canvas background transparent
+    // 3. Make WebGL canvas background transparent and stack above video element
+    this.#applyCanvasARLayering(true);
+
     if (this.renderer) {
       if (typeof this.renderer.getClearColor === 'function') {
-        const c = this.renderer.getClearColor();
-        this.originalClearColor = c.getHex ? c.getHex() : 0x0a0f1d;
+        try {
+          const c = this.renderer.getClearColor();
+          this.originalClearColor = c?.getHex ? c.getHex() : 0x1e293b;
+        } catch (_) {
+          this.originalClearColor = 0x1e293b;
+        }
         this.originalClearAlpha = typeof this.renderer.getClearAlpha === 'function' ? this.renderer.getClearAlpha() : 1.0;
       }
       if (typeof this.renderer.setClearColor === 'function') {
@@ -243,7 +278,7 @@ export class ARManager {
     }
 
     // 4. Attach AR touch / interaction HUD
-    this.#createARHUD(doc);
+    this.#createARHUD(doc, 'AR Mode: Live Camera Pass-Through');
 
     this.mode = 'video-passthrough';
     this.isActive = true;
@@ -260,9 +295,9 @@ export class ARManager {
     const hud = doc.createElement('div');
     hud.className = 'ar-hud-overlay';
     hud.style.position = 'absolute';
-    hud.style.top = '16px';
+    hud.style.top = '38px';
     hud.style.left = '16px';
-    hud.style.right = '16px';
+    hud.style.right = '56px';
     hud.style.display = 'flex';
     hud.style.justifyContent = 'space-between';
     hud.style.alignItems = 'center';
@@ -343,6 +378,8 @@ export class ARManager {
     if (this.container) {
       this.container.classList.remove('is-ar-active');
     }
+
+    this.#applyCanvasARLayering(false);
 
     // 4. Restore renderer clear color
     if (this.renderer && typeof this.renderer.setClearColor === 'function') {

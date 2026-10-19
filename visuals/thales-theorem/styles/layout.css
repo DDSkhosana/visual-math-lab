@@ -51,6 +51,8 @@ body.header-collapsed .thales-explorer {
 
 .thales-explorer canvas {
     display: block;
+    position: relative;
+    z-index: 2;
     width: 100% !important;
     height: 100% !important;
     max-width: 100%;
