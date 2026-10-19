@@ -2081,6 +2081,10 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
   setText('label-radius', UnitSystemConverter.formatLength(r, lenUnit, r));
   syncSlider('slider-radius', Math.round(r));
 
+  // Shared 3D radius readout (matches Circle Theorems: R3D = sphere scale used by TrigScene3DView)
+  const R3D = r / 17.5;
+  setText('val-3d-r', lenUnit === 'px' ? R3D.toFixed(2) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 2));
+
   if (visualId === 'unit-circle-helix') {
     const m = computeUnitCircleHelix(state.angleTheta, 1.0, state.helixPitch);
     syncSlider('slider-theta', Math.round(m.thetaDeg));
@@ -2097,7 +2101,6 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
     setText('tel-reflex', fmtAng(360 - m.thetaDeg));
 
-    setText('val-3d-r', (r / 17.5).toFixed(2));
     setText('val-3d-px', m.cos.toFixed(3));
     setText('val-3d-pz', m.sin.toFixed(3));
     setText('val-3d-py', m.points3D.point3D.z.toFixed(3));

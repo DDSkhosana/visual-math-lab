@@ -170,6 +170,9 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
             'id="vis-3d-angles"',
             'id="vis-3d-area"',
             'id="vis-3d-reflex"',
+            'id="val-3d-r"',
+            'katex.min.css',
+            'katex.min.js',
             'id="section-unit-converter"',
             'js/visual-page.js',
         ];
