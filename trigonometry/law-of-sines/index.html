@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Law of Sines &amp; Circumcircle Invariant (a/sin A = 2R) | Trigonometry Suite</title>
+  <link rel="stylesheet" href="../css/trig-suite.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+</head>
+<body>
+  <header class="trig-header">
+    <div class="trig-brand-group">
+      <a class="trig-brand" href="../../index.html">Visual Math Lab</a>
+      <span class="trig-sep">/</span>
+      <a class="trig-suite-pill" href="../index.html">Trigonometry Suite</a>
+      <span class="trig-sep">/</span>
+      <span class="trig-visual-title">02. Law of Sines &amp; Circumcircle Invariant</span>
+    </div>
+
+    <div class="trig-toolbar">
+      <div class="trig-btn-group" role="group" aria-label="View Mode">
+        <button type="button" id="btn-split" class="trig-btn active">Split</button>
+        <button type="button" id="btn-flip-split" class="trig-btn" title="Flip Split Orientation">Flip</button>
+        <button type="button" id="btn-2d" class="trig-btn">2D</button>
+        <button type="button" id="btn-3d" class="trig-btn">3D</button>
+      </div>
+      <button type="button" id="btn-toggle-ar" class="trig-btn trig-btn-pill" aria-pressed="false">
+        <span>AR:</span>
+        <span id="ar-status-pill" class="trig-status-dot">OFF</span>
+      </button>
+      <a class="trig-btn trig-btn-pill" href="../law-of-cosines/index.html">Next: Law of Cosines &rarr;</a>
+    </div>
+  </header>
+
+  <main class="trig-explorer">
+    <aside id="workspace-dock" class="trig-dock" aria-label="Interactive Controls and Proof">
+      <div class="trig-dock-header">
+        <span class="trig-dock-title">Law of Sines (a / sin A = 2R)</span>
+        <button type="button" id="dock-collapse-btn" class="trig-btn" title="Collapse or Expand Dock">&#9776;</button>
+      </div>
+      <div class="trig-dock-tabs" role="tablist">
+        <button type="button" class="trig-dock-tab active" data-dock-tab="controls">Controls &amp; Telemetry</button>
+        <button type="button" class="trig-dock-tab" data-dock-tab="proof">Live Proof &amp; Thales Bridge</button>
+      </div>
+
+      <div class="trig-dock-body" data-dock-pane="controls">
+        <div class="trig-card">
+          <h3 class="trig-card-title">Circumcircle Vertex Polar Angles</h3>
+          <div class="trig-slider-row">
+            <div class="trig-slider-label">
+              <span>Vertex A Polar Angle</span>
+              <strong id="label-polar-a">90°</strong>
+            </div>
+            <input type="range" id="slider-polar-a" min="0" max="360" step="1" value="90">
+          </div>
+          <div class="trig-slider-row">
+            <div class="trig-slider-label">
+              <span>Vertex B Polar Angle</span>
+              <strong id="label-polar-b">210°</strong>
+            </div>
+            <input type="range" id="slider-polar-b" min="0" max="360" step="1" value="210">
+          </div>
+          <div class="trig-slider-row">
+            <div class="trig-slider-label">
+              <span>Vertex C Polar Angle</span>
+              <strong id="label-polar-c">330°</strong>
+            </div>
+            <input type="range" id="slider-polar-c" min="0" max="360" step="1" value="330">
+          </div>
+          <label style="font-size: 0.76rem; color: #cbd5e1; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="check-proof-bridge" checked>
+            <span>Show Circumdiameter A&prime;B (2R) &amp; Altitude h_c</span>
+          </label>
+        </div>
+
+        <div class="trig-card">
+          <h3 class="trig-card-title">Chord-to-Sine Ratios (R = 10, 2R = 20.00)</h3>
+          <div class="trig-telemetry-grid">
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">a / sin A</span>
+              <span id="val-ratio-a" class="trig-stat-val" style="color: #38bdf8;">20.00</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">b / sin B</span>
+              <span id="val-ratio-b" class="trig-stat-val" style="color: #10b981;">20.00</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">c / sin C</span>
+              <span id="val-ratio-c" class="trig-stat-val" style="color: #f43f5e;">20.00</span>
+            </div>
+            <div class="trig-stat-box">
+              <span class="trig-stat-label">Diameter 2R</span>
+              <span id="val-2r" class="trig-stat-val" style="color: #f59e0b;">20.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="trig-invariant-banner">
+          <span>✓ Circumcircle Invariant Preserved:</span>
+          <code id="val-sine-invariant">a/sin A = b/sin B = c/sin C = 2R = 20.00</code>
+        </div>
+      </div>
+
+      <div class="trig-dock-body" data-dock-pane="proof" hidden>
+        <div class="trig-step-card">
+          <h4>1. Altitude Decomposition (Idempotent Projection)</h4>
+          Projecting C orthogonally onto AB yields altitude h_c. In right triangles ACH_c and BCH_c:
+          <div class="trig-formula-block" id="proof-sine-1">h_c = b sin A = a sin B  ⇒  a / sin A = b / sin B</div>
+        </div>
+        <div class="trig-step-card">
+          <h4>2. Thales' Diameter Bridge to 2R</h4>
+          Drawing diameter A&prime;B = 2R through circumcenter O creates inscribed angle ∠A&prime;CB = 90° (by Thales' Theorem)
+          and ∠BA&prime;C = ∠BAC = A (angles in the same segment). Thus in right △A&prime;BC:
+          <div class="trig-formula-block" id="proof-sine-2">sin A = sin A&prime; = a / (2R)  ⇒  a / sin A = 2R</div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="main-view" class="layout-split horizontal-split">
+      <div id="canvas-2d-container">
+        <div class="trig-canvas-badge">2D Circumcircle &amp; Inscribed Triangle ABC</div>
+        <canvas id="canvas-2d"></canvas>
+      </div>
+      <div id="split-resizer" title="Drag to resize"></div>
+      <div id="canvas-3d-container">
+        <div class="trig-canvas-badge">3D Circumsphere &amp; Great-Circle Chord Invariant</div>
+        <div class="trig-camera-bar">
+          <button type="button" class="active" data-cam-preset="isometric">Iso</button>
+          <button type="button" data-cam-preset="top">Top</button>
+          <button type="button" data-cam-preset="front">Front</button>
+          <button type="button" data-cam-preset="side">Side</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { computeLawOfSines, toRadians, toDegrees } from '../js/trig-math.js';
+    import { initTrigVisualPage, renderLawOfSines2D } from '../js/trig-core.js';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTrigVisualPage({
+        mode: 'law-of-sines',
+        initialState: {
+          angleA: toRadians(90),
+          angleB: toRadians(210),
+          angleC: toRadians(330),
+          showProof: true,
+          showSecondary: true,
+        },
+        render2D: renderLawOfSines2D,
+        updateUI(st) {
+          const m = computeLawOfSines(st.angleA, st.angleB, st.angleC, 10);
+          document.getElementById('label-polar-a').textContent = `${Math.round(toDegrees(m.anglesPolar.aRad))}°`;
+          document.getElementById('label-polar-b').textContent = `${Math.round(toDegrees(m.anglesPolar.bRad))}°`;
+          document.getElementById('label-polar-c').textContent = `${Math.round(toDegrees(m.anglesPolar.cRad))}°`;
+
+          document.getElementById('val-ratio-a').textContent = `${m.sides.a.toFixed(1)} / sin(${m.interiorAngles.degA.toFixed(0)}°) = ${m.ratios.ratioA.toFixed(2)}`;
+          document.getElementById('val-ratio-b').textContent = `${m.sides.b.toFixed(1)} / sin(${m.interiorAngles.degB.toFixed(0)}°) = ${m.ratios.ratioB.toFixed(2)}`;
+          document.getElementById('val-ratio-c').textContent = `${m.sides.c.toFixed(1)} / sin(${m.interiorAngles.degC.toFixed(0)}°) = ${m.ratios.ratioC.toFixed(2)}`;
+          document.getElementById('val-2r').textContent = m.diameter2R.toFixed(2);
+          document.getElementById('val-sine-invariant').textContent =
+            `a/sin A = ${m.ratios.ratioA.toFixed(2)} = 2R (${m.diameter2R.toFixed(2)})`;
+          document.getElementById('proof-sine-1').textContent =
+            `h_c = ${m.altitudeHc.toFixed(2)} = b sin A = a sin B`;
+        },
+        bindControls(store) {
+          document.getElementById('slider-polar-a')?.addEventListener('input', (e) => {
+            store.set({ angleA: toRadians(Number(e.target.value)) });
+          });
+          document.getElementById('slider-polar-b')?.addEventListener('input', (e) => {
+            store.set({ angleB: toRadians(Number(e.target.value)) });
+          });
+          document.getElementById('slider-polar-c')?.addEventListener('input', (e) => {
+            store.set({ angleC: toRadians(Number(e.target.value)) });
+          });
+          document.getElementById('check-proof-bridge')?.addEventListener('change', (e) => {
+            store.set({ showProof: e.target.checked, showSecondary: e.target.checked });
+          });
+        },
+      });
+    });
+  </script>
+</body>
+</html>
