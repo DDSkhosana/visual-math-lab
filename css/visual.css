@@ -312,6 +312,11 @@ html, body {
   line-height: 1;
 }
 
+/* In windowed panels: hide redundant legacy accordion minimize chevron, unified into .panel-shade-btn */
+.ui-panel:not(.stats-overlay) .panel-minimize-btn {
+  display: none !important;
+}
+
 .panel-minimize-btn:hover {
   color: #f8fafc;
   background: rgba(30, 41, 59, 0.9) !important;
