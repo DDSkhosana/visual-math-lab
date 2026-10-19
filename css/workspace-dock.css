@@ -306,7 +306,6 @@
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   scrollbar-gutter: stable !important;
-  scrollbar-width: thin;
 }
 
 .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body {
@@ -318,32 +317,50 @@
 }
 
 .workspace-dock-body::-webkit-scrollbar,
-.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar,
+.workspace-dock-body .collapsible-content::-webkit-scrollbar,
+.workspace-dock-body .derivation-card-content::-webkit-scrollbar,
+.ui-panel.is-floating .panel-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
 .workspace-dock-body::-webkit-scrollbar-track,
-.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.workspace-dock-body::-webkit-scrollbar-thumb,
-.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-track,
+.workspace-dock-body .collapsible-content::-webkit-scrollbar-track,
+.workspace-dock-body .derivation-card-content::-webkit-scrollbar-track,
+.ui-panel.is-floating .panel-body::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.45);
   border-radius: 9999px;
 }
 
+.workspace-dock-body::-webkit-scrollbar-thumb,
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb,
+.workspace-dock-body .collapsible-content::-webkit-scrollbar-thumb,
+.workspace-dock-body .derivation-card-content::-webkit-scrollbar-thumb,
+.ui-panel.is-floating .panel-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+  border: 2px solid rgba(15, 23, 42, 0.6);
+  background-clip: padding-box;
+}
+
 .workspace-dock-body::-webkit-scrollbar-thumb:hover,
-.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.6);
+.workspace-dock-body > .ui-panel .panel-body::-webkit-scrollbar-thumb:hover,
+.workspace-dock-body .collapsible-content::-webkit-scrollbar-thumb:hover,
+.workspace-dock-body .derivation-card-content::-webkit-scrollbar-thumb:hover,
+.ui-panel.is-floating .panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.85);
 }
 
 .workspace-dock-body > .ui-panel .omni-handle,
 .ui-panel:not(.is-floating) .omni-handle,
+.has-workspace-dock .ui-panel .resize-handle,
+.has-workspace-dock .ui-panel .resize-handle-left,
 .workspace-dock-body > .ui-panel .resize-handle,
 .workspace-dock-body > .ui-panel .resize-handle-left {
   display: none !important;
+  pointer-events: none !important;
 }
 
 /* Horizontal Dock Body for Top/Bottom edges: Responsive Reflow & Zero Dead Space */
@@ -493,7 +510,6 @@
   overscroll-behavior: contain !important;
   padding: 0.75rem !important;
   scrollbar-gutter: stable !important;
-  scrollbar-width: thin !important;
 }
 
 /* ==========================================================================
@@ -823,7 +839,6 @@
   overscroll-behavior: contain !important;
   padding: 0.75rem !important;
   scrollbar-gutter: stable !important;
-  scrollbar-width: thin !important;
 }
 
 /* Level 2: Subpanels waiting in the deck during multi-expansion */
@@ -905,36 +920,52 @@
   background: #38bdf8 !important;
 }
 
-/* Resizer positioning by edge */
+/* Resizer positioning strictly outside dock border so it never overlaps inner scrollbars */
+[data-dock-edge="left"] .workspace-dock-body {
+  margin-right: 4px;
+}
+
+[data-dock-edge="right"] .workspace-dock-body {
+  margin-left: 4px;
+}
+
+[data-dock-edge="top"] .workspace-dock-body {
+  margin-bottom: 4px;
+}
+
+[data-dock-edge="bottom"] .workspace-dock-body {
+  margin-top: 4px;
+}
+
 [data-dock-edge="left"] .dock-resizer {
   top: 0;
   bottom: 0;
-  right: -3px;
-  width: 6px;
+  right: -8px;
+  width: 8px;
   cursor: ew-resize;
 }
 
 [data-dock-edge="right"] .dock-resizer {
   top: 0;
   bottom: 0;
-  left: -3px;
-  width: 6px;
+  left: -8px;
+  width: 8px;
   cursor: ew-resize;
 }
 
 [data-dock-edge="top"] .dock-resizer {
   left: 0;
   right: 0;
-  bottom: -3px;
-  height: 6px;
+  bottom: -8px;
+  height: 8px;
   cursor: ns-resize;
 }
 
 [data-dock-edge="bottom"] .dock-resizer {
   left: 0;
   right: 0;
-  top: -3px;
-  height: 6px;
+  top: -8px;
+  height: 8px;
   cursor: ns-resize;
 }
 
@@ -1318,6 +1349,7 @@
   flex: 1 1 auto !important;
   overflow-y: auto !important;
   min-height: 0 !important;
+  margin-right: 2px !important;
 }
 
 .ui-panel.is-floating.is-shaded .panel-body {
@@ -1337,7 +1369,7 @@
   cursor: grabbing;
 }
 
-/* 8-Directional Omni-Resize Boundary Handles */
+/* 8-Directional Omni-Resize Boundary Handles (strictly outside panel border so scrollbars are never overlapped) */
 .omni-handle {
   position: absolute;
   z-index: 45;
@@ -1347,7 +1379,7 @@
 
 /* Cardinal Edges */
 .omni-handle.omni-n {
-  top: -4px;
+  top: -8px;
   left: 8px;
   right: 8px;
   height: 8px;
@@ -1355,7 +1387,7 @@
 }
 
 .omni-handle.omni-s {
-  bottom: -4px;
+  bottom: -8px;
   left: 8px;
   right: 8px;
   height: 8px;
@@ -1365,7 +1397,7 @@
 .omni-handle.omni-e {
   top: 8px;
   bottom: 8px;
-  right: -4px;
+  right: -8px;
   width: 8px;
   cursor: ew-resize;
 }
@@ -1373,7 +1405,7 @@
 .omni-handle.omni-w {
   top: 8px;
   bottom: 8px;
-  left: -4px;
+  left: -8px;
   width: 8px;
   cursor: ew-resize;
 }
