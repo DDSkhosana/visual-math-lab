@@ -84,8 +84,9 @@ function bootstrap() {
   const affineStatusPill = document.getElementById('affine-status-pill');
   if (affineToggleBtn) {
     affineToggleBtn.addEventListener('click', () => {
-      const cur = Boolean(store.get().affineMode);
-      store.set(setAffineMode(!cur));
+      const curState = store.get();
+      const cur = Boolean(curState.affineMode);
+      store.set(setAffineMode(!cur, curState));
     });
     store.subscribe((state) => {
       const isAffine = Boolean(state.affineMode);
@@ -136,7 +137,8 @@ function bootstrap() {
     });
   }
 
-  if (arToggleBtn && arManager) {
+  if (arToggleBtn && arManager && !arToggleBtn._hasClickBound) {
+    arToggleBtn._hasClickBound = true;
     arToggleBtn.addEventListener('click', async () => {
       try {
         await arManager.toggle();

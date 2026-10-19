@@ -394,9 +394,10 @@ function mountTutorialModal(visual, theoremData) {
         </div>
 
         <div class="tutorial-card-section">
-          <h4>${theoremData.name} &amp; Permalinks</h4>
+          <h4>${theoremData.name}, Affine &amp; Permalinks</h4>
           <ul class="tutorial-feature-list">
             ${theoremData.theoremSpecifics.map((spec) => `<li>${spec}</li>`).join('')}
+            <li><strong>Affine Conic Mode:</strong> Deform the circle into an ellipse to verify Apollonius' Conjugate Diameters Invariant (<em>v_PAᵀ Q v_PB &equiv; 0.000</em>).</li>
             <li><strong>1-Click Permalinks:</strong> Click <em>Share</em> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine stretch, and dock layout.</li>
           </ul>
         </div>

@@ -24,7 +24,11 @@ export class ControlsController {
     }
     for (const toggle of this.toggles) {
       toggle.input.addEventListener('change', () => {
-        let patch = setFlag(store.get(), toggle.path, toggle.input.checked);
+        const curState = store.get();
+        let patch = setFlag(curState, toggle.path, toggle.input.checked);
+        if (toggle.path[0] === 'affineMode' && toggle.input.checked && Math.abs((curState.affineStretch ?? 1.0) - 1.0) < 1e-3) {
+          patch.affineStretch = 1.35;
+        }
         if (toggle.path[0] === 'vis2d' && (toggle.path[1] === 'points' || toggle.path[1] === 'labels')) {
           patch = setFlag(patch, ['vis2d', 'points'], toggle.input.checked);
           patch = setFlag(patch, ['vis2d', 'labels'], toggle.input.checked);

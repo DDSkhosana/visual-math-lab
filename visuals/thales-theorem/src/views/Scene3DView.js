@@ -5,7 +5,7 @@ import { ArcballTrackballControls } from '../../../../js/circle-3d.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
-  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D'];
+  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D', 'affineMode', 'affineStretch', 'affineAxisAngle'];
 
   constructor(THREE, container) {
     this.THREE = THREE;
@@ -17,7 +17,7 @@ export class Scene3DView {
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
     this.camera.position.set(30, 20, 30);
     this.camera.up.set(0, 1, 0);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(this.renderer.domElement);
 

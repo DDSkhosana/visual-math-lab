@@ -140,3 +140,53 @@ test('ARManager: WebXR Immersive AR lifecycle when supported', async () => {
 
   Object.defineProperty(globalThis, 'navigator', { value: originalNav, configurable: true, writable: true });
 });
+
+test('ARManager: Tier 3 Spatial AR Simulation fallback when no camera or WebXR is present', async () => {
+  const originalNav = globalThis.navigator;
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
+
+  const renderer = new MockRenderer();
+  const container = new MockContainer();
+
+  let startedMode = null;
+  const manager = new ARManager({
+    renderer,
+    container,
+    onSessionStart: (info) => { startedMode = info.mode; },
+  });
+
+  const res = await manager.start();
+  assert.strictEqual(res, true);
+  assert.strictEqual(manager.isActive, true);
+  assert.strictEqual(manager.mode, 'spatial-simulation');
+  assert.strictEqual(startedMode, 'spatial-simulation');
+  assert.strictEqual(renderer.clearAlpha, 0, 'Renderer clear alpha must be 0 in spatial simulation');
+  assert.ok(container.classList.contains('is-ar-active'));
+
+  manager.stop();
+  assert.strictEqual(manager.isActive, false);
+  assert.strictEqual(manager.mode, null);
+  assert.strictEqual(renderer.clearAlpha, 1.0);
+
+  Object.defineProperty(globalThis, 'navigator', { value: originalNav, configurable: true, writable: true });
+});
+
+test('Affine Mode: Canvas2DView and Scene3DView stateKeys subscribe to affine state and setAffineMode initializes visible stretch', async () => {
+  const { Canvas2DView } = await import('../visuals/thales-theorem/src/views/Canvas2DView.js');
+  const { Scene3DView } = await import('../visuals/thales-theorem/src/views/Scene3DView.js');
+  const { setAffineMode, setAffineStretch } = await import('../visuals/thales-theorem/src/model/actions.js');
+
+  for (const key of ['affineMode', 'affineStretch', 'affineAxisAngle']) {
+    assert.ok(Canvas2DView.stateKeys.includes(key), `Canvas2DView.stateKeys must include ${key}`);
+    assert.ok(Scene3DView.stateKeys.includes(key), `Scene3DView.stateKeys must include ${key}`);
+  }
+
+  const patchFromUnit = setAffineMode(true, { affineStretch: 1.0 });
+  assert.strictEqual(patchFromUnit.affineMode, true);
+  assert.strictEqual(patchFromUnit.affineStretch, 1.35, 'Enabling affine mode at stretch=1.0 must auto-initialize to 1.35x');
+
+  const stretchPatch = setAffineStretch(1.6);
+  assert.strictEqual(stretchPatch.affineStretch, 1.6);
+  assert.strictEqual(stretchPatch.affineMode, true, 'Adjusting stretch slider must auto-enable affineMode');
+});
+

@@ -89,10 +89,14 @@ export class ARManager {
     }
 
     if (camera) {
-      return await this.#startVideoPassThrough();
+      try {
+        return await this.#startVideoPassThrough();
+      } catch (err) {
+        console.warn('Camera pass-through unavailable, falling back to Spatial AR Simulation:', err);
+      }
     }
 
-    throw new Error('Augmented Reality is not supported on this device/browser.');
+    return this.#startSpatialSimulation();
   }
 
   async #startWebXR() {
@@ -113,6 +117,57 @@ export class ARManager {
 
     if (typeof this.onSessionStart === 'function') {
       this.onSessionStart({ mode: 'webxr', session });
+    }
+    return true;
+  }
+
+  #startSpatialSimulation() {
+    const doc = this.container?.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return false;
+
+    const backdrop = doc.createElement('div');
+    backdrop.id = 'ar-spatial-backdrop';
+    backdrop.style.position = 'absolute';
+    backdrop.style.inset = '0';
+    backdrop.style.width = '100%';
+    backdrop.style.height = '100%';
+    backdrop.style.zIndex = '0';
+    backdrop.style.pointerEvents = 'none';
+    backdrop.style.background =
+      'radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.16) 0%, rgba(15, 23, 42, 0.88) 65%, #020617 100%), ' +
+      'repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.08) 0px, rgba(148, 163, 184, 0.08) 1px, transparent 1px, transparent 36px), ' +
+      'repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.08) 0px, rgba(148, 163, 184, 0.08) 1px, transparent 1px, transparent 36px)';
+
+    if (this.container) {
+      this.container.classList.add('is-ar-active');
+      if (typeof this.container.prepend === 'function') {
+        this.container.prepend(backdrop);
+      } else if (this.container.children && this.container.children[0]) {
+        this.container.insertBefore(backdrop, this.container.children[0]);
+      } else {
+        this.container.appendChild(backdrop);
+      }
+    }
+    this.videoElement = backdrop;
+
+    if (this.renderer) {
+      if (typeof this.renderer.getClearColor === 'function') {
+        const c = this.renderer.getClearColor();
+        this.originalClearColor = c.getHex ? c.getHex() : 0x0a0f1d;
+        this.originalClearAlpha = typeof this.renderer.getClearAlpha === 'function' ? this.renderer.getClearAlpha() : 1.0;
+      }
+      if (typeof this.renderer.setClearColor === 'function') {
+        this.renderer.setClearColor(0x000000, 0);
+      }
+    }
+
+    this.#createARHUD(doc, 'AR Mode: Spatial Environment (Simulated Pass-Through)');
+
+    this.mode = 'spatial-simulation';
+    this.isActive = true;
+
+    if (typeof this.onSessionStart === 'function') {
+      this.onSessionStart({ mode: 'spatial-simulation' });
     }
     return true;
   }
@@ -199,7 +254,7 @@ export class ARManager {
     return true;
   }
 
-  #createARHUD(doc) {
+  #createARHUD(doc, labelText = 'AR Mode: Physical Space') {
     if (!doc || !this.container) return;
 
     const hud = doc.createElement('div');
@@ -217,7 +272,7 @@ export class ARManager {
     hud.innerHTML = `
       <div class="ar-hud-badge" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
         <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite;"></span>
-        <span>AR Mode: Physical Space</span>
+        <span>${labelText}</span>
       </div>
       <div style="display: flex; gap: 8px;">
         <button type="button" class="btn-ar-action btn-ar-reset" style="background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: #f8fafc; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
