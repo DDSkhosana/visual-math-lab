@@ -1182,6 +1182,12 @@
   display: none !important;
 }
 
+/* Ensure closed/hidden panels are strictly hidden across docked and floating modes */
+.ui-panel.is-hidden,
+.ui-panel[hidden] {
+  display: none !important;
+}
+
 .panel-header-actions .panel-expand-btn {
   order: 1 !important;
   margin-right: 0.2rem !important;

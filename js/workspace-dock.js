@@ -791,10 +791,12 @@ export class WorkspaceDockManager {
       dockToggleBtn.type = 'button';
       dockToggleBtn.className = 'panel-window-btn panel-dock-toggle-btn';
       dockToggleBtn.setAttribute('aria-label', 'Pop out panel to floating window or dock back');
-      dockToggleBtn.title = record.isFloating ? 'Dock back into sidebar' : 'Pop out to floating window';
-      dockToggleBtn.innerHTML = record.isFloating ? `🗁` : `⧉`;
       actionsContainer.prepend(dockToggleBtn);
-
+    }
+    dockToggleBtn.title = record.isFloating ? 'Dock back into sidebar' : 'Pop out to floating window';
+    dockToggleBtn.innerHTML = record.isFloating ? `🗁` : `⧉`;
+    if (!dockToggleBtn._hasDockToggleBound) {
+      dockToggleBtn._hasDockToggleBound = true;
       dockToggleBtn.addEventListener('pointerdown', (e) => {
         e?.preventDefault?.();
         e?.stopPropagation?.();
@@ -818,10 +820,12 @@ export class WorkspaceDockManager {
       shadeBtn.type = 'button';
       shadeBtn.className = 'panel-window-btn panel-shade-btn';
       shadeBtn.setAttribute('aria-label', 'Roll up or restore window');
-      shadeBtn.title = 'Roll up / restore window';
-      shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
       actionsContainer.appendChild(shadeBtn);
-
+    }
+    shadeBtn.title = 'Roll up / restore window';
+    shadeBtn.innerHTML = record.element.classList.contains('is-shaded') ? `□` : `─`;
+    if (!shadeBtn._hasShadeBound) {
+      shadeBtn._hasShadeBound = true;
       shadeBtn.addEventListener('pointerdown', (e) => {
         e?.preventDefault?.();
         e?.stopPropagation?.();
@@ -844,7 +848,9 @@ export class WorkspaceDockManager {
       closeBtn.title = 'Close panel';
       closeBtn.innerHTML = `✕`;
       actionsContainer.appendChild(closeBtn);
-
+    }
+    if (!closeBtn._hasCloseBound) {
+      closeBtn._hasCloseBound = true;
       closeBtn.addEventListener('pointerdown', (e) => {
         e?.preventDefault?.();
         e?.stopPropagation?.();
@@ -1072,9 +1078,11 @@ export class WorkspaceDockManager {
     record.isHidden = false;
     const panel = record.element;
     panel.hidden = false;
-    if (panel.style.display === 'none') {
-      panel.style.display = '';
+    panel.classList.remove('is-hidden');
+    if (typeof panel.style?.removeProperty === 'function') {
+      panel.style.removeProperty('display');
     }
+    panel.style.display = '';
     panel.classList.add('is-floating');
 
     // If panel was shaded, unshade it on float out so the floating window is fully open and accessible
@@ -1121,9 +1129,11 @@ export class WorkspaceDockManager {
     record.isHidden = false;
     const panel = record.element;
     panel.hidden = false;
-    if (panel.style.display === 'none') {
-      panel.style.display = '';
+    panel.classList.remove('is-hidden');
+    if (typeof panel.style?.removeProperty === 'function') {
+      panel.style.removeProperty('display');
     }
+    panel.style.display = '';
     panel.classList.remove('is-floating', 'is-focused');
 
     // Reset inline floating styles so it fits neatly into the dock body
@@ -1173,7 +1183,18 @@ export class WorkspaceDockManager {
 
     record.isHidden = !visible;
     record.element.hidden = !visible;
-    record.element.style.display = visible ? '' : 'none';
+    record.element.classList.toggle('is-hidden', !visible);
+    if (visible) {
+      if (typeof record.element.style?.removeProperty === 'function') {
+        record.element.style.removeProperty('display');
+      }
+      record.element.style.display = '';
+    } else {
+      if (typeof record.element.style?.setProperty === 'function') {
+        record.element.style.setProperty('display', 'none', 'important');
+      }
+      record.element.style.display = 'none';
+    }
 
     this.#renderTrayItems();
     this.#persistState();

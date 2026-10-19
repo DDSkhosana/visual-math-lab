@@ -317,6 +317,12 @@ html, body {
   display: none !important;
 }
 
+/* Ensure closed/hidden panels are strictly hidden across docked and floating modes */
+.ui-panel.is-hidden,
+.ui-panel[hidden] {
+  display: none !important;
+}
+
 .panel-minimize-btn:hover {
   color: #f8fafc;
   background: rgba(30, 41, 59, 0.9) !important;

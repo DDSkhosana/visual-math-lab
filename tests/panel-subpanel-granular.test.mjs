@@ -44,8 +44,15 @@ class MockDOMElement {
     this.offsetHeight = 240;
     this.style = {
       _props: new Map(),
-      setProperty: (prop, val) => this.style._props.set(prop, val),
-      getPropertyValue: (prop) => this.style._props.get(prop) || '',
+      setProperty: (prop, val) => {
+        this.style._props.set(prop, val);
+        this.style[prop] = val;
+      },
+      getPropertyValue: (prop) => this.style._props.get(prop) || this.style[prop] || '',
+      removeProperty: (prop) => {
+        this.style._props.delete(prop);
+        this.style[prop] = '';
+      },
       position: '',
       left: '',
       top: '',
@@ -1815,6 +1822,12 @@ test('Granular Panel Usability: Simplified header actions, single-click clean ex
   assert.ok(cssContent.includes('.ui-panel.is-floating.is-shaded'), 'CSS must style floating shaded panel');
   assert.ok(cssContent.includes('min-height: 40px !important'), 'Floating shaded panel must guarantee min-height: 40px !important');
 
+  // Verify closed/hidden panel display: none contract
+  assert.ok(
+    cssContent.includes('.ui-panel.is-hidden') && cssContent.includes('display: none !important'),
+    'CSS must enforce display: none !important on hidden panels to prevent them staying visible'
+  );
+
   // 2. DOM Setup & Double-Toggle Elimination Test
   const { mockDoc, mockWin, root } = setupTestEnvironment();
 
@@ -1975,4 +1988,16 @@ test('Granular Panel Usability: Simplified header actions, single-click clean ex
   assert.strictEqual(panel.hidden, false, 'panel.hidden must be false');
   assert.strictEqual(panel.style.display, '', 'panel.style.display must be empty/visible');
   assert.strictEqual(record.isFloating, true);
+
+  // Close the panel while in floating window mode
+  closeBtn.click();
+  assert.strictEqual(record.isHidden, true, 'Floating panel must be flagged isHidden=true after clicking close');
+  assert.strictEqual(panel.classList.contains('is-hidden'), true, 'Floating panel must have is-hidden class');
+  assert.strictEqual(panel.style.display, 'none', 'Floating panel must have display: none');
+
+  // Restore via setPanelVisible (like from the Panels menu tray)
+  dock.setPanelVisible('test-usability-panel', true);
+  assert.strictEqual(record.isHidden, false, 'Restored panel must have isHidden=false');
+  assert.strictEqual(panel.classList.contains('is-hidden'), false, 'Restored panel must not have is-hidden class');
+  assert.strictEqual(panel.style.display, '', 'Restored panel must have empty display');
 });
