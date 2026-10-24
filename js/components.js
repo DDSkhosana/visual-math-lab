@@ -59,8 +59,9 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
     const suite = v.suite || defaultSuite;
     const isActive = v.slug === activeSlug;
     const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
+    const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite}`.toLowerCase();
     return `
-      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""}>
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-search="${escapeHtml(searchTerms)}">
         <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
         ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
       </a>
@@ -68,11 +69,11 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
   };
 
   return `
-    <a href="${route(root, "visuals/circle-theorems/index.html")}" class="site-nav__dropdown-suite-label">
+    <a href="${route(root, "visuals/circle-theorems/index.html")}" class="site-nav__dropdown-suite-label" data-suite-header="circle-theorems">
       <span>Suite 01 &middot; Circle Theorems (${circleVisuals.length})</span>
     </a>
     ${circleVisuals.map((v) => renderItem(v, "circle-theorems")).join("")}
-    <a href="${route(root, "visuals/trigonometry/index.html")}" class="site-nav__dropdown-suite-label site-nav__dropdown-suite-label--divider">
+    <a href="${route(root, "visuals/trigonometry/index.html")}" class="site-nav__dropdown-suite-label site-nav__dropdown-suite-label--divider" data-suite-header="trigonometry">
       <span>Suite 02 &middot; Trigonometry (${trigVisuals.length})</span>
     </a>
     ${trigVisuals.map((v) => renderItem(v, "trigonometry")).join("")}
@@ -104,8 +105,18 @@ export function mountSharedChrome() {
               <span class="site-nav__dropdown-title">Interactive Suites</span>
               <span class="site-nav__dropdown-count" id="nav-visuals-count">${totalCount} Visuals</span>
             </div>
+            <div class="site-nav__dropdown-search">
+              <svg class="site-nav__search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" class="site-nav__search-input" id="nav-visuals-search" placeholder="Search visualisations (e.g. Helix, Sine, Thales)..." aria-label="Search visualisations" autocomplete="off" spellcheck="false">
+              <button type="button" class="site-nav__search-clear" id="nav-visuals-search-clear" aria-label="Clear search" title="Clear query" hidden>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
             <div class="site-nav__dropdown-list" id="nav-visuals-list" role="none">
               ${renderVisualsList(root, DEFAULT_CIRCLE_VISUALS, activeSlug, DEFAULT_TRIG_VISUALS)}
+            </div>
+            <div class="site-nav__dropdown-empty" id="nav-visuals-empty" hidden>
+              <span>No visualisations found</span>
             </div>
             <div class="site-nav__dropdown-footer">
               <a href="${route(root, "index.html#visuals")}" class="site-nav__dropdown-all-link">Browse Full Gallery &rarr;</a>
@@ -123,6 +134,88 @@ export function mountSharedChrome() {
     const menu = header.querySelector("#nav-visuals-menu");
     const list = header.querySelector("#nav-visuals-list");
     const count = header.querySelector("#nav-visuals-count");
+    const searchInput = header.querySelector("#nav-visuals-search");
+    const searchClear = header.querySelector("#nav-visuals-search-clear");
+    const emptyState = header.querySelector("#nav-visuals-empty");
+
+    const filterVisuals = (query) => {
+      const q = (query || "").trim().toLowerCase();
+      if (searchClear) searchClear.hidden = !q;
+
+      const items = Array.from(list.querySelectorAll(".site-nav__dropdown-item"));
+      const circleHeader = list.querySelector('[data-suite-header="circle-theorems"]');
+      const trigHeader = list.querySelector('[data-suite-header="trigonometry"]');
+
+      let visibleCount = 0;
+      let visibleCircleCount = 0;
+      let visibleTrigCount = 0;
+
+      items.forEach((item) => {
+        const searchText = item.dataset.search || "";
+        const suite = item.dataset.suite || "";
+        const matches = !q || searchText.includes(q);
+        item.hidden = !matches;
+        if (matches) {
+          visibleCount++;
+          if (suite === "circle-theorems") visibleCircleCount++;
+          if (suite === "trigonometry") visibleTrigCount++;
+        }
+      });
+
+      if (circleHeader) circleHeader.hidden = visibleCircleCount === 0;
+      if (trigHeader) trigHeader.hidden = visibleTrigCount === 0;
+
+      if (emptyState) {
+        emptyState.hidden = visibleCount > 0;
+        if (visibleCount === 0) {
+          emptyState.textContent = `No visualisations found for "${query.trim()}"`;
+        }
+      }
+
+      if (count) {
+        count.textContent = q ? `${visibleCount} of ${items.length} Visuals` : `${items.length} Visuals`;
+      }
+    };
+
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        filterVisuals(e.target.value);
+      });
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const firstVisible = list.querySelector(".site-nav__dropdown-item:not([hidden])");
+          if (firstVisible) {
+            firstVisible.click();
+          }
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const firstVisible = list.querySelector(".site-nav__dropdown-item:not([hidden])");
+          if (firstVisible) {
+            firstVisible.focus();
+          }
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          if (searchInput.value) {
+            searchInput.value = "";
+            filterVisuals("");
+          } else {
+            closeMenu();
+            trigger.focus();
+          }
+        }
+      });
+    }
+
+    if (searchClear) {
+      searchClear.addEventListener("click", () => {
+        if (searchInput) {
+          searchInput.value = "";
+          filterVisuals("");
+          searchInput.focus();
+        }
+      });
+    }
 
     if (dropdown && trigger && menu) {
       const updateMenuPosition = () => {
@@ -155,11 +248,20 @@ export function mountSharedChrome() {
         menu.hidden = false;
         trigger.setAttribute("aria-expanded", "true");
         updateMenuPosition();
+        setTimeout(() => {
+          if (searchInput && typeof searchInput.focus === "function") {
+            searchInput.focus();
+          }
+        }, 40);
       };
 
       const closeMenu = () => {
         menu.hidden = true;
         trigger.setAttribute("aria-expanded", "false");
+        if (searchInput && searchInput.value) {
+          searchInput.value = "";
+          filterVisuals("");
+        }
       };
 
       trigger.addEventListener("click", (e) => {
@@ -197,20 +299,27 @@ export function mountSharedChrome() {
           closeMenu();
           trigger.focus();
         } else if (e.key === "ArrowDown") {
+          if (document.activeElement === searchInput) return;
           e.preventDefault();
           if (menu.hidden) {
             openMenu();
+            return;
           }
-          const items = Array.from(menu.querySelectorAll(".site-nav__dropdown-item"));
+          const items = Array.from(menu.querySelectorAll(".site-nav__dropdown-item:not([hidden])"));
+          if (items.length === 0) return;
           const currentIndex = items.indexOf(document.activeElement);
           const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
           items[nextIndex]?.focus();
         } else if (e.key === "ArrowUp") {
+          if (document.activeElement === searchInput) return;
           e.preventDefault();
-          const items = Array.from(menu.querySelectorAll(".site-nav__dropdown-item"));
+          const items = Array.from(menu.querySelectorAll(".site-nav__dropdown-item:not([hidden])"));
+          if (items.length === 0) return;
           const currentIndex = items.indexOf(document.activeElement);
           if (currentIndex > 0) {
             items[currentIndex - 1]?.focus();
+          } else if (searchInput && typeof searchInput.focus === "function") {
+            searchInput.focus();
           } else {
             trigger.focus();
           }
@@ -226,6 +335,9 @@ export function mountSharedChrome() {
             if (published.length > 0) {
               list.innerHTML = renderVisualsList(root, published, activeSlug, DEFAULT_TRIG_VISUALS);
               if (count) count.textContent = `${published.length + DEFAULT_TRIG_VISUALS.length} Visuals`;
+              if (searchInput && searchInput.value) {
+                filterVisuals(searchInput.value);
+              }
             }
           }
         })
