@@ -75,7 +75,18 @@ body.header-collapsed .thales-explorer {
 .layout-split #canvas-2d-container { flex-basis: 50%; }
 .layout-split #canvas-3d-container { flex-basis: 50%; }
 
-.viewport-resizer { background-color: #334155; z-index: 10; display: none; position: relative; touch-action: none; }
+.viewport-resizer {
+  background-color: #334155;
+  z-index: 10;
+  display: none;
+  position: relative;
+  touch-action: none;
+  transition: background-color 0.15s ease;
+}
+.viewport-resizer:hover,
+.viewport-resizer.active {
+  background-color: #38bdf8;
+}
 .layout-split.horizontal-split { flex-direction: row; }
 .layout-split.horizontal-split #canvas-2d-container,
 .layout-split.horizontal-split #canvas-3d-container { width: auto; height: 100%; }

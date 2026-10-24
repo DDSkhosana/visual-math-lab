@@ -1859,7 +1859,60 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
   assert.strictEqual(thalesMobileMainView.dataset.viewport, 'compact');
   assert.strictEqual(mockBtn.style.display, 'none');
 
-  // 3. WorkspaceDockManager: Viewport deduction sets compact dataset
+  // 3. Viewport Resizer: Click-and-drag horizontal and vertical divider resizing pipeline
+  const dragStore = createStore({ viewMode: 'split', splitDirection: 'horizontal', splitRatio: 50 });
+  const dragMainView = {
+    className: 'view-container layout-split horizontal-split',
+    dataset: {},
+    classList: {
+      _classes: new Set(['view-container', 'layout-split', 'horizontal-split']),
+      contains(c) { return this._classes.has(c); },
+      add(c) { this._classes.add(c); },
+      remove(c) { this._classes.delete(c); }
+    },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 600 }),
+  };
+  const dragC2d = { style: {} };
+  const dragC3d = { style: {} };
+  const resizerListeners = {};
+  const mockResizer = {
+    classList: {
+      _active: false,
+      add(c) { if (c === 'active') this._active = true; },
+      remove(c) { if (c === 'active') this._active = false; },
+      contains(c) { return c === 'active' ? this._active : false; }
+    },
+    addEventListener(evt, fn) { resizerListeners[evt] = resizerListeners[evt] || []; resizerListeners[evt].push(fn); },
+    removeEventListener(evt, fn) { if (resizerListeners[evt]) resizerListeners[evt] = resizerListeners[evt].filter(f => f !== fn); },
+    setPointerCapture: () => {},
+    releasePointerCapture: () => {},
+  };
+  let onResizeCount = 0;
+  const resizerCtrl = new ViewModeController(dragStore, {
+    mainView: dragMainView,
+    container2d: dragC2d,
+    container3d: dragC3d,
+    buttons: {},
+    resizer: mockResizer,
+    onResize: () => { onResizeCount++; }
+  });
+
+  // Pointerdown on divider
+  resizerListeners['pointerdown']?.[0]?.({ preventDefault: () => {}, pointerId: 1 });
+  assert.strictEqual(mockResizer.classList.contains('active'), true, 'Resizer must become active on pointerdown');
+
+  // Drag horizontal to 650px (65%)
+  resizerListeners['pointermove']?.[0]?.({ clientX: 650, clientY: 300 });
+  assert.strictEqual(dragStore.get().splitRatio, 65, 'Dragging to 650px on 1000px view must set splitRatio to 65%');
+  assert.strictEqual(dragC2d.style.flexBasis, '65%');
+  assert.strictEqual(dragC3d.style.flexBasis, '35%');
+
+  // Pointerup releases drag
+  resizerListeners['pointerup']?.[0]?.({ pointerId: 1 });
+  assert.strictEqual(mockResizer.classList.contains('active'), false, 'Resizer active class must clear on pointerup');
+  assert.ok(onResizeCount >= 2, 'onResize must be triggered during divider drag');
+
+  // 4. WorkspaceDockManager: Viewport deduction sets compact dataset
   const mockRoot = {
     attributes: {},
     classList: { add: () => {}, toggle: () => {}, contains: () => false },

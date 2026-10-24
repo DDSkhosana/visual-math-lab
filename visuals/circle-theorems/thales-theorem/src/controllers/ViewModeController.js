@@ -104,6 +104,7 @@ export class ViewModeController {
 
   #enableDividerDrag(resizer) {
     resizer.addEventListener('pointerdown', (event) => {
+      event.preventDefault?.();
       try {
         if (resizer.setPointerCapture) resizer.setPointerCapture(event.pointerId);
       } catch (_) {}
@@ -125,11 +126,21 @@ export class ViewModeController {
         resizer.removeEventListener('pointermove', move);
         resizer.removeEventListener('pointerup', end);
         resizer.removeEventListener('pointercancel', end);
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', end);
+          window.removeEventListener('pointercancel', end);
+        }
         this.onResize?.();
       };
       resizer.addEventListener('pointermove', move);
       resizer.addEventListener('pointerup', end);
       resizer.addEventListener('pointercancel', end);
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', end);
+        window.addEventListener('pointercancel', end);
+      }
     });
   }
 }
