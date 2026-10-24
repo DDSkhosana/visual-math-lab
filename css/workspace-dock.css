@@ -240,6 +240,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
@@ -248,6 +249,8 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Docked Panels In-Flow Layout */
@@ -305,7 +308,10 @@
   max-height: min(460px, 55vh) !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
   scrollbar-gutter: stable !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body {
@@ -374,6 +380,8 @@
   gap: 0.75rem !important;
   padding: 0.5rem 0.75rem !important;
   box-sizing: border-box !important;
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel,
@@ -415,6 +423,8 @@
   max-height: calc(var(--dock-size, 340px) - 5rem) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel.has-expanded-subpanel,
@@ -451,6 +461,8 @@
   height: calc(100% - 2.5rem) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Expanded Sub-Panel Overlay Card */
@@ -508,8 +520,11 @@
   max-height: calc(100% - 2.5rem) !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
   padding: 0.75rem !important;
   scrollbar-gutter: stable !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* ==========================================================================
@@ -837,8 +852,11 @@
   max-height: none !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
   padding: 0.75rem !important;
   scrollbar-gutter: stable !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Level 2: Subpanels waiting in the deck during multi-expansion */
@@ -883,6 +901,9 @@
   max-height: 320px !important;
   overflow-y: auto !important;
   padding: 0.75rem !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
 }
 
 /* Level 3: Component-level elevation inside Level 2 elevated subpanels */
@@ -1350,6 +1371,9 @@
   overflow-y: auto !important;
   min-height: 0 !important;
   margin-right: 2px !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
 }
 
 .ui-panel.is-floating.is-shaded .panel-body {
@@ -1478,11 +1502,14 @@
   overflow-y: auto !important;
   overflow-x: hidden !important;
   overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
   scrollbar-gutter: stable !important;
   max-width: 100% !important;
   min-width: 0 !important;
   min-height: 0 !important;
   word-break: break-word !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Math, Badges, and Table Zero-Overflow Wrapping */
@@ -1579,6 +1606,8 @@
     flex: 1 1 auto !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: contain;
     max-height: calc(min(58vh, 420px) - 2.8rem) !important;
     max-height: calc(min(58dvh, 420px) - 2.8rem) !important;
     padding: 0.5rem 0.65rem !important;
@@ -1697,6 +1726,8 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:not(.is-shaded) .panel-body {
   min-height: 120px !important;
   overflow-y: auto !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Smooth Elevation Slide-In */

@@ -91,6 +91,9 @@
     max-height: calc(50vh - 4rem);
     display: flex;
     flex-direction: column;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain;
 }
 
 .stats-body.hidden {

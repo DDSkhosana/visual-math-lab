@@ -954,6 +954,36 @@ test('Interactive Canvas Protection: all circle visual canvas containers enforce
   assert.ok(thalesCss.includes('.thales-explorer canvas') && thalesCss.includes('touch-action: none;'), 'Thales layout.css must style .thales-explorer canvas with touch-action: none;');
 });
 
+test('Touch Display Fluidity: scrollable panels, docks, and telemetry containers enforce touch-action pan-y and momentum scrolling', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+  const thalesPanels = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'panels.css'), 'utf8');
+  const thalesOverlays = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
+
+  // 1. Circle Visual Suite
+  assert.ok(circleCss.includes('.panel-body') && circleCss.includes('touch-action: pan-y !important;'), 'circle-visual.css .panel-body must specify touch-action: pan-y !important;');
+  assert.ok(circleCss.includes('.stats-body') && circleCss.includes('touch-action: pan-y !important;'), 'circle-visual.css .stats-body must specify touch-action: pan-y !important;');
+  assert.ok(circleCss.includes('.collapsible-content') && circleCss.includes('touch-action: pan-y !important;'), 'circle-visual.css .collapsible-content must specify touch-action: pan-y !important;');
+  assert.ok(circleCss.includes('input[type=range]') && circleCss.includes('touch-action: pan-x;'), 'circle-visual.css range sliders must specify touch-action: pan-x;');
+  assert.ok(circleCss.includes('-webkit-overflow-scrolling: touch !important;'), 'circle-visual.css must enforce WebKit momentum scrolling;');
+
+  // 2. Workspace Dock System
+  assert.ok(dockCss.includes('.workspace-dock-body') && dockCss.includes('touch-action: pan-y !important;'), 'workspace-dock.css .workspace-dock-body must specify touch-action: pan-y !important;');
+  assert.ok(dockCss.includes('touch-action: pan-x pan-y !important;'), 'workspace-dock.css top/bottom shelf must support 2D touch panning;');
+
+  // 3. Visual Overlays and Modals
+  assert.ok(visualCss.includes('.geometry-legend-scroll-container') && visualCss.includes('touch-action: pan-y !important;'), 'Legend scroll container must specify touch-action: pan-y !important;');
+  assert.ok(visualCss.includes('.visual-info-overlay') && visualCss.includes('touch-action: pan-y !important;'), 'Info overlay must specify touch-action: pan-y !important;');
+  assert.ok(visualCss.includes('.tutorial-modal-overlay') && visualCss.includes('touch-action: pan-y !important;'), 'Walkthrough modal overlay must specify touch-action: pan-y !important;');
+
+  // 4. Thales Benchmark Styles
+  assert.ok(thalesPanels.includes('touch-action: pan-y !important;'), 'Thales panels.css must specify touch-action: pan-y !important;');
+  assert.ok(thalesOverlays.includes('touch-action: pan-y !important;'), 'Thales overlays.css must specify touch-action: pan-y !important;');
+});
+
 test('Alternate Segment & Chord Bisector: interactive Point D and Midpoint M dragging invariants', () => {
   // 1. Alternate Segment: Rigid Point D spinning along perimeter across continuous [0, 2π) domain
   const altState = AlternateSegment.createInitialState();

@@ -60,6 +60,9 @@
     flex-direction: column;
     max-height: calc(82vh - 4rem);
     transition: max-height 0.3s ease;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain;
 }
 
 .panel-body.hidden {

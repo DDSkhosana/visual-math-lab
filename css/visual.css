@@ -38,6 +38,7 @@ html, body {
   white-space: nowrap;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
   transition: transform 0.25s ease, margin-top 0.25s ease, opacity 0.25s ease;
@@ -636,6 +637,9 @@ html, body {
   justify-content: center;
   padding: 4.5rem 1rem 2rem;
   overflow-y: auto;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
 }
 .visual-info-overlay[hidden] {
   display: none;
@@ -1170,6 +1174,9 @@ body.interaction-tips-disabled .walkthrough-popover {
   justify-content: center;
   padding: 3.5rem 1rem 2rem;
   overflow-y: auto;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
 }
 
 .tutorial-modal-overlay[hidden] {
@@ -1604,6 +1611,9 @@ body.interaction-tips-disabled .walkthrough-popover {
   gap: 1.25rem;
   scrollbar-width: thin;
   scrollbar-color: #475569 #1e293b;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
 }
 
 .geometry-legend-scroll-container::-webkit-scrollbar {
