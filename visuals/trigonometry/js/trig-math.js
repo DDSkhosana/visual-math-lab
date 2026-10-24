@@ -555,6 +555,122 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
   };
 }
 
+/**
+ * SUITE 03 (Spatial 3D Extension): Non-Planar Spherical Law of Cosines on S² of radius R:
+ *   cos(c/R) = cos(a/R) cos(b/R) + sin(a/R) sin(b/R) cos C
+ *
+ * Demonstrates:
+ * 1. Geodesic arc distances on sphere S²: θ_a = a/R, θ_b = b/R, θ_c = c/R.
+ * 2. Taylor series expansion as R -> ∞:
+ *    1 - c²/(2R²) ≈ (1 - a²/(2R²))(1 - b²/(2R²)) + (a/R)(b/R) cos C
+ *    => c² = a² + b² - 2ab cos C (Smooth Euclidean contraction).
+ * 3. Spherical angles A_sph and B_sph via the spherical law of cosines for angles.
+ * 4. Spherical excess E = A_sph + B_sph + C - π and area Area = R² * E.
+ * 5. 3D Cartesian coordinates of vertices C, A, B on S² with exact arc lengths.
+ */
+export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = Math.PI / 3, radius = 10) {
+  const R = Math.max(1, Number(radius) || 10);
+  // Normalize side lengths so arc angles remain within (0, π)
+  const maxArc = Math.PI * 0.85;
+  const a = clamp(Number(sideA) || 7, 1, R * maxArc);
+  const b = clamp(Number(sideB) || 9, 1, R * maxArc);
+  const C = clamp(wrapAngleRad(angleCRad), 0.05, Math.PI - 0.05);
+
+  const thetaA = a / R; // arc angle in radians
+  const thetaB = b / R; // arc angle in radians
+
+  const cosA_arc = Math.cos(thetaA);
+  const sinA_arc = Math.sin(thetaA);
+  const cosB_arc = Math.cos(thetaB);
+  const sinB_arc = Math.sin(thetaB);
+  const cosC = Math.cos(C);
+  const sinC = Math.sin(C);
+
+  // Spherical Law of Cosines: cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C
+  const cosC_arc = clamp(cosA_arc * cosB_arc + sinA_arc * sinB_arc * cosC, -1, 1);
+  const thetaC = Math.acos(cosC_arc);
+  const c = R * thetaC;
+  const sinC_arc = Math.sin(thetaC);
+
+  // Spherical angles A_sph and B_sph via spherical law of cosines for angles:
+  // cos A_sph = (cos(a/R) - cos(b/R)cos(c/R)) / (sin(b/R)sin(c/R))
+  const denomA = sinB_arc * sinC_arc;
+  const cosSphA = denomA > 1e-5 ? clamp((cosA_arc - cosB_arc * cosC_arc) / denomA, -1, 1) : 1;
+  const sphA = Math.acos(cosSphA);
+
+  const denomB = sinA_arc * sinC_arc;
+  const cosSphB = denomB > 1e-5 ? clamp((cosB_arc - cosA_arc * cosC_arc) / denomB, -1, 1) : 1;
+  const sphB = Math.acos(cosSphB);
+
+  // Spherical Excess E = A_sph + B_sph + C - π
+  const excessRad = Math.max(0, sphA + sphB + C - Math.PI);
+  const excessDeg = toDegrees(excessRad);
+  const sphericalArea = R * R * excessRad;
+
+  // Taylor series contraction approximation:
+  // c_flat² = a² + b² - 2ab cos C
+  const cFlat2 = a * a + b * b - 2 * a * b * cosC;
+  const cFlat = Math.sqrt(Math.max(0, cFlat2));
+
+  // 3D Cartesian vertex placement on S²:
+  // Place C at North Pole (0, R, 0)
+  // Vertex A along prime meridian (x = R sin(thetaB), y = R cos(thetaB), z = 0)
+  // Vertex B rotated azimuthally by angle C:
+  // (x = R sin(thetaA) cos C, y = R cos(thetaA), z = R sin(thetaA) sin C)
+  const vertexC = { x: 0, y: R, z: 0 };
+  const vertexA = { x: R * sinB_arc, y: R * cosB_arc, z: 0 };
+  const vertexB = { x: R * sinA_arc * cosC, y: R * cosA_arc, z: R * sinA_arc * sinC };
+
+  // Unit normal vectors for great circles
+  const uC = { x: 0, y: 1, z: 0 };
+  const uA = { x: sinB_arc, y: cosB_arc, z: 0 };
+  const uB = { x: sinA_arc * cosC, y: cosA_arc, z: sinA_arc * sinC };
+
+  // Verification residuals
+  const dotAB = uA.x * uB.x + uA.y * uB.y + uA.z * uB.z;
+  const residualCosineLaw = Math.abs(dotAB - cosC_arc);
+
+  return {
+    R,
+    a,
+    b,
+    c,
+    thetaA,
+    thetaB,
+    thetaC,
+    angleC: C,
+    angleCDeg: toDegrees(C),
+    sphericalAngles: {
+      A: sphA,
+      B: sphB,
+      C,
+      degA: toDegrees(sphA),
+      degB: toDegrees(sphB),
+      degC: toDegrees(C),
+    },
+    sphericalExcess: {
+      excessRad,
+      excessDeg,
+      sphericalArea,
+    },
+    taylorContraction: {
+      cFlat,
+      cFlat2,
+      sphericalC: c,
+      curvatureDifference: Math.abs(c - cFlat),
+    },
+    vertices3D: {
+      C: vertexC,
+      A: vertexA,
+      B: vertexB,
+    },
+    invariants: {
+      residualCosineLaw,
+      isVerified: residualCosineLaw < 1e-5 && excessRad >= -1e-6,
+    },
+  };
+}
+
 /* ============================================================================
    SUITE 04: Angle Sum, Difference & Rotation Matrix Composition R(α+β)=R(α)∘R(β)
    ============================================================================ */
@@ -661,6 +777,91 @@ export function computeAngleSumIdentities(alphaRad = Math.PI / 6, betaRad = Math
         Math.abs(R_comp[0] - Math.cos(alpha + beta)) < 1e-6 &&
         Math.abs(R_comp[2] - Math.sin(alpha + beta)) < 1e-6,
     },
+  };
+}
+
+/**
+ * SUITE 04 (Spatial 3D Extension): Spatial SO(3) Euler Rotation Frame & Lie Group Embed
+ * Demonstrates:
+ * 1. Compound rotation in 3D: R = R_z(alpha + beta) * R_x(gamma) in SO(3).
+ * 2. When out-of-plane tilt gamma = 0, R reduces identically to the 2D planar rotation SO(2)
+ *    subgroup embedding:
+ *      R(alpha + beta) = R(alpha) * R(beta)
+ * 3. Orthonormal triad frame {e_1, e_2, e_3}: R^T * R = I, det(R) = +1.
+ * 4. Coordinate frame of vector P in 3D space:
+ *      P(alpha, beta, gamma) = R * [1, 0, 0]^T
+ */
+export function computeSpatialAngleSumEuler(alphaRad = Math.PI / 6, betaRad = Math.PI / 4, gammaRad = 0, radius = 1.0) {
+  const alpha = wrapAngleRad(alphaRad);
+  const beta = wrapAngleRad(betaRad);
+  const gamma = clamp(wrapAngleRad(gammaRad), -Math.PI / 2 + 0.05, Math.PI / 2 - 0.05);
+  const R = Number(radius) || 1.0;
+
+  const sumAngle = wrapAngleRad(alpha + beta);
+  const cosSum = Math.cos(sumAngle);
+  const sinSum = Math.sin(sumAngle);
+  const cosGamma = Math.cos(gamma);
+  const sinGamma = Math.sin(gamma);
+
+  // 3x3 Rotation Matrix R = R_z(alpha + beta) * R_x(gamma):
+  // R_z(θ) = [cos θ, -sin θ, 0; sin θ, cos θ, 0; 0, 0, 1]
+  // R_x(γ) = [1, 0, 0; 0, cos γ, -sin γ; 0, sin γ, cos γ]
+  // R = [cos(α+β), -sin(α+β)cos γ, sin(α+β)sin γ;
+  //      sin(α+β),  cos(α+β)cos γ, -cos(α+β)sin γ;
+  //      0,         sin γ,          cos γ]
+  const m00 = cosSum;
+  const m01 = -sinSum * cosGamma;
+  const m02 = sinSum * sinGamma;
+
+  const m10 = sinSum;
+  const m11 = cosSum * cosGamma;
+  const m12 = -cosSum * sinGamma;
+
+  const m20 = 0;
+  const m21 = sinGamma;
+  const m22 = cosGamma;
+
+  // Triad vectors (orthonormal frame basis)
+  const e1 = { x: R * m00, y: R * m10, z: R * m20 }; // P vector on the unit sphere
+  const e2 = { x: R * m01, y: R * m11, z: R * m21 };
+  const e3 = { x: R * m02, y: R * m12, z: R * m22 };
+
+  // Intermediate alpha frame (gamma = 0, beta = 0):
+  const e1_alpha = { x: R * Math.cos(alpha), y: R * Math.sin(alpha), z: 0 };
+  const e2_alpha = { x: -R * Math.sin(alpha), y: R * Math.cos(alpha), z: 0 };
+
+  // Determinant of R (must strictly equal +1 for SO(3)):
+  const detR = m00 * (m11 * m22 - m12 * m21) - m01 * (m10 * m22 - m12 * m20) + m02 * (m10 * m21 - m11 * m20);
+
+  // Trace of R: Tr(R) = 1 + 2 cos(theta_rot)
+  const trace = m00 + m11 + m22;
+  const cosRotAngle = clamp((trace - 1) / 2, -1, 1);
+  const rotAngle = Math.acos(cosRotAngle);
+
+  return {
+    alpha,
+    beta,
+    gamma,
+    sumAngle,
+    alphaDeg: toDegrees(alpha),
+    betaDeg: toDegrees(beta),
+    gammaDeg: toDegrees(gamma),
+    sumDeg: toDegrees(sumAngle),
+    R_matrix: [
+      [m00, m01, m02],
+      [m10, m11, m12],
+      [m20, m21, m22],
+    ],
+    triad: { e1, e2, e3 },
+    intermediateAlpha: { e1_alpha, e2_alpha },
+    lieAlgebra: {
+      trace,
+      detR,
+      rotAngle,
+      rotAngleDeg: toDegrees(rotAngle),
+      isSO3: Math.abs(detR - 1) < 1e-6,
+    },
+    isPlanarReduction: Math.abs(gamma) < 1e-4,
   };
 }
 

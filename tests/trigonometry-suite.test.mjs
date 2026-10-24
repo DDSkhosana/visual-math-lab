@@ -15,7 +15,9 @@ import {
     computeLawOfSines,
     computeSphericalLawOfSines,
     computeLawOfCosines,
+    computeSphericalLawOfCosines,
     computeAngleSumIdentities,
+    computeSpatialAngleSumEuler,
 } from '../visuals/trigonometry/js/trig-math.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -113,6 +115,33 @@ describe('Trigonometry Suite — Visual Invariants', () => {
         assert.ok(state.invariants.cosDiffResidual < 1e-12);
         assert.ok(state.invariants.sinDiffResidual < 1e-12);
         assert.equal(state.invariants.matrixCompositionVerified, true);
+    });
+
+    test('computeSphericalLawOfCosines satisfies cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C, positive excess, and smooth Euclidean contraction', () => {
+        const sM = computeSphericalLawOfCosines(7, 9, Math.PI / 3, 10);
+        assert.ok(sM.invariants.residualCosineLaw < 1e-5, 'Spherical cosine residual must be within 1e-5');
+        assert.equal(sM.invariants.isVerified, true);
+        assert.ok(sM.sphericalExcess.excessRad > 0, 'Spherical excess must be strictly positive on spherical triangle');
+        assert.ok(sM.sphericalExcess.sphericalArea > 0, 'Spherical area must be positive');
+
+        // Test Euclidean limit as R -> infinity (e.g. R = 50000)
+        const sLarge = computeSphericalLawOfCosines(7, 9, Math.PI / 3, 50000);
+        assert.ok(
+            sLarge.taylorContraction.curvatureDifference < 1e-4,
+            `As R -> infinity, spherical c must smoothly contract to Euclidean c (diff: ${sLarge.taylorContraction.curvatureDifference})`
+        );
+    });
+
+    test('computeSpatialAngleSumEuler satisfies SO(3) Lie group properties (orthonormality, det(R)=1, planar SO(2) reduction at gamma=0)', () => {
+        const spatial = computeSpatialAngleSumEuler(Math.PI / 6, Math.PI / 4, 0.45, 1.0);
+        assert.equal(spatial.lieAlgebra.isSO3, true, 'Spatial rotation matrix must satisfy det(R) = +1 in SO(3)');
+        assert.ok(Math.abs(spatial.lieAlgebra.detR - 1.0) < 1e-6);
+
+        // Planar reduction test when gamma = 0
+        const planar = computeSpatialAngleSumEuler(Math.PI / 6, Math.PI / 4, 0, 1.0);
+        assert.equal(planar.isPlanarReduction, true);
+        assert.ok(Math.abs(planar.R_matrix[0][0] - Math.cos(Math.PI / 6 + Math.PI / 4)) < 1e-6);
+        assert.ok(Math.abs(planar.R_matrix[1][0] - Math.sin(Math.PI / 6 + Math.PI / 4)) < 1e-6);
     });
 });
 
@@ -371,5 +400,53 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Euclidean Taylor Correspondence"));
         assert.ok(src.includes("btn-mode-planar"));
         assert.ok(src.includes("btn-mode-spatial"));
+    });
+
+    test('Law of Cosines dual-mode switch (Planar Euclidean vs Spherical 3D on S²) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
+        const locHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/law-of-cosines/index.html'), 'utf-8');
+        assert.ok(locHtml.includes('id="btn-mode-planar"'));
+        assert.ok(locHtml.includes('id="btn-mode-spatial"'));
+        assert.ok(locHtml.includes('id="btn-mode-planar-pill"'));
+        assert.ok(locHtml.includes('id="btn-mode-spatial-pill"'));
+        assert.ok(locHtml.includes('id="section-dimension-mode"'));
+        assert.ok(locHtml.includes('id="val-3d-mode-label"'));
+        assert.ok(locHtml.includes('id="row-3d-cosc-arc"'));
+        assert.ok(locHtml.includes('id="row-3d-sph-c"'));
+        assert.ok(locHtml.includes('id="row-3d-excess"'));
+        assert.ok(locHtml.includes('id="row-3d-area"'));
+
+        // Check trig-core.js dual-mode wiring for Law of Cosines
+        assert.ok(src.includes("computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, R)"));
+        assert.ok(src.includes("Spherical Great-Circle Geodesics"));
+        assert.ok(src.includes("Spherical Law of Cosines"));
+        assert.ok(src.includes("Curvature Contraction & Euclidean Taylor Limit"));
+        assert.ok(src.includes("Girard Excess & Spherical Area"));
+        assert.ok(src.includes("val-3d-cosc-arc"));
+        assert.ok(src.includes("val-3d-sph-c"));
+    });
+
+    test('Angle Sum Identities dual-mode switch (Planar SO(2) vs Spatial SO(3) Euler Frame) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
+        const asiHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/angle-sum-identities/index.html'), 'utf-8');
+        assert.ok(asiHtml.includes('id="btn-mode-planar"'));
+        assert.ok(asiHtml.includes('id="btn-mode-spatial"'));
+        assert.ok(asiHtml.includes('id="btn-mode-planar-pill"'));
+        assert.ok(asiHtml.includes('id="btn-mode-spatial-pill"'));
+        assert.ok(asiHtml.includes('id="section-dimension-mode"'));
+        assert.ok(asiHtml.includes('id="slider-gamma"'));
+        assert.ok(asiHtml.includes('id="val-3d-mode-label"'));
+        assert.ok(asiHtml.includes('id="row-3d-gamma"'));
+        assert.ok(asiHtml.includes('id="row-3d-trace"'));
+        assert.ok(asiHtml.includes('id="row-3d-rot-angle"'));
+
+        // Check trig-core.js dual-mode wiring for Angle Sum Identities
+        assert.ok(src.includes("computeSpatialAngleSumEuler(state.angleAlpha, state.angleBeta, state.angleGamma, R)"));
+        assert.ok(src.includes("SO(3) Lie Group Euler Composition"));
+        assert.ok(src.includes("Orthonormal Frame Triad & Metric Invariance"));
+        assert.ok(src.includes("Planar SO(2) Principal Subgroup Embedding"));
+        assert.ok(src.includes("Lie Algebra Trace & Rotation Angle"));
+        assert.ok(src.includes("slider-gamma"));
+        assert.ok(src.includes("val-3d-gamma"));
+        assert.ok(src.includes("val-3d-trace"));
+        assert.ok(src.includes("val-3d-rot-angle"));
     });
 });

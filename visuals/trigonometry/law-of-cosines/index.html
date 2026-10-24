@@ -120,7 +120,13 @@
         <div class="viewport-resizer" id="viewport-resizer"></div>
 
         <div id="canvas-3d-container">
-          <div class="view-title">3D: Orthogonal Projection &amp; 4-Corner Mixed Partial Quotient (<span class="color-amber">−2 cos C</span>)</div>
+          <div class="view-title" id="canvas-3d-title">3D: Orthogonal Projection &amp; 4-Corner Mixed Partial Quotient (<span class="color-amber">−2 cos C</span>)</div>
+          <div class="dimension-mode-bar" style="position: absolute; top: 0.75rem; right: 4.8rem; z-index: 10;">
+            <div class="viewmode-segmented-group" role="group" aria-label="3D Geometry Model">
+              <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar Euclidean Projection (Y = 0)">Planar</button>
+              <button type="button" class="btn" id="btn-mode-spatial-pill" title="Spherical Law of Cosines on S²">Spherical 3D</button>
+            </div>
+          </div>
           <div class="camera-presets-bar">
             <button type="button" data-preset="top">Top</button>
             <button type="button" data-preset="front">Front</button>
@@ -136,11 +142,16 @@
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-sky">3D Geometry:</span><strong class="color-sky" id="val-3d-mode-label">Planar (Y = 0)</strong></div>
               <div class="stat-line"><span class="color-indigo">3D Radius R:</span><span class="color-indigo" id="val-3d-r">10.00</span></div>
-              <div class="stat-line"><span class="color-rose">3D Squared Side c²:</span><strong class="color-rose" id="val-3d-c2">67.00</strong></div>
-              <div class="stat-line"><span class="color-amber">Projection a cos C:</span><strong class="color-amber" id="val-3d-proj">3.500</strong></div>
-              <div class="stat-line"><span class="color-amber">Altitude h = a sin C:</span><strong class="color-amber" id="val-3d-alt">6.062</strong></div>
-              <div class="stat-line"><span class="color-teal">Mixed Partial ∂²c²/(∂a∂b):</span><strong class="color-teal" id="val-3d-mixed">-1.0000</strong></div>
+              <div class="stat-line" id="row-3d-c2"><span class="color-rose">3D Squared Side c²:</span><strong class="color-rose" id="val-3d-c2">67.00</strong></div>
+              <div class="stat-line" id="row-3d-proj"><span class="color-amber">Projection a cos C:</span><strong class="color-amber" id="val-3d-proj">3.500</strong></div>
+              <div class="stat-line" id="row-3d-alt"><span class="color-amber">Altitude h = a sin C:</span><strong class="color-amber" id="val-3d-alt">6.062</strong></div>
+              <div class="stat-line" id="row-3d-mixed"><span class="color-teal">Mixed Partial ∂²c²/(∂a∂b):</span><strong class="color-teal" id="val-3d-mixed">-1.0000</strong></div>
+              <div class="stat-line hidden" id="row-3d-cosc-arc"><span class="color-amber">cos(c/R):</span><strong class="color-amber" id="val-3d-cosc-arc">0.778</strong></div>
+              <div class="stat-line hidden" id="row-3d-sph-c"><span class="color-rose">Spherical Side c:</span><strong class="color-rose" id="val-3d-sph-c">7.820</strong></div>
+              <div class="stat-line hidden" id="row-3d-excess"><span class="color-teal">Spherical Excess E:</span><strong class="color-teal" id="val-3d-excess">14.2°</strong></div>
+              <div class="stat-line hidden" id="row-3d-area"><span class="color-teal">Spherical Area R²E:</span><strong class="color-teal" id="val-3d-area">24.78</strong></div>
             </div>
           </div>
         </div>
@@ -282,6 +293,18 @@
             </div>
           </div>
           <div class="panel-body hidden">
+            <div class="collapsible-section collapsed" id="section-dimension-mode">
+              <div class="collapsible-header" aria-expanded="false"><span>3D Geometry Model</span><span class="icon">▶</span></div>
+              <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
+                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                  <button type="button" class="btn active" id="btn-mode-planar">Planar (Y = 0)</button>
+                  <button type="button" class="btn" id="btn-mode-spatial">Spherical 3D</button>
+                </div>
+                <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
+                  Planar Euclidean embedding with orthogonal projection and −2ab cos C interaction rectangle.
+                </p>
+              </div>
+            </div>
             <div class="collapsible-section collapsed">
               <div class="collapsible-header" aria-expanded="false"><span>3D Guides</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
