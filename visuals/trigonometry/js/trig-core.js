@@ -518,6 +518,8 @@ export class TrigCanvas2DView {
       ctx.strokeStyle = PALETTE.fuchsia;
       ctx.lineWidth = 1.8;
       ctx.beginPath();
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(cotTip.x, cotTip.y);
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(cscPt.x, cscPt.y);
       ctx.stroke();
@@ -555,23 +557,45 @@ export class TrigCanvas2DView {
           PALETTE.emerald
         );
       }
-      if (state.showTanSec !== false && showLengths && Math.abs(m.tan) < 3.5) {
-        drawTextBadge(
-          ctx,
-          `tan θ = ${m.tan.toFixed(2)}`,
-          tanTip.x + 38 * (m.cos >= 0 ? 1 : -1),
-          (tanBase.y + tanTip.y) / 2,
-          PALETTE.rose
-        );
+      if (state.showTanSec !== false && showLengths) {
+        if (Math.abs(m.tan) < 3.5) {
+          drawTextBadge(
+            ctx,
+            `tan θ = ${m.tan.toFixed(2)}`,
+            tanTip.x + 38 * (m.cos >= 0 ? 1 : -1),
+            (tanBase.y + tanTip.y) / 2,
+            PALETTE.rose
+          );
+        }
+        if (Math.abs(m.sec) < 4.5) {
+          drawTextBadge(
+            ctx,
+            `sec θ = ${m.sec.toFixed(2)}`,
+            (O.x + secPt.x) / 2,
+            O.y + (m.sin >= 0 ? -22 : 22),
+            PALETTE.violet
+          );
+        }
       }
-      if (state.showCotCsc !== false && showLengths && Math.abs(m.cot) < 3.5) {
-        drawTextBadge(
-          ctx,
-          `cot θ = ${m.cot.toFixed(2)}`,
-          (cotBase.x + cotTip.x) / 2,
-          cotTip.y + 18 * (m.sin >= 0 ? 1 : -1),
-          PALETTE.orange
-        );
+      if (state.showCotCsc !== false && showLengths) {
+        if (Math.abs(m.cot) < 3.5) {
+          drawTextBadge(
+            ctx,
+            `cot θ = ${m.cot.toFixed(2)}`,
+            (cotBase.x + cotTip.x) / 2,
+            cotTip.y + 18 * (m.sin >= 0 ? 1 : -1),
+            PALETTE.orange
+          );
+        }
+        if (Math.abs(m.csc) < 4.5) {
+          drawTextBadge(
+            ctx,
+            `csc θ = ${m.csc.toFixed(2)}`,
+            O.x + (m.cos >= 0 ? -44 : 44),
+            (O.y + cscPt.y) / 2,
+            PALETTE.fuchsia
+          );
+        }
       }
     }
 
@@ -582,6 +606,24 @@ export class TrigCanvas2DView {
       const lblX = getPointLabel('Cx', m.cos * r, 0, vis);
       drawLabelledPoint(ctx, O, PALETTE.indigo, lblO, -12, 16, 4.5);
       drawLabelledPoint(ctx, projX, PALETTE.amber, lblX, 0, m.sin >= 0 ? 16 : -16, 4);
+      if (state.showTanSec !== false) {
+        drawLabelledPoint(ctx, tanBase, PALETTE.rose, showLabels ? 'T₀' : '', 0, 16, 3.5);
+        if (Math.abs(m.tan) < 3.5) {
+          drawLabelledPoint(ctx, tanTip, PALETTE.rose, showLabels ? 'T' : '', 14, 0, 3.5);
+        }
+        if (Math.abs(m.sec) < 4.5) {
+          drawLabelledPoint(ctx, secPt, PALETTE.violet, showLabels ? 'Sec' : '', 0, -14, 3.5);
+        }
+      }
+      if (state.showCotCsc !== false) {
+        drawLabelledPoint(ctx, cotBase, PALETTE.orange, showLabels ? 'C₀' : '', -16, 0, 3.5);
+        if (Math.abs(m.cot) < 3.5) {
+          drawLabelledPoint(ctx, cotTip, PALETTE.orange, showLabels ? 'Cot' : '', 0, -14, 3.5);
+        }
+        if (Math.abs(m.csc) < 4.5) {
+          drawLabelledPoint(ctx, cscPt, PALETTE.fuchsia, showLabels ? 'Csc' : '', 16, 0, 3.5);
+        }
+      }
       // Outward radial label for P without covering the sharp arrowhead at P
       if (lblP) {
         const { x, y, ux } = getRadialLabelCoords(P, O, 20);
@@ -1650,15 +1692,34 @@ export class TrigScene3DView extends BaseScene3DView {
           );
         }
 
-        if (showLengths && Math.abs(m.tan) < 3.2) {
-          labels.push({
-            key: 'tan-len-3d',
-            text: `tan θ = ${m.tan.toFixed(2)}`,
-            at: { x: R + 1.2, y: 0.35, z: (R * clampedTan) / 2 },
-            color: 'color-rose',
-            isAngle: true,
-            show: true,
-          });
+        if (showLengths) {
+          if (Math.abs(m.tan) < 3.2) {
+            labels.push({
+              key: 'tan-len-3d',
+              text: `tan θ = ${m.tan.toFixed(2)}`,
+              at: { x: R + 1.2, y: 0.35, z: (R * clampedTan) / 2 },
+              color: 'color-rose',
+              isAngle: true,
+              show: true,
+            });
+          }
+          if (Math.abs(m.sec) < 4.5) {
+            labels.push({
+              key: 'sec-len-3d',
+              text: `sec θ = ${m.sec.toFixed(2)}`,
+              at: { x: Sec_pt.x / 2, y: 0.35, z: 0 },
+              color: 'color-violet',
+              isAngle: true,
+              show: true,
+            });
+          }
+        }
+        if (showPoints) {
+          labels.push(
+            { key: 'T_base', name: 'T₀', at: { x: T_base.x + 0.6, y: 0.35, z: 0 }, coords: T_base, color: 'color-rose', show: true },
+            { key: 'T_tip', name: 'T', at: { x: T_tip.x + 0.6, y: 0.35, z: T_tip.z + 0.6 }, coords: T_tip, color: 'color-rose', show: Math.abs(m.tan) < 3.5 },
+            { key: 'Sec_pt', name: 'Sec', at: { x: Sec_pt.x + 0.6, y: 0.35, z: 0 }, coords: Sec_pt, color: 'color-violet', show: Math.abs(m.sec) < 4.5 }
+          );
         }
       }
 
@@ -1688,15 +1749,34 @@ export class TrigScene3DView extends BaseScene3DView {
           );
         }
 
-        if (showLengths && Math.abs(m.cot) < 3.2) {
-          labels.push({
-            key: 'cot-len-3d',
-            text: `cot θ = ${m.cot.toFixed(2)}`,
-            at: { x: (R * clampedCot) / 2, y: 0.35, z: R + 1.2 },
-            color: 'color-orange',
-            isAngle: true,
-            show: true,
-          });
+        if (showLengths) {
+          if (Math.abs(m.cot) < 3.2) {
+            labels.push({
+              key: 'cot-len-3d',
+              text: `cot θ = ${m.cot.toFixed(2)}`,
+              at: { x: (R * clampedCot) / 2, y: 0.35, z: R + 1.2 },
+              color: 'color-orange',
+              isAngle: true,
+              show: true,
+            });
+          }
+          if (Math.abs(m.csc) < 4.5) {
+            labels.push({
+              key: 'csc-len-3d',
+              text: `csc θ = ${m.csc.toFixed(2)}`,
+              at: { x: 0, y: 0.35, z: Csc_pt.z / 2 },
+              color: 'color-fuchsia',
+              isAngle: true,
+              show: true,
+            });
+          }
+        }
+        if (showPoints) {
+          labels.push(
+            { key: 'C_base', name: 'C₀', at: { x: 0, y: 0.35, z: C_base.z + 0.6 }, coords: C_base, color: 'color-orange', show: true },
+            { key: 'C_tip', name: 'Cot', at: { x: C_tip.x + 0.6, y: 0.35, z: C_tip.z + 0.6 }, coords: C_tip, color: 'color-orange', show: Math.abs(m.cot) < 3.5 },
+            { key: 'Csc_pt', name: 'Csc', at: { x: 0, y: 0.35, z: Csc_pt.z + 0.6 }, coords: Csc_pt, color: 'color-fuchsia', show: Math.abs(m.csc) < 4.5 }
+          );
         }
       }
 
@@ -3412,11 +3492,20 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-cot', Math.abs(m.cot) > 100 ? '±∞' : m.cot.toFixed(4));
     setText('tel-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
     setText('tel-reflex', fmtAng(360 - m.thetaDeg));
+    setText('tel-o-coords', '0.00, 0.00');
+    setText('tel-p-coords', `${m.cos.toFixed(2)}, ${m.sin.toFixed(2)}`);
+    setText('tel-cx-coords', `${m.cos.toFixed(2)}, 0.00`);
 
     setText('val-3d-px', m.cos.toFixed(3));
     setText('val-3d-pz', m.sin.toFixed(3));
     setText('val-3d-py', m.points3D.point3D.z.toFixed(3));
+    setText('val-3d-tan', Math.abs(m.tan) > 100 ? '±∞' : m.tan.toFixed(4));
+    setText('val-3d-sec', Math.abs(m.sec) > 100 ? '±∞' : m.sec.toFixed(4));
+    setText('val-3d-cot', Math.abs(m.cot) > 100 ? '±∞' : m.cot.toFixed(4));
+    setText('val-3d-csc', Math.abs(m.csc) > 100 ? '±∞' : m.csc.toFixed(4));
     setText('val-3d-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
+    setText('val-3d-peq-coords', `${(R3D * m.cos).toFixed(2)}, 0.00, ${(R3D * m.sin).toFixed(2)}`);
+    setText('val-3d-phelix-coords', `${(R3D * m.cos).toFixed(2)}, ${m.points3D.point3D.z.toFixed(2)}, ${(R3D * m.sin).toFixed(2)}`);
 
     const tanSecCheck = document.getElementById('vis-3d-tan-sec');
     if (tanSecCheck && tanSecCheck.checked !== (state.showTanSec !== false)) {

@@ -96,7 +96,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Unit Circle (<span class="color-amber">cos θ</span>, <span class="color-emerald">sin θ</span>, <span class="color-rose">tan θ</span>, <span class="color-violet">sec θ</span>)</div>
+          <div class="view-title">2D: Unit Circle (<span class="color-amber">cos θ</span>, <span class="color-emerald">sin θ</span>, <span class="color-rose">tan θ</span>, <span class="color-violet">sec θ</span>, <span class="color-orange">cot θ</span>, <span class="color-fuchsia">csc θ</span>)</div>
 
           <!-- 2D Telemetry Panel -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -110,10 +110,13 @@
               <div class="stat-line"><span class="color-emerald">sin θ (Y-leg):</span><strong class="color-emerald" id="tel-sin">0.7431</strong></div>
               <div class="stat-line"><span class="color-rose">tan θ (sin/cos):</span><strong class="color-rose" id="tel-tan">1.1106</strong></div>
               <div class="stat-line"><span class="color-violet">sec θ (1/cos):</span><strong class="color-violet" id="tel-sec">1.4945</strong></div>
-              <div class="stat-line"><span class="color-fuchsia">csc θ (1/sin):</span><strong class="color-fuchsia" id="tel-csc">1.3456</strong></div>
               <div class="stat-line"><span class="color-orange">cot θ (cos/sin):</span><strong class="color-orange" id="tel-cot">0.9004</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">csc θ (1/sin):</span><strong class="color-fuchsia" id="tel-csc">1.3456</strong></div>
               <div class="stat-line"><span class="color-teal">cos²θ + sin²θ:</span><strong class="color-teal" id="tel-pythag">1.000000</strong></div>
               <div class="stat-line"><span class="color-lavender">Reflex θ* (360° − θ):</span><strong class="color-lavender" id="tel-reflex">312.0°</strong></div>
+              <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-indigo">Origin O (0, 0):</span><strong class="color-indigo" id="tel-o-coords">0.00, 0.00</strong></div>
+              <div class="stat-line"><span class="color-violet">Point P (cos θ, sin θ):</span><strong class="color-violet" id="tel-p-coords">0.67, 0.74</strong></div>
+              <div class="stat-line"><span class="color-amber">Foot Cx (cos θ, 0):</span><strong class="color-amber" id="tel-cx-coords">0.67, 0.00</strong></div>
             </div>
           </div>
         </div>
@@ -141,7 +144,13 @@
               <div class="stat-line"><span class="color-amber">Helix X (cos θ):</span><strong class="color-amber" id="val-3d-px">0.669</strong></div>
               <div class="stat-line"><span class="color-emerald">Helix Z (sin θ):</span><strong class="color-emerald" id="val-3d-pz">0.743</strong></div>
               <div class="stat-line"><span class="color-violet">Helix Height Y:</span><strong class="color-violet" id="val-3d-py">-0.805</strong></div>
+              <div class="stat-line"><span class="color-rose">tan θ (sin/cos):</span><strong class="color-rose" id="val-3d-tan">1.1106</strong></div>
+              <div class="stat-line"><span class="color-violet">sec θ (1/cos):</span><strong class="color-violet" id="val-3d-sec">1.4945</strong></div>
+              <div class="stat-line"><span class="color-orange">cot θ (cos/sin):</span><strong class="color-orange" id="val-3d-cot">0.9004</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">csc θ (1/sin):</span><strong class="color-fuchsia" id="val-3d-csc">1.3456</strong></div>
               <div class="stat-line"><span class="color-teal">3D Invariant x²+z²:</span><strong class="color-teal" id="val-3d-pythag">1.000000</strong></div>
+              <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-violet">P_eq (R cos θ, 0, R sin θ):</span><strong class="color-violet" id="val-3d-peq-coords">6.69, 0.00, 7.43</strong></div>
+              <div class="stat-line"><span class="color-teal">P_helix (x, y, z):</span><strong class="color-teal" id="val-3d-phelix-coords">6.69, -0.81, 7.43</strong></div>
             </div>
           </div>
         </div>

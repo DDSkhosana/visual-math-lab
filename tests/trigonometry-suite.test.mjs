@@ -429,9 +429,20 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("addSeg(P_helix, W_sin, PALETTE.emerald, true)"));
         assert.ok(src.includes("key: 'tan-len-3d'"));
         assert.ok(src.includes("key: 'cot-len-3d'"));
+        assert.ok(src.includes("key: 'sec-len-3d'"));
+        assert.ok(src.includes("key: 'csc-len-3d'"));
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle2, T_base"));
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, C_base"));
         assert.ok(src.includes("key: 'helix-y'"));
+
+        // HTML 2D & 3D Telemetry coherence for all 6 trig functions
+        const uchHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/unit-circle-helix/index.html'), 'utf-8');
+        assert.ok(uchHtml.includes('id="val-3d-tan"'), '3D Telemetry must include tan θ');
+        assert.ok(uchHtml.includes('id="val-3d-sec"'), '3D Telemetry must include sec θ');
+        assert.ok(uchHtml.includes('id="val-3d-cot"'), '3D Telemetry must include cot θ');
+        assert.ok(uchHtml.includes('id="val-3d-csc"'), '3D Telemetry must include csc θ');
+        assert.ok(uchHtml.includes('id="tel-o-coords"'), '2D Telemetry must include point coordinates');
+        assert.ok(uchHtml.includes('id="val-3d-peq-coords"'), '3D Telemetry must include 3D point coordinates');
     });
 
     test('Law of Sines dual-mode switch (Planar Y = 0 vs Spherical 3D) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
