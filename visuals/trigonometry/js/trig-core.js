@@ -1078,7 +1078,8 @@ export class TrigCanvas2DView {
       drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), -12, 16, 4.5);
       if (state.showStackedTriangles !== false) {
         drawLabelledPoint(ctx, Q, PALETTE.amber, showLabels ? 'Q' : '', 12, -10, 4);
-        drawLabelledPoint(ctx, M, PALETTE.amber, showLabels ? 'M' : '', 0, 15, 3.5);
+        drawLabelledPoint(ctx, M, PALETTE.amber, showLabels ? 'M' : '', -10, 15, 3.5);
+        drawLabelledPoint(ctx, N, PALETTE.amber, showLabels ? 'N' : '', 10, 15, 3.5);
       }
     }
   }
@@ -2225,6 +2226,7 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
           { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
+          ...(state.showDifferenceRay !== false ? [{ key: 'Pdiff', name: 'P(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' }] : []),
           { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'N', name: 'N', at: { x: N.x, y: 0.4, z: N.z }, coords: N, color: 'color-amber', show: state.showStackedTriangles !== false },
