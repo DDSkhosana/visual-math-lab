@@ -2311,3 +2311,41 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 
 
 
+
+.visual-page-body .site-nav__dropdown-item:focus {
+  background: #1e293b;
+  color: #38bdf8;
+  outline: 2px solid #38bdf8;
+  outline-offset: -2px;
+}
+
+.visual-page-body .site-nav__search-match {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fbbf24;
+  font-weight: 700;
+  border-radius: 2px;
+  padding: 0 2px;
+  text-decoration: underline;
+  text-decoration-color: rgba(245, 158, 11, 0.6);
+  text-underline-offset: 2px;
+}
+
+.visual-page-body .site-nav__dropdown-item:hover .site-nav__search-match,
+.visual-page-body .site-nav__dropdown-item:focus .site-nav__search-match,
+.visual-page-body .site-nav__dropdown-item:focus-visible .site-nav__search-match {
+  background: rgba(245, 158, 11, 0.45);
+  color: #fef08a;
+  text-decoration-color: #fef08a;
+}
+
+.visual-page-body .site-nav__search-match-tag {
+  font-size: 0.625rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-weight: 600;
+  margin-left: auto;
+  margin-right: 0.25rem;
+  white-space: nowrap;
+}

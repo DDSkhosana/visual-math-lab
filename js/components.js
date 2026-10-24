@@ -54,6 +54,77 @@ function escapeHtml(value) {
   return element.innerHTML;
 }
 
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightMatch(text, query) {
+  if (!query) return escapeHtml(text);
+  const escapedQuery = escapeRegex(query);
+  const regex = new RegExp("(" + escapedQuery + ")", "gi");
+  const parts = text.split(regex);
+  return parts
+    .map((part) => {
+      if (part.toLowerCase() === query.toLowerCase()) {
+        return '<mark class="site-nav__search-match">' + escapeHtml(part) + '</mark>';
+      }
+      return escapeHtml(part);
+    })
+    .join("");
+}
+
+function getMatchScore(item, q) {
+  const title = (item.dataset.title || "").toLowerCase();
+  const slug = (item.dataset.slug || "").toLowerCase();
+  const suite = (item.dataset.suite || "").toLowerCase();
+  const searchTerms = (item.dataset.search || "").toLowerCase();
+
+  if (!searchTerms.includes(q)) return -1;
+
+  let score = 0;
+
+  // 1. Exact title match
+  if (title === q) {
+    score += 1000;
+  }
+  // 2. Title starts with query
+  else if (title.startsWith(q)) {
+    score += 500;
+  }
+  // 3. Word boundary match in title
+  else {
+    const wordRegex = new RegExp("(^|\\s|[-_])" + escapeRegex(q), "i");
+    if (wordRegex.test(title)) {
+      score += 350;
+    } else if (title.includes(q)) {
+      score += 200;
+    }
+  }
+
+  // Bonus for position earlier in title
+  const titleIdx = title.indexOf(q);
+  if (titleIdx >= 0) {
+    score += Math.max(0, 50 - titleIdx * 2);
+    score += Math.round((q.length / Math.max(1, title.length)) * 50);
+  }
+
+  // 4. Slug match
+  if (slug === q) {
+    score += 150;
+  } else if (slug.startsWith(q)) {
+    score += 100;
+  } else if (slug.includes(q)) {
+    score += 60;
+  }
+
+  // 5. Suite match
+  if (suite.includes(q)) {
+    score += 40;
+  }
+
+  return score;
+}
+
 function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS) {
   const renderItem = (v, defaultSuite) => {
     const suite = v.suite || defaultSuite;
@@ -61,7 +132,7 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
     const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
     const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite}`.toLowerCase();
     return `
-      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-search="${escapeHtml(searchTerms)}">
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-search="${escapeHtml(searchTerms)}">
         <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
         ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
       </a>
@@ -138,42 +209,109 @@ export function mountSharedChrome() {
     const searchClear = header.querySelector("#nav-visuals-search-clear");
     const emptyState = header.querySelector("#nav-visuals-empty");
 
+    const initListOrder = () => {
+      if (!list) return;
+      Array.from(list.children).forEach((child, idx) => {
+        child.dataset.defaultOrder = idx;
+      });
+    };
+    initListOrder();
+
     const filterVisuals = (query) => {
       const q = (query || "").trim().toLowerCase();
       if (searchClear) searchClear.hidden = !q;
 
       const items = Array.from(list.querySelectorAll(".site-nav__dropdown-item"));
-      const circleHeader = list.querySelector('[data-suite-header="circle-theorems"]');
-      const trigHeader = list.querySelector('[data-suite-header="trigonometry"]');
+      const suiteHeaders = Array.from(list.querySelectorAll(".site-nav__dropdown-suite-label"));
 
-      let visibleCount = 0;
-      let visibleCircleCount = 0;
-      let visibleTrigCount = 0;
+      if (!q) {
+        items.forEach((item) => {
+          const titleEl = item.querySelector(".site-nav__dropdown-item-title");
+          if (titleEl && item.dataset.title) {
+            titleEl.textContent = item.dataset.title;
+          }
+          const tagEl = item.querySelector(".site-nav__search-match-tag");
+          if (tagEl) tagEl.remove();
+          item.hidden = false;
+        });
 
+        suiteHeaders.forEach((h) => {
+          h.hidden = false;
+        });
+
+        const allChildren = Array.from(list.children);
+        allChildren.sort((a, b) => Number(a.dataset.defaultOrder || 0) - Number(b.dataset.defaultOrder || 0));
+        allChildren.forEach((child) => list.appendChild(child));
+
+        if (emptyState) emptyState.hidden = true;
+        if (count) count.textContent = `${items.length} Visuals`;
+        return;
+      }
+
+      const scored = [];
       items.forEach((item) => {
-        const searchText = item.dataset.search || "";
-        const suite = item.dataset.suite || "";
-        const matches = !q || searchText.includes(q);
-        item.hidden = !matches;
-        if (matches) {
-          visibleCount++;
-          if (suite === "circle-theorems") visibleCircleCount++;
-          if (suite === "trigonometry") visibleTrigCount++;
+        const score = getMatchScore(item, q);
+        if (score > 0) {
+          scored.push({ item, score });
+        } else {
+          item.hidden = true;
+          const titleEl = item.querySelector(".site-nav__dropdown-item-title");
+          if (titleEl && item.dataset.title) {
+            titleEl.textContent = item.dataset.title;
+          }
+          const tagEl = item.querySelector(".site-nav__search-match-tag");
+          if (tagEl) tagEl.remove();
         }
       });
 
-      if (circleHeader) circleHeader.hidden = visibleCircleCount === 0;
-      if (trigHeader) trigHeader.hidden = visibleTrigCount === 0;
+      // Sort descending by match strength
+      scored.sort((a, b) => b.score - a.score);
+
+      // Hide suite headers during active search so top matches are brought together at the top
+      suiteHeaders.forEach((h) => {
+        h.hidden = true;
+      });
+
+      // Re-order matching items to the top of the container in sorted strength order
+      scored.forEach(({ item }) => {
+        item.hidden = false;
+        list.appendChild(item);
+
+        const title = item.dataset.title || "";
+        const titleEl = item.querySelector(".site-nav__dropdown-item-title");
+        if (titleEl) {
+          titleEl.innerHTML = highlightMatch(title, q);
+        }
+
+        let tagEl = item.querySelector(".site-nav__search-match-tag");
+        const titleLower = title.toLowerCase();
+        const suite = item.dataset.suite || "";
+        if (!titleLower.includes(q) && suite.toLowerCase().includes(q)) {
+          if (!tagEl) {
+            tagEl = document.createElement("span");
+            tagEl.className = "site-nav__search-match-tag";
+            const badge = item.querySelector(".site-nav__dropdown-item-badge");
+            if (badge) {
+              item.insertBefore(tagEl, badge);
+            } else {
+              item.appendChild(tagEl);
+            }
+          }
+          tagEl.textContent = suite === "circle-theorems" ? "Circle Theorems" : "Trigonometry";
+        } else if (tagEl) {
+          tagEl.remove();
+        }
+      });
 
       if (emptyState) {
-        emptyState.hidden = visibleCount > 0;
-        if (visibleCount === 0) {
+        emptyState.hidden = scored.length > 0;
+        if (scored.length === 0) {
           emptyState.textContent = `No visualisations found for "${query.trim()}"`;
         }
       }
 
       if (count) {
-        count.textContent = q ? `${visibleCount} of ${items.length} Visuals` : `${items.length} Visuals`;
+        count.textContent = `${scored.length} of ${items.length} Visuals`;
       }
     };
 
@@ -184,9 +322,10 @@ export function mountSharedChrome() {
       searchInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
+          // Move focus to first visible match for explicit review and keyboard navigation (no auto-navigation)
           const firstVisible = list.querySelector(".site-nav__dropdown-item:not([hidden])");
           if (firstVisible) {
-            firstVisible.click();
+            firstVisible.focus();
           }
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
@@ -335,6 +474,7 @@ export function mountSharedChrome() {
             if (published.length > 0) {
               list.innerHTML = renderVisualsList(root, published, activeSlug, DEFAULT_TRIG_VISUALS);
               if (count) count.textContent = `${published.length + DEFAULT_TRIG_VISUALS.length} Visuals`;
+              initListOrder();
               if (searchInput && searchInput.value) {
                 filterVisuals(searchInput.value);
               }

@@ -776,6 +776,35 @@ test('Shared Navigation: components.js includes Home link and dropdown with all 
   assert.ok(!mockNavVisualsBtn.innerHTML.includes('Expand All'), '#nav-visuals-btn must never contain "Expand All"');
 });
 
+test('Visuals Search Functionality: match strength ranking, top-of-list placement, keyboard selection, and text labeling', () => {
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const componentsPath = path.join(rootDir, 'js', 'components.js');
+  const componentsCode = fs.readFileSync(componentsPath, 'utf8');
+
+  // 1. Scoring & match ranking implementation
+  assert.ok(componentsCode.includes('function getMatchScore(item, q)'), 'components.js must implement getMatchScore');
+  assert.ok(componentsCode.includes('function highlightMatch(text, query)'), 'components.js must implement highlightMatch');
+  assert.ok(componentsCode.includes('scored.sort((a, b) => b.score - a.score)'), 'components.js must sort matching items descending by match strength');
+  assert.ok(componentsCode.includes('list.appendChild(item)'), 'components.js must move matching items to top of container in sorted score order');
+
+  // 2. Text labeling with <mark class="site-nav__search-match">
+  assert.ok(componentsCode.includes('<mark class="site-nav__search-match">'), 'highlightMatch must label matched substring with mark.site-nav__search-match');
+  assert.ok(componentsCode.includes('site-nav__search-match-tag'), 'components.js must support tag for suite/category matches');
+
+  // 3. User explicit choice (no auto-click on Enter inside searchInput)
+  assert.ok(componentsCode.includes('firstVisible.focus()'), 'Enter key in searchInput must focus firstVisible without auto-clicking');
+  assert.ok(!componentsCode.includes('firstVisible.click()'), 'Enter key in searchInput must not auto-click before user explicitly chooses');
+
+  // 4. CSS definitions for match highlights and keyboard focus
+  const siteCss = fs.readFileSync(path.join(rootDir, 'css', 'site.css'), 'utf8');
+  assert.ok(siteCss.includes('.site-nav__search-match'), 'site.css must define .site-nav__search-match');
+  assert.ok(siteCss.includes('.site-nav__search-match-tag'), 'site.css must define .site-nav__search-match-tag');
+
+  const visCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+  assert.ok(visCss.includes('.site-nav__search-match'), 'visual.css must define .site-nav__search-match');
+  assert.ok(visCss.includes('.site-nav__search-match-tag'), 'visual.css must define .site-nav__search-match-tag');
+});
+
 test('Reflex Angle System: HTML toggles, 2D/3D telemetry, and perigon invariants across all 8 visuals', () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
