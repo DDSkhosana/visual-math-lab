@@ -1064,13 +1064,24 @@ export class TrigCanvas2DView {
     drawVectorWithApexLabel(ctx, O, P, PALETTE.emerald, lblP, 2.8, 11, 22);
 
     if (state.showDifferenceRay !== false) {
-      const lblDiff = showPoints && showLabels ? 'P(α−β)' : '';
+      const lblDiff = showPoints
+        ? getPointLabel('P(α−β)', m.points2D.P_diff.x * r, m.points2D.P_diff.y * r, vis)
+        : (showLabels ? 'P(α−β)' : '');
       drawVectorWithApexLabel(ctx, O, Pdiff, PALETTE.rose, lblDiff, 2.2, 9, 20);
     }
 
     if (showLabels && showLengths) {
       drawTextBadge(ctx, `cos(α+β) = ${m.trig.cosSum.toFixed(3)}`, (O.x + N.x) / 2, O.y + 18, PALETTE.amber);
       drawTextBadge(ctx, `sin(α+β) = ${m.trig.sinSum.toFixed(3)}`, N.x - 44, (N.y + P.y) / 2, PALETTE.emerald);
+      if (state.showDifferenceRay !== false) {
+        drawTextBadge(
+          ctx,
+          `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`,
+          (O.x + Pdiff.x) / 2 + 16,
+          (O.y + Pdiff.y) / 2 + 16,
+          PALETTE.rose
+        );
+      }
     }
 
     // Discrete Euclidean Markers for Origin O and internal foot Q (NOT on vector apexes)
@@ -2226,7 +2237,10 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
           { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
-          ...(state.showDifferenceRay !== false ? [{ key: 'Pdiff', name: 'P(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' }] : []),
+          ...(state.showDifferenceRay !== false ? [
+            { key: 'Pdiff', name: 'P(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' },
+            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Pdiff.x * 0.6, y: 0.45, z: Pdiff.z * 0.6 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles }
+          ] : []),
           { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'N', name: 'N', at: { x: N.x, y: 0.4, z: N.z }, coords: N, color: 'color-amber', show: state.showStackedTriangles !== false },
