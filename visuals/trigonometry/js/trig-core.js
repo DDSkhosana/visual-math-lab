@@ -2224,6 +2224,48 @@ export class TrigScene3DView extends BaseScene3DView {
         this.rightAngle1.visible = this.rightAngle2.visible = this.rightAngle3.visible = this.rightAngle4.visible = false;
         this.reflexWedge1.visible = false;
 
+        // 3D Determinant Volume Parallelepiped Shading spanned by orthonormal triad {e1, e2, e3}:
+        // Signed volume V = e1 · (e2 × e3) = det(R) = +1
+        if (showArea) {
+          const v0 = O;
+          const v1 = e1;
+          const v2 = e2;
+          const v3 = new THREE.Vector3().addVectors(e1, e2);
+          const v4 = e3;
+          const v5 = new THREE.Vector3().addVectors(e1, e3);
+          const v6 = new THREE.Vector3().addVectors(e2, e3);
+          const v7 = new THREE.Vector3().addVectors(v3, e3);
+          const detGeom = new THREE.BufferGeometry().setFromPoints([v0, v1, v2, v3, v4, v5, v6, v7]);
+          detGeom.setIndex([
+            0, 1, 3,  0, 3, 2, // bottom
+            4, 6, 7,  4, 7, 5, // top
+            0, 4, 5,  0, 5, 1, // front
+            2, 3, 7,  2, 7, 6, // back
+            0, 2, 6,  0, 6, 4, // left
+            1, 5, 7,  1, 7, 3  // right
+          ]);
+          detGeom.computeVertexNormals();
+          this.dynamicGroup.add(
+            new THREE.Mesh(detGeom, new THREE.MeshBasicMaterial({
+              color: PALETTE.teal,
+              transparent: true,
+              opacity: 0.14,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            }))
+          );
+          // Dashed edges of the triad determinant parallelepiped
+          addSeg(e1, v3, PALETTE.teal, true);
+          addSeg(e2, v3, PALETTE.teal, true);
+          addSeg(e3, v5, PALETTE.teal, true);
+          addSeg(e3, v6, PALETTE.teal, true);
+          addSeg(v5, v7, PALETTE.teal, true);
+          addSeg(v6, v7, PALETTE.teal, true);
+          addSeg(v3, v7, PALETTE.teal, true);
+          addSeg(e1, v5, PALETTE.teal, true);
+          addSeg(e2, v6, PALETTE.teal, true);
+        }
+
         labels.push(
           { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: Aray.y + 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
@@ -2995,7 +3037,17 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindRangeNum('slider-side-b', 'sideB');
   bindRangeDeg('slider-alpha', 'angleAlpha');
   bindRangeDeg('slider-beta', 'angleBeta');
-  bindRangeDeg('slider-gamma', 'angleGamma');
+  const sliderGamma = document.getElementById('slider-gamma');
+  if (sliderGamma) {
+    sliderGamma.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      const updates = { angleGamma: toRadians(val) };
+      if (Math.abs(val) > 0.1 && store.get().dimensionMode !== 'spatial') {
+        updates.dimensionMode = 'spatial';
+      }
+      store.set(updates);
+    });
+  }
 
   bindCheck('toggle-projections', 'showProjections');
   bindCheck(['toggle-tan-sec', 'vis-3d-tan-sec'], 'showTanSec');
@@ -3491,13 +3543,16 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       setText('val-3d-trace', eM.lieAlgebra.trace.toFixed(4));
       setText('val-3d-rot-angle', `${eM.lieAlgebra.rotAngleDeg.toFixed(1)}°`);
     } else {
-      if (rowGamma) rowGamma.classList.add('hidden');
-      if (rowTrace) rowTrace.classList.add('hidden');
-      if (rowRotAngle) rowRotAngle.classList.add('hidden');
+      if (rowGamma) rowGamma.classList.remove('hidden');
+      if (rowTrace) rowTrace.classList.remove('hidden');
+      if (rowRotAngle) rowRotAngle.classList.remove('hidden');
 
       setText('val-3d-r00', m.matrices.R_comp[0].toFixed(4));
       setText('val-3d-r10', m.matrices.R_comp[2].toFixed(4));
       setText('val-3d-det', (m.matrices.R_comp[0] * m.matrices.R_comp[3] - m.matrices.R_comp[1] * m.matrices.R_comp[2]).toFixed(6));
+      setText('val-3d-gamma', '0.0° (Planar)');
+      setText('val-3d-trace', (1 + 2 * m.trig.cosSum).toFixed(4));
+      setText('val-3d-rot-angle', fmtAng(m.sumAngleDeg));
     }
   }
 }
