@@ -344,6 +344,7 @@ export class WorkspaceDockManager {
       header.addEventListener('click', (e) => {
         if (this.isCollapsed && !e.target.closest('button')) {
           if (this.dockElement.classList.contains('is-dragging')) return;
+          if (this._lastDragReleaseTime && (Date.now() - this._lastDragReleaseTime < 350)) return;
           this.setDockCollapsed(false);
         }
       });
@@ -418,18 +419,30 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointercancel', onUp);
 
         if (hasDragged) {
+          this._lastDragReleaseTime = Date.now();
           // Magnetic edge snapping (within 24px of edge) using quadratic potential well
           const snapMargin = 12;
           const snapDist = 24;
           const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
           const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
           let { x, y } = this.collapsedPos;
+          const oldX = x;
+          const oldY = y;
           x = computeEdgeSnapTarget(x, 0, maxLeft, snapDist, snapMargin);
           y = computeEdgeSnapTarget(y, 0, maxTop, snapDist, snapMargin);
 
           this.collapsedPos = { x, y };
-          this.dockElement.style.left = `${x}px`;
-          this.dockElement.style.top = `${y}px`;
+          if (oldX !== x || oldY !== y) {
+            this.dockElement.style.transition = 'left 0.18s cubic-bezier(0.16, 1, 0.3, 1), top 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
+            this.dockElement.style.left = `${x}px`;
+            this.dockElement.style.top = `${y}px`;
+            setTimeout(() => {
+              if (this.dockElement) this.dockElement.style.transition = '';
+            }, 200);
+          } else {
+            this.dockElement.style.left = `${x}px`;
+            this.dockElement.style.top = `${y}px`;
+          }
           this.#persistState();
         }
       };
@@ -1104,8 +1117,12 @@ export class WorkspaceDockManager {
           const snappedX = computeEdgeSnapTarget(curX, 0, Math.max(0, maxLeft), 24, 12);
           const snappedY = computeEdgeSnapTarget(curY, 0, Math.max(0, maxTop), 24, 12);
           if (snappedX !== curX || snappedY !== curY) {
+            panel.style.transition = 'left 0.18s cubic-bezier(0.16, 1, 0.3, 1), top 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
             panel.style.left = `${snappedX}px`;
             panel.style.top = `${snappedY}px`;
+            setTimeout(() => {
+              if (panel) panel.style.transition = '';
+            }, 200);
             record.lastPos.x = snappedX;
             record.lastPos.y = snappedY;
           }

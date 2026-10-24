@@ -51,7 +51,7 @@ export class DraggableToolbar {
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
       if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
     }
-    if (collapsed) {
+    if (collapsed && !this._hasCustomPos) {
       this.resetPosition();
     }
   }
@@ -60,6 +60,7 @@ export class DraggableToolbar {
    * Resets the toolbar position back to default top-center floating alignment.
    */
   resetPosition() {
+    this._hasCustomPos = false;
     Object.assign(this.toolbar.style, {
       left: '',
       top: '',

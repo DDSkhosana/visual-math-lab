@@ -462,17 +462,19 @@ export class DraggableToolbar {
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
       if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
     }
-    if (collapsed) {
+    if (collapsed && !this._hasCustomPos) {
       this.resetPosition();
     }
   }
 
   resetPosition() {
+    this._hasCustomPos = false;
     Object.assign(this.toolbar.style, { left: '', top: '', right: '', bottom: '', transform: '' });
   }
 
   #onDown(event) {
     if (event.target.closest('button, input, a, select')) return;
+    this._hasCustomPos = true;
     const parentEl = this.toolbar.offsetParent ?? document.body;
     const parent = parentEl.getBoundingClientRect();
     const box = this.toolbar.getBoundingClientRect();
