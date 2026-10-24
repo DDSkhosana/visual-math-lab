@@ -540,6 +540,15 @@ export class TrigCanvas2DView {
           PALETTE.rose
         );
       }
+      if (state.showCotCsc !== false && showLengths && Math.abs(m.cot) < 3.5) {
+        drawTextBadge(
+          ctx,
+          `cot θ = ${m.cot.toFixed(2)}`,
+          (cotBase.x + cotTip.x) / 2,
+          cotTip.y + 18 * (m.sin >= 0 ? 1 : -1),
+          PALETTE.orange
+        );
+      }
     }
 
     // Discrete Euclidean Vertex Markers & Outward Radial Labels (no heavy globe on vector apex P)
@@ -1197,7 +1206,13 @@ export class TrigScene3DView extends BaseScene3DView {
   #applyVisualPalette() {
     const set = (obj, col) => obj?.material?.color?.set(col);
     const byVisual = {
-      'unit-circle-helix': { markerO: PALETTE.indigo, handleP: PALETTE.violet, rightAngle1: PALETTE.teal },
+      'unit-circle-helix': {
+        markerO: PALETTE.indigo,
+        handleP: PALETTE.violet,
+        rightAngle1: PALETTE.teal,
+        rightAngle2: PALETTE.rose,
+        rightAngle3: PALETTE.orange,
+      },
       'law-of-sines': {
         markerO: PALETTE.indigo, handleA: PALETTE.red, handleB: PALETTE.green, handleC: PALETTE.violet,
         rightAngle1: PALETTE.teal, rightAngle2: PALETTE.amber,
@@ -1265,23 +1280,67 @@ export class TrigScene3DView extends BaseScene3DView {
     };
 
     if (this.visualId === 'unit-circle-helix') {
-      const m = computeUnitCircleHelix(state.angleTheta, R, state.helixPitch);
+      const pitch = state.helixPitch || 0.35;
+      const m = computeUnitCircleHelix(state.angleTheta, R, pitch);
       const O = new THREE.Vector3(0, 0, 0);
       const X_ref = new THREE.Vector3(R, 0, 0);
       const P_eq = new THREE.Vector3(R * m.cos, 0, R * m.sin);
       const projX = new THREE.Vector3(R * m.cos, 0, 0);
+      const projZ = new THREE.Vector3(0, 0, R * m.sin);
 
       this.markerO.position.copy(O);
       this.handleP.position.copy(P_eq);
 
-      // 3D Cylindrical Helix Curve r(t) = (R cos t, y(t), R sin t)
+      // 1. Structural 3D Cylinder Mesh & Vertical Generator Ribs
+      const H_cyl = R * pitch * TAU;
+      const yTop = H_cyl / 2;
+      const yBot = -H_cyl / 2;
+      if (state.vis3d?.cylinder !== false && state.showCylinder !== false) {
+        const cylGeom = new THREE.CylinderGeometry(R, R, H_cyl, 48, 1, true);
+        this.dynamicGroup.add(
+          new THREE.Mesh(
+            cylGeom,
+            new THREE.MeshBasicMaterial({
+              color: PALETTE.sky,
+              transparent: true,
+              opacity: 0.05,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          )
+        );
+
+        // Top & Bottom circular rim dashed wireframes
+        const topPts = [];
+        const botPts = [];
+        for (let i = 0; i <= 64; i++) {
+          const a = (i / 64) * TAU;
+          topPts.push(new THREE.Vector3(R * Math.cos(a), yTop, R * Math.sin(a)));
+          botPts.push(new THREE.Vector3(R * Math.cos(a), yBot, R * Math.sin(a)));
+        }
+        const rimMat = new THREE.LineDashedMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.35, dashSize: 0.5, gapSize: 0.3 });
+        const topRim = new THREE.Line(new THREE.BufferGeometry().setFromPoints(topPts), rimMat);
+        const botRim = new THREE.Line(new THREE.BufferGeometry().setFromPoints(botPts), rimMat);
+        topRim.computeLineDistances();
+        botRim.computeLineDistances();
+        this.dynamicGroup.add(topRim, botRim);
+
+        // Cardinal Vertical Generator Ribs (0°, 90°, 180°, 270°)
+        for (const ang of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
+          const rx = R * Math.cos(ang);
+          const rz = R * Math.sin(ang);
+          addSeg(new THREE.Vector3(rx, yBot, rz), new THREE.Vector3(rx, yTop, rz), PALETTE.slate600, true);
+        }
+      }
+
+      // 2. 3D Cylindrical Helix Curve r(t) = (R cos t, y(t), R sin t)
       const helixPts = [];
       const cosWallPts = [];
       const sinWallPts = [];
       const wallDist = R * 1.35;
       for (let i = 0; i <= 140; i++) {
         const t = (i / 140) * TAU;
-        const yH = R * (state.helixPitch || 0.35) * (t - Math.PI);
+        const yH = R * pitch * (t - Math.PI);
         const hx = R * Math.cos(t);
         const hz = R * Math.sin(t);
         helixPts.push(new THREE.Vector3(hx, yH, hz));
@@ -1295,6 +1354,10 @@ export class TrigScene3DView extends BaseScene3DView {
         )
       );
 
+      const yNow = R * pitch * (m.theta - Math.PI);
+      const P_helix = new THREE.Vector3(R * m.cos, yNow, R * m.sin);
+
+      // 3. Dynamic Harmonic Wave Projections from P_helix to Cosine & Sine Walls
       if (state.showHelixWalls !== false) {
         this.dynamicGroup.add(
           new THREE.Line(
@@ -1306,17 +1369,124 @@ export class TrigScene3DView extends BaseScene3DView {
             new THREE.LineBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.85 })
           )
         );
+
+        const W_cos = new THREE.Vector3(R * m.cos, yNow, -wallDist);
+        const W_sin = new THREE.Vector3(-wallDist, yNow, R * m.sin);
+
+        // Harmonic projection rays linking helix point to continuous wave walls
+        addSeg(P_helix, W_cos, PALETTE.amber, true);
+        addSeg(P_helix, W_sin, PALETTE.emerald, true);
+
+        // Reference baselines on walls
+        addSeg(new THREE.Vector3(-R * 1.15, yNow, -wallDist), new THREE.Vector3(R * 1.15, yNow, -wallDist), PALETTE.slate700, true);
+        addSeg(new THREE.Vector3(-wallDist, yNow, -R * 1.15), new THREE.Vector3(-wallDist, yNow, R * 1.15), PALETTE.slate700, true);
+
+        // Wall tracking markers
+        const makeMarkerMesh = (col, rad = 0.16) => {
+          return new THREE.Mesh(
+            new THREE.SphereGeometry(rad, 16, 16),
+            new THREE.MeshStandardMaterial({ color: col, roughness: 0.25 })
+          );
+        };
+        const mCos = makeMarkerMesh(PALETTE.amber, 0.16);
+        mCos.position.copy(W_cos);
+        const mSin = makeMarkerMesh(PALETTE.emerald, 0.16);
+        mSin.position.copy(W_sin);
+        this.dynamicGroup.add(mCos, mSin);
+
+        labels.push(
+          { key: 'W_cos', text: `cos θ = ${m.cos.toFixed(3)}`, at: { x: W_cos.x, y: W_cos.y + 0.45, z: W_cos.z }, color: 'color-amber', isAngle: true, show: true },
+          { key: 'W_sin', text: `sin θ = ${m.sin.toFixed(3)}`, at: { x: W_sin.x, y: W_sin.y + 0.45, z: W_sin.z }, color: 'color-emerald', isAngle: true, show: true }
+        );
       }
 
-      const yNow = R * (state.helixPitch || 0.35) * (m.theta - Math.PI);
-      const P_helix = new THREE.Vector3(R * m.cos, yNow, R * m.sin);
-
+      // 4. Primary Radius Vector & Orthogonal Projections
       addVectorArrow(O, P_eq, PALETTE.indigo);
-      addSeg(O, projX, PALETTE.amber);
-      addSeg(projX, P_eq, PALETTE.emerald);
+      if (state.showProjections !== false) {
+        addSeg(O, projX, PALETTE.amber);
+        addSeg(projX, P_eq, PALETTE.emerald);
+        addSeg(O, projZ, PALETTE.emerald, true);
+        addSeg(projZ, P_eq, PALETTE.amber, true);
+      }
       addSeg(P_eq, P_helix, PALETTE.violet, true);
 
-      // 3D Angle Wedge theta, Right-Angle Marker, and Reflex Wedge
+      // 5. Exterior Tangent & Secant (1 + tan²θ = sec²θ) in 3D
+      if (state.showTanSec !== false) {
+        const clampedTan = clamp(m.tan, -3.5, 3.5);
+        const clampedSec = clamp(m.sec, -4.5, 4.5);
+        const T_base = new THREE.Vector3(R, 0, 0);
+        const T_tip = new THREE.Vector3(R, 0, R * clampedTan);
+        const Sec_pt = new THREE.Vector3(R * clampedSec, 0, 0);
+
+        addSeg(T_base, T_tip, PALETTE.rose);
+        addSeg(O, T_tip, PALETTE.violet, true);
+        addSeg(P_eq, Sec_pt, PALETTE.violet, true);
+
+        setRightAngle3DVertices(this.rightAngle2, T_base, O, T_tip, 0.85, THREE);
+        this.rightAngle2.visible = showAngles && Math.abs(clampedTan) > 0.15;
+
+        if (showArea && Math.abs(m.tan) < 3.2) {
+          const tanTri = new THREE.BufferGeometry().setFromPoints([O, T_base, T_tip]);
+          tanTri.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              tanTri,
+              new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+            )
+          );
+        }
+
+        if (showLengths && Math.abs(m.tan) < 3.2) {
+          labels.push({
+            key: 'tan-len-3d',
+            text: `tan θ = ${m.tan.toFixed(2)}`,
+            at: { x: R + 1.2, y: 0.35, z: (R * clampedTan) / 2 },
+            color: 'color-rose',
+            isAngle: true,
+            show: true,
+          });
+        }
+      }
+
+      // 6. Exterior Cotangent & Cosecant (1 + cot²θ = csc²θ) in 3D
+      if (state.showCotCsc !== false) {
+        const clampedCot = clamp(m.cot, -3.5, 3.5);
+        const clampedCsc = clamp(m.csc, -4.5, 4.5);
+        const C_base = new THREE.Vector3(0, 0, R);
+        const C_tip = new THREE.Vector3(R * clampedCot, 0, R);
+        const Csc_pt = new THREE.Vector3(0, 0, R * clampedCsc);
+
+        addSeg(C_base, C_tip, PALETTE.orange);
+        addSeg(O, C_tip, PALETTE.fuchsia, true);
+        addSeg(P_eq, Csc_pt, PALETTE.fuchsia, true);
+
+        setRightAngle3DVertices(this.rightAngle3, C_base, O, C_tip, 0.85, THREE);
+        this.rightAngle3.visible = showAngles && Math.abs(clampedCot) > 0.15;
+
+        if (showArea && Math.abs(m.cot) < 3.2) {
+          const cotTri = new THREE.BufferGeometry().setFromPoints([O, C_base, C_tip]);
+          cotTri.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              cotTri,
+              new THREE.MeshBasicMaterial({ color: PALETTE.orange, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+            )
+          );
+        }
+
+        if (showLengths && Math.abs(m.cot) < 3.2) {
+          labels.push({
+            key: 'cot-len-3d',
+            text: `cot θ = ${m.cot.toFixed(2)}`,
+            at: { x: (R * clampedCot) / 2, y: 0.35, z: R + 1.2 },
+            color: 'color-orange',
+            isAngle: true,
+            show: true,
+          });
+        }
+      }
+
+      // 7. 3D Angle Wedge theta, Right-Angle Marker, and Reflex Wedge
       setAngleWedgeVertices3D(this.wedge1, O, X_ref, P_eq, 2.4, 24, THREE, m.theta > Math.PI);
       this.wedge1.visible = showAngles;
       setRightAngle3DVertices(this.rightAngle1, projX, O, P_eq, 0.9, THREE);
@@ -1348,6 +1518,24 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'ang-theta', text: `θ = ${fmtAngle(m.thetaDeg, angUnit)}`, at: bisPos, color: 'color-amber', isAngle: true, show: showAngles },
         { key: 'ref-theta', text: `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`, at: refPos, color: 'color-teal', isAngle: true, show: showReflex }
       );
+
+      if (Math.abs(yNow) > 0.8) {
+        labels.push({
+          key: 'helix-y',
+          text: `y(θ) = ${yNow.toFixed(2)}`,
+          at: { x: P_eq.x + 0.8 * Math.cos(m.theta), y: yNow / 2, z: P_eq.z + 0.8 * Math.sin(m.theta) },
+          color: 'color-violet',
+          isAngle: true,
+          show: true,
+        });
+      }
+
+      if (state.showProjections !== false && showLengths) {
+        labels.push(
+          { key: 'cos-len-3d', text: `cos θ = ${m.cos.toFixed(3)}`, at: { x: projX.x / 2, y: 0.35, z: m.sin >= 0 ? -0.8 : 0.8 }, color: 'color-amber', isAngle: true, show: true },
+          { key: 'sin-len-3d', text: `sin θ = ${m.sin.toFixed(3)}`, at: { x: projX.x + 1.2 * (m.cos >= 0 ? 1 : -1), y: 0.35, z: P_eq.z / 2 }, color: 'color-emerald', isAngle: true, show: true }
+        );
+      }
     } else if (this.visualId === 'law-of-sines') {
       const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, R);
       const O = new THREE.Vector3(0, 0, 0);
@@ -2067,8 +2255,9 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindRangeDeg('slider-beta', 'angleBeta');
 
   bindCheck('toggle-projections', 'showProjections');
-  bindCheck('toggle-tan-sec', 'showTanSec');
-  bindCheck('toggle-cot-csc', 'showCotCsc');
+  bindCheck(['toggle-tan-sec', 'vis-3d-tan-sec'], 'showTanSec');
+  bindCheck(['toggle-cot-csc', 'vis-3d-cot-csc'], 'showCotCsc');
+  bindCheck('vis-3d-cylinder', 'showCylinder');
   bindCheck('toggle-helix-walls', 'showHelixWalls');
   bindCheck('toggle-diameter', 'showCircumcircleDiameter');
   bindCheck('toggle-altitude', 'showAltitude');
@@ -2258,6 +2447,19 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('val-3d-pz', m.sin.toFixed(3));
     setText('val-3d-py', m.points3D.point3D.z.toFixed(3));
     setText('val-3d-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
+
+    const tanSecCheck = document.getElementById('vis-3d-tan-sec');
+    if (tanSecCheck && tanSecCheck.checked !== (state.showTanSec !== false)) {
+      tanSecCheck.checked = state.showTanSec !== false;
+    }
+    const cotCscCheck = document.getElementById('vis-3d-cot-csc');
+    if (cotCscCheck && cotCscCheck.checked !== (state.showCotCsc !== false)) {
+      cotCscCheck.checked = state.showCotCsc !== false;
+    }
+    const cylCheck = document.getElementById('vis-3d-cylinder');
+    if (cylCheck && cylCheck.checked !== (state.showCylinder !== false)) {
+      cylCheck.checked = state.showCylinder !== false;
+    }
   } else if (visualId === 'law-of-sines') {
     const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
     const degAPolar = ((toDegrees(state.angleA) % 360) + 360) % 360;

@@ -319,4 +319,15 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}"));
         assert.ok(src.includes("vis-3d-rect"));
     });
+
+    test('Unit Circle Six Trig Functions & 3D Cylindrical Helix structure and wave projections are fully integrated', () => {
+        assert.ok(src.includes("new THREE.CylinderGeometry(R, R, H_cyl, 48, 1, true)"));
+        assert.ok(src.includes("addSeg(P_helix, W_cos, PALETTE.amber, true)"));
+        assert.ok(src.includes("addSeg(P_helix, W_sin, PALETTE.emerald, true)"));
+        assert.ok(src.includes("key: 'tan-len-3d'"));
+        assert.ok(src.includes("key: 'cot-len-3d'"));
+        assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle2, T_base"));
+        assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, C_base"));
+        assert.ok(src.includes("key: 'helix-y'"));
+    });
 });
