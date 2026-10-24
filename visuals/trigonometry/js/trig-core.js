@@ -1497,6 +1497,9 @@ export class TrigScene3DView extends BaseScene3DView {
     const THREE = this.THREE;
     const R = this.R;
     const vis3d = state.vis3d || {};
+    const showPoints = vis3d.points !== false;
+    const showLabels = vis3d.labels !== false;
+    const showLengths = vis3d.lengths !== false;
     const showArea = vis3d.area !== false;
     const showAngles = vis3d.angles !== false;
     const showReflex = Boolean(vis3d.reflex);
@@ -2392,6 +2395,7 @@ export class TrigScene3DView extends BaseScene3DView {
         this.handleP.position.copy(e1);
         this.handleA.visible = true;
         this.handleP.visible = true;
+        this.handleC.visible = false;
 
         addVectorArrow(O, Aray, PALETTE.sky);
         addVectorArrow(O, e1, PALETTE.emerald);
@@ -3808,6 +3812,10 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const rowGamma = document.getElementById('row-3d-gamma');
     const rowTrace = document.getElementById('row-3d-trace');
     const rowRotAngle = document.getElementById('row-3d-rot-angle');
+    const containerGamma = document.getElementById('container-slider-gamma');
+    if (containerGamma) {
+      containerGamma.style.display = isSpatial ? '' : 'none';
+    }
 
     setText('val-3d-mode-label', isSpatial ? 'Spatial SO(3)' : 'Planar SO(2)');
 
