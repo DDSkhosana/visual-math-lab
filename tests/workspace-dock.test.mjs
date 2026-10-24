@@ -2146,6 +2146,84 @@ test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Do
   assert.strictEqual(dock.dockElement.style.getPropertyValue('--dock-size'), '460px');
 });
 
+test('WorkspaceDockManager: Tear-Off Drag From Dock & Smart Floating Placement Pipeline', () => {
+  globalThis.localStorage?.clear?.();
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+
+  // Verify CSS touch-action and grab cursor guarantees
+  assert.ok(css.includes('.panel-header {\n  display: flex !important;\n  justify-content: space-between !important;\n  align-items: center !important;\n  min-width: 0 !important;\n  gap: 0.5rem !important;\n  touch-action: none !important;'), 'panel-header must enforce touch-action: none');
+  assert.ok(css.includes('.workspace-dock-body > .ui-panel .panel-header {\n  flex-shrink: 0 !important;\n  min-height: 40px !important;\n  width: 100% !important;\n  display: flex !important;\n  align-items: center !important;\n  box-sizing: border-box !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n  cursor: grab;\n  touch-action: none !important;'), 'docked panel-header must have cursor: grab and touch-action: none');
+
+  // Verify mobile floating panel rule allows absolute positioning
+  assert.ok(css.includes('.ui-panel.is-floating {\n    position: absolute !important;'), 'Mobile floating panel must remain position: absolute to allow dragging');
+
+  const mockDoc = new MockDocument();
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    listeners: new Map(),
+    addEventListener(event, handler) {
+      if (!this.listeners.has(event)) this.listeners.set(event, []);
+      this.listeners.get(event).push(handler);
+    },
+    removeEventListener(event, handler) {
+      if (!this.listeners.has(event)) return;
+      this.listeners.set(event, this.listeners.get(event).filter((h) => h !== handler));
+    },
+    dispatchEvent(ev) {
+      const handlers = this.listeners.get(ev.type) || [];
+      handlers.forEach((h) => h(ev));
+    },
+  };
+  mockDoc.defaultView = mockWin;
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'tearoff-panel');
+  panel.ownerDocument = mockDoc;
+  const header = new MockDOMElement('div', 'panel-header');
+  header.textContent = 'Trigonometry Inspector';
+  panel.appendChild(header);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { win: mockWin, doc: mockDoc });
+
+  const record = dock.panels.get('tearoff-panel');
+  assert.strictEqual(record.isFloating, false, 'Panel starts docked in dockBody');
+  assert.strictEqual(panel.parentElement, dock.dockBody);
+
+  // Test 1: Smart Float Placement clears the left dock
+  dock.floatPanel('tearoff-panel');
+  assert.strictEqual(record.isFloating, true);
+  assert.strictEqual(panel.parentElement, dock.floatingLayer);
+  const floatLeft = parseFloat(panel.style.left);
+  assert.ok(floatLeft >= dock.dockSize + 24, `Floating panel must be placed clear of the 380px dock (actual: ${floatLeft}px)`);
+
+  // Dock back
+  dock.dockPanel('tearoff-panel');
+  assert.strictEqual(record.isFloating, false);
+  assert.strictEqual(panel.parentElement, dock.dockBody);
+
+  // Test 2: Tear-Off Drag from Docked state
+  // Start pointerdown on docked panel header at clientX: 50, clientY: 80
+  header.dispatchEvent({ type: 'pointerdown', pointerId: 10, clientX: 50, clientY: 80, target: header, preventDefault: () => {} });
+  assert.strictEqual(record.isFloating, false, 'Tear-off has not triggered before exceeding drag threshold');
+
+  // Move by 30px (exceeds 6px threshold) -> Automatically detaches and floats
+  mockWin.dispatchEvent({ type: 'pointermove', pointerId: 10, clientX: 450, clientY: 180 });
+  assert.strictEqual(record.isFloating, true, 'Moving docked header by >=6px must tear off and float panel');
+  assert.strictEqual(panel.parentElement, dock.floatingLayer, 'Torn-off panel must move to floatingLayer');
+
+  // Complete drag
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 10 });
+  assert.strictEqual(record.isFloating, true, 'Panel remains floating after release');
+  assert.ok(parseFloat(panel.style.left) > 0, 'Panel left coordinate must be set');
+  assert.ok(parseFloat(panel.style.top) > 0, 'Panel top coordinate must be set');
+});
+
+
 
 
 

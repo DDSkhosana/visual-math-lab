@@ -34,7 +34,7 @@ export class WorkspaceDockManager {
   constructor(rootContainer = null, options = {}) {
     const defaultDoc = typeof document !== 'undefined' ? document : null;
     this.doc = rootContainer?.ownerDocument || options.document || defaultDoc;
-    this.win = (this.doc && this.doc.defaultView) || (typeof window !== 'undefined' ? window : globalThis);
+    this.win = (this.doc && this.doc.defaultView) || options.win || (typeof window !== 'undefined' ? window : globalThis);
     this.root = rootContainer || (this.doc ? (this.doc.querySelector('.circle-explorer') || this.doc.querySelector('.thales-explorer') || this.doc.body) : null);
     this.options = options;
     this.dockEdge = 'left'; // 'left' | 'right' | 'top' | 'bottom'
@@ -611,6 +611,7 @@ export class WorkspaceDockManager {
       panelElement.querySelector('.panel-header')?.textContent?.trim() ||
       id;
 
+    const defaultIndex = meta.defaultIndex || 0;
     const record = {
       id,
       element: panelElement,
@@ -618,9 +619,10 @@ export class WorkspaceDockManager {
       title: titleText,
       isFloating: false,
       isHidden: false,
+      metaIndex: defaultIndex,
       lastPos: {
-        x: 30 + (meta.defaultIndex || 0) * 35,
-        y: 60 + (meta.defaultIndex || 0) * 35,
+        x: 30 + defaultIndex * 35,
+        y: 60 + defaultIndex * 35,
         width: Math.min(380, (this.win?.innerWidth || 1200) - 60),
         height: 380,
       },
@@ -798,7 +800,6 @@ export class WorkspaceDockManager {
     if (!dockToggleBtn._hasDockToggleBound) {
       dockToggleBtn._hasDockToggleBound = true;
       dockToggleBtn.addEventListener('pointerdown', (e) => {
-        e?.preventDefault?.();
         e?.stopPropagation?.();
       });
       dockToggleBtn.addEventListener('click', (e) => {
@@ -827,7 +828,6 @@ export class WorkspaceDockManager {
     if (!shadeBtn._hasShadeBound) {
       shadeBtn._hasShadeBound = true;
       shadeBtn.addEventListener('pointerdown', (e) => {
-        e?.preventDefault?.();
         e?.stopPropagation?.();
       });
       shadeBtn.addEventListener('click', (e) => {
@@ -852,7 +852,6 @@ export class WorkspaceDockManager {
     if (!closeBtn._hasCloseBound) {
       closeBtn._hasCloseBound = true;
       closeBtn.addEventListener('pointerdown', (e) => {
-        e?.preventDefault?.();
         e?.stopPropagation?.();
       });
       closeBtn.addEventListener('click', (e) => {
@@ -868,7 +867,6 @@ export class WorkspaceDockManager {
     if (minBtn && !minBtn._hasWorkspaceDockBound) {
       minBtn._hasWorkspaceDockBound = true;
       minBtn.addEventListener('pointerdown', (e) => {
-        e?.preventDefault?.();
         e?.stopPropagation?.();
       });
       minBtn.addEventListener('click', (e) => {
@@ -1002,27 +1000,76 @@ export class WorkspaceDockManager {
     if (!header) return;
 
     header.addEventListener('pointerdown', (e) => {
-      if (!record.isFloating || e.target.closest('button, input, select, a')) return;
-      e.preventDefault();
-      try {
-        if (header.setPointerCapture) header.setPointerCapture(e.pointerId);
-      } catch (_) {}
-      this.#focusPanel(record);
+      if (e.target.closest('button, input, select, a, textarea')) return;
+      if (e.button !== undefined && e.button !== 0) return;
 
       const startX = e.clientX;
       const startY = e.clientY;
-      const panelRect = panel.getBoundingClientRect();
-      const parentRect = this.floatingLayer.getBoundingClientRect();
+      let hasDragged = false;
+      const dragThreshold = 6;
 
-      const startLeft = panelRect.left - parentRect.left;
-      const startTop = panelRect.top - parentRect.top;
+      this.#focusPanel(record);
 
-      const maxLeft = parentRect.width - panelRect.width;
-      const maxTop = parentRect.height - panelRect.height;
+      let panelRect = panel.getBoundingClientRect ? panel.getBoundingClientRect() : { left: 0, top: 0, width: 380, height: 380 };
+      let parentRect = this.floatingLayer?.getBoundingClientRect
+        ? this.floatingLayer.getBoundingClientRect()
+        : { left: 0, top: 0, width: 1200, height: 800 };
+
+      const grabOffsetX = startX - (panelRect?.left || 0);
+      const grabOffsetY = startY - (panelRect?.top || 0);
+
+      const startLeft = (panelRect?.left || 0) - (parentRect?.left || 0);
+      const startTop = (panelRect?.top || 0) - (parentRect?.top || 0);
+
+      let maxLeft = Math.max(0, (parentRect?.width || 1200) - (record.lastPos?.width || panelRect?.width || 380));
+      let maxTop = Math.max(0, (parentRect?.height || 800) - (record.lastPos?.height || panelRect?.height || 380));
+
+      if (record.isFloating) {
+        e.preventDefault?.();
+        try {
+          if (header.setPointerCapture) header.setPointerCapture(e.pointerId);
+        } catch (_) {}
+      }
 
       const onMove = (moveEv) => {
-        const nextX = clamp(startLeft + (moveEv.clientX - startX), 0, Math.max(0, maxLeft));
-        const nextY = clamp(startTop + (moveEv.clientY - startY), 0, Math.max(0, maxTop));
+        const dx = moveEv.clientX - startX;
+        const dy = moveEv.clientY - startY;
+
+        if (!hasDragged) {
+          if (record.isFloating || Math.hypot(dx, dy) >= dragThreshold) {
+            hasDragged = true;
+            try {
+              if (header.setPointerCapture) header.setPointerCapture(moveEv.pointerId || e.pointerId);
+            } catch (_) {}
+
+            if (!record.isFloating) {
+              // Tear-off drag: smoothly detach & float out of the dock!
+              this.floatPanel(record.id);
+              if (this.floatingLayer?.getBoundingClientRect) {
+                parentRect = this.floatingLayer.getBoundingClientRect();
+              }
+              if (panel.getBoundingClientRect) {
+                panelRect = panel.getBoundingClientRect();
+              }
+              maxLeft = Math.max(0, (parentRect?.width || 1200) - (panelRect?.width || 380));
+              maxTop = Math.max(0, (parentRect?.height || 800) - (panelRect?.height || 380));
+            }
+          } else {
+            return;
+          }
+        }
+
+        moveEv.preventDefault?.();
+
+        const currentLeft = (record.isFloating && !hasDragged)
+          ? startLeft + dx
+          : (moveEv.clientX - (parentRect?.left || 0) - grabOffsetX);
+        const currentTop = (record.isFloating && !hasDragged)
+          ? startTop + dy
+          : (moveEv.clientY - (parentRect?.top || 0) - grabOffsetY);
+
+        const nextX = clamp(currentLeft, 0, Math.max(0, maxLeft));
+        const nextY = clamp(currentTop, 0, Math.max(0, maxTop));
 
         panel.style.left = `${nextX}px`;
         panel.style.top = `${nextY}px`;
@@ -1035,8 +1082,8 @@ export class WorkspaceDockManager {
 
       const onUp = (upEv) => {
         try {
-          if (header.hasPointerCapture?.(upEv.pointerId)) {
-            header.releasePointerCapture(upEv.pointerId);
+          if (header.hasPointerCapture?.(upEv.pointerId || e.pointerId)) {
+            header.releasePointerCapture(upEv.pointerId || e.pointerId);
           }
         } catch (_) {}
         header.removeEventListener?.('pointermove', onMove);
@@ -1046,19 +1093,24 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
 
-        // Apply magnetic edge potential well to floating panel
-        const curX = record.lastPos.x;
-        const curY = record.lastPos.y;
-        const snappedX = computeEdgeSnapTarget(curX, 0, Math.max(0, maxLeft), 24, 12);
-        const snappedY = computeEdgeSnapTarget(curY, 0, Math.max(0, maxTop), 24, 12);
-        if (snappedX !== curX || snappedY !== curY) {
-          panel.style.left = `${snappedX}px`;
-          panel.style.top = `${snappedY}px`;
-          record.lastPos.x = snappedX;
-          record.lastPos.y = snappedY;
+        if (!hasDragged && !record.isFloating) {
+          return;
         }
 
-        this.#persistState();
+        if (record.isFloating && hasDragged) {
+          // Apply magnetic edge potential well to floating panel
+          const curX = record.lastPos.x;
+          const curY = record.lastPos.y;
+          const snappedX = computeEdgeSnapTarget(curX, 0, Math.max(0, maxLeft), 24, 12);
+          const snappedY = computeEdgeSnapTarget(curY, 0, Math.max(0, maxTop), 24, 12);
+          if (snappedX !== curX || snappedY !== curY) {
+            panel.style.left = `${snappedX}px`;
+            panel.style.top = `${snappedY}px`;
+            record.lastPos.x = snappedX;
+            record.lastPos.y = snappedY;
+          }
+          this.#persistState();
+        }
       };
 
       header.addEventListener?.('pointermove', onMove);
@@ -1100,8 +1152,14 @@ export class WorkspaceDockManager {
     // Move DOM node into floating layer
     this.floatingLayer.appendChild(panel);
 
-    // Apply remembered coordinates
+    // Apply remembered coordinates (ensuring it floats visibly into open workspace if overlapping dock)
     const pos = record.lastPos;
+    if (this.dockEdge === 'left' && !this.isCollapsed && pos.x < this.dockSize + 10) {
+      pos.x = Math.max(this.dockSize + 24, Math.min(this.dockSize + 24 + ((record.metaIndex || 0) * 28), (this.win?.innerWidth || 1200) - (pos.width || 380) - 24));
+    } else if (this.dockEdge === 'top' && !this.isCollapsed && pos.y < this.dockSize + 10) {
+      pos.y = this.dockSize + 24;
+    }
+
     panel.style.position = 'absolute';
     panel.style.left = `${pos.x}px`;
     panel.style.top = `${pos.y}px`;

@@ -297,6 +297,8 @@
   box-sizing: border-box !important;
   visibility: visible !important;
   opacity: 1 !important;
+  cursor: grab;
+  touch-action: none !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body {
@@ -1208,6 +1210,7 @@
   align-items: center !important;
   min-width: 0 !important;
   gap: 0.5rem !important;
+  touch-action: none !important;
 }
 
 .panel-header h1,
@@ -1361,6 +1364,7 @@
   visibility: visible !important;
   opacity: 1 !important;
   cursor: grab;
+  touch-action: none !important;
 }
 
 .ui-panel.is-floating .panel-body,
@@ -1633,13 +1637,11 @@
   }
 
   .ui-panel.is-floating {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    width: 100% !important;
-    height: auto !important;
+    position: absolute !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 48px) !important;
+    max-height: calc(100dvh - 48px) !important;
+    z-index: 50 !important;
   }
 
   .omni-handle {
