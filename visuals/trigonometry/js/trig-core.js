@@ -1122,7 +1122,8 @@ export class TrigScene3DView extends BaseScene3DView {
     this.reflexWedge1 = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.22);
     this.rightAngle1 = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngle2 = makeRightAngleMesh(THREE, PALETTE.amber, 0.75);
-    this.scene.add(this.wedge1, this.wedge2, this.wedge3, this.reflexWedge1, this.rightAngle1, this.rightAngle2);
+    this.rightAngle3 = makeRightAngleMesh(THREE, PALETTE.emerald, 0.75);
+    this.scene.add(this.wedge1, this.wedge2, this.wedge3, this.reflexWedge1, this.rightAngle1, this.rightAngle2, this.rightAngle3);
 
     this.#configureDraggableTargets();
   }
@@ -1206,10 +1207,10 @@ export class TrigScene3DView extends BaseScene3DView {
         markerO: PALETTE.rose, handleA: PALETTE.sky, handleB: PALETTE.emerald, handleC: PALETTE.amber,
         rightAngle2: PALETTE.amber,
       },
-      // A(α) sky, P(α+β) emerald, right angle at Q violet (as in 2D), at M amber
+      // A(α) sky, P(α+β) emerald, right angle at Q violet (as in 2D), at M amber, at N emerald
       'angle-sum-identities': {
         markerO: PALETTE.indigo, handleA: PALETTE.sky, handleP: PALETTE.emerald,
-        rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber,
+        rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber, rightAngle3: PALETTE.emerald,
       },
     };
     const map = byVisual[this.visualId] || {};
@@ -1242,6 +1243,7 @@ export class TrigScene3DView extends BaseScene3DView {
     this.reflexWedge1.visible = false;
     this.rightAngle1.visible = false;
     this.rightAngle2.visible = false;
+    this.rightAngle3.visible = false;
 
     const addSeg = (p1, p2, color, dashed = false) => {
       const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
@@ -1519,16 +1521,20 @@ export class TrigScene3DView extends BaseScene3DView {
       if (state.showStackedTriangles !== false) {
         addSeg(O, Q, PALETTE.amber);
         addSeg(Q, P, PALETTE.violet);
+        addSeg(O, N, PALETTE.amber); // Horizontal projection from origin to N (cos(α+β))
         // Perforated decomposition perimeter box (Q-M-N-S-P)
         addSeg(Q, M, PALETTE.amber, true);
-        addSeg(P, N, PALETTE.amber, true);
+        addSeg(P, N, PALETTE.emerald, true); // Dropped perpendicular from P to X-axis (sin(α+β))
         addSeg(Q, S, PALETTE.amber, true);
         addSeg(P, S, PALETTE.amber, true);
         addSeg(M, N, PALETTE.amber, true);
+        // Right angles: at Q in △OPQ, at M in △OMQ, and at N for dropped perpendicular PN ⊥ X-axis
         setRightAngle3DVertices(this.rightAngle1, Q, O, P, 0.85, THREE);
         setRightAngle3DVertices(this.rightAngle2, M, O, Q, 0.75, THREE);
+        setRightAngle3DVertices(this.rightAngle3, N, O, P, 0.75, THREE);
         this.rightAngle1.visible = showAngles;
         this.rightAngle2.visible = showAngles;
+        this.rightAngle3.visible = showAngles && Math.abs(m.trig.sinSum) > 0.05 && Math.abs(m.trig.cosSum) > 0.05;
       }
 
       // 3D Angle Wedges alpha and beta
@@ -1569,7 +1575,9 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'N', name: 'N', at: { x: N.x, y: 0.4, z: N.z }, coords: N, color: 'color-amber', show: state.showStackedTriangles !== false },
         { key: 'angAlpha', text: `α = ${fmtAngle(m.alphaDeg, angUnit)}`, at: bisAlpha, color: 'color-sky', isAngle: true, show: showAngles },
         { key: 'angBeta', text: `β = ${fmtAngle(m.betaDeg, angUnit)}`, at: bisBeta, color: 'color-violet', isAngle: true, show: showAngles },
-        { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: refSumPos, color: 'color-teal', isAngle: true, show: showReflex }
+        { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: refSumPos, color: 'color-teal', isAngle: true, show: showReflex },
+        { key: 'cos-sum-len', text: `cos(α+β) = ${m.trig.cosSum.toFixed(3)}`, at: { x: N.x / 2, y: 0.45, z: 0.8 * (P.z >= 0 ? -1 : 1) }, color: 'color-amber', isAngle: true, show: state.showStackedTriangles !== false && showAngles },
+        { key: 'sin-sum-len', text: `sin(α+β) = ${m.trig.sinSum.toFixed(3)}`, at: { x: N.x + 1.2 * (N.x >= 0 ? -1 : 1), y: 0.45, z: P.z / 2 }, color: 'color-emerald', isAngle: true, show: state.showStackedTriangles !== false && showAngles }
       );
     }
 

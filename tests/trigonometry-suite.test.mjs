@@ -300,5 +300,13 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         // Angle Sum: O, A(α), P(α+β), Q, M, N, α, β, (α+β)*
         assert.ok(src.includes("key: 'M', name: 'M'"));
         assert.ok(src.includes("key: 'N', name: 'N'"));
+        assert.ok(src.includes("key: 'cos-sum-len'"));
+        assert.ok(src.includes("key: 'sin-sum-len'"));
+    });
+
+    test('Angle Sum dropped line from P to X-axis is fully represented in 3D with right angle at N', () => {
+        assert.ok(src.includes("addSeg(P, N, PALETTE.emerald, true)"));
+        assert.ok(src.includes("addSeg(O, N, PALETTE.amber)"));
+        assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, N, O, P"));
     });
 });
