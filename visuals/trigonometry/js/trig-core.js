@@ -1010,13 +1010,18 @@ export class TrigCanvas2DView {
       ctx.beginPath();
       ctx.moveTo(Q.x, Q.y);
       ctx.lineTo(M.x, M.y);
-      ctx.moveTo(P.x, P.y);
-      ctx.lineTo(N.x, N.y);
       ctx.moveTo(Q.x, Q.y);
       ctx.lineTo(S.x, S.y);
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(S.x, S.y);
       ctx.moveTo(M.x, M.y);
+      ctx.lineTo(N.x, N.y);
+      ctx.stroke();
+
+      // Dropped perpendicular from P to X-axis at N (sin(α+β) altitude - emerald matching 3D)
+      ctx.strokeStyle = PALETTE.emerald;
+      ctx.beginPath();
+      ctx.moveTo(P.x, P.y);
       ctx.lineTo(N.x, N.y);
       ctx.stroke();
       ctx.restore();
@@ -1031,6 +1036,9 @@ export class TrigCanvas2DView {
       if (showAngles) {
         drawRightAngle(ctx, Q, O, P, 11, PALETTE.violet);
         drawRightAngle(ctx, M, O, Q, 10, PALETTE.amber);
+        if (Math.abs(m.trig.sinSum) > 0.05 && Math.abs(m.trig.cosSum) > 0.05) {
+          drawRightAngle(ctx, N, O, P, 10, PALETTE.emerald);
+        }
       }
     }
 
