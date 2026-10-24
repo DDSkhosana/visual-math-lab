@@ -340,14 +340,23 @@ export class TrigCanvas2DView {
     }
     // angle-sum-identities
     const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
+    const handles = [
+      { id: 'P', x: cx + m.points2D.P.x * r, y: cy - m.points2D.P.y * r, field: 'angleBeta' },
+      { id: 'A', x: cx + m.points2D.A_ray.x * r, y: cy - m.points2D.A_ray.y * r, field: 'angleAlpha' },
+    ];
+    if (state.showDifferenceRay !== false) {
+      handles.push({
+        id: 'D',
+        x: cx + m.points2D.P_diff.x * r,
+        y: cy - m.points2D.P_diff.y * r,
+        field: 'diffBeta',
+      });
+    }
     return {
       cx,
       cy,
       r,
-      handles: [
-        { id: 'P', x: cx + m.points2D.P.x * r, y: cy - m.points2D.P.y * r, field: 'angleBeta' },
-        { id: 'A', x: cx + m.points2D.A_ray.x * r, y: cy - m.points2D.A_ray.y * r, field: 'angleAlpha' },
-      ],
+      handles,
     };
   }
 
@@ -974,6 +983,7 @@ export class TrigCanvas2DView {
     const Q = toScreen(m.points2D.Q);
     const M = toScreen(m.points2D.M);
     const N = toScreen(m.points2D.N);
+    const Ndiff = toScreen(m.points2D.N_diff);
     const S = toScreen(m.points2D.S_corner);
 
     // Unit Circle
@@ -1024,6 +1034,15 @@ export class TrigCanvas2DView {
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(N.x, N.y);
       ctx.stroke();
+
+      if (state.showDifferenceRay !== false) {
+        // Dropped perpendicular from Pdiff to X-axis at Ndiff (sin(α−β) altitude - rose matching 3D)
+        ctx.strokeStyle = PALETTE.rose;
+        ctx.beginPath();
+        ctx.moveTo(Pdiff.x, Pdiff.y);
+        ctx.lineTo(Ndiff.x, Ndiff.y);
+        ctx.stroke();
+      }
       ctx.restore();
 
       ctx.strokeStyle = PALETTE.violet;
@@ -1038,6 +1057,9 @@ export class TrigCanvas2DView {
         drawRightAngle(ctx, M, O, Q, 10, PALETTE.amber);
         if (Math.abs(m.trig.sinSum) > 0.05 && Math.abs(m.trig.cosSum) > 0.05) {
           drawRightAngle(ctx, N, O, P, 10, PALETTE.emerald);
+        }
+        if (state.showDifferenceRay !== false && Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05) {
+          drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose);
         }
       }
     }
@@ -1093,11 +1115,20 @@ export class TrigCanvas2DView {
         ctx.stroke();
         ctx.restore();
 
+        // Horizontal cosine projection badge along ON_diff (Amber matching cos(α+β))
         drawTextBadge(
           ctx,
           `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`,
-          (O.x + Pdiff.x) / 2 + 16,
-          (O.y + Pdiff.y) / 2 + 16,
+          (O.x + Ndiff.x) / 2,
+          O.y + (Pdiff.y > O.y ? -18 : 34),
+          PALETTE.amber
+        );
+        // Vertical sine projection badge along N_diff -> P_diff (Rose matching sin(α−β) altitude)
+        drawTextBadge(
+          ctx,
+          `sin(α−β) = ${m.trig.sinDiff.toFixed(3)}`,
+          Ndiff.x + 48 * (Ndiff.x >= O.x ? 1 : -1),
+          (Ndiff.y + Pdiff.y) / 2,
           PALETTE.rose
         );
         drawTextBadge(
@@ -1117,6 +1148,9 @@ export class TrigCanvas2DView {
         drawLabelledPoint(ctx, Q, PALETTE.amber, showLabels ? 'Q' : '', 12, -10, 4);
         drawLabelledPoint(ctx, M, PALETTE.amber, showLabels ? 'M' : '', -10, 15, 3.5);
         drawLabelledPoint(ctx, N, PALETTE.amber, showLabels ? 'N' : '', 10, 15, 3.5);
+      }
+      if (state.showDifferenceRay !== false) {
+        drawLabelledPoint(ctx, Ndiff, PALETTE.amber, showLabels ? 'N_D' : '', -10, -12, 3.5);
       }
     }
   }
@@ -1184,7 +1218,8 @@ export class TrigScene3DView extends BaseScene3DView {
     this.rightAngle1 = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.rightAngle2 = makeRightAngleMesh(THREE, PALETTE.amber, 0.75);
     this.rightAngle3 = makeRightAngleMesh(THREE, PALETTE.emerald, 0.75);
-    this.scene.add(this.wedge1, this.wedge2, this.wedge3, this.reflexWedge1, this.rightAngle1, this.rightAngle2, this.rightAngle3);
+    this.rightAngle4 = makeRightAngleMesh(THREE, PALETTE.rose, 0.75);
+    this.scene.add(this.wedge1, this.wedge2, this.wedge3, this.reflexWedge1, this.rightAngle1, this.rightAngle2, this.rightAngle3, this.rightAngle4);
 
     this.#configureDraggableTargets();
   }
@@ -1250,6 +1285,8 @@ export class TrigScene3DView extends BaseScene3DView {
       this.handleA.material.opacity = 0.01;
       this.handleP.material.transparent = true;
       this.handleP.material.opacity = 0.01;
+      this.handleC.material.transparent = true;
+      this.handleC.material.opacity = 0.01;
       this.draggableTargets = [
         { id: 'A', mesh: this.handleA, field: 'angleAlpha' },
         {
@@ -1258,6 +1295,14 @@ export class TrigScene3DView extends BaseScene3DView {
           onDrag: (angle, _hit, store) => {
             const alpha = store.get().angleAlpha || 0;
             store.set({ angleBeta: normalizeAngle(angle - alpha) });
+          },
+        },
+        {
+          id: 'D',
+          mesh: this.handleC,
+          onDrag: (angle, _hit, store) => {
+            const alpha = store.get().angleAlpha || 0;
+            store.set({ angleBeta: normalizeAngle(alpha - angle) });
           },
         },
       ];
@@ -1294,10 +1339,10 @@ export class TrigScene3DView extends BaseScene3DView {
         markerO: PALETTE.rose, handleA: PALETTE.sky, handleB: PALETTE.emerald, handleC: PALETTE.amber,
         rightAngle2: PALETTE.amber,
       },
-      // A(α) sky, P(α+β) emerald, right angle at Q violet (as in 2D), at M amber, at N emerald
+      // A(α) sky, P(α+β) emerald, D(α-β) rose, right angle at Q violet, at M amber, at N emerald, at N_D rose
       'angle-sum-identities': {
-        markerO: PALETTE.indigo, handleA: PALETTE.sky, handleP: PALETTE.emerald,
-        rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber, rightAngle3: PALETTE.emerald,
+        markerO: PALETTE.indigo, handleA: PALETTE.sky, handleP: PALETTE.emerald, handleC: PALETTE.rose,
+        rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber, rightAngle3: PALETTE.emerald, rightAngle4: PALETTE.rose,
       },
     };
     const map = byVisual[this.visualId] || {};
@@ -1331,6 +1376,7 @@ export class TrigScene3DView extends BaseScene3DView {
     this.rightAngle1.visible = false;
     this.rightAngle2.visible = false;
     this.rightAngle3.visible = false;
+    this.rightAngle4.visible = false;
 
     const addSeg = (p1, p2, color, dashed = false) => {
       const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
@@ -2175,7 +2221,7 @@ export class TrigScene3DView extends BaseScene3DView {
         setAngleWedgeVertices3D(this.wedge2, O, Aray, e1, 3.0, 24, THREE, state.angleBeta > Math.PI);
         this.wedge1.visible = this.wedge2.visible = showAngles;
         this.wedge3.visible = false;
-        this.rightAngle1.visible = this.rightAngle2.visible = this.rightAngle3.visible = false;
+        this.rightAngle1.visible = this.rightAngle2.visible = this.rightAngle3.visible = this.rightAngle4.visible = false;
         this.reflexWedge1.visible = false;
 
         labels.push(
@@ -2196,6 +2242,7 @@ export class TrigScene3DView extends BaseScene3DView {
         const Aray = new THREE.Vector3(m.points2D.A_ray.x, 0, m.points2D.A_ray.y);
         const P = new THREE.Vector3(m.points2D.P.x, 0, m.points2D.P.y);
         const Pdiff = new THREE.Vector3(m.points2D.P_diff.x, 0, m.points2D.P_diff.y);
+        const Ndiff = new THREE.Vector3(m.points2D.N_diff.x, 0, 0);
         const Q = new THREE.Vector3(m.points2D.Q.x, 0, m.points2D.Q.y);
         const M = new THREE.Vector3(m.points2D.M.x, 0, 0);
         const N = new THREE.Vector3(m.points2D.N.x, 0, 0);
@@ -2204,6 +2251,8 @@ export class TrigScene3DView extends BaseScene3DView {
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
         this.handleP.position.copy(P);
+        this.handleC.position.copy(Pdiff);
+        this.handleC.visible = state.showDifferenceRay !== false;
 
         // Crisp 3D Conical Vector Arrows (no spherical globes on vector apexes)
         addVectorArrow(O, Aray, PALETTE.sky);
@@ -2212,6 +2261,13 @@ export class TrigScene3DView extends BaseScene3DView {
           addVectorArrow(O, Pdiff, PALETTE.rose);
           // Chord PD bisected perpendicularly by ray OA at Q
           addSeg(P, Pdiff, PALETTE.rose, true);
+          // Dropped perpendicular from Pdiff to X-axis at Ndiff (sin(α−β) altitude in Rose)
+          addSeg(Pdiff, Ndiff, PALETTE.rose, true);
+          // Horizontal projection from origin to Ndiff (cos(α−β) in Amber)
+          addSeg(O, Ndiff, PALETTE.amber);
+          // Right angle at Ndiff
+          setRightAngle3DVertices(this.rightAngle4, Ndiff, O, Pdiff, 0.75, THREE);
+          this.rightAngle4.visible = showAngles && Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05;
         }
 
         if (state.showStackedTriangles !== false) {
@@ -2268,7 +2324,9 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
           ...(state.showDifferenceRay !== false ? [
             { key: 'Pdiff', name: 'D(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' },
-            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Pdiff.x * 0.6, y: 0.45, z: Pdiff.z * 0.6 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
+            { key: 'Ndiff', name: 'N_D', at: { x: Ndiff.x, y: 0.4, z: Ndiff.z }, coords: Ndiff, color: 'color-amber', show: true },
+            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Ndiff.x / 2, y: 0.45, z: 0.8 * (Pdiff.z >= 0 ? 1 : -1) }, color: 'color-amber', isAngle: true, show: showLengths && showAngles },
+            { key: 'sin-diff-len', text: `sin(α−β) = ${m.trig.sinDiff.toFixed(3)}`, at: { x: Ndiff.x + 1.2 * (Ndiff.x >= 0 ? -1 : 1), y: 0.45, z: Pdiff.z / 2 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
             { key: 'chord-pd-len', text: `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`, at: { x: (P.x + Pdiff.x) * 0.5 + 0.8, y: 0.55, z: (P.z + Pdiff.z) * 0.5 }, color: 'color-violet', isAngle: true, show: showLengths && showAngles }
           ] : []),
           { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
@@ -3111,6 +3169,8 @@ function bindVisualSpecificControls(store, visualId, view2d) {
         }
       } else if (visualId === 'angle-sum-identities' && h.field === 'angleBeta') {
         store.set({ angleBeta: normalizeAngle(ang - (st.angleAlpha || 0)) });
+      } else if (visualId === 'angle-sum-identities' && h.field === 'diffBeta') {
+        store.set({ angleBeta: normalizeAngle((st.angleAlpha || 0) - ang) });
       } else {
         store.set({ [h.field]: ang });
       }

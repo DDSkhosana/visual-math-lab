@@ -377,6 +377,42 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, N, O, P"));
     });
 
+    test('Angle Sum interactive D(α−β) handle, sin(α−β) altitude and color token harmonization across 2D & 3D', () => {
+        // 1. Math model exports N_diff
+        const m = computeAngleSumIdentities(Math.PI / 6, Math.PI / 4, 1.0);
+        assert.ok(m.points2D.N_diff, 'N_diff must be defined in points2D');
+        assert.strictEqual(m.points2D.N_diff.y, 0, 'N_diff must be on X-axis (y = 0)');
+        assert.strictEqual(m.points2D.N_diff.x, m.points2D.P_diff.x, 'N_diff.x must match P_diff.x');
+
+        // 2. 2D Handle D is exposed when showDifferenceRay !== false
+        assert.ok(src.includes("id: 'D'"));
+        assert.ok(src.includes("field: 'diffBeta'"));
+        assert.ok(src.includes("store.set({ angleBeta: normalizeAngle((st.angleAlpha || 0) - ang) })"));
+
+        // 3. 2D visual representation of sin(α−β) altitude in Rose and cos(α−β) in Amber
+        assert.ok(src.includes("const Ndiff = toScreen(m.points2D.N_diff);"));
+        assert.ok(src.includes("ctx.strokeStyle = PALETTE.rose;"));
+        assert.ok(src.includes("ctx.moveTo(Pdiff.x, Pdiff.y);"));
+        assert.ok(src.includes("ctx.lineTo(Ndiff.x, Ndiff.y);"));
+        assert.ok(src.includes("drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose)"));
+        assert.ok(src.includes("sin(α−β) ="));
+        assert.ok(src.includes("drawLabelledPoint(ctx, Ndiff, PALETTE.amber, showLabels ? 'N_D' : '', -10, -12, 3.5)"));
+
+        // 4. 3D visual representation: handleC pick target, dropped altitude, rightAngle4, badges
+        assert.ok(src.includes("store.set({ angleBeta: normalizeAngle(alpha - angle) });"));
+        assert.ok(src.includes("addSeg(Pdiff, Ndiff, PALETTE.rose, true)"));
+        assert.ok(src.includes("addSeg(O, Ndiff, PALETTE.amber)"));
+        assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle4, Ndiff, O, Pdiff"));
+        assert.ok(src.includes("key: 'sin-diff-len'"));
+        assert.ok(src.includes("key: 'cos-diff-len'"));
+        assert.ok(src.includes("key: 'Ndiff', name: 'N_D'"));
+
+        // 5. Telemetry HTML color token harmonization: cos(α-β) in Amber, sin(α-β) in Rose
+        const asHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/angle-sum-identities/index.html'), 'utf-8');
+        assert.ok(asHtml.includes('<span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">'));
+        assert.ok(asHtml.includes('<span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">'));
+    });
+
     test('Law of Cosines bilinear interaction rectangle (2ab cos C) is represented in 3D ground plane with live badge', () => {
         assert.ok(src.includes("showInteractionRect = state.showInteractionRect !== false && showArea"));
         assert.ok(src.includes("const R0 = new THREE.Vector3(0, 0.015, 0)"));

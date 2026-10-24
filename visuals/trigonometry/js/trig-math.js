@@ -731,6 +731,7 @@ export function computeAngleSumIdentities(alphaRad = Math.PI / 6, betaRad = Math
   const Q = { x: radius * cosB * cosA, y: radius * cosB * sinA };
   const M = { x: Q.x, y: 0 };
   const N = { x: P.x, y: 0 };
+  const N_diff = { x: P_diff.x, y: 0 }; // Foot of P_diff on X-axis (altitude sin(alpha-beta))
   const S_corner = { x: P.x, y: Q.y }; // forms the upper right triangle P-S-Q with angle alpha
 
   return {
@@ -770,6 +771,7 @@ export function computeAngleSumIdentities(alphaRad = Math.PI / 6, betaRad = Math
       Q,
       M,
       N,
+      N_diff,
       S_corner,
     },
     invariants: {
