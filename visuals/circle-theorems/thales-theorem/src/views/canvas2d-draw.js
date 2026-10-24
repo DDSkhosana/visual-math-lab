@@ -6,11 +6,12 @@ import { drawHaloText, drawTextBadge, AffineTransform2D, evaluateConicConjugacy 
 export function computeFrame(state, width, height) {
   const cx = width / 2 + state.pan.x;
   const cy = height / 2 + state.pan.y;
-  const maxSafeRadius = Math.max(40, Math.min(width, height) / 2 - 30);
+  const isNarrow = (width > 0 && width <= 320) || (height > 0 && height <= 240);
+  const maxSafeRadius = isNarrow ? Math.max(40, Math.min(width, height) / 2 - 10) : Infinity;
   const baseZoom = state.zoom || 18;
-  const rawR = state.radius * baseZoom;
+  const rawR = (state.radius || 10) * baseZoom;
   const r = Math.min(rawR, maxSafeRadius);
-  const zoom = r / (state.radius || 10);
+  const zoom = isNarrow ? r / (state.radius || 10) : baseZoom;
   const plane = state.plane2D ?? 'great-circle';
   const rot = state.baselineRotation || 0;
   const cosR = Math.cos(rot);

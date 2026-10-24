@@ -18,8 +18,9 @@ export function computeGeometry(state, width, height) {
   const pan = state.pan || { x: 0, y: 0 };
   const cx = width / 2 + (pan.x || 0);
   const cy = height / 2 + (pan.y || 0);
-  const maxSafeRadius = Math.max(50, Math.min(width, height) / 2 - 40);
-  const r = Math.min(state.radius, maxSafeRadius);
+  const isNarrow = (width > 0 && width <= 320) || (height > 0 && height <= 240);
+  const maxSafeRadius = isNarrow ? Math.max(40, Math.min(width, height) / 2 - 15) : Infinity;
+  const r = Math.min(Number(state.radius) > 0 ? Number(state.radius) : 170, maxSafeRadius);
 
   const A = {
     x: cx + r * Math.cos(state.angleA),

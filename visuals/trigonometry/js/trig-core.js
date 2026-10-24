@@ -251,14 +251,16 @@ export class TrigCanvas2DView {
     this.ctx = canvas.getContext('2d');
     this.state = null;
 
-    this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(container);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.resize());
+      this.resizeObserver.observe(container);
+    }
     this.resize();
   }
 
   resize() {
     const rect = this.container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
     this.canvas.width = Math.max(1, Math.floor(rect.width * dpr));
     this.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -271,8 +273,9 @@ export class TrigCanvas2DView {
     const pan = state?.pan || { x: 0, y: 0 };
     const cx = this.width / 2 + (pan.x || 0);
     const cy = this.height / 2 + (pan.y || 0);
-    const maxSafe = Math.max(60, Math.min(this.width, this.height) * 0.36);
-    const r = Math.min(state?.radius || 175, maxSafe);
+    const isNarrow = (this.width > 0 && this.width <= 320) || (this.height > 0 && this.height <= 240);
+    const maxSafe = isNarrow ? Math.max(50, Math.min(this.width, this.height) * 0.40) : Infinity;
+    const r = Math.min(Number(state?.radius) > 0 ? Number(state.radius) : 175, maxSafe);
     return { cx, cy, r };
   }
 

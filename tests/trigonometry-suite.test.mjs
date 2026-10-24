@@ -425,6 +425,35 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("val-3d-sph-c"));
     });
 
+    test('Bidirectional 2D and 3D radius synchronization: resizing radius in Split View dimensions (450x420) scales 2D canvas without premature clamping', async () => {
+        const { TrigCanvas2DView, getModelRadius } = await import('../visuals/trigonometry/js/trig-core.js');
+        const mockCanvas = { width: 450, height: 420, getContext: () => ({ setTransform: () => {}, clearRect: () => {} }) };
+        const mockContainer = { getBoundingClientRect: () => ({ width: 450, height: 420 }) };
+        const view = new TrigCanvas2DView(mockCanvas, mockContainer, 'unit-circle-helix');
+        view.width = 450;
+        view.height = 420;
+
+        // Default radius 175
+        const defaultGeom = view.getCenterAndRadius({ radius: 175 });
+        assert.strictEqual(defaultGeom.r, 175, 'Default radius 175 must not be clamped in 450x420 split view');
+
+        // Resizing to 220 in 3D / store must scale 2D radius to 220
+        const enlargedGeom = view.getCenterAndRadius({ radius: 220 });
+        assert.strictEqual(enlargedGeom.r, 220, 'Enlarging 3D radius to 220 must scale 2D radius to 220');
+
+        // Resizing to 260 (maximum slider value)
+        const maxGeom = view.getCenterAndRadius({ radius: 260 });
+        assert.strictEqual(maxGeom.r, 260, 'Enlarging 3D radius to max 260 must scale 2D radius to 260');
+
+        // Resizing to 110 (minimum slider range)
+        const minGeom = view.getCenterAndRadius({ radius: 110 });
+        assert.strictEqual(minGeom.r, 110, 'Shrinking 3D radius to 110 must scale 2D radius to 110');
+
+        // Synchronized 3D world radius
+        assert.strictEqual(getModelRadius({ radius: 175 }), 10, '175px maps to 10 world units');
+        assert.strictEqual(getModelRadius({ radius: 220 }), 220 / 17.5, '220px maps proportionally to world units');
+    });
+
     test('Angle Sum Identities dual-mode switch (Planar SO(2) vs Spatial SO(3) Euler Frame) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
         const asiHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/angle-sum-identities/index.html'), 'utf-8');
         assert.ok(asiHtml.includes('id="btn-mode-planar"'));

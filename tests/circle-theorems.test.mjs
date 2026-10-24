@@ -1448,6 +1448,49 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   }
 });
 
+test('Bidirectional 2D and 3D radius synchronization across all 8 Circle Theorems in Split View (450x420)', async () => {
+  const width = 450;
+  const height = 420;
+
+  const models = [
+    { name: 'Angle at Centre', mod: AngleAtCentre, baseR: 180 },
+    { name: 'Angles in Same Segment', mod: AnglesInSameSegment, baseR: 180 },
+    { name: 'Cyclic Quadrilateral', mod: CyclicQuad, baseR: 180 },
+    { name: 'Tangent-Radius', mod: TangentRadius, baseR: 180 },
+    { name: 'Alternate Segment', mod: AlternateSegment, baseR: 180 },
+    { name: 'Tangents from External Point', mod: TangentsFromPoint, baseR: 120 },
+    { name: 'Perpendicular Chord Bisector', mod: ChordBisector, baseR: 170 },
+  ];
+
+  for (const { name, mod, baseR } of models) {
+    const defaultState = mod.createInitialState();
+    const defaultG = mod.computeGeometry(defaultState, width, height);
+    assert.strictEqual(defaultG.r, baseR, `${name} default 2D radius must be ${baseR} in 450x420 split view`);
+
+    // Scale up to 230 in 3D
+    const scaledUpState = { ...defaultState, radius: 230 };
+    const scaledUpG = mod.computeGeometry(scaledUpState, width, height);
+    assert.strictEqual(scaledUpG.r, 230, `${name} 2D radius must scale up to 230 when 3D radius changes to 230`);
+
+    // Scale down to 110 in 3D
+    const scaledDownState = { ...defaultState, radius: 110 };
+    const scaledDownG = mod.computeGeometry(scaledDownState, width, height);
+    assert.strictEqual(scaledDownG.r, 110, `${name} 2D radius must scale down to 110 when 3D radius changes to 110`);
+  }
+
+  // Thales theorem
+  const { computeFrame } = await import('../visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js');
+  const thalesState = { radius: 10, zoom: 18, pan: { x: 0, y: 0 } };
+  const thalesDefault = computeFrame(thalesState, width, height);
+  assert.strictEqual(thalesDefault.r, 180, 'Thales default 2D radius must be 180 in 450x420 split view');
+
+  const thalesScaledUp = computeFrame({ ...thalesState, radius: 12 }, width, height);
+  assert.strictEqual(thalesScaledUp.r, 216, 'Thales 2D radius must scale up to 216 when 3D radius changes to 12');
+
+  const thalesScaledDown = computeFrame({ ...thalesState, radius: 7 }, width, height);
+  assert.strictEqual(thalesScaledDown.r, 126, 'Thales 2D radius must scale down to 126 when 3D radius changes to 7');
+});
+
 test('Radius Resizing: click-and-drag circumference and mouse wheel resizing with 2D/3D canvas synchronization across all modules', async () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
