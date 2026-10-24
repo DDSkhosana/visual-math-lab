@@ -327,6 +327,7 @@ export class TrigCanvas2DView {
             x: originX + m.vertices2D.B.x * scale,
             y: originY - m.vertices2D.B.y * scale,
             field: 'angleC',
+            scale,
           },
           {
             id: 'A',
@@ -3211,10 +3212,15 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       const h = activeDrag.handle;
       const ang = pointerToAngle(x - info.cx, info.cy - y);
       if (visualId === 'law-of-cosines') {
-        if (h.field === 'angleC') {
+        if (h.field === 'angleC' || h.id === 'B') {
           const raw = Math.atan2(info.cy - y, x - info.cx);
           const ang = raw < 0 ? raw + TAU : raw;
-          store.set({ angleC: ang });
+          const dist = Math.hypot(x - info.cx, info.cy - y);
+          const nextA = h.scale ? clamp(dist / h.scale, 2, 12) : st.sideA;
+          store.set({
+            angleC: ang,
+            sideA: Math.round(nextA * 2) / 2,
+          });
         } else if (h.field === 'sideB' && h.scale) {
           const nextB = clamp((x - info.cx) / h.scale, 2, 12);
           store.set({ sideB: Math.round(nextB * 2) / 2 });
@@ -3410,6 +3416,10 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-2abcos', m.squares.interaction2abCosC.toFixed(2));
     setText('tel-c2', m.squares.c2.toFixed(2));
     setText('tel-mixed', m.mixedPartialCoeff.toFixed(4));
+    setText('tel-c-coords', `${m.vertices2D.C.x.toFixed(2)}, ${m.vertices2D.C.y.toFixed(2)}`);
+    setText('tel-a-coords', `${m.vertices2D.A.x.toFixed(2)}, ${m.vertices2D.A.y.toFixed(2)}`);
+    setText('tel-b-coords', `${m.vertices2D.B.x.toFixed(2)}, ${m.vertices2D.B.y.toFixed(2)}`);
+    setText('val-3d-b-coords', `${m.vertices2D.B.x.toFixed(2)}, ${m.vertices2D.B.y.toFixed(2)}`);
 
     // Update Mode Buttons & View Title
     const btnPlanar = document.getElementById('btn-mode-planar');
@@ -3424,8 +3434,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spherical Law of Cosines on S² (<span class="color-amber">cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C</span>)'
-        : '3D: Euclidean Parallelepiped &amp; Metric Metric (<span class="color-amber">c² = a² + b² − 2ab cos C</span>)';
+        ? '3D: Spherical Law of Cosines on S² (<span class="color-rose">cos(c/R)</span> = <span class="color-sky">cos(a/R)</span><span class="color-emerald">cos(b/R)</span> + <span class="color-sky">sin(a/R)</span><span class="color-emerald">sin(b/R)</span><span class="color-amber">cos C</span>)'
+        : '3D: Euclidean Parallelepiped &amp; Metric (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2ab cos C</span>)';
     }
 
     const descEl = document.getElementById('desc-mode-dimension');

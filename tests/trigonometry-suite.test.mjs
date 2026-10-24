@@ -479,6 +479,11 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Girard Excess & Spherical Area"));
         assert.ok(src.includes("val-3d-cosc-arc"));
         assert.ok(src.includes("val-3d-sph-c"));
+        assert.ok(locHtml.includes('id="tel-c-coords"'));
+        assert.ok(locHtml.includes('id="tel-a-coords"'));
+        assert.ok(locHtml.includes('id="tel-b-coords"'));
+        assert.ok(locHtml.includes('id="val-3d-b-coords"'));
+        assert.ok(src.includes("sideA: Math.round(nextA * 2) / 2"));
     });
 
     test('Bidirectional 2D and 3D radius synchronization: resizing radius in Split View dimensions (450x420) scales 2D canvas without premature clamping', async () => {
