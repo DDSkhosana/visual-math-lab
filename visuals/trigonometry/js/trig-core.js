@@ -1497,6 +1497,8 @@ export class TrigScene3DView extends BaseScene3DView {
       const Pdiff = new THREE.Vector3(m.points2D.P_diff.x, 0, m.points2D.P_diff.y);
       const Q = new THREE.Vector3(m.points2D.Q.x, 0, m.points2D.Q.y);
       const M = new THREE.Vector3(m.points2D.M.x, 0, 0);
+      const N = new THREE.Vector3(m.points2D.N.x, 0, 0);
+      const S = new THREE.Vector3(m.points2D.S_corner.x, 0, m.points2D.S_corner.y);
 
       this.markerO.position.copy(O);
       this.handleA.position.copy(Aray);
@@ -1513,6 +1515,9 @@ export class TrigScene3DView extends BaseScene3DView {
         addSeg(O, Q, PALETTE.amber);
         addSeg(Q, P, PALETTE.violet);
         addSeg(Q, M, PALETTE.amber, true);
+        addSeg(P, N, PALETTE.emerald, true);
+        addSeg(Q, S, PALETTE.amber, true);
+        addSeg(P, S, PALETTE.amber, true);
         setRightAngle3DVertices(this.rightAngle1, Q, O, P, 0.85, THREE);
         setRightAngle3DVertices(this.rightAngle2, M, O, Q, 0.75, THREE);
         this.rightAngle1.visible = showAngles;
@@ -1553,6 +1558,8 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
         { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
         { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
+        { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
+        { key: 'N', name: 'N', at: { x: N.x, y: 0.4, z: N.z }, coords: N, color: 'color-amber', show: state.showStackedTriangles !== false },
         { key: 'angAlpha', text: `α = ${fmtAngle(m.alphaDeg, angUnit)}`, at: bisAlpha, color: 'color-sky', isAngle: true, show: showAngles },
         { key: 'angBeta', text: `β = ${fmtAngle(m.betaDeg, angUnit)}`, at: bisBeta, color: 'color-violet', isAngle: true, show: showAngles },
         { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: refSumPos, color: 'color-teal', isAngle: true, show: showReflex }
