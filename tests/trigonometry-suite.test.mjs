@@ -556,6 +556,21 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("val-3d-gamma"));
         assert.ok(src.includes("val-3d-trace"));
         assert.ok(src.includes("val-3d-rot-angle"));
+
+        // Spatial mode initial Euler tilt & planar reset invariant
+        assert.ok(src.includes("angleGamma: toRadians(28)"), 'Switching to Spatial SO(3) must initialize non-zero Euler tilt');
+        assert.ok(src.includes("angleGamma: 0"), 'Switching to Planar SO(2) must reset Euler tilt to 0');
+
+        // Mode switch accessibility attribute synchronization
+        assert.ok(src.includes("btnPlanar.setAttribute('aria-pressed'"), 'btnPlanar must sync aria-pressed');
+        assert.ok(src.includes("btnSpatial.setAttribute('aria-pressed'"), 'btnSpatial must sync aria-pressed');
+        assert.ok(src.includes("btnPlanarPill.setAttribute('aria-pressed'"), 'btnPlanarPill must sync aria-pressed');
+        assert.ok(src.includes("btnSpatialPill.setAttribute('aria-pressed'"), 'btnSpatialPill must sync aria-pressed');
+
+        // CSS stacking & title collision protection
+        const trigCss = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/css/trig-suite.css'), 'utf-8');
+        assert.ok(trigCss.includes('z-index: 25 !important;'), '.dimension-mode-bar must have z-index: 25 to float above 3D labels');
+        assert.ok(trigCss.includes('max-width: calc(100% - 19.5rem) !important;'), '#canvas-3d-container .view-title must prevent button collision');
     });
 
     test('Law of Cosines dynamic ratio visual overlay, proportional gauge bar, and telemetry synchronization', () => {

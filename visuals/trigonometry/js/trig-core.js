@@ -3264,25 +3264,36 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
-  // Dual Mode Switch: Planar (Y = 0) vs True Spherical 3D on S² (Law of Sines)
+  // Dual Mode Switch: Planar (Y = 0) vs True Spherical 3D on S² (Law of Sines) / Spatial SO(3) (Angle Sum)
   const bindModeSwitch = (id, mode) => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', () => {
         if (mode === 'spatial') {
           const st = store.get();
-          if (st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
+          if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
             store.set({
               dimensionMode: 'spatial',
               latA: toRadians(65),
               latB: toRadians(115),
               latC: toRadians(50),
             });
+          } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
+            store.set({
+              dimensionMode: 'spatial',
+              angleGamma: toRadians(28),
+            });
           } else {
             store.set({ dimensionMode: 'spatial' });
           }
         } else {
-          store.set({ dimensionMode: 'planar' });
+          if (visualId === 'angle-sum-identities') {
+            store.set({ dimensionMode: 'planar', angleGamma: 0 });
+          } else if (visualId === 'law-of-sines') {
+            store.set({ dimensionMode: 'planar', latA: Math.PI / 2, latB: Math.PI / 2, latC: Math.PI / 2 });
+          } else {
+            store.set({ dimensionMode: 'planar' });
+          }
         }
       });
     }
@@ -3298,7 +3309,13 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     btnToggleDim.addEventListener('click', () => {
       const isSpatial = store.get().dimensionMode === 'spatial';
       if (isSpatial) {
-        store.set({ dimensionMode: 'planar' });
+        if (visualId === 'angle-sum-identities') {
+          store.set({ dimensionMode: 'planar', angleGamma: 0 });
+        } else if (visualId === 'law-of-sines') {
+          store.set({ dimensionMode: 'planar', latA: Math.PI / 2, latB: Math.PI / 2, latC: Math.PI / 2 });
+        } else {
+          store.set({ dimensionMode: 'planar' });
+        }
       } else {
         const st = store.get();
         if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
@@ -3307,6 +3324,11 @@ function bindVisualSpecificControls(store, visualId, view2d) {
             latA: toRadians(65),
             latB: toRadians(115),
             latC: toRadians(50),
+          });
+        } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
+          store.set({
+            dimensionMode: 'spatial',
+            angleGamma: toRadians(28),
           });
         } else {
           store.set({ dimensionMode: 'spatial' });
@@ -3572,10 +3594,22 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const btnSpatial = document.getElementById('btn-mode-spatial');
     const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
     const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
-    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
-    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
-    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+    if (btnPlanar) {
+      btnPlanar.classList.toggle('active', !isSpatial);
+      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatial) {
+      btnSpatial.classList.toggle('active', isSpatial);
+      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (btnPlanarPill) {
+      btnPlanarPill.classList.toggle('active', !isSpatial);
+      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatialPill) {
+      btnSpatialPill.classList.toggle('active', isSpatial);
+      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
 
     const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
     const dimStatusPill = document.getElementById('toolbar-dimension-status');
@@ -3594,6 +3628,9 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spherical Law of Sines &amp; Excess on S² (<span class="color-amber">sin(a/R)/sin A = const</span>)'
         : '3D: Circumscribed Sphere &amp; Antipodal Diameter (<span class="color-amber">A\'B = 2R</span>)';
+      titleEl.title = isSpatial
+        ? '3D: Spherical Law of Sines & Excess on S² (sin(a/R)/sin A = const)'
+        : "3D: Circumscribed Sphere & Antipodal Diameter (A'B = 2R)";
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
@@ -3673,10 +3710,22 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const btnSpatial = document.getElementById('btn-mode-spatial');
     const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
     const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
-    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
-    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
-    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+    if (btnPlanar) {
+      btnPlanar.classList.toggle('active', !isSpatial);
+      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatial) {
+      btnSpatial.classList.toggle('active', isSpatial);
+      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (btnPlanarPill) {
+      btnPlanarPill.classList.toggle('active', !isSpatial);
+      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatialPill) {
+      btnSpatialPill.classList.toggle('active', isSpatial);
+      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
 
     const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
     const dimStatusPill = document.getElementById('toolbar-dimension-status');
@@ -3695,6 +3744,9 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spherical Law of Cosines on S² (<span class="color-rose">cos(c/R)</span> = <span class="color-sky">cos(a/R)</span><span class="color-emerald">cos(b/R)</span> + <span class="color-sky">sin(a/R)</span><span class="color-emerald">sin(b/R)</span><span class="color-amber">cos C</span>)'
         : '3D: Euclidean Parallelepiped &amp; Metric (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2ab cos C</span>)';
+      titleEl.title = isSpatial
+        ? '3D: Spherical Law of Cosines on S² (cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C)'
+        : '3D: Euclidean Parallelepiped & Metric (c² = a² + b² − 2ab cos C)';
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
@@ -3778,10 +3830,22 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const btnSpatial = document.getElementById('btn-mode-spatial');
     const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
     const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
-    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
-    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
-    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+    if (btnPlanar) {
+      btnPlanar.classList.toggle('active', !isSpatial);
+      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatial) {
+      btnSpatial.classList.toggle('active', isSpatial);
+      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (btnPlanarPill) {
+      btnPlanarPill.classList.toggle('active', !isSpatial);
+      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
+    }
+    if (btnSpatialPill) {
+      btnSpatialPill.classList.toggle('active', isSpatial);
+      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
 
     const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
     const dimStatusPill = document.getElementById('toolbar-dimension-status');
@@ -3800,6 +3864,9 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spatial SO(3) Lie Group Euler Frame (<span class="color-amber">R = Rz(α+β)Rx(γ)</span>)'
         : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span> + <span class="color-violet">β</span>)';
+      titleEl.title = isSpatial
+        ? '3D: Spatial SO(3) Lie Group Euler Frame (R = Rz(α+β)Rx(γ))'
+        : '3D: SO(2) Planar Embedding (α + β)';
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
