@@ -247,3 +247,44 @@ describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle T
         assert.ok(src.includes('vis3d.reflex'));
     });
 });
+
+describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified Colour Grammar', () => {
+    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+
+    test('model radius getModelRadius(state) synchronizes 2D scale, 3D scene, telemetry, and derivations', () => {
+        assert.ok(src.includes('export function getModelRadius('));
+        assert.ok(src.includes('this.R = getModelRadius(state)'));
+        assert.ok(src.includes('computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state))'));
+        assert.ok(src.includes('const scale = r / getModelRadius(state)'));
+        assert.ok(src.includes('const R3D = getModelRadius(state)'));
+    });
+
+    test('directed conjugate angle wedges handle compound and perigon angles on both sides of 180°', () => {
+        assert.ok(src.includes('function drawConjugateWedge('));
+        assert.ok(src.includes('function getDirectedAngleBadge('));
+        assert.ok(src.includes('getPolarLabel3D('));
+        assert.ok(src.includes('drawConjugateWedge(ctx, O, 0, m.sumAngle'));
+        assert.ok(src.includes('m.sumAngle <= Math.PI'));
+    });
+
+    test('Law of Cosines color grammar aligns vertex with opposite side across 2D, 3D, and derivations', () => {
+        // A ↔ a = BC (sky), B ↔ b = CA (emerald), C ↔ c = AB (rose)
+        assert.ok(src.includes("markerO: PALETTE.rose, handleA: PALETTE.sky, handleB: PALETTE.emerald, handleC: PALETTE.amber"));
+        assert.ok(src.includes("drawRadialLabelledPoint(ctx, A, centroid, PALETTE.sky"));
+        assert.ok(src.includes("drawRadialLabelledPoint(\n        ctx,\n        B,\n        centroid,\n        PALETTE.emerald"));
+        assert.ok(src.includes("key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky'"));
+        assert.ok(src.includes("key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald'"));
+    });
+
+    test('Angle Sum 3D scene colors and right-angle markers match 2D and derivation cards', () => {
+        assert.ok(src.includes("handleA: PALETTE.sky, handleP: PALETTE.emerald,"));
+        assert.ok(src.includes("rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber"));
+        assert.ok(src.includes("ref-sum"));
+    });
+
+    test('Unit Circle cylindrical helix naming and coordinates are unified as y(θ) with XZ ground plane', () => {
+        assert.ok(src.includes("r(θ) = (R cos θ, y(θ), R sin θ)"));
+        assert.ok(src.includes("Helix height ${tag('violet', `y(θ) = ${m.points3D.point3D.z.toFixed(3)}`)}"));
+        assert.equal(src.includes("z(θ) = "), false, "legacy z(θ) notation replaced with vertical y(θ)");
+    });
+});

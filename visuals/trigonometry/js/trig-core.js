@@ -131,6 +131,15 @@ export function createTrigInitialState(visualId) {
 }
 
 /**
+ * Single source of truth for the model (world-unit) radius shared by the 2D canvas, the 3D scene,
+ * the telemetry panels and the derivations: 175 px ↔ R = 10 world units.
+ */
+export const PX_PER_WORLD_UNIT = 17.5;
+export function getModelRadius(state) {
+  return (state?.radius || 175) / PX_PER_WORLD_UNIT;
+}
+
+/**
  * Sweeps the interior acute/obtuse angle <= 180° between rays a1 and a2 at vertex.
  */
 function sweepInteriorWedge(ctx, vertex, a1, a2, radius, fill, stroke) {
@@ -159,6 +168,52 @@ function get2DBisectorOffset(vertex, a1, a2, dist = 46, flip = false) {
     x: vertex.x + sign * dist * (ux / len),
     y: vertex.y + sign * dist * (uy / len),
   };
+}
+
+/**
+ * Badge position for a DIRECTED angle that sweeps `sweep` radians counter-clockwise (mathematical
+ * orientation) from the canvas ray `startCanvas`. Canvas y points down, so a mathematical CCW sweep
+ * decreases the canvas angle. Correct for any sweep in [0, 2π), including reflex sweeps > π,
+ * unlike a minor-angle bisector.
+ */
+function getDirectedAngleBadge(vertex, startCanvas, sweep, dist) {
+  const mid = startCanvas - sweep / 2;
+  return { x: vertex.x + dist * Math.cos(mid), y: vertex.y + dist * Math.sin(mid) };
+}
+
+/**
+ * Shades the conjugate (explementary) angle 360° − φ of a DIRECTED angle φ that sweeps
+ * counter-clockwise from the canvas ray `startCanvas`. The conjugate begins at the terminal ray
+ * and continues counter-clockwise back to the initial ray, so it is correct for φ on either side
+ * of 180° (drawReflexWedge always shades the larger arc, which is only right for interior angles).
+ */
+function drawConjugateWedge(ctx, vertex, startCanvas, sweep, radius, fill, stroke) {
+  const phi = ((sweep % TAU) + TAU) % TAU;
+  if (phi < 1e-6) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(vertex.x, vertex.y);
+  ctx.arc(vertex.x, vertex.y, radius, startCanvas - phi, startCanvas, true);
+  ctx.closePath();
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * 3D label anchor for a directed angle measured counter-clockwise from +X in the XZ ground plane
+ * (mathematical (x, y) ↦ three.js (x, 0, y)), placed at the angular midpoint `midAngle`.
+ */
+function getPolarLabel3D(midAngle, dist, lift = 0.25) {
+  return { x: dist * Math.cos(midAngle), y: lift, z: dist * Math.sin(midAngle) };
 }
 
 /**
@@ -228,8 +283,8 @@ export class TrigCanvas2DView {
       };
     }
     if (this.visualId === 'law-of-sines') {
-      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
-      const scale = r / 10;
+      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
+      const scale = r / getModelRadius(state);
       return {
         cx,
         cy,
@@ -367,18 +422,12 @@ export class TrigCanvas2DView {
       }
     }
 
-    // Conjugate Reflex Angle (Perigon 360° - θ)
+    // Conjugate Reflex Angle (Perigon 360° − θ), correct on both sides of θ = 180°
     if (showReflex) {
-      drawReflexWedge(ctx, O, 0, canvasAngP, 44, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      drawConjugateWedge(ctx, O, 0, m.theta, 44, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
       if (showLabels) {
-        const midRef = -m.theta / 2 + Math.PI;
-        drawTextBadge(
-          ctx,
-          `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`,
-          cx + 64 * Math.cos(midRef),
-          cy + 64 * Math.sin(midRef),
-          PALETTE.teal
-        );
+        const rb = getDirectedAngleBadge(O, -m.theta, TAU - m.theta, 64);
+        drawTextBadge(ctx, `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`, rb.x, rb.y, PALETTE.teal);
       }
     }
 
@@ -509,8 +558,8 @@ export class TrigCanvas2DView {
   }
 
   #renderLawOfSines(ctx, state, cx, cy, r) {
-    const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
-    const scale = r / 10;
+    const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
+    const scale = r / getModelRadius(state);
     const vis = state.vis2d || {};
     const showArea = vis.area !== false;
     const showAngles = vis.angles !== false;
@@ -819,13 +868,19 @@ export class TrigCanvas2DView {
     const angBC = Math.atan2(C.y - B.y, C.x - B.x);
     const angBA = Math.atan2(A.y - B.y, A.x - B.x);
 
+    // Colour grammar (same as Law of Sines): each vertex shares the colour of its OPPOSITE side —
+    // A ↔ a = BC (sky), B ↔ b = CA (emerald), C ↔ c = AB (rose).
     if (showAngles) {
       sweepInteriorWedge(ctx, C, angCA, angCB, 32, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
-      sweepInteriorWedge(ctx, A, angAB, angAC, 26, 'rgba(16, 185, 129, 0.22)', PALETTE.emerald);
-      sweepInteriorWedge(ctx, B, angBC, angBA, 26, 'rgba(2, 132, 199, 0.22)', PALETTE.sky);
+      sweepInteriorWedge(ctx, A, angAB, angAC, 26, 'rgba(2, 132, 199, 0.22)', PALETTE.sky);
+      sweepInteriorWedge(ctx, B, angBC, angBA, 26, 'rgba(16, 185, 129, 0.22)', PALETTE.emerald);
       if (showLabels) {
         const bC = get2DBisectorOffset(C, angCA, angCB, 48);
+        const bA = get2DBisectorOffset(A, angAB, angAC, 44);
+        const bB = get2DBisectorOffset(B, angBC, angBA, 44);
         drawTextBadge(ctx, `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, bC.x, bC.y, PALETTE.rose);
+        drawTextBadge(ctx, `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, bA.x, bA.y, PALETTE.sky);
+        drawTextBadge(ctx, `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, bB.x, bB.y, PALETTE.emerald);
       }
     }
 
@@ -865,12 +920,12 @@ export class TrigCanvas2DView {
 
     if (showPoints) {
       drawRadialLabelledPoint(ctx, C, centroid, PALETTE.rose, getPointLabel('C', 0, 0, vis), 20, 5);
-      drawRadialLabelledPoint(ctx, A, centroid, PALETTE.emerald, getPointLabel('A', m.b * scale, 0, vis), 20, 5);
+      drawRadialLabelledPoint(ctx, A, centroid, PALETTE.sky, getPointLabel('A', m.b * scale, 0, vis), 20, 5);
       drawRadialLabelledPoint(
         ctx,
         B,
         centroid,
-        PALETTE.sky,
+        PALETTE.emerald,
         getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis),
         20,
         5
@@ -962,23 +1017,19 @@ export class TrigCanvas2DView {
       drawAngleWedge(ctx, O, 0, angA, 34, 'rgba(56, 189, 248, 0.24)', PALETTE.sky, true);
       drawAngleWedge(ctx, O, angA, angP, 48, 'rgba(168, 85, 247, 0.24)', PALETTE.violet, true);
       if (showLabels) {
-        const bAlpha = get2DBisectorOffset(O, 0, angA, 52);
-        const bBeta = get2DBisectorOffset(O, angA, angP, 64);
+        // Directed-angle badges stay inside their wedges even when α or β exceeds 180°
+        const bAlpha = getDirectedAngleBadge(O, 0, m.alpha, 52);
+        const bBeta = getDirectedAngleBadge(O, angA, m.beta, 64);
         drawTextBadge(ctx, `α = ${fmtAngle(m.alphaDeg, angUnit)}`, bAlpha.x, bAlpha.y, PALETTE.sky);
         drawTextBadge(ctx, `β = ${fmtAngle(m.betaDeg, angUnit)}`, bBeta.x, bBeta.y, PALETTE.violet);
       }
     }
     if (showReflex) {
-      drawReflexWedge(ctx, O, 0, angP, 56, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
+      // Conjugate of the wrapped compound angle (α+β) mod 360°, correct on both sides of 180°
+      drawConjugateWedge(ctx, O, 0, m.sumAngle, 56, 'rgba(20, 184, 166, 0.14)', PALETTE.teal);
       if (showLabels) {
-        const midRef = -(state.angleAlpha + state.angleBeta) / 2 + Math.PI;
-        drawTextBadge(
-          ctx,
-          `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`,
-          cx + 72 * Math.cos(midRef),
-          cy + 72 * Math.sin(midRef),
-          PALETTE.teal
-        );
+        const rb = getDirectedAngleBadge(O, -m.sumAngle, TAU - m.sumAngle, 72);
+        drawTextBadge(ctx, `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, rb.x, rb.y, PALETTE.teal);
       }
     }
 
@@ -1136,14 +1187,42 @@ export class TrigScene3DView extends BaseScene3DView {
     }
   }
 
+  /**
+   * Colour grammar for the shared 3D markers: each marker takes the colour of the 2D point it
+   * represents on this visual, so 2D ↔ 3D colours always agree.
+   */
+  #applyVisualPalette() {
+    const set = (obj, col) => obj?.material?.color?.set(col);
+    const byVisual = {
+      'unit-circle-helix': { markerO: PALETTE.indigo, handleP: PALETTE.violet, rightAngle1: PALETTE.teal },
+      'law-of-sines': {
+        markerO: PALETTE.indigo, handleA: PALETTE.red, handleB: PALETTE.green, handleC: PALETTE.violet,
+        rightAngle1: PALETTE.teal, rightAngle2: PALETTE.amber,
+      },
+      // C at origin (rose), A ↔ a (sky), B ↔ b (emerald), projection foot D (amber)
+      'law-of-cosines': {
+        markerO: PALETTE.rose, handleA: PALETTE.sky, handleB: PALETTE.emerald, handleC: PALETTE.amber,
+        rightAngle2: PALETTE.amber,
+      },
+      // A(α) sky, P(α+β) emerald, right angle at Q violet (as in 2D), at M amber
+      'angle-sum-identities': {
+        markerO: PALETTE.indigo, handleA: PALETTE.sky, handleP: PALETTE.emerald,
+        rightAngle1: PALETTE.violet, rightAngle2: PALETTE.amber,
+      },
+    };
+    const map = byVisual[this.visualId] || {};
+    for (const [key, col] of Object.entries(map)) set(this[key], col);
+  }
+
   render(state) {
     if (!state) return;
-    this.R = (state.radius || 175) / 17.5;
+    this.R = getModelRadius(state);
     this.sphere.scale.setScalar(this.R);
     this.circleWire.scale.setScalar(this.R);
 
     this.applyCommonVis(state);
     this.#clearDynamicGroup();
+    this.#applyVisualPalette();
 
     const THREE = this.THREE;
     const R = this.R;
@@ -1253,8 +1332,9 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
-      const bisPos = get3DAngleBisector(O, X_ref, P_eq, 3.4, THREE);
-      const refPos = get3DReflexBisector(O, X_ref, P_eq, 4.0, THREE);
+      // Directed-angle label anchors: θ at θ/2, conjugate θ* at θ/2 + π (valid for θ on either side of 180°)
+      const bisPos = getPolarLabel3D(m.theta / 2, 3.4);
+      const refPos = getPolarLabel3D(m.theta / 2 + Math.PI, 4.0);
 
       labels.push(
         { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-indigo' },
@@ -1366,15 +1446,15 @@ export class TrigScene3DView extends BaseScene3DView {
         this.rightAngle2.visible = showAngles;
       }
 
-      // 3D Angle Wedges at C, A, B
+      // 3D Angle Wedges at C, A, B (unified color grammar: A ↔ sky, B ↔ emerald, C ↔ rose)
       this.wedge1.material.color.set(PALETTE.rose);
       this.wedge1.arcLine.material.color.set(PALETTE.rose);
       setAngleWedgeVertices3D(this.wedge1, C, A, B, 2.2, 24, THREE);
-      this.wedge2.material.color.set(PALETTE.emerald);
-      this.wedge2.arcLine.material.color.set(PALETTE.emerald);
+      this.wedge2.material.color.set(PALETTE.sky);
+      this.wedge2.arcLine.material.color.set(PALETTE.sky);
       setAngleWedgeVertices3D(this.wedge2, A, C, B, 1.9, 24, THREE);
-      this.wedge3.material.color.set(PALETTE.sky);
-      this.wedge3.arcLine.material.color.set(PALETTE.sky);
+      this.wedge3.material.color.set(PALETTE.emerald);
+      this.wedge3.arcLine.material.color.set(PALETTE.emerald);
       setAngleWedgeVertices3D(this.wedge3, B, C, A, 1.9, 24, THREE);
       this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
 
@@ -1392,15 +1472,19 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
+      const bisA = get3DAngleBisector(A, C, B, 3.0, THREE);
+      const bisB = get3DAngleBisector(B, C, A, 3.0, THREE);
       const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
       const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
 
       labels.push(
         { key: 'C', name: 'C', at: { x: -0.9, y: 0.5, z: -0.9 }, coords: C, color: 'color-rose' },
-        { key: 'A', name: 'A', at: { x: A.x + 0.9, y: 0.5, z: 0 }, coords: A, color: 'color-emerald' },
-        { key: 'B', name: 'B', at: { x: B.x, y: 0.6, z: B.z + 0.9 }, coords: B, color: 'color-sky' },
+        { key: 'A', name: 'A', at: { x: A.x + 0.9, y: 0.5, z: 0 }, coords: A, color: 'color-sky' },
+        { key: 'B', name: 'B', at: { x: B.x, y: 0.6, z: B.z + 0.9 }, coords: B, color: 'color-emerald' },
         { key: 'D', name: 'D', at: { x: D.x, y: 0.4, z: -0.9 }, coords: D, color: 'color-amber', show: state.showProjection !== false },
         { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
+        { key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
+        { key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
         { key: 'ref-C', text: `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
       );
     } else {
@@ -1444,7 +1528,8 @@ export class TrigScene3DView extends BaseScene3DView {
       setAngleWedgeVertices3D(this.wedge2, O, Aray, P, 3.0, 24, THREE, state.angleBeta > Math.PI);
       this.wedge1.visible = this.wedge2.visible = showAngles;
 
-      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P, 3.6, 32, THREE, true);
+      // Directed conjugate wedge: correctly sweeps 360° - (α+β) whether α+β is acute, obtuse or reflex
+      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P, 3.6, 32, THREE, m.sumAngle <= Math.PI);
       this.reflexWedge1.visible = showReflex;
 
       if (showArea && state.showStackedTriangles !== false) {
@@ -1458,8 +1543,10 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
-      const bisAlpha = get3DAngleBisector(O, X_ref, Aray, 3.2, THREE);
-      const bisBeta = get3DAngleBisector(O, Aray, P, 4.0, THREE);
+      // Directed angle midpoints in XZ plane
+      const bisAlpha = getPolarLabel3D(m.alpha / 2, 3.2);
+      const bisBeta = getPolarLabel3D(m.alpha + m.beta / 2, 4.0);
+      const refSumPos = getPolarLabel3D(m.sumAngle / 2 + Math.PI, 4.2);
 
       labels.push(
         { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
@@ -1467,7 +1554,8 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
         { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
         { key: 'angAlpha', text: `α = ${fmtAngle(m.alphaDeg, angUnit)}`, at: bisAlpha, color: 'color-sky', isAngle: true, show: showAngles },
-        { key: 'angBeta', text: `β = ${fmtAngle(m.betaDeg, angUnit)}`, at: bisBeta, color: 'color-violet', isAngle: true, show: showAngles }
+        { key: 'angBeta', text: `β = ${fmtAngle(m.betaDeg, angUnit)}`, at: bisBeta, color: 'color-violet', isAngle: true, show: showAngles },
+        { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: refSumPos, color: 'color-teal', isAngle: true, show: showReflex }
       );
     }
 
@@ -1519,7 +1607,7 @@ export class TrigDerivationsView {
           'uch-step-4',
           'Step 4',
           `3D Cylindrical Helix & Perigon Identity (${tag('teal', '360°')})`,
-          `Lifting ${tag('violet', 'P')} along pitch axis ${tag('lime', 'Y')} forms helix ${tag('violet', 'r(θ) = (R cos θ, kθ, R sin θ)')}.<br>` +
+          `Lifting ${tag('violet', 'P')} along pitch axis ${tag('lime', 'Y')} forms helix ${tag('violet', 'r(θ) = (R cos θ, y(θ), R sin θ)')}.<br>` +
           `Conjugate reflex angle ${tag('teal', 'θ* = 360° − θ')} completes the ${tag('teal', '360°')} perigon.`,
           true
         )}
@@ -1668,14 +1756,14 @@ export class TrigDerivationsView {
       );
       setSlot(
         '#uch-step-4 [data-sub]',
-        `↳ Helix height ${tag('violet', `z(θ) = ${m.points3D.point3D.z.toFixed(3)}`)} | Reflex ${tag('teal', `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`)}`
+        `↳ Helix height ${tag('violet', `y(θ) = ${m.points3D.point3D.z.toFixed(3)}`)} | Reflex ${tag('teal', `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`)}`
       );
       setSlot(
         '#uch-step-4 [data-eval]',
         `<span>${tag('teal', `Perigon: θ + θ* = ${fmtAngle(360, angUnit)}`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`
       );
     } else if (this.visualId === 'law-of-sines') {
-      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
+      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
       setSlot(
         '#los-step-1 [data-sub]',
         `↳ Altitude ${tag('teal', `hc = ${m.altitudeHc.toFixed(3)}`)} | ${tag('red', `a = ${m.sides.a.toFixed(2)}`)}, ${tag('green', `b = ${m.sides.b.toFixed(2)}`)}, ${tag('violet', `c = ${m.sides.c.toFixed(2)}`)}`
@@ -2082,7 +2170,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
   syncSlider('slider-radius', Math.round(r));
 
   // Shared 3D radius readout (matches Circle Theorems: R3D = sphere scale used by TrigScene3DView)
-  const R3D = r / 17.5;
+  const R3D = getModelRadius(state);
   setText('val-3d-r', lenUnit === 'px' ? R3D.toFixed(2) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 2));
 
   if (visualId === 'unit-circle-helix') {
@@ -2106,7 +2194,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('val-3d-py', m.points3D.point3D.z.toFixed(3));
     setText('val-3d-pythag', m.invariants.pythagoreanPrimary.toFixed(6));
   } else if (visualId === 'law-of-sines') {
-    const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, 10);
+    const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
     const degAPolar = ((toDegrees(state.angleA) % 360) + 360) % 360;
     const degBPolar = ((toDegrees(state.angleB) % 360) + 360) % 360;
     const degCPolar = ((toDegrees(state.angleC) % 360) + 360) % 360;
