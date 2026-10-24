@@ -125,6 +125,7 @@ export function createTrigInitialState(visualId) {
       showProjection: true,
       showSquares3D: true,
       showInteractionRect: true,
+      showRatioBadge: true,
     };
   }
   // angle-sum-identities
@@ -962,6 +963,97 @@ export class TrigCanvas2DView {
         20,
         5
       );
+    }
+
+    // Dynamic Ratio Evaluation Badge and Proportional Projection Bar along baseline b
+    if (state.showRatioBadge !== false) {
+      const isPos = m.cosC >= 0;
+      const barColor = isPos ? PALETTE.amber : PALETTE.rose;
+
+      // 1. Dynamic Evaluation Ratio Badge near Vertex C / Angle C
+      if (showLabels) {
+        const ratioBadgeX = Math.max(95, C.x - 72);
+        const ratioBadgeY = Math.max(25, C.y - 36);
+        drawTextBadge(
+          ctx,
+          `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}`,
+          ratioBadgeX,
+          ratioBadgeY,
+          barColor
+        );
+      }
+
+      // 2. Normalized Proportional Projection Bar/Gauge along baseline AC (segment CD)
+      const hasRect = state.showInteractionRect !== false && showArea;
+      const rectH = hasRect ? Math.min(68, m.b * scale * 0.3) : 0;
+      const gaugeY = C.y + (hasRect ? rectH + 24 : 38);
+      const trackW = A.x - C.x;
+      const barH = 6;
+
+      ctx.save();
+      // Baseline track (represents full b = AC)
+      ctx.fillStyle = 'rgba(51, 65, 85, 0.45)';
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.6)';
+      ctx.lineWidth = 1;
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(C.x, gaugeY - barH / 2, trackW, barH, 3);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(C.x, gaugeY - barH / 2, trackW, barH);
+        ctx.strokeRect(C.x, gaugeY - barH / 2, trackW, barH);
+      }
+
+      // Filled proportional segment: from C to D (a cos C)
+      const projW = D.x - C.x;
+      if (Math.abs(projW) > 1) {
+        ctx.fillStyle = isPos ? 'rgba(251, 191, 36, 0.65)' : 'rgba(244, 63, 94, 0.65)';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          if (projW >= 0) {
+            ctx.roundRect(C.x, gaugeY - barH / 2, Math.min(projW, trackW), barH, 3);
+          } else {
+            ctx.roundRect(C.x + projW, gaugeY - barH / 2, Math.abs(projW), barH, 3);
+          }
+        } else {
+          if (projW >= 0) {
+            ctx.fillRect(C.x, gaugeY - barH / 2, Math.min(projW, trackW), barH);
+          } else {
+            ctx.fillRect(C.x + projW, gaugeY - barH / 2, Math.abs(projW), barH);
+          }
+        }
+        ctx.fill();
+      }
+
+      // Ticks at C (0), A (b), and D (a cos C)
+      ctx.strokeStyle = PALETTE.emerald;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(C.x, gaugeY - 6);
+      ctx.lineTo(C.x, gaugeY + 6);
+      ctx.moveTo(A.x, gaugeY - 6);
+      ctx.lineTo(A.x, gaugeY + 6);
+      ctx.stroke();
+
+      ctx.strokeStyle = barColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(D.x, gaugeY - 8);
+      ctx.lineTo(D.x, gaugeY + 8);
+      ctx.stroke();
+
+      if (showLabels && showLengths) {
+        const projFrac = m.b > 0 ? (m.projection.pProj / m.b) : 0;
+        drawTextBadge(
+          ctx,
+          `Proj Ratio (a cos C)/b = ${projFrac.toFixed(3)} (${(projFrac * 100).toFixed(1)}%)`,
+          (C.x + A.x) / 2,
+          gaugeY + 16,
+          barColor
+        );
+      }
+      ctx.restore();
     }
   }
 
@@ -2071,7 +2163,19 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'sph-C', text: `∠C = ${fmtAngle(sM.angleCDeg, angUnit)}`, at: { x: C.x + tCA.x * 1.4, y: C.y + 0.8, z: C.z + tCA.z * 1.4 }, color: 'color-rose', isAngle: true, show: showAngles },
           { key: 'sph-A', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.05 + tAC.x * 1.2, y: A.y + 0.8, z: A.z * 1.05 + tAC.z * 1.2 }, color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'sph-B', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.05 + tBC.x * 1.2, y: B.y + 0.8, z: B.z * 1.05 + tBC.z * 1.2 }, color: 'color-emerald', isAngle: true, show: showAngles },
-          { key: 'sph-excess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true }
+          { key: 'sph-excess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true },
+          ...(state.showRatioBadge !== false
+            ? [
+                {
+                  key: 'sph-ratio-cos',
+                  text: `cos C = ${Math.cos(sM.angleC).toFixed(3)}`,
+                  at: { x: C.x, y: R + 1.4, z: 0 },
+                  color: Math.cos(sM.angleC) >= 0 ? 'color-amber' : 'color-rose',
+                  isAngle: true,
+                  show: true,
+                },
+              ]
+            : [])
         );
       } else {
         const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
@@ -2177,7 +2281,19 @@ export class TrigScene3DView extends BaseScene3DView {
             color: m.cosC >= 0 ? 'color-amber' : 'color-rose',
             isAngle: true,
             show: showInteractionRect,
-          }
+          },
+          ...(state.showRatioBadge !== false
+            ? [
+                {
+                  key: 'ratio-cos',
+                  text: `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}`,
+                  at: { x: D.x / 2, y: 1.1, z: 0.6 },
+                  color: m.cosC >= 0 ? 'color-amber' : 'color-rose',
+                  isAngle: true,
+                  show: true,
+                },
+              ]
+            : [])
         );
       }
     } else {
@@ -2547,9 +2663,9 @@ export class TrigDerivationsView {
           ${cardTemplate(
             'loc-step-1',
             'Step 1',
-            `Idempotent Orthogonal Decomposition (${tag('amber', 'P∥ + P⊥ = I')})`,
+            `Idempotent Orthogonal Decomposition (${tag('amber', 'P∥ + P⊥ = I')}) & Cosine Ratio (${tag('amber', 'cos C = (a²+b²−c²)/(2ab)')})`,
             `Projecting ${tag('sky', 'B')} onto ${tag('emerald', 'CA')} decomposes side ${tag('sky', 'a')} at foot ${tag('amber', 'D')}:<br>` +
-            `Parallel leg ${tag('amber', 'CD = a cos C')}, perpendicular altitude ${tag('amber', 'h = BD = a sin C')}`
+            `Parallel leg ${tag('amber', 'CD = a cos C')}, perpendicular altitude ${tag('amber', 'h = BD = a sin C')}, ratio ${tag('amber', 'cos C = (a² + b² − c²)/(2ab)')}`
           )}
           ${cardTemplate(
             'loc-step-2',
@@ -2797,7 +2913,7 @@ export class TrigDerivationsView {
         const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
         setSlot(
           '#loc-step-1 [data-sub]',
-          `↳ ${tag('amber', `CD = a cos C = ${m.projection.pProj.toFixed(3)}`)}, ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(3)}`)}`
+          `↳ ${tag('amber', `CD = a cos C = ${m.projection.pProj.toFixed(3)}`)}, ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(3)}`)} | ${tag('amber', `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(4)}`)}`
         );
         setSlot(
           '#loc-step-2 [data-sub]',
@@ -3060,6 +3176,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-radii', 'showRadii');
   bindCheck('toggle-projection-loc', 'showProjection');
   bindCheck(['toggle-interaction-rect', 'vis-3d-rect'], 'showInteractionRect');
+  bindCheck(['toggle-ratio-badge', 'vis-3d-ratio'], 'showRatioBadge');
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
@@ -3416,6 +3533,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-2abcos', m.squares.interaction2abCosC.toFixed(2));
     setText('tel-c2', m.squares.c2.toFixed(2));
     setText('tel-mixed', m.mixedPartialCoeff.toFixed(4));
+    setText('tel-cos-ratio', m.cosC.toFixed(4));
+    setText('tel-proj-frac', (m.b > 0 ? (m.projection.pProj / m.b) : 0).toFixed(4));
     setText('tel-c-coords', `${m.vertices2D.C.x.toFixed(2)}, ${m.vertices2D.C.y.toFixed(2)}`);
     setText('tel-a-coords', `${m.vertices2D.A.x.toFixed(2)}, ${m.vertices2D.A.y.toFixed(2)}`);
     setText('tel-b-coords', `${m.vertices2D.B.x.toFixed(2)}, ${m.vertices2D.B.y.toFixed(2)}`);
@@ -3449,6 +3568,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const rowProj = document.getElementById('row-3d-proj');
     const rowAlt = document.getElementById('row-3d-alt');
     const rowMixed = document.getElementById('row-3d-mixed');
+    const rowCosRatio = document.getElementById('row-3d-cos-ratio');
     const rowCosCArc = document.getElementById('row-3d-cosc-arc');
     const rowSphC = document.getElementById('row-3d-sph-c');
     const rowExcess = document.getElementById('row-3d-excess');
@@ -3462,6 +3582,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       if (rowProj) rowProj.classList.add('hidden');
       if (rowAlt) rowAlt.classList.add('hidden');
       if (rowMixed) rowMixed.classList.add('hidden');
+      if (rowCosRatio) rowCosRatio.classList.add('hidden');
       if (rowCosCArc) rowCosCArc.classList.remove('hidden');
       if (rowSphC) rowSphC.classList.remove('hidden');
       if (rowExcess) rowExcess.classList.remove('hidden');
@@ -3476,6 +3597,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       if (rowProj) rowProj.classList.remove('hidden');
       if (rowAlt) rowAlt.classList.remove('hidden');
       if (rowMixed) rowMixed.classList.remove('hidden');
+      if (rowCosRatio) rowCosRatio.classList.remove('hidden');
       if (rowCosCArc) rowCosCArc.classList.add('hidden');
       if (rowSphC) rowSphC.classList.add('hidden');
       if (rowExcess) rowExcess.classList.add('hidden');
@@ -3485,6 +3607,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       setText('val-3d-proj', m.projection.pProj.toFixed(3));
       setText('val-3d-alt', m.projection.hAlt.toFixed(3));
       setText('val-3d-mixed', m.mixedPartialCoeff.toFixed(4));
+      setText('val-3d-cos-ratio', m.cosC.toFixed(4));
     }
 
     const rectCheck = document.getElementById('vis-3d-rect');

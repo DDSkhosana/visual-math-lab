@@ -113,6 +113,8 @@
               <div class="stat-line"><span class="color-amber">Interaction 2ab cos C:</span><strong class="color-amber" id="tel-2abcos">63.00</strong></div>
               <div class="stat-line"><span class="color-rose">Resulting c²:</span><strong class="color-rose" id="tel-c2">67.00</strong></div>
               <div class="stat-line"><span class="color-amber">Mixed Partial −2 cos C:</span><strong class="color-amber" id="tel-mixed">-1.0000</strong></div>
+              <div class="stat-line" id="row-tel-cos-ratio"><span class="color-amber">Cosine Ratio (a²+b²−c²)/(2ab):</span><strong class="color-amber" id="tel-cos-ratio">0.5000</strong></div>
+              <div class="stat-line" id="row-tel-proj-frac"><span class="color-indigo">Projection Fraction (a cos C)/b:</span><strong class="color-indigo" id="tel-proj-frac">0.3889</strong></div>
               <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-violet">Vertex C (origin):</span><strong class="color-violet" id="tel-c-coords">0.00, 0.00</strong></div>
               <div class="stat-line"><span class="color-sky">Vertex A (b, 0):</span><strong class="color-sky" id="tel-a-coords">9.00, 0.00</strong></div>
               <div class="stat-line"><span class="color-green">Vertex B (a cos C, a sin C):</span><strong class="color-green" id="tel-b-coords">3.50, 6.06</strong></div>
@@ -151,6 +153,7 @@
               <div class="stat-line" id="row-3d-proj"><span class="color-amber">Projection a cos C:</span><strong class="color-amber" id="val-3d-proj">3.500</strong></div>
               <div class="stat-line" id="row-3d-alt"><span class="color-amber">Altitude h = a sin C:</span><strong class="color-amber" id="val-3d-alt">6.062</strong></div>
               <div class="stat-line" id="row-3d-mixed"><span class="color-amber">Mixed Partial ∂²c²/(∂a∂b):</span><strong class="color-amber" id="val-3d-mixed">-1.0000</strong></div>
+              <div class="stat-line" id="row-3d-cos-ratio"><span class="color-amber">Cosine Ratio (a²+b²−c²)/(2ab):</span><strong class="color-amber" id="val-3d-cos-ratio">0.5000</strong></div>
               <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-green">3D Vertex B (x, z):</span><strong class="color-green" id="val-3d-b-coords">3.50, 6.06</strong></div>
               <div class="stat-line hidden" id="row-3d-cosc-arc"><span class="color-amber">cos(c/R):</span><strong class="color-amber" id="val-3d-cosc-arc">0.778</strong></div>
               <div class="stat-line hidden" id="row-3d-sph-c"><span class="color-rose">Spherical Side c:</span><strong class="color-rose" id="val-3d-sph-c">7.820</strong></div>
@@ -259,6 +262,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angle (360° − C)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-projection-loc" checked><span class="checkmark"></span><span class="color-amber">Orthogonal Projection (a cos C)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-interaction-rect" checked><span class="checkmark"></span><span class="color-amber">Bilinear Correction (−2ab cos C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-ratio-badge" checked><span class="checkmark"></span><span class="color-amber">Cosine Ratio Badge &amp; Proportional Bar</span></label>
               </div>
             </div>
             <div class="collapsible-section collapsed">
@@ -327,6 +331,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Triangle Mesh</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-rect" checked><span class="checkmark"></span><span class="color-amber">Bilinear Rectangle Mesh (−2ab cos C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-ratio" checked><span class="checkmark"></span><span class="color-amber">Cosine Ratio Overlay Badge</span></label>
               </div>
             </div>
             <div class="collapsible-section collapsed">

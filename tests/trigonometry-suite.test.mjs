@@ -539,4 +539,36 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("val-3d-trace"));
         assert.ok(src.includes("val-3d-rot-angle"));
     });
+
+    test('Law of Cosines dynamic ratio visual overlay, proportional gauge bar, and telemetry synchronization', () => {
+        // 1. Math model exports ratio: cosRatio and projRatio
+        const mAcute = computeLawOfCosines(8, 10, Math.PI / 3); // 60 deg, cos = 0.5
+        assert.ok(mAcute.ratio, 'ratio must be defined on computeLawOfCosines');
+        assert.ok(Math.abs(mAcute.ratio.cosRatio - 0.5) < 1e-5, 'cosRatio must equal 0.5 at 60 degrees');
+        assert.ok(Math.abs(mAcute.ratio.projRatio - (8 * 0.5) / 10) < 1e-5, 'projRatio must equal (a cos C)/b');
+
+        const mObtuse = computeLawOfCosines(8, 10, (2 * Math.PI) / 3); // 120 deg, cos = -0.5
+        assert.ok(Math.abs(mObtuse.ratio.cosRatio - (-0.5)) < 1e-5, 'cosRatio must equal -0.5 at 120 degrees');
+        assert.ok(Math.abs(mObtuse.ratio.projRatio - (8 * -0.5) / 10) < 1e-5, 'projRatio must equal negative fraction');
+
+        // 2. HTML elements: Telemetry & Controls
+        const locHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/law-of-cosines/index.html'), 'utf-8');
+        assert.ok(locHtml.includes('id="tel-cos-ratio"'), '2D Telemetry must include tel-cos-ratio');
+        assert.ok(locHtml.includes('id="tel-proj-frac"'), '2D Telemetry must include tel-proj-frac');
+        assert.ok(locHtml.includes('id="val-3d-cos-ratio"'), '3D Telemetry must include val-3d-cos-ratio');
+        assert.ok(locHtml.includes('id="row-3d-cos-ratio"'), '3D Telemetry must include row-3d-cos-ratio container');
+        assert.ok(locHtml.includes('id="toggle-ratio-badge"'), '2D Controls must include toggle-ratio-badge checkbox');
+        assert.ok(locHtml.includes('id="vis-3d-ratio"'), '3D Controls must include vis-3d-ratio checkbox');
+
+        // 3. trig-core.js: state, binding, 2D overlay & gauge bar, 3D billboard badge, and telemetry
+        assert.ok(src.includes("showRatioBadge: true"), 'Initial state must include showRatioBadge: true');
+        assert.ok(src.includes("bindCheck(['toggle-ratio-badge', 'vis-3d-ratio'], 'showRatioBadge')"), 'Must bind ratio toggles in sync');
+        assert.ok(src.includes("cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}"), '2D must render dynamic evaluation ratio badge');
+        assert.ok(src.includes("Proj Ratio (a cos C)/b = ${projFrac.toFixed(3)}"), '2D must render proportional projection bar/gauge');
+        assert.ok(src.includes("key: 'ratio-cos'"), '3D scene must push ratio-cos billboard label');
+        assert.ok(src.includes("setText('tel-cos-ratio', m.cosC.toFixed(4))"), '2D telemetry must set tel-cos-ratio');
+        assert.ok(src.includes("setText('tel-proj-frac'"), '2D telemetry must set tel-proj-frac');
+        assert.ok(src.includes("setText('val-3d-cos-ratio', m.cosC.toFixed(4))"), '3D telemetry must set val-3d-cos-ratio');
+        assert.ok(src.includes("cos C = (a²+b²−c²)/(2ab)"), 'Derivations step 1 must align with Cosine Ratio formula');
+    });
 });

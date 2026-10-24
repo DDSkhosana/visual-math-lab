@@ -512,6 +512,8 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
   const angleB = Math.acos(cosB);
 
   const regime = Math.abs(cosC) < 1e-3 ? 'right' : cosC > 0 ? 'acute' : 'obtuse';
+  const cosRatio = clamp((a2 + b2 - c2) / (2 * a * b), -1, 1);
+  const projRatio = b > 0 ? (pProj / b) : 0;
 
   return {
     a,
@@ -538,6 +540,12 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
       hAlt,
       remBase,
       idempotentVerified: proj.verifyIdempotency(vertexB),
+    },
+    ratio: {
+      cosRatio,
+      projRatio,
+      cosRatioFormula: '(a² + b² − c²) / (2ab)',
+      projRatioFormula: '(a cos C) / b',
     },
     mixedPartialCoeff, // equals -2 * cos(C)
     vertices2D: {
