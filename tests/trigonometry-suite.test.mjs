@@ -455,6 +455,8 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(losHtml.includes('id="val-3d-mode-label"'));
         assert.ok(losHtml.includes('id="row-3d-excess"'));
         assert.ok(losHtml.includes('id="row-3d-volume"'));
+        assert.ok(losHtml.includes('id="btn-toggle-dimension-mode"'), 'Toolbar must include floating dimension mode toggle');
+        assert.ok(losHtml.includes('id="toolbar-dimension-status"'), 'Toolbar must include status pill');
 
         // Check trig-core.js dual-mode wiring
         assert.ok(src.includes("dimensionMode: 'planar'"));
@@ -467,6 +469,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Euclidean Taylor Correspondence"));
         assert.ok(src.includes("btn-mode-planar"));
         assert.ok(src.includes("btn-mode-spatial"));
+        assert.ok(src.includes("btnToggleDim.classList.toggle('active', isSpatial)"));
     });
 
     test('Law of Cosines dual-mode switch (Planar Euclidean vs Spherical 3D on S²) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
@@ -478,6 +481,8 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(locHtml.includes('id="section-dimension-mode"'));
         assert.ok(locHtml.includes('id="val-3d-mode-label"'));
         assert.ok(locHtml.includes('id="row-3d-cosc-arc"'));
+        assert.ok(locHtml.includes('id="btn-toggle-dimension-mode"'), 'Toolbar must include floating dimension mode toggle');
+        assert.ok(locHtml.includes('id="toolbar-dimension-status"'), 'Toolbar must include status pill');
         assert.ok(locHtml.includes('id="row-3d-sph-c"'));
         assert.ok(locHtml.includes('id="row-3d-excess"'));
         assert.ok(locHtml.includes('id="row-3d-area"'));
@@ -538,6 +543,8 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(asiHtml.includes('id="row-3d-gamma"'));
         assert.ok(asiHtml.includes('id="row-3d-trace"'));
         assert.ok(asiHtml.includes('id="row-3d-rot-angle"'));
+        assert.ok(asiHtml.includes('id="btn-toggle-dimension-mode"'), 'Toolbar must include floating dimension mode toggle');
+        assert.ok(asiHtml.includes('id="toolbar-dimension-status"'), 'Toolbar must include status pill');
 
         // Check trig-core.js dual-mode wiring for Angle Sum Identities
         assert.ok(src.includes("computeSpatialAngleSumEuler(state.angleAlpha, state.angleBeta, state.angleGamma, R)"));

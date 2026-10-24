@@ -1,1 +1,85 @@
 @import url("../../../css/circle-visual.css");
+
+/* ============================================================================
+   TRIGONOMETRY SUITE: HIGH-CONTRAST DIMENSION MODE CONTROLS & STATUS PILLS
+   ============================================================================ */
+
+/* 1. Dimension Mode Segmented Bar on 3D Canvas Header */
+.dimension-mode-bar .viewmode-segmented-group {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(71, 85, 105, 0.7);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  gap: 2px;
+}
+
+.dimension-mode-bar .viewmode-segmented-group .btn {
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  border-radius: 0.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dimension-mode-bar .viewmode-segmented-group .btn:hover {
+  color: #f8fafc;
+  background: rgba(51, 65, 85, 0.6);
+}
+
+.dimension-mode-bar .viewmode-segmented-group .btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.45) !important;
+  font-weight: 700 !important;
+}
+
+/* 2. Interactive Controls Panel (3D Geometry Model buttons) */
+#section-dimension-mode .btn-group .btn,
+.dimension-mode-buttons .btn {
+  background-color: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#section-dimension-mode .btn-group .btn:hover,
+.dimension-mode-buttons .btn:hover {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+#section-dimension-mode .btn-group .btn.active,
+.dimension-mode-buttons .btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+/* 3. Floating Modes Toolbar Pill (#viewport-toolbar) */
+#btn-toggle-dimension-mode {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#btn-toggle-dimension-mode:hover {
+  background: rgba(51, 65, 85, 0.6);
+  color: #ffffff;
+}
+
+#btn-toggle-dimension-mode.active {
+  background: rgba(2, 132, 199, 0.22);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+#toolbar-dimension-status.is-on {
+  background: rgba(14, 165, 233, 0.3);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}

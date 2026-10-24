@@ -3288,6 +3288,29 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindModeSwitch('btn-mode-planar-pill', 'planar');
   bindModeSwitch('btn-mode-spatial-pill', 'spatial');
 
+  // Floating Header Toolbar Dimension Mode Toggle (#btn-toggle-dimension-mode)
+  const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
+  if (btnToggleDim) {
+    btnToggleDim.addEventListener('click', () => {
+      const isSpatial = store.get().dimensionMode === 'spatial';
+      if (isSpatial) {
+        store.set({ dimensionMode: 'planar' });
+      } else {
+        const st = store.get();
+        if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
+          store.set({
+            dimensionMode: 'spatial',
+            latA: toRadians(65),
+            latB: toRadians(115),
+            latC: toRadians(50),
+          });
+        } else {
+          store.set({ dimensionMode: 'spatial' });
+        }
+      }
+    });
+  }
+
   // 2D Canvas Wheel Zoom (synchronized with 3D and radius slider)
   canvas.addEventListener(
     'wheel',
@@ -3550,6 +3573,18 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
     if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
 
+    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
+    const dimStatusPill = document.getElementById('toolbar-dimension-status');
+    if (btnToggleDim) {
+      btnToggleDim.classList.toggle('active', isSpatial);
+      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (dimStatusPill) {
+      dimStatusPill.classList.toggle('is-on', isSpatial);
+      dimStatusPill.classList.toggle('is-off', !isSpatial);
+      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
+    }
+
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
@@ -3638,6 +3673,18 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
     if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
     if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+
+    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
+    const dimStatusPill = document.getElementById('toolbar-dimension-status');
+    if (btnToggleDim) {
+      btnToggleDim.classList.toggle('active', isSpatial);
+      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (dimStatusPill) {
+      dimStatusPill.classList.toggle('is-on', isSpatial);
+      dimStatusPill.classList.toggle('is-off', !isSpatial);
+      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
+    }
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
@@ -3731,6 +3778,18 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
     if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
     if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+
+    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
+    const dimStatusPill = document.getElementById('toolbar-dimension-status');
+    if (btnToggleDim) {
+      btnToggleDim.classList.toggle('active', isSpatial);
+      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
+    }
+    if (dimStatusPill) {
+      dimStatusPill.classList.toggle('is-on', isSpatial);
+      dimStatusPill.classList.toggle('is-off', !isSpatial);
+      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
+    }
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
