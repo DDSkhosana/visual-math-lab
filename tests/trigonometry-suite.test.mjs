@@ -396,7 +396,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("ctx.lineTo(Ndiff.x, Ndiff.y);"));
         assert.ok(src.includes("drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose)"));
         assert.ok(src.includes("sin(α−β) ="));
-        assert.ok(src.includes("drawLabelledPoint(ctx, Ndiff, PALETTE.amber, showLabels ? 'N_D' : '', -10, -12, 3.5)"));
+        assert.ok(src.includes("drawLabelledPoint(ctx, Ndiff, PALETTE.amber, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5)"));
 
         // 4. 3D visual representation: handleC pick target, dropped altitude, rightAngle4, badges
         assert.ok(src.includes("store.set({ angleBeta: normalizeAngle(alpha - angle) });"));

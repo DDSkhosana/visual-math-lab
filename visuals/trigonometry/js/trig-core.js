@@ -1280,12 +1280,12 @@ export class TrigCanvas2DView {
     if (showPoints) {
       drawLabelledPoint(ctx, O, PALETTE.indigo, getPointLabel('O', 0, 0, vis), -12, 16, 4.5);
       if (state.showStackedTriangles !== false) {
-        drawLabelledPoint(ctx, Q, PALETTE.amber, showLabels ? 'Q' : '', 12, -10, 4);
-        drawLabelledPoint(ctx, M, PALETTE.amber, showLabels ? 'M' : '', -10, 15, 3.5);
-        drawLabelledPoint(ctx, N, PALETTE.amber, showLabels ? 'N' : '', 10, 15, 3.5);
+        drawLabelledPoint(ctx, Q, PALETTE.amber, getPointLabel('Q', m.points2D.Q.x * r, m.points2D.Q.y * r, vis), 12, -10, 4);
+        drawLabelledPoint(ctx, M, PALETTE.amber, getPointLabel('M', m.points2D.M.x * r, m.points2D.M.y * r, vis), -10, 15, 3.5);
+        drawLabelledPoint(ctx, N, PALETTE.amber, getPointLabel('N', m.points2D.N.x * r, m.points2D.N.y * r, vis), 10, 15, 3.5);
       }
       if (state.showDifferenceRay !== false) {
-        drawLabelledPoint(ctx, Ndiff, PALETTE.amber, showLabels ? 'N_D' : '', -10, -12, 3.5);
+        drawLabelledPoint(ctx, Ndiff, PALETTE.amber, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5);
       }
     }
   }
