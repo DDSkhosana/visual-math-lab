@@ -1129,10 +1129,11 @@ export class TrigScene3DView extends BaseScene3DView {
 
     this.markerO = makeMarker3D(PALETTE.indigo, 0.16);
     this.handleP = makeMarker3D(PALETTE.violet, 0.18);
+    this.handleHelix = makeMarker3D(PALETTE.violet, 0.18);
     this.handleA = makeMarker3D(PALETTE.red, 0.18);
     this.handleB = makeMarker3D(PALETTE.green, 0.18);
     this.handleC = makeMarker3D(PALETTE.violet, 0.18);
-    this.scene.add(this.markerO, this.handleP, this.handleA, this.handleB, this.handleC);
+    this.scene.add(this.markerO, this.handleP, this.handleHelix, this.handleA, this.handleB, this.handleC);
 
     // Reusable 3D Angle Wedge & Right-Angle Meshes (matching Circle Theorems)
     this.wedge1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
@@ -1158,6 +1159,11 @@ export class TrigScene3DView extends BaseScene3DView {
         {
           id: 'P',
           mesh: this.handleP,
+          field: 'angleTheta',
+        },
+        {
+          id: 'HelixP',
+          mesh: this.handleHelix,
           field: 'angleTheta',
         },
       ];
@@ -1314,6 +1320,7 @@ export class TrigScene3DView extends BaseScene3DView {
 
       this.markerO.position.copy(O);
       this.handleP.position.copy(P_eq);
+      this.handleP.visible = true;
 
       // 1. Structural 3D Cylinder Mesh & Vertical Generator Ribs
       const H_cyl = R * pitch * TAU;
@@ -1380,6 +1387,8 @@ export class TrigScene3DView extends BaseScene3DView {
 
       const yNow = R * pitch * (m.theta - Math.PI);
       const P_helix = new THREE.Vector3(R * m.cos, yNow, R * m.sin);
+      this.handleHelix.position.copy(P_helix);
+      this.handleHelix.visible = true;
 
       // 3. Dynamic Harmonic Wave Projections from P_helix to Cosine & Sine Walls
       if (state.showHelixWalls !== false) {
@@ -1511,21 +1520,26 @@ export class TrigScene3DView extends BaseScene3DView {
       }
 
       // 7. 3D Angle Wedge theta, Right-Angle Marker, and Reflex Wedge
-      setAngleWedgeVertices3D(this.wedge1, O, X_ref, P_eq, 2.4, 24, THREE, m.theta > Math.PI);
+      const wedgeR = Math.min(3.6, R * 0.36);
+      setAngleWedgeVertices3D(this.wedge1, O, X_ref, P_eq, wedgeR, 24, THREE, m.theta > Math.PI);
       this.wedge1.visible = showAngles;
       setRightAngle3DVertices(this.rightAngle1, projX, O, P_eq, 0.9, THREE);
       this.rightAngle1.visible = showAngles && Math.abs(m.cos) > 0.1 && Math.abs(m.sin) > 0.1;
 
-      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P_eq, 3.1, 32, THREE, m.theta <= Math.PI);
+      setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, P_eq, wedgeR * 1.3, 32, THREE, m.theta <= Math.PI);
       this.reflexWedge1.visible = showReflex;
 
       if (showArea) {
-        const triGeom = new THREE.BufferGeometry().setFromPoints([O, projX, P_eq]);
+        const triGeom = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(O.x, 0.02, O.z),
+          new THREE.Vector3(projX.x, 0.02, projX.z),
+          new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
+        ]);
         triGeom.setIndex([0, 1, 2]);
         this.dynamicGroup.add(
           new THREE.Mesh(
             triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
+            new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false })
           )
         );
       }
@@ -2953,14 +2967,35 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     const y = e.clientY - rect.top;
     const st = store.get();
     const info = view2d.getInteractiveHandles2D(st);
-    const hitHandle = findHoveredHandle(x, y, info.handles, 24);
+    const hitHandle = findHoveredHandle(x, y, info.handles, 28);
     const circCx = info.circleCx ?? info.cx;
     const circCy = info.circleCy ?? info.cy;
     const circR = info.circleR ?? info.r;
 
+    // Direct radial spoke click/drag fallback for unit-circle-helix
+    let spokeHit = false;
+    if (!hitHandle && visualId === 'unit-circle-helix') {
+      const dx = x - circCx;
+      const dy = circCy - y;
+      const distFromCenter = Math.hypot(dx, dy);
+      if (distFromCenter >= 14 && distFromCenter <= circR + 18) {
+        const clickAng = pointerToAngle(dx, dy);
+        const curTheta = normalizeAngle(st.angleTheta || 0);
+        const diffAng = Math.abs(normalizeAngle(clickAng - curTheta));
+        if (diffAng < 0.4 || Math.abs(diffAng - 2 * Math.PI) < 0.4) {
+          spokeHit = true;
+          activeDrag = { type: 'handle', handle: info.handles[0] };
+          canvas.style.cursor = 'grabbing';
+          store.set({ angleTheta: clickAng });
+        }
+      }
+    }
+
     if (hitHandle) {
       activeDrag = { type: 'handle', handle: hitHandle };
       canvas.style.cursor = 'grabbing';
+    } else if (spokeHit) {
+      // already set
     } else if (isNearCircumference(x, y, circCx, circCy, circR, 14)) {
       activeDrag = { type: 'radius', cx: circCx, cy: circCy };
       canvas.style.cursor = 'ew-resize';

@@ -759,7 +759,7 @@ export class BaseScene3DView {
         const screenPt = projectToScreen(tgt.mesh.position);
         const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
 
-        if (intersects.length > 0 || distPx < 14) {
+        if (intersects.length > 0 || distPx < 28) {
           const score = intersects.length > 0 ? 0 : distPx;
           if (score < minScore) {
             minScore = score;
@@ -782,7 +782,16 @@ export class BaseScene3DView {
         const vDir = rayObj.direction;
         const b = vOrigin.dot(vDir);
         const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
-        if (Math.abs(distRayToOrigin - r3d) < 1.4) {
+        let nearAnyTarget = false;
+        for (const tgt of targets) {
+          if (!tgt.mesh || tgt.mesh.visible === false) continue;
+          const screenPt = projectToScreen(tgt.mesh.position);
+          if (screenPt && Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) < 38) {
+            nearAnyTarget = true;
+            break;
+          }
+        }
+        if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < 1.4) {
           const st = store.get();
           const isTangentExt = Boolean(st.pointDist);
           const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
@@ -856,7 +865,7 @@ export class BaseScene3DView {
           const intersects = ray.intersectObject(tgt.mesh);
           const screenPt = projectToScreen(tgt.mesh.position);
           const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
-          if (intersects.length > 0 || distPx < 14) {
+          if (intersects.length > 0 || distPx < 28) {
             hover = true;
             break;
           }
