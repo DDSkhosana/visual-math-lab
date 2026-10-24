@@ -1479,6 +1479,37 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
 
+      // 3D Bilinear Interaction Rectangle Mesh (2ab cos C) in the XZ ground plane
+      const showInteractionRect = state.showInteractionRect !== false && showArea;
+      const rectDepth = Math.min(2.8, A.x * 0.28);
+      if (showInteractionRect) {
+        const rectColor = m.cosC >= 0 ? PALETTE.amber : PALETTE.rose;
+        const R0 = new THREE.Vector3(0, 0.015, 0);
+        const R1 = new THREE.Vector3(D.x, 0.015, 0);
+        const R2 = new THREE.Vector3(D.x, 0.015, -rectDepth);
+        const R3 = new THREE.Vector3(0, 0.015, -rectDepth);
+
+        const rectGeom = new THREE.BufferGeometry().setFromPoints([R0, R1, R2, R3]);
+        rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
+        this.dynamicGroup.add(
+          new THREE.Mesh(
+            rectGeom,
+            new THREE.MeshBasicMaterial({
+              color: rectColor,
+              transparent: true,
+              opacity: 0.22,
+              side: THREE.DoubleSide,
+            })
+          )
+        );
+
+        // Dashed rectangular wireframe perimeter
+        addSeg(R0, R1, rectColor, true);
+        addSeg(R1, R2, rectColor, true);
+        addSeg(R2, R3, rectColor, true);
+        addSeg(R3, R0, rectColor, true);
+      }
+
       const bisA = get3DAngleBisector(A, C, B, 3.0, THREE);
       const bisB = get3DAngleBisector(B, C, A, 3.0, THREE);
       const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
@@ -1492,7 +1523,15 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
         { key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
         { key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
-        { key: 'ref-C', text: `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
+        { key: 'ref-C', text: `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex },
+        {
+          key: 'rect-2abcos',
+          text: `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
+          at: { x: D.x / 2, y: 0.35, z: -rectDepth / 2 },
+          color: m.cosC >= 0 ? 'color-amber' : 'color-rose',
+          isAngle: true,
+          show: showInteractionRect,
+        }
       );
     } else {
       // angle-sum-identities: crisp 3D ArrowHelper vectors (no visible spheres on vector apexes)
@@ -2006,10 +2045,14 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     if (!el) return;
     el.addEventListener('input', (e) => store.set({ [key]: parseFloat(e.target.value) }));
   };
-  const bindCheck = (id, key) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('change', (e) => store.set({ [key]: e.target.checked }));
+  const bindCheck = (idOrIds, key) => {
+    const list = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    for (const id of list) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', (e) => store.set({ [key]: e.target.checked }));
+      }
+    }
   };
 
   bindRangeNum('slider-radius', 'radius');
@@ -2031,7 +2074,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-altitude', 'showAltitude');
   bindCheck('toggle-radii', 'showRadii');
   bindCheck('toggle-projection-loc', 'showProjection');
-  bindCheck('toggle-interaction-rect', 'showInteractionRect');
+  bindCheck(['toggle-interaction-rect', 'vis-3d-rect'], 'showInteractionRect');
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
@@ -2261,6 +2304,11 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('val-3d-proj', m.projection.pProj.toFixed(3));
     setText('val-3d-alt', m.projection.hAlt.toFixed(3));
     setText('val-3d-mixed', m.mixedPartialCoeff.toFixed(4));
+
+    const rectCheck = document.getElementById('vis-3d-rect');
+    if (rectCheck && rectCheck.checked !== (state.showInteractionRect !== false)) {
+      rectCheck.checked = state.showInteractionRect !== false;
+    }
   } else {
     const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
     syncSlider('slider-alpha', Math.round(m.alphaDeg));

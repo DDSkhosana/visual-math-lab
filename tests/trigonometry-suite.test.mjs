@@ -309,4 +309,14 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("addSeg(O, N, PALETTE.amber)"));
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, N, O, P"));
     });
+
+    test('Law of Cosines bilinear interaction rectangle (2ab cos C) is represented in 3D ground plane with live badge', () => {
+        assert.ok(src.includes("showInteractionRect = state.showInteractionRect !== false && showArea"));
+        assert.ok(src.includes("const R0 = new THREE.Vector3(0, 0.015, 0)"));
+        assert.ok(src.includes("const R1 = new THREE.Vector3(D.x, 0.015, 0)"));
+        assert.ok(src.includes("const R2 = new THREE.Vector3(D.x, 0.015, -rectDepth)"));
+        assert.ok(src.includes("key: 'rect-2abcos'"));
+        assert.ok(src.includes("2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}"));
+        assert.ok(src.includes("vis-3d-rect"));
+    });
 });
