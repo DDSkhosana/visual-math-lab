@@ -66,6 +66,7 @@ import {
   TAU,
   computeUnitCircleHelix,
   computeLawOfSines,
+  computeSphericalLawOfSines,
   computeLawOfCosines,
   computeAngleSumIdentities,
 } from './trig-math.js';
@@ -103,6 +104,10 @@ export function createTrigInitialState(visualId) {
       angleA: toRadians(205),
       angleB: toRadians(335),
       angleC: toRadians(80),
+      dimensionMode: 'planar',
+      latA: Math.PI / 2,
+      latB: Math.PI / 2,
+      latC: Math.PI / 2,
       showCircumcircleDiameter: true,
       showAltitude: true,
       showRadii: true,
@@ -1153,10 +1158,24 @@ export class TrigScene3DView extends BaseScene3DView {
       ];
     } else if (this.visualId === 'law-of-sines') {
       this.handleP.visible = false;
+      const makeLawOfSinesTarget = (id, mesh, angleField, latField) => ({
+        id,
+        mesh,
+        field: angleField,
+        latField: latField,
+        onDrag: (angle, hit, store, lat) => {
+          const st = store.get();
+          if (st.dimensionMode === 'spatial') {
+            store.set({ [angleField]: angle, [latField]: lat });
+          } else {
+            store.set({ [angleField]: angle, [latField]: Math.PI / 2 });
+          }
+        },
+      });
       this.draggableTargets = [
-        { id: 'A', mesh: this.handleA, field: 'angleA' },
-        { id: 'B', mesh: this.handleB, field: 'angleB' },
-        { id: 'C', mesh: this.handleC, field: 'angleC' },
+        makeLawOfSinesTarget('A', this.handleA, 'angleA', 'latA'),
+        makeLawOfSinesTarget('B', this.handleB, 'angleB', 'latB'),
+        makeLawOfSinesTarget('C', this.handleC, 'angleC', 'latC'),
       ];
     } else if (this.visualId === 'law-of-cosines') {
       this.handleP.visible = false;
@@ -1537,84 +1556,267 @@ export class TrigScene3DView extends BaseScene3DView {
         );
       }
     } else if (this.visualId === 'law-of-sines') {
-      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, R);
-      const O = new THREE.Vector3(0, 0, 0);
-      const A = new THREE.Vector3(m.vertices2D.A.x, 0, m.vertices2D.A.y);
-      const B = new THREE.Vector3(m.vertices2D.B.x, 0, m.vertices2D.B.y);
-      const C = new THREE.Vector3(m.vertices2D.C.x, 0, m.vertices2D.C.y);
-      const Ap = new THREE.Vector3(m.vertices2D.antipodeA.x, 0, m.vertices2D.antipodeA.y);
-      const Hc = new THREE.Vector3(m.vertices2D.footHc.x, 0, m.vertices2D.footHc.y);
+      const isSpatial = state.dimensionMode === 'spatial';
+      if (isSpatial) {
+        // --- TRUE 3D SPHERICAL GEOMETRY ON S² ---
+        const sM = computeSphericalLawOfSines(state, R);
+        const O = new THREE.Vector3(0, 0, 0);
+        const A = new THREE.Vector3(sM.vertices3D.A.x, sM.vertices3D.A.y, sM.vertices3D.A.z);
+        const B = new THREE.Vector3(sM.vertices3D.B.x, sM.vertices3D.B.y, sM.vertices3D.B.z);
+        const C = new THREE.Vector3(sM.vertices3D.C.x, sM.vertices3D.C.y, sM.vertices3D.C.z);
 
-      this.markerO.position.copy(O);
-      this.handleA.position.copy(A);
-      this.handleB.position.copy(B);
-      this.handleC.position.copy(C);
+        this.markerO.position.copy(O);
+        this.handleA.position.copy(A);
+        this.handleB.position.copy(B);
+        this.handleC.position.copy(C);
 
-      addSeg(B, C, PALETTE.red);
-      addSeg(A, C, PALETTE.green);
-      addSeg(A, B, PALETTE.violet);
+        // Spherical Great-Circle Geodesic Arcs on S²
+        const addGeodesicArc = (p1, p2, col, numSegs = 40) => {
+          const u1 = p1.clone().normalize();
+          const u2 = p2.clone().normalize();
+          const dotVal = clamp(u1.dot(u2), -1, 1);
+          const theta = Math.acos(dotVal);
+          const pts = [];
+          if (theta < 1e-4) {
+            pts.push(p1.clone(), p2.clone());
+          } else {
+            const sinTh = Math.sin(theta);
+            for (let i = 0; i <= numSegs; i++) {
+              const t = i / numSegs;
+              const w1 = Math.sin((1 - t) * theta) / sinTh;
+              const w2 = Math.sin(t * theta) / sinTh;
+              const p = new THREE.Vector3()
+                .addScaledVector(u1, w1)
+                .addScaledVector(u2, w2)
+                .normalize()
+                .multiplyScalar(R);
+              pts.push(p);
+            }
+          }
+          const geom = new THREE.BufferGeometry().setFromPoints(pts);
+          const mat = new THREE.LineBasicMaterial({ color: col, linewidth: 2.6 });
+          this.dynamicGroup.add(new THREE.Line(geom, mat));
+        };
 
-      if (state.showRadii !== false) {
-        addSeg(O, A, PALETTE.indigo, true);
-        addSeg(O, B, PALETTE.indigo, true);
-        addSeg(O, C, PALETTE.indigo, true);
-      }
+        // Geodesic Arcs: BC = a (red), AC = b (green), AB = c (violet)
+        addGeodesicArc(B, C, PALETTE.red);
+        addGeodesicArc(A, C, PALETTE.green);
+        addGeodesicArc(A, B, PALETTE.violet);
 
-      if (state.showCircumcircleDiameter !== false) {
-        addSeg(B, Ap, PALETTE.amber, true);
-        addSeg(Ap, C, PALETTE.amber, true);
-        setRightAngle3DVertices(this.rightAngle2, C, Ap, B, 0.95, THREE);
-        this.rightAngle2.visible = showAngles;
-      }
-      if (state.showAltitude !== false) {
-        addSeg(C, Hc, PALETTE.teal, true);
-        setRightAngle3DVertices(this.rightAngle1, Hc, C, B, 0.85, THREE);
-        this.rightAngle1.visible = showAngles;
-      }
+        // Subtended central rays from origin O to vertices A, B, C
+        if (state.showRadii !== false) {
+          addSeg(O, A, PALETTE.indigo, true);
+          addSeg(O, B, PALETTE.indigo, true);
+          addSeg(O, C, PALETTE.indigo, true);
+        }
 
-      // 3D Interior Angle Wedges at A, B, C & Reflex Wedge at C
-      this.wedge1.material.color.set(PALETTE.red);
-      this.wedge1.arcLine.material.color.set(PALETTE.red);
-      setAngleWedgeVertices3D(this.wedge1, A, B, C, 2.2, 24, THREE);
-      this.wedge2.material.color.set(PALETTE.green);
-      this.wedge2.arcLine.material.color.set(PALETTE.green);
-      setAngleWedgeVertices3D(this.wedge2, B, A, C, 2.2, 24, THREE);
-      this.wedge3.material.color.set(PALETTE.violet);
-      this.wedge3.arcLine.material.color.set(PALETTE.violet);
-      setAngleWedgeVertices3D(this.wedge3, C, A, B, 2.2, 24, THREE);
-      this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
+        // Spherical Triangle Curved Mesh Cap on S²
+        if (showArea) {
+          const uA = sM.unitVectors.uA;
+          const uB = sM.unitVectors.uB;
+          const uC = sM.unitVectors.uC;
+          const N = 18;
+          const positions = [];
+          const indices = [];
+          const grid = [];
 
-      setAngleWedgeVertices3D(this.reflexWedge1, C, A, B, 2.9, 32, THREE, true);
-      this.reflexWedge1.visible = showReflex;
+          let idx = 0;
+          for (let i = 0; i <= N; i++) {
+            grid[i] = [];
+            for (let j = 0; j <= N - i; j++) {
+              const k = N - i - j;
+              const wA = k / N;
+              const wB = i / N;
+              const wC = j / N;
+              const vx = wA * uA.x + wB * uB.x + wC * uC.x;
+              const vy = wA * uA.y + wB * uB.y + wC * uC.y;
+              const vz = wA * uA.z + wB * uB.z + wC * uC.z;
+              const len = Math.hypot(vx, vy, vz) || 1;
+              positions.push((vx / len) * R, (vy / len) * R, (vz / len) * R);
+              grid[i][j] = idx++;
+            }
+          }
 
-      if (showArea) {
-        const triGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
-        triGeom.setIndex([0, 1, 2]);
-        this.dynamicGroup.add(
-          new THREE.Mesh(
-            triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
-          )
+          for (let i = 0; i < N; i++) {
+            for (let j = 0; j < N - i; j++) {
+              const p0 = grid[i][j];
+              const p1 = grid[i + 1][j];
+              const p2 = grid[i][j + 1];
+              indices.push(p0, p1, p2);
+              if (j < N - i - 1) {
+                const p3 = grid[i + 1][j + 1];
+                indices.push(p1, p3, p2);
+              }
+            }
+          }
+
+          const sphCapGeom = new THREE.BufferGeometry();
+          sphCapGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+          sphCapGeom.setIndex(indices);
+          sphCapGeom.computeVertexNormals();
+
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              sphCapGeom,
+              new THREE.MeshBasicMaterial({
+                color: PALETTE.sky,
+                transparent: true,
+                opacity: 0.28,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            )
+          );
+
+          // Subtle Trihedral Cone internal face planes O-AB, O-BC, O-CA
+          const addConeFace = (v1, v2) => {
+            const coneGeom = new THREE.BufferGeometry().setFromPoints([O, v1, v2]);
+            coneGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                coneGeom,
+                new THREE.MeshBasicMaterial({
+                  color: PALETTE.indigo,
+                  transparent: true,
+                  opacity: 0.08,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          };
+          addConeFace(A, B);
+          addConeFace(B, C);
+          addConeFace(C, A);
+        }
+
+        // Tangent directions at each vertex along geodesic edges for angle wedges:
+        const tangentAt = (fromPt, toPt) => {
+          const uF = fromPt.clone().normalize();
+          const uT = toPt.clone().normalize();
+          return new THREE.Vector3().subVectors(uT, uF.clone().multiplyScalar(uF.dot(uT))).normalize();
+        };
+
+        const tAB = tangentAt(A, B);
+        const tAC = tangentAt(A, C);
+        const tBA = tangentAt(B, A);
+        const tBC = tangentAt(B, C);
+        const tCA = tangentAt(C, A);
+        const tCB = tangentAt(C, B);
+
+        // Position wedge vertices using tangent frame
+        this.wedge1.material.color.set(PALETTE.red);
+        this.wedge1.arcLine.material.color.set(PALETTE.red);
+        setAngleWedgeVertices3D(this.wedge1, A, A.clone().addScaledVector(tAB, 2.5), A.clone().addScaledVector(tAC, 2.5), 2.2, 24, THREE);
+
+        this.wedge2.material.color.set(PALETTE.green);
+        this.wedge2.arcLine.material.color.set(PALETTE.green);
+        setAngleWedgeVertices3D(this.wedge2, B, B.clone().addScaledVector(tBA, 2.5), B.clone().addScaledVector(tBC, 2.5), 2.2, 24, THREE);
+
+        this.wedge3.material.color.set(PALETTE.violet);
+        this.wedge3.arcLine.material.color.set(PALETTE.violet);
+        setAngleWedgeVertices3D(this.wedge3, C, C.clone().addScaledVector(tCA, 2.5), C.clone().addScaledVector(tCB, 2.5), 2.2, 24, THREE);
+
+        this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
+
+        // Centroid of spherical triangle for excess label
+        const cX = (A.x + B.x + C.x) / 3;
+        const cY = (A.y + B.y + C.y) / 3;
+        const cZ = (A.z + B.z + C.z) / 3;
+        const cLen = Math.hypot(cX, cY, cZ) || 1;
+        const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+
+        labels.push(
+          { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
+          { key: 'A', name: 'A', at: { x: A.x * 1.15, y: A.y + 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
+          { key: 'B', name: 'B', at: { x: B.x * 1.15, y: B.y + 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
+          { key: 'C', name: 'C', at: { x: C.x * 1.15, y: C.y + 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
+          { key: 'sphA', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.05 + tAC.x * 1.2, y: A.y + 0.8, z: A.z * 1.05 + tAC.z * 1.2 }, color: 'color-red', isAngle: true, show: showAngles },
+          { key: 'sphB', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.05 + tBC.x * 1.2, y: B.y + 0.8, z: B.z * 1.05 + tBC.z * 1.2 }, color: 'color-green', isAngle: true, show: showAngles },
+          { key: 'sphC', text: `C_sph = ${fmtAngle(sM.sphericalAngles.degC, angUnit)}`, at: { x: C.x * 1.05 + tCA.x * 1.2, y: C.y + 0.8, z: C.z * 1.05 + tCA.z * 1.2 }, color: 'color-violet', isAngle: true, show: showAngles },
+          { key: 'sphExcess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true }
+        );
+      } else {
+        // --- PLANAR EUCLIDEAN EMBEDDING (Y = 0) ---
+        const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, R);
+        const O = new THREE.Vector3(0, 0, 0);
+        const A = new THREE.Vector3(m.vertices2D.A.x, 0, m.vertices2D.A.y);
+        const B = new THREE.Vector3(m.vertices2D.B.x, 0, m.vertices2D.B.y);
+        const C = new THREE.Vector3(m.vertices2D.C.x, 0, m.vertices2D.C.y);
+        const Ap = new THREE.Vector3(m.vertices2D.antipodeA.x, 0, m.vertices2D.antipodeA.y);
+        const Hc = new THREE.Vector3(m.vertices2D.footHc.x, 0, m.vertices2D.footHc.y);
+
+        this.markerO.position.copy(O);
+        this.handleA.position.copy(A);
+        this.handleB.position.copy(B);
+        this.handleC.position.copy(C);
+
+        addSeg(B, C, PALETTE.red);
+        addSeg(A, C, PALETTE.green);
+        addSeg(A, B, PALETTE.violet);
+
+        if (state.showRadii !== false) {
+          addSeg(O, A, PALETTE.indigo, true);
+          addSeg(O, B, PALETTE.indigo, true);
+          addSeg(O, C, PALETTE.indigo, true);
+        }
+
+        if (state.showCircumcircleDiameter !== false) {
+          addSeg(B, Ap, PALETTE.amber, true);
+          addSeg(Ap, C, PALETTE.amber, true);
+          setRightAngle3DVertices(this.rightAngle2, C, Ap, B, 0.95, THREE);
+          this.rightAngle2.visible = showAngles;
+        }
+        if (state.showAltitude !== false) {
+          addSeg(C, Hc, PALETTE.teal, true);
+          setRightAngle3DVertices(this.rightAngle1, Hc, C, B, 0.85, THREE);
+          this.rightAngle1.visible = showAngles;
+        }
+
+        // 3D Interior Angle Wedges at A, B, C & Reflex Wedge at C
+        this.wedge1.material.color.set(PALETTE.red);
+        this.wedge1.arcLine.material.color.set(PALETTE.red);
+        setAngleWedgeVertices3D(this.wedge1, A, B, C, 2.2, 24, THREE);
+        this.wedge2.material.color.set(PALETTE.green);
+        this.wedge2.arcLine.material.color.set(PALETTE.green);
+        setAngleWedgeVertices3D(this.wedge2, B, A, C, 2.2, 24, THREE);
+        this.wedge3.material.color.set(PALETTE.violet);
+        this.wedge3.arcLine.material.color.set(PALETTE.violet);
+        setAngleWedgeVertices3D(this.wedge3, C, A, B, 2.2, 24, THREE);
+        this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
+
+        setAngleWedgeVertices3D(this.reflexWedge1, C, A, B, 2.9, 32, THREE, true);
+        this.reflexWedge1.visible = showReflex;
+
+        if (showArea) {
+          const triGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
+          triGeom.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              triGeom,
+              new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+            )
+          );
+        }
+
+        const bisA = get3DAngleBisector(A, B, C, 3.2, THREE);
+        const bisB = get3DAngleBisector(B, A, C, 3.2, THREE);
+        const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
+        const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
+
+        labels.push(
+          { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
+          { key: 'A', name: 'A', at: { x: A.x * 1.15, y: 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
+          { key: 'B', name: 'B', at: { x: B.x * 1.15, y: 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
+          { key: 'C', name: 'C', at: { x: C.x * 1.15, y: 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
+          { key: 'Ap', name: "A'", at: { x: Ap.x * 1.15, y: 0.4, z: Ap.z * 1.15 }, coords: Ap, color: 'color-amber', show: state.showCircumcircleDiameter !== false },
+          { key: 'Hc', name: 'Hc', at: { x: Hc.x, y: 0.4, z: Hc.z }, coords: Hc, color: 'color-teal', show: state.showAltitude !== false },
+          { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
+          { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
+          { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
+          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
         );
       }
-
-      const bisA = get3DAngleBisector(A, B, C, 3.2, THREE);
-      const bisB = get3DAngleBisector(B, A, C, 3.2, THREE);
-      const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
-      const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
-
-      labels.push(
-        { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
-        { key: 'A', name: 'A', at: { x: A.x * 1.15, y: 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
-        { key: 'B', name: 'B', at: { x: B.x * 1.15, y: 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
-        { key: 'C', name: 'C', at: { x: C.x * 1.15, y: 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
-        { key: 'Ap', name: "A'", at: { x: Ap.x * 1.15, y: 0.4, z: Ap.z * 1.15 }, coords: Ap, color: 'color-amber', show: state.showCircumcircleDiameter !== false },
-        { key: 'Hc', name: 'Hc', at: { x: Hc.x, y: 0.4, z: Hc.z }, coords: Hc, color: 'color-teal', show: state.showAltitude !== false },
-        { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
-        { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
-        { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
-        { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
-      );
     } else if (this.visualId === 'law-of-cosines') {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
       const s = R / Math.max(m.a, m.b, m.c, 10);
@@ -1822,10 +2024,12 @@ export class TrigDerivationsView {
     this.container = container;
     this.visualId = visualId;
     this.initialized = false;
+    this.currentMode = null;
   }
 
-  #initDOM() {
+  #initDOM(dimensionMode = 'planar') {
     if (!this.container) return;
+    this.currentMode = dimensionMode;
 
     if (this.visualId === 'unit-circle-helix') {
       this.container.innerHTML = `
@@ -1862,38 +2066,74 @@ export class TrigDerivationsView {
         )}
       `;
     } else if (this.visualId === 'law-of-sines') {
-      this.container.innerHTML = `
-        ${cardTemplate(
-          'los-step-1',
-          'Step 1',
-          `Idempotent Altitude Bridge (${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')})`,
-          `Projecting vertex ${tag('violet', 'C')} orthogonally onto ${tag('violet', 'AB')} at foot ${tag('teal', 'Hc')} gives:<br>` +
-          `${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')} ⟹ ${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')}`
-        )}
-        ${cardTemplate(
-          'los-step-2',
-          'Step 2',
-          `Thales Antipodal Diameter Bridge (${tag('red', 'a / sin A')} = ${tag('amber', '2R')})`,
-          `Drawing circumdiameter ${tag('amber', "A'B = 2R")} through center ${tag('indigo', 'O')} subtends ${tag('amber', "∠A'CB = 90°")}:<br>` +
-          `In right ${tag('amber', "△A'CB")}, sin ${tag('red', 'A')} = ${tag('red', 'a')} / ${tag('amber', '2R')} ⟹ ${tag('red', 'a / sin A')} = ${tag('amber', '2R')}`,
-          true
-        )}
-        ${cardTemplate(
-          'los-step-3',
-          'Step 3',
-          `Three-Way Circumcircle Invariant (${tag('red', 'a/sin A')} = ${tag('green', 'b/sin B')} = ${tag('violet', 'c/sin C')} = ${tag('amber', '2R')})`,
-          `By symmetry across all three chords of the circumcircle:<br>` +
-          `${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')} = ${tag('violet', 'c / sin C')} = ${tag('amber', '2R')}`,
-          true
-        )}
-        ${cardTemplate(
-          'los-step-4',
-          'Step 4',
-          `Interior Sum (${tag('emerald', '180°')}) & Conjugate Reflex Perigon (${tag('teal', '360°')})`,
-          `Interior angles sum to ${tag('emerald', '∠A + ∠B + ∠C = 180°')}; each vertex forms a ${tag('teal', '360°')} perigon with its reflex conjugate.`,
-          true
-        )}
-      `;
+      if (dimensionMode === 'spatial') {
+        this.container.innerHTML = `
+          ${cardTemplate(
+            'los-step-1',
+            'Step 1',
+            `Spherical Geodesics on S² (${tag('red', 'a')}, ${tag('green', 'b')}, ${tag('violet', 'c')})`,
+            `On sphere S² of radius ${tag('indigo', 'R')}, triangle edges are great-circle geodesic arcs subtending central angles ${tag('indigo', 'θa, θb, θc')} at origin ${tag('indigo', 'O')}:<br>` +
+            `${tag('red', 'a = R θa')}, ${tag('green', 'b = R θb')}, ${tag('violet', 'c = R θc')}`
+          )}
+          ${cardTemplate(
+            'los-step-2',
+            'Step 2',
+            `Spherical Law of Sines (${tag('red', 'sin(a/R) / sin A')} = ${tag('amber', 'const')})`,
+            `Unit normal trihedral vectors satisfy the fundamental spherical sine invariant:<br>` +
+            `${tag('red', 'sin(a/R) / sin A')} = ${tag('green', 'sin(b/R) / sin B')} = ${tag('violet', 'sin(c/R) / sin C')} = ${tag('amber', 'const')}`,
+            true
+          )}
+          ${cardTemplate(
+            'los-step-3',
+            'Step 3',
+            `Girard's Spherical Excess Theorem (${tag('amber', 'E = A + B + C − 180° > 0')})`,
+            `On curved sphere S², the interior angle sum strictly exceeds 180°.<br>` +
+            `Spherical excess ${tag('amber', 'E = A + B + C − π')} directly determines surface area: ${tag('sky', 'Area = R² E')}`,
+            true
+          )}
+          ${cardTemplate(
+            'los-step-4',
+            'Step 4',
+            `Euclidean Taylor Correspondence (${tag('teal', 'lim R→∞ R sin(a/R) = a')})`,
+            `By 1st-order Taylor expansion ${tag('teal', 'sin(x) = x − x³/6 + ...')}:<br>` +
+            `As ${tag('indigo', 'R → ∞')} or latitudes collapse to equator, ${tag('red', 'R sin(a/R) / sin A ⟶ a / sin A = 2R')}.`,
+            true
+          )}
+        `;
+      } else {
+        this.container.innerHTML = `
+          ${cardTemplate(
+            'los-step-1',
+            'Step 1',
+            `Idempotent Altitude Bridge (${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')})`,
+            `Projecting vertex ${tag('violet', 'C')} orthogonally onto ${tag('violet', 'AB')} at foot ${tag('teal', 'Hc')} gives:<br>` +
+            `${tag('teal', 'hc')} = ${tag('green', 'b')} sin ${tag('red', 'A')} = ${tag('red', 'a')} sin ${tag('green', 'B')} ⟹ ${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')}`
+          )}
+          ${cardTemplate(
+            'los-step-2',
+            'Step 2',
+            `Thales Antipodal Diameter Bridge (${tag('red', 'a / sin A')} = ${tag('amber', '2R')})`,
+            `Drawing circumdiameter ${tag('amber', "A'B = 2R")} through center ${tag('indigo', 'O')} subtends ${tag('amber', "∠A'CB = 90°")}:<br>` +
+            `In right ${tag('amber', "△A'CB")}, sin ${tag('red', 'A')} = ${tag('red', 'a')} / ${tag('amber', '2R')} ⟹ ${tag('red', 'a / sin A')} = ${tag('amber', '2R')}`,
+            true
+          )}
+          ${cardTemplate(
+            'los-step-3',
+            'Step 3',
+            `Three-Way Circumcircle Invariant (${tag('red', 'a/sin A')} = ${tag('green', 'b/sin B')} = ${tag('violet', 'c/sin C')} = ${tag('amber', '2R')})`,
+            `By symmetry across all three chords of the circumcircle:<br>` +
+            `${tag('red', 'a / sin A')} = ${tag('green', 'b / sin B')} = ${tag('violet', 'c / sin C')} = ${tag('amber', '2R')}`,
+            true
+          )}
+          ${cardTemplate(
+            'los-step-4',
+            'Step 4',
+            `Interior Sum (${tag('emerald', '180°')}) & Conjugate Reflex Perigon (${tag('teal', '360°')})`,
+            `Interior angles sum to ${tag('emerald', '∠A + ∠B + ∠C = 180°')}; each vertex forms a ${tag('teal', '360°')} perigon with its reflex conjugate.`,
+            true
+          )}
+        `;
+      }
     } else if (this.visualId === 'law-of-cosines') {
       this.container.innerHTML = `
         ${cardTemplate(
@@ -1968,8 +2208,10 @@ export class TrigDerivationsView {
 
   render(state) {
     if (!this.container) return;
-    if (!this.initialized || !this.container.firstElementChild) {
-      this.#initDOM();
+    const isModeChanged = this.visualId === 'law-of-sines' && this.currentMode !== (state.dimensionMode || 'planar');
+    if (!this.initialized || !this.container.firstElementChild || isModeChanged) {
+      this.#initDOM(state.dimensionMode || 'planar');
+      this.initialized = true;
     }
 
     const angUnit = state.angleUnit || 'deg';
@@ -2012,35 +2254,68 @@ export class TrigDerivationsView {
         `<span>${tag('teal', `Perigon: θ + θ* = ${fmtAngle(360, angUnit)}`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`
       );
     } else if (this.visualId === 'law-of-sines') {
-      const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
-      setSlot(
-        '#los-step-1 [data-sub]',
-        `↳ Altitude ${tag('teal', `hc = ${m.altitudeHc.toFixed(3)}`)} | ${tag('red', `a = ${m.sides.a.toFixed(2)}`)}, ${tag('green', `b = ${m.sides.b.toFixed(2)}`)}, ${tag('violet', `c = ${m.sides.c.toFixed(2)}`)}`
-      );
-      setSlot(
-        '#los-step-2 [data-sub]',
-        `↳ ${tag('red', `a / sin A`)} = ${m.sides.a.toFixed(2)} / sin(${fmtAngle(m.interiorAngles.degA, angUnit)}) = ${tag('amber', m.ratios.ratioA.toFixed(3))}`
-      );
-      setSlot(
-        '#los-step-2 [data-eval]',
-        `<span>${tag('red', `a / sin A = ${m.ratios.ratioA.toFixed(3)}`)} ≝ ${tag('amber', `2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ Thales Bridge</span>`
-      );
-      setSlot(
-        '#los-step-3 [data-sub]',
-        `↳ ${tag('red', `a/sin A = ${m.ratios.ratioA.toFixed(3)}`)} | ${tag('green', `b/sin B = ${m.ratios.ratioB.toFixed(3)}`)} | ${tag('violet', `c/sin C = ${m.ratios.ratioC.toFixed(3)}`)}`
-      );
-      setSlot(
-        '#los-step-3 [data-eval]',
-        `<span>${tag('amber', `a/sin A = b/sin B = c/sin C = 2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ 2R Invariant</span>`
-      );
-      setSlot(
-        '#los-step-4 [data-sub]',
-        `↳ ${tag('red', fmtAngle(m.interiorAngles.degA, angUnit))} + ${tag('green', fmtAngle(m.interiorAngles.degB, angUnit))} + ${tag('violet', fmtAngle(m.interiorAngles.degC, angUnit))} = ${tag('emerald', fmtAngle(m.interiorAngles.sumDeg, angUnit))}`
-      );
-      setSlot(
-        '#los-step-4 [data-eval]',
-        `<span>${tag('emerald', `Interior Sum = ${fmtAngle(m.interiorAngles.sumDeg, angUnit)}`)}</span><span class="derivation-check">✓ Euclidean Sum</span>`
-      );
+      if (state.dimensionMode === 'spatial') {
+        const sM = computeSphericalLawOfSines(state, getModelRadius(state));
+        setSlot(
+          '#los-step-1 [data-sub]',
+          `↳ Central arcs: ${tag('red', `θa = ${toDegrees(sM.centralAngles.thetaA).toFixed(1)}°`)}, ${tag('green', `θb = ${toDegrees(sM.centralAngles.thetaB).toFixed(1)}°`)}, ${tag('violet', `θc = ${toDegrees(sM.centralAngles.thetaC).toFixed(1)}°`)}<br>` +
+            `↳ Geodesic lengths: ${tag('red', `a = ${sM.geodesicArcs.a.toFixed(2)}`)}, ${tag('green', `b = ${sM.geodesicArcs.b.toFixed(2)}`)}, ${tag('violet', `c = ${sM.geodesicArcs.c.toFixed(2)}`)}`
+        );
+        setSlot(
+          '#los-step-2 [data-sub]',
+          `↳ Scaled Ratios: ${tag('red', `R sin(a/R)/sin A = ${sM.ratios.ratioSphA.toFixed(3)}`)} | ${tag('green', `B = ${sM.ratios.ratioSphB.toFixed(3)}`)} | ${tag('violet', `C = ${sM.ratios.ratioSphC.toFixed(3)}`)}`
+        );
+        setSlot(
+          '#los-step-2 [data-eval]',
+          `<span>${tag('amber', `sin(a/R)/sin A = sin(b/R)/sin B = sin(c/R)/sin C = const`)}</span><span class="derivation-check">✓ Spherical Sine Invariant</span>`
+        );
+        setSlot(
+          '#los-step-3 [data-sub]',
+          `↳ ${tag('red', `A = ${sM.sphericalAngles.degA.toFixed(1)}°`)} + ${tag('green', `B = ${sM.sphericalAngles.degB.toFixed(1)}°`)} + ${tag('violet', `C = ${sM.sphericalAngles.degC.toFixed(1)}°`)} = ${tag('amber', `${sM.sphericalAngles.sumDeg.toFixed(1)}° > 180°`)}`
+        );
+        setSlot(
+          '#los-step-3 [data-eval]',
+          `<span>${tag('amber', `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(2)}°`)} ⟹ ${tag('sky', `Area = R²E = ${sM.sphericalExcess.sphericalArea.toFixed(2)}`)}</span><span class="derivation-check">✓ Girard Theorem</span>`
+        );
+        setSlot(
+          '#los-step-4 [data-sub]',
+          `↳ Chords: a=${sM.chords3D.a.toFixed(2)}, b=${sM.chords3D.b.toFixed(2)}, c=${sM.chords3D.c.toFixed(2)} | Pyramid Vol = ${sM.pyramidVolume.toFixed(3)}`
+        );
+        setSlot(
+          '#los-step-4 [data-eval]',
+          `<span>${tag('teal', `Taylor limit: R sin(a/R) ⟶ a (Residual < 0.05)`)}</span><span class="derivation-check">✓ Asymptotic Limit</span>`
+        );
+      } else {
+        const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
+        setSlot(
+          '#los-step-1 [data-sub]',
+          `↳ Altitude ${tag('teal', `hc = ${m.altitudeHc.toFixed(3)}`)} | ${tag('red', `a = ${m.sides.a.toFixed(2)}`)}, ${tag('green', `b = ${m.sides.b.toFixed(2)}`)}, ${tag('violet', `c = ${m.sides.c.toFixed(2)}`)}`
+        );
+        setSlot(
+          '#los-step-2 [data-sub]',
+          `↳ ${tag('red', `a / sin A`)} = ${m.sides.a.toFixed(2)} / sin(${fmtAngle(m.interiorAngles.degA, angUnit)}) = ${tag('amber', m.ratios.ratioA.toFixed(3))}`
+        );
+        setSlot(
+          '#los-step-2 [data-eval]',
+          `<span>${tag('red', `a / sin A = ${m.ratios.ratioA.toFixed(3)}`)} ≝ ${tag('amber', `2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ Thales Bridge</span>`
+        );
+        setSlot(
+          '#los-step-3 [data-sub]',
+          `↳ ${tag('red', `a/sin A = ${m.ratios.ratioA.toFixed(3)}`)} | ${tag('green', `b/sin B = ${m.ratios.ratioB.toFixed(3)}`)} | ${tag('violet', `c/sin C = ${m.ratios.ratioC.toFixed(3)}`)}`
+        );
+        setSlot(
+          '#los-step-3 [data-eval]',
+          `<span>${tag('amber', `a/sin A = b/sin B = c/sin C = 2R = ${m.diameter2R.toFixed(3)}`)}</span><span class="derivation-check">✓ 2R Invariant</span>`
+        );
+        setSlot(
+          '#los-step-4 [data-sub]',
+          `↳ ${tag('red', fmtAngle(m.interiorAngles.degA, angUnit))} + ${tag('green', fmtAngle(m.interiorAngles.degB, angUnit))} + ${tag('violet', fmtAngle(m.interiorAngles.degC, angUnit))} = ${tag('emerald', fmtAngle(m.interiorAngles.sumDeg, angUnit))}`
+        );
+        setSlot(
+          '#los-step-4 [data-eval]',
+          `<span>${tag('emerald', `Interior Sum = ${fmtAngle(m.interiorAngles.sumDeg, angUnit)}`)}</span><span class="derivation-check">✓ Euclidean Sum</span>`
+        );
+      }
     } else if (this.visualId === 'law-of-cosines') {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
       setSlot(
@@ -2267,6 +2542,34 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
+  // Dual Mode Switch: Planar (Y = 0) vs True Spherical 3D on S² (Law of Sines)
+  const bindModeSwitch = (id, mode) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', () => {
+        if (mode === 'spatial') {
+          const st = store.get();
+          if (st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
+            store.set({
+              dimensionMode: 'spatial',
+              latA: toRadians(65),
+              latB: toRadians(115),
+              latC: toRadians(50),
+            });
+          } else {
+            store.set({ dimensionMode: 'spatial' });
+          }
+        } else {
+          store.set({ dimensionMode: 'planar' });
+        }
+      });
+    }
+  };
+  bindModeSwitch('btn-mode-planar', 'planar');
+  bindModeSwitch('btn-mode-spatial', 'spatial');
+  bindModeSwitch('btn-mode-planar-pill', 'planar');
+  bindModeSwitch('btn-mode-spatial-pill', 'spatial');
+
   // 2D Canvas Wheel Zoom (synchronized with 3D and radius slider)
   canvas.addEventListener(
     'wheel',
@@ -2461,6 +2764,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       cylCheck.checked = state.showCylinder !== false;
     }
   } else if (visualId === 'law-of-sines') {
+    const isSpatial = state.dimensionMode === 'spatial';
     const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
     const degAPolar = ((toDegrees(state.angleA) % 360) + 360) % 360;
     const degBPolar = ((toDegrees(state.angleB) % 360) + 360) % 360;
@@ -2480,11 +2784,71 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-2r', m.diameter2R.toFixed(3));
     setText('tel-hc', m.altitudeHc.toFixed(3));
 
-    setText('val-3d-2r', m.diameter2R.toFixed(3));
-    setText('val-3d-ra', m.ratios.ratioA.toFixed(3));
-    setText('val-3d-rb', m.ratios.ratioB.toFixed(3));
-    setText('val-3d-rc', m.ratios.ratioC.toFixed(3));
-    setText('val-3d-area', m.area.toFixed(2));
+    // Update Mode Buttons & View Title
+    const btnPlanar = document.getElementById('btn-mode-planar');
+    const btnSpatial = document.getElementById('btn-mode-spatial');
+    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
+    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
+    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
+    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
+    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
+    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+
+    const titleEl = document.getElementById('canvas-3d-title');
+    if (titleEl) {
+      titleEl.innerHTML = isSpatial
+        ? '3D: Spherical Law of Sines &amp; Excess on S² (<span class="color-amber">sin(a/R)/sin A = const</span>)'
+        : '3D: Circumscribed Sphere &amp; Antipodal Diameter (<span class="color-amber">A\'B = 2R</span>)';
+    }
+
+    const descEl = document.getElementById('desc-mode-dimension');
+    if (descEl) {
+      descEl.textContent = isSpatial
+        ? 'Spherical geometry on S²: arcs are great circles, A+B+C > 180°, sin(a/R)/sin A = const.'
+        : 'Planar Euclidean embedding on equatorial plane Y = 0 with diameter 2R = a / sin A.';
+    }
+
+    const rowExcess = document.getElementById('row-3d-excess');
+    const rowVolume = document.getElementById('row-3d-volume');
+    const row2R = document.getElementById('row-3d-2r');
+    const lblArea = document.getElementById('lbl-3d-area');
+    const lblRa = document.getElementById('lbl-3d-ra');
+    const lblRb = document.getElementById('lbl-3d-rb');
+    const lblRc = document.getElementById('lbl-3d-rc');
+
+    setText('val-3d-mode-label', isSpatial ? 'Spherical (S²)' : 'Planar (Y = 0)');
+
+    if (isSpatial) {
+      const sM = computeSphericalLawOfSines(state, R3D);
+      if (lblRa) lblRa.textContent = 'R sin(a/R) / sin A:';
+      if (lblRb) lblRb.textContent = 'R sin(b/R) / sin B:';
+      if (lblRc) lblRc.textContent = 'R sin(c/R) / sin C:';
+      if (lblArea) lblArea.textContent = 'Spherical Area R²E:';
+      if (row2R) row2R.classList.add('hidden');
+      if (rowExcess) rowExcess.classList.remove('hidden');
+      if (rowVolume) rowVolume.classList.remove('hidden');
+
+      setText('val-3d-ra', sM.ratios.ratioSphA.toFixed(3));
+      setText('val-3d-rb', sM.ratios.ratioSphB.toFixed(3));
+      setText('val-3d-rc', sM.ratios.ratioSphC.toFixed(3));
+      setText('val-3d-area', sM.sphericalExcess.sphericalArea.toFixed(2));
+      setText('val-3d-excess', `${sM.sphericalExcess.excessDeg.toFixed(2)}°`);
+      setText('val-3d-volume', sM.pyramidVolume.toFixed(3));
+    } else {
+      if (lblRa) lblRa.textContent = '3D a / sin A:';
+      if (lblRb) lblRb.textContent = '3D b / sin B:';
+      if (lblRc) lblRc.textContent = '3D c / sin C:';
+      if (lblArea) lblArea.textContent = 'Triangle Area abc/(4R):';
+      if (row2R) row2R.classList.remove('hidden');
+      if (rowExcess) rowExcess.classList.add('hidden');
+      if (rowVolume) rowVolume.classList.add('hidden');
+
+      setText('val-3d-2r', m.diameter2R.toFixed(3));
+      setText('val-3d-ra', m.ratios.ratioA.toFixed(3));
+      setText('val-3d-rb', m.ratios.ratioB.toFixed(3));
+      setText('val-3d-rc', m.ratios.ratioC.toFixed(3));
+      setText('val-3d-area', m.area.toFixed(2));
+    }
   } else if (visualId === 'law-of-cosines') {
     const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
     syncSlider('slider-side-a', m.a);

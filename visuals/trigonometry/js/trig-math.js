@@ -322,6 +322,145 @@ export function computeLawOfSines(angleA, angleB, angleC, radius = 10) {
   };
 }
 
+/**
+ * SUITE 02 (Spatial 3D Extension): Spherical Law of Sines & Spherical Excess on S²
+ *   sin(a/R) / sin A_sph = sin(b/R) / sin B_sph = sin(c/R) / sin C_sph
+ * Computes non-planar spherical triangle ABC on sphere S² of radius R,
+ * with vertices having spherical latitude (latA, latB, latC) and longitude (angleA, angleB, angleC).
+ * As R → ∞ or when latitudes collapse to the equator (lat = π/2), the spherical ratios smoothly
+ * converge to the flat Euclidean diameter 2R via Taylor series: sin(a/R) ≈ a/R.
+ */
+export function computeSphericalLawOfSines(state, radius = 10) {
+  const R = radius || 10;
+  const lonA = wrapAngleRad(state?.angleA || 0);
+  const lonB = wrapAngleRad(state?.angleB || 0);
+  const lonC = wrapAngleRad(state?.angleC || 0);
+
+  // Latitudes from +Y pole (default: latA = 65°, latB = 115°, latC = 50° if not specified or π/2)
+  const latA = state?.latA !== undefined ? state.latA : toRadians(65);
+  const latB = state?.latB !== undefined ? state.latB : toRadians(115);
+  const latC = state?.latC !== undefined ? state.latC : toRadians(50);
+
+  // 3D Cartesian coordinates on sphere S²:
+  const sphericalToCartesian = (lon, lat) => {
+    const sLat = Math.sin(lat);
+    return {
+      x: R * sLat * Math.cos(lon),
+      y: R * Math.cos(lat),
+      z: R * sLat * Math.sin(lon),
+    };
+  };
+
+  const A = sphericalToCartesian(lonA, latA);
+  const B = sphericalToCartesian(lonB, latB);
+  const C = sphericalToCartesian(lonC, latC);
+
+  // Unit vectors
+  const uA = { x: A.x / R, y: A.y / R, z: A.z / R };
+  const uB = { x: B.x / R, y: B.y / R, z: B.z / R };
+  const uC = { x: C.x / R, y: C.y / R, z: C.z / R };
+
+  const dot = (u, v) => u.x * v.x + u.y * v.y + u.z * v.z;
+  const cross = (u, v) => ({
+    x: u.y * v.z - u.z * v.y,
+    y: u.z * v.x - u.x * v.z,
+    z: u.x * v.y - u.y * v.x,
+  });
+
+  // Geodesic central angles (arc lengths on unit sphere in radians)
+  // Side a: between B and C
+  // Side b: between A and C
+  // Side c: between A and B
+  const thetaA = Math.acos(clamp(dot(uB, uC), -1, 1));
+  const thetaB = Math.acos(clamp(dot(uA, uC), -1, 1));
+  const thetaC = Math.acos(clamp(dot(uA, uB), -1, 1));
+
+  // Geodesic arc lengths on sphere of radius R:
+  const arcA = R * thetaA;
+  const arcB = R * thetaB;
+  const arcC = R * thetaC;
+
+  // Chord lengths in 3D Euclidean space:
+  const chordA = Math.hypot(B.x - C.x, B.y - C.y, B.z - C.z);
+  const chordB = Math.hypot(A.x - C.x, A.y - C.y, A.z - C.z);
+  const chordC = Math.hypot(A.x - B.x, A.y - B.y, A.z - B.z);
+
+  // Spherical angles between the great-circle planes via Spherical Law of Cosines:
+  const sinThA = Math.sin(thetaA);
+  const sinThB = Math.sin(thetaB);
+  const sinThC = Math.sin(thetaC);
+
+  const cosAngleA = sinThB > 1e-5 && sinThC > 1e-5
+    ? clamp((Math.cos(thetaA) - Math.cos(thetaB) * Math.cos(thetaC)) / (sinThB * sinThC), -1, 1)
+    : 1;
+  const cosAngleB = sinThA > 1e-5 && sinThC > 1e-5
+    ? clamp((Math.cos(thetaB) - Math.cos(thetaA) * Math.cos(thetaC)) / (sinThA * sinThC), -1, 1)
+    : 1;
+  const cosAngleC = sinThA > 1e-5 && sinThB > 1e-5
+    ? clamp((Math.cos(thetaC) - Math.cos(thetaA) * Math.cos(thetaB)) / (sinThA * sinThB), -1, 1)
+    : 1;
+
+  const sphA = Math.acos(cosAngleA);
+  const sphB = Math.acos(cosAngleB);
+  const sphC = Math.acos(cosAngleC);
+
+  const sinSphA = Math.sin(sphA);
+  const sinSphB = Math.sin(sphB);
+  const sinSphC = Math.sin(sphC);
+
+  // Scaled Spherical Law of Sines ratios: R * sin(arc/R) / sin(sphAngle)
+  const ratioSphA = sinSphA > 1e-4 ? (R * sinThA) / sinSphA : 2 * R;
+  const ratioSphB = sinSphB > 1e-4 ? (R * sinThB) / sinSphB : 2 * R;
+  const ratioSphC = sinSphC > 1e-4 ? (R * sinThC) / sinSphC : 2 * R;
+
+  // Spherical Excess E = A + B + C - π (in radians and degrees)
+  const excessRad = Math.max(0, sphA + sphB + sphC - Math.PI);
+  const excessDeg = toDegrees(excessRad);
+  const sphericalArea = R * R * excessRad;
+
+  // 3D Trihedral Pyramid Volume: V = (R³ / 6) * |uA . (uB x uC)|
+  const tripleProduct = Math.abs(dot(uA, cross(uB, uC)));
+  const pyramidVolume = (Math.pow(R, 3) / 6) * tripleProduct;
+
+  return {
+    radius: R,
+    vertices3D: { A, B, C },
+    unitVectors: { uA, uB, uC },
+    centralAngles: { thetaA, thetaB, thetaC },
+    geodesicArcs: { a: arcA, b: arcB, c: arcC },
+    chords3D: { a: chordA, b: chordB, c: chordC },
+    sphericalAngles: {
+      A: sphA,
+      B: sphB,
+      C: sphC,
+      degA: toDegrees(sphA),
+      degB: toDegrees(sphB),
+      degC: toDegrees(sphC),
+      sumDeg: toDegrees(sphA + sphB + sphC),
+    },
+    sines: {
+      sinSphA,
+      sinSphB,
+      sinSphC,
+      sinThA,
+      sinThB,
+      sinThC,
+    },
+    ratios: {
+      ratioSphA,
+      ratioSphB,
+      ratioSphC,
+    },
+    sphericalExcess: {
+      excessRad,
+      excessDeg,
+      sphericalArea,
+    },
+    pyramidVolume,
+    isSineLawVerified: Math.abs(ratioSphA - ratioSphB) < 0.05 && Math.abs(ratioSphB - ratioSphC) < 0.05,
+  };
+}
+
 /* ============================================================================
    SUITE 03: Law of Cosines & Generalized Pythagorean Projection
    ============================================================================ */

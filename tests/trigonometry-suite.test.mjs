@@ -13,6 +13,7 @@ import {
     mixedPartialRectangleQuotient,
     computeUnitCircleHelix,
     computeLawOfSines,
+    computeSphericalLawOfSines,
     computeLawOfCosines,
     computeAngleSumIdentities,
 } from '../visuals/trigonometry/js/trig-math.js';
@@ -77,6 +78,23 @@ describe('Trigonometry Suite — Visual Invariants', () => {
         assert.ok(state.invariants.sineLawErrorC < 1e-12);
         assert.ok(state.invariants.altitudeIdentityError < 1e-12);
         assert.equal(state.invariants.isVerified, true);
+    });
+
+    test('computeSphericalLawOfSines satisfies sin(a/R)/sinA = sin(b/R)/sinB = sin(c/R)/sinC and positive spherical excess', () => {
+        const state = computeSphericalLawOfSines({
+            angleA: 0.4,
+            angleB: 2.2,
+            angleC: 4.1,
+            latA: 1.1,
+            latB: 2.0,
+            latC: 0.9,
+        }, 10);
+        assert.ok(Math.abs(state.ratios.ratioSphA - state.ratios.ratioSphB) < 0.05);
+        assert.ok(Math.abs(state.ratios.ratioSphB - state.ratios.ratioSphC) < 0.05);
+        assert.equal(state.isSineLawVerified, true);
+        assert.ok(state.sphericalExcess.excessDeg > 0, 'spherical excess must be strictly positive on non-coplanar triangle');
+        assert.ok(state.sphericalExcess.sphericalArea > 0, 'spherical area must be positive');
+        assert.ok(state.pyramidVolume > 0, 'trihedral pyramid volume must be positive');
     });
 
     test('computeLawOfCosines satisfies c^2 = a^2 + b^2 - 2ab cos C and mixed partial = -2 cos C', () => {
@@ -329,5 +347,29 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle2, T_base"));
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, C_base"));
         assert.ok(src.includes("key: 'helix-y'"));
+    });
+
+    test('Law of Sines dual-mode switch (Planar Y = 0 vs Spherical 3D) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
+        const losHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/law-of-sines/index.html'), 'utf-8');
+        assert.ok(losHtml.includes('id="btn-mode-planar"'));
+        assert.ok(losHtml.includes('id="btn-mode-spatial"'));
+        assert.ok(losHtml.includes('id="btn-mode-planar-pill"'));
+        assert.ok(losHtml.includes('id="btn-mode-spatial-pill"'));
+        assert.ok(losHtml.includes('id="section-dimension-mode"'));
+        assert.ok(losHtml.includes('id="val-3d-mode-label"'));
+        assert.ok(losHtml.includes('id="row-3d-excess"'));
+        assert.ok(losHtml.includes('id="row-3d-volume"'));
+
+        // Check trig-core.js dual-mode wiring
+        assert.ok(src.includes("dimensionMode: 'planar'"));
+        assert.ok(src.includes("computeSphericalLawOfSines(state, R)"));
+        assert.ok(src.includes("addGeodesicArc(B, C, PALETTE.red)"));
+        assert.ok(src.includes("addGeodesicArc(A, C, PALETTE.green)"));
+        assert.ok(src.includes("addGeodesicArc(A, B, PALETTE.violet)"));
+        assert.ok(src.includes("Spherical Geodesics on S²"));
+        assert.ok(src.includes("Girard's Spherical Excess Theorem"));
+        assert.ok(src.includes("Euclidean Taylor Correspondence"));
+        assert.ok(src.includes("btn-mode-planar"));
+        assert.ok(src.includes("btn-mode-spatial"));
     });
 });
