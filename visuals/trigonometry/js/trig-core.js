@@ -1065,8 +1065,8 @@ export class TrigCanvas2DView {
 
     if (state.showDifferenceRay !== false) {
       const lblDiff = showPoints
-        ? getPointLabel('P(α−β)', m.points2D.P_diff.x * r, m.points2D.P_diff.y * r, vis)
-        : (showLabels ? 'P(α−β)' : '');
+        ? getPointLabel('D(α−β)', m.points2D.P_diff.x * r, m.points2D.P_diff.y * r, vis)
+        : (showLabels ? 'D(α−β)' : '');
       drawVectorWithApexLabel(ctx, O, Pdiff, PALETTE.rose, lblDiff, 2.2, 9, 20);
     }
 
@@ -1074,12 +1074,30 @@ export class TrigCanvas2DView {
       drawTextBadge(ctx, `cos(α+β) = ${m.trig.cosSum.toFixed(3)}`, (O.x + N.x) / 2, O.y + 18, PALETTE.amber);
       drawTextBadge(ctx, `sin(α+β) = ${m.trig.sinSum.toFixed(3)}`, N.x - 44, (N.y + P.y) / 2, PALETTE.emerald);
       if (state.showDifferenceRay !== false) {
+        // Chord PD bisected perpendicularly at Q by ray OA
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = 'rgba(244, 63, 94, 0.75)';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(P.x, P.y);
+        ctx.lineTo(Pdiff.x, Pdiff.y);
+        ctx.stroke();
+        ctx.restore();
+
         drawTextBadge(
           ctx,
           `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`,
           (O.x + Pdiff.x) / 2 + 16,
           (O.y + Pdiff.y) / 2 + 16,
           PALETTE.rose
+        );
+        drawTextBadge(
+          ctx,
+          `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`,
+          (P.x + Pdiff.x) / 2 - 40,
+          (P.y + Pdiff.y) / 2 - 12,
+          PALETTE.violet
         );
       }
     }
@@ -2183,6 +2201,8 @@ export class TrigScene3DView extends BaseScene3DView {
         addVectorArrow(O, P, PALETTE.emerald);
         if (state.showDifferenceRay !== false) {
           addVectorArrow(O, Pdiff, PALETTE.rose);
+          // Chord PD bisected perpendicularly by ray OA at Q
+          addSeg(P, Pdiff, PALETTE.rose, true);
         }
 
         if (state.showStackedTriangles !== false) {
@@ -2238,8 +2258,9 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'A', name: 'A(α)', at: { x: Aray.x * 1.15, y: 0.4, z: Aray.z * 1.15 }, coords: Aray, color: 'color-sky' },
           { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
           ...(state.showDifferenceRay !== false ? [
-            { key: 'Pdiff', name: 'P(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' },
-            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Pdiff.x * 0.6, y: 0.45, z: Pdiff.z * 0.6 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles }
+            { key: 'Pdiff', name: 'D(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' },
+            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Pdiff.x * 0.6, y: 0.45, z: Pdiff.z * 0.6 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
+            { key: 'chord-pd-len', text: `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`, at: { x: (P.x + Pdiff.x) * 0.5 + 0.8, y: 0.55, z: (P.z + Pdiff.z) * 0.5 }, color: 'color-violet', isAngle: true, show: showLengths && showAngles }
           ] : []),
           { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
@@ -2748,7 +2769,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-4 [data-sub]',
-          `↳ Difference Angle ${tag('rose', `α − β = ${fmtAngle(m.diffAngleDeg, angUnit)}`)}: ${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
+          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
         );
         setSlot(
           '#asi-step-4 [data-eval]',
@@ -3354,6 +3375,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-sin-sum', m.trig.sinSum.toFixed(4));
     setText('tel-cos-diff', m.trig.cosDiff.toFixed(4));
     setText('tel-sin-diff', m.trig.sinDiff.toFixed(4));
+    setText('tel-separation', fmtAng(2 * m.betaDeg));
+    setText('tel-chord-pd', (2 * Math.sin(m.beta)).toFixed(4));
 
     // Update Mode Buttons & View Title
     const btnPlanar = document.getElementById('btn-mode-planar');
