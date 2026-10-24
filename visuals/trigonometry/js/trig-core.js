@@ -994,6 +994,8 @@ export class TrigCanvas2DView {
       ctx.lineTo(S.x, S.y);
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(S.x, S.y);
+      ctx.moveTo(M.x, M.y);
+      ctx.lineTo(N.x, N.y);
       ctx.stroke();
       ctx.restore();
 
@@ -1517,10 +1519,12 @@ export class TrigScene3DView extends BaseScene3DView {
       if (state.showStackedTriangles !== false) {
         addSeg(O, Q, PALETTE.amber);
         addSeg(Q, P, PALETTE.violet);
+        // Perforated decomposition perimeter box (Q-M-N-S-P)
         addSeg(Q, M, PALETTE.amber, true);
-        addSeg(P, N, PALETTE.emerald, true);
+        addSeg(P, N, PALETTE.amber, true);
         addSeg(Q, S, PALETTE.amber, true);
         addSeg(P, S, PALETTE.amber, true);
+        addSeg(M, N, PALETTE.amber, true);
         setRightAngle3DVertices(this.rightAngle1, Q, O, P, 0.85, THREE);
         setRightAngle3DVertices(this.rightAngle2, M, O, Q, 0.75, THREE);
         this.rightAngle1.visible = showAngles;
