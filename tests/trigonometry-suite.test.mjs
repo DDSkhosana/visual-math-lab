@@ -108,6 +108,26 @@ describe('Trigonometry Suite — Visual Invariants', () => {
         assert.equal(state.invariants.isVerified, true);
     });
 
+    test('computeLawOfCosines supports full 360° orbital motion of vertex B across all 4 quadrants', () => {
+        // Upper half plane (acute and obtuse)
+        const acute = computeLawOfCosines(8, 10, Math.PI / 3);
+        assert.ok(acute.vertices2D.B.y > 0, 'Vertex B in upper half plane for angle < 180°');
+        assert.ok(acute.invariants.cosineLawResidual < 1e-11);
+
+        // Lower half plane (reflection across baseline, angle = 240° = 4π/3)
+        const lowerQuad3 = computeLawOfCosines(8, 10, (4 * Math.PI) / 3);
+        assert.ok(lowerQuad3.vertices2D.B.y < 0, 'Vertex B in lower half plane for angle > 180°');
+        assert.ok(Math.abs(lowerQuad3.angleCDeg - 120) < 1e-10, 'Geometric interior angle must be 120° for 240° polar');
+        assert.ok(Math.abs(lowerQuad3.c - Math.sqrt(8*8 + 10*10 - 2*8*10*Math.cos(4*Math.PI/3))) < 1e-11);
+        assert.ok(lowerQuad3.invariants.cosineLawResidual < 1e-11);
+
+        // Quadrant 4 (angle = 300° = 5π/3)
+        const lowerQuad4 = computeLawOfCosines(8, 10, (5 * Math.PI) / 3);
+        assert.ok(lowerQuad4.vertices2D.B.y < 0);
+        assert.ok(Math.abs(lowerQuad4.angleCDeg - 60) < 1e-10);
+        assert.ok(lowerQuad4.invariants.cosineLawResidual < 1e-11);
+    });
+
     test('computeAngleSumIdentities satisfies R(a+b) = R(a)R(b) and addition/subtraction formulas', () => {
         const state = computeAngleSumIdentities(Math.PI / 6, Math.PI / 4, 1.0);
         assert.ok(state.invariants.cosSumResidual < 1e-12);

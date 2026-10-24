@@ -473,10 +473,11 @@ export function computeSphericalLawOfSines(state, radius = 10) {
 export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI / 3) {
   const a = Math.max(1, Number(sideA) || 8);
   const b = Math.max(1, Number(sideB) || 10);
-  const C = clamp(wrapAngleRad(angleCRad), 0.05, Math.PI - 0.05);
+  const theta = wrapAngleRad(angleCRad);
+  const C = Math.acos(clamp(Math.cos(theta), -1, 1));
 
-  const cosC = Math.cos(C);
-  const sinC = Math.sin(C);
+  const cosC = Math.cos(theta);
+  const sinC = Math.sin(theta);
 
   // Law of Cosines: c^2 = a^2 + b^2 - 2ab cos C
   const a2 = a * a;
@@ -496,7 +497,7 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
   const altitudeVec = proj.projectPerp(vertexB); // (0, a sin C)
 
   const pProj = vertexB.x; // signed projection a cos C
-  const hAlt = vertexB.y;  // altitude a sin C
+  const hAlt = Math.abs(vertexB.y);  // altitude |a sin C|
   const remBase = b - pProj; // b - a cos C
 
   // Verify 4-corner mixed partial difference quotient on f(a, b) = a^2 + b^2 - 2ab cos C
@@ -518,6 +519,8 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
     c,
     angleC: C,
     angleCDeg: toDegrees(C),
+    angleTheta: theta,
+    angleThetaDeg: toDegrees(theta),
     angleA,
     angleB,
     cosC,
@@ -574,7 +577,8 @@ export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = M
   const maxArc = Math.PI * 0.85;
   const a = clamp(Number(sideA) || 7, 1, R * maxArc);
   const b = clamp(Number(sideB) || 9, 1, R * maxArc);
-  const C = clamp(wrapAngleRad(angleCRad), 0.05, Math.PI - 0.05);
+  const theta = wrapAngleRad(angleCRad);
+  const C = Math.acos(clamp(Math.cos(theta), -1, 1));
 
   const thetaA = a / R; // arc angle in radians
   const thetaB = b / R; // arc angle in radians
@@ -583,8 +587,8 @@ export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = M
   const sinA_arc = Math.sin(thetaA);
   const cosB_arc = Math.cos(thetaB);
   const sinB_arc = Math.sin(thetaB);
-  const cosC = Math.cos(C);
-  const sinC = Math.sin(C);
+  const cosC = Math.cos(theta);
+  const sinC = Math.sin(theta);
 
   // Spherical Law of Cosines: cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C
   const cosC_arc = clamp(cosA_arc * cosB_arc + sinA_arc * sinB_arc * cosC, -1, 1);

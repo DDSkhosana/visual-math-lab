@@ -313,7 +313,7 @@ export class TrigCanvas2DView {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
       const scale = (r * 1.15) / Math.max(m.a, m.b, m.c, 10);
       const originX = cx - m.b * scale * 0.42;
-      const originY = cy + m.projection.hAlt * scale * 0.35;
+      const originY = cy;
       return {
         cx: originX,
         cy: originY,
@@ -1228,8 +1228,9 @@ export class TrigScene3DView extends BaseScene3DView {
           id: 'B',
           mesh: this.handleB,
           onDrag: (angle, hit, store) => {
-            const clamped = clamp(Math.atan2(Math.abs(hit.z), hit.x), 0.18, Math.PI - 0.18);
-            store.set({ angleC: clamped });
+            let ang = Math.atan2(hit.z, hit.x);
+            if (ang < 0) ang += Math.PI * 2;
+            store.set({ angleC: ang });
           },
         },
       ];
@@ -3093,8 +3094,9 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       const ang = pointerToAngle(x - info.cx, info.cy - y);
       if (visualId === 'law-of-cosines') {
         if (h.field === 'angleC') {
-          const raw = Math.atan2(Math.abs(info.cy - y), x - info.cx);
-          store.set({ angleC: clamp(raw, 0.18, Math.PI - 0.18) });
+          const raw = Math.atan2(info.cy - y, x - info.cx);
+          const ang = raw < 0 ? raw + TAU : raw;
+          store.set({ angleC: ang });
         } else if (h.field === 'sideB' && h.scale) {
           const nextB = clamp((x - info.cx) / h.scale, 2, 12);
           store.set({ sideB: Math.round(nextB * 2) / 2 });
