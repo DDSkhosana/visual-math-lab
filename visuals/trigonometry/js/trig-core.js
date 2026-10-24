@@ -1339,6 +1339,7 @@ export class TrigScene3DView extends BaseScene3DView {
       labels.push(
         { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: { x: 0, y: 0, z: 0 }, color: 'color-indigo' },
         { key: 'P', name: 'P(θ)', at: { x: P_eq.x * 1.15, y: 0.4, z: P_eq.z * 1.15 }, coords: { x: P_eq.x, y: 0, z: P_eq.z }, color: 'color-violet' },
+        { key: 'Cx', name: 'Cx', at: { x: projX.x, y: 0.4, z: 0 }, coords: { x: projX.x, y: 0, z: 0 }, color: 'color-amber', show: state.showProjections !== false },
         { key: 'H', name: 'Helix(θ)', at: { x: P_helix.x * 1.12, y: P_helix.y + 0.6, z: P_helix.z * 1.12 }, coords: { x: P_helix.x, y: P_helix.y, z: P_helix.z }, color: 'color-teal' },
         { key: 'ang-theta', text: `θ = ${fmtAngle(m.thetaDeg, angUnit)}`, at: bisPos, color: 'color-amber', isAngle: true, show: showAngles },
         { key: 'ref-theta', text: `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`, at: refPos, color: 'color-teal', isAngle: true, show: showReflex }
@@ -1415,6 +1416,8 @@ export class TrigScene3DView extends BaseScene3DView {
         { key: 'A', name: 'A', at: { x: A.x * 1.15, y: 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
         { key: 'B', name: 'B', at: { x: B.x * 1.15, y: 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
         { key: 'C', name: 'C', at: { x: C.x * 1.15, y: 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
+        { key: 'Ap', name: "A'", at: { x: Ap.x * 1.15, y: 0.4, z: Ap.z * 1.15 }, coords: Ap, color: 'color-amber', show: state.showCircumcircleDiameter !== false },
+        { key: 'Hc', name: 'Hc', at: { x: Hc.x, y: 0.4, z: Hc.z }, coords: Hc, color: 'color-teal', show: state.showAltitude !== false },
         { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
         { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
         { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },

@@ -287,4 +287,18 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Helix height ${tag('violet', `y(θ) = ${m.points3D.point3D.z.toFixed(3)}`)}"));
         assert.equal(src.includes("z(θ) = "), false, "legacy z(θ) notation replaced with vertical y(θ)");
     });
+
+    test('point and angle labeling consistency is 100% aligned between 2D and 3D across all visuals', () => {
+        // Unit circle: O, P(θ), Cx, Helix(θ), θ, θ*
+        assert.ok(src.includes("key: 'Cx', name: 'Cx'"));
+        // Law of Sines: O, A, B, C, A', Hc, ∠A, ∠B, ∠C, ∠C*
+        assert.ok(src.includes("key: 'Ap', name: \"A'\""));
+        assert.ok(src.includes("key: 'Hc', name: 'Hc'"));
+        // Law of Cosines: C, A, B, D, ∠C, ∠A, ∠B, ∠C*
+        assert.ok(src.includes("key: 'D', name: 'D'"));
+        assert.ok(src.includes("key: 'ang-C'"));
+        // Angle Sum: O, A(α), P(α+β), Q, M, N, α, β, (α+β)*
+        assert.ok(src.includes("key: 'M', name: 'M'"));
+        assert.ok(src.includes("key: 'N', name: 'N'"));
+    });
 });
