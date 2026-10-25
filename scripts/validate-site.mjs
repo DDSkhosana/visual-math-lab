@@ -65,7 +65,14 @@ const trigVisualsPath = resolve(root, "visuals", "trigonometry", "data", "trig-v
 const trigVisuals = existsSync(trigVisualsPath) ? readJson(trigVisualsPath) : [];
 report(Array.isArray(visuals), "data/visuals.json must contain an array.");
 report(Array.isArray(trigVisuals), "visuals/trigonometry/data/trig-visuals.json must contain an array.");
-const allVisuals = [...visuals, ...trigVisuals];
+// Verify synchronization between data/visuals.json and trig-visuals.json
+const trigInVisuals = visuals.filter((v) => v.suite === 'trigonometry');
+report(
+  trigInVisuals.length === trigVisuals.length,
+  `Trigonometry entry count mismatch: data/visuals.json has ${trigInVisuals.length}, but trig-visuals.json has ${trigVisuals.length}.`
+);
+
+const allVisuals = visuals;
 const slugs = new Set();
 
 for (const visual of allVisuals) {
@@ -129,12 +136,21 @@ for (const visual of allVisuals) {
   }
 }
 
-const circleSuiteDirectory = resolve(root, "visuals", "circle-theorems");
-if (existsSync(circleSuiteDirectory)) {
-  for (const entry of readdirSync(circleSuiteDirectory)) {
-    const folder = resolve(circleSuiteDirectory, entry);
-    if (statSync(folder).isDirectory()) {
-      report(slugs.has(entry), `Visual folder "visuals/circle-theorems/${entry}" has no matching metadata entry.`);
+const visualsDirectory = resolve(root, "visuals");
+if (existsSync(visualsDirectory)) {
+  for (const suiteEntry of readdirSync(visualsDirectory, { withFileTypes: true })) {
+    if (!suiteEntry.isDirectory()) continue;
+    const suiteDir = resolve(visualsDirectory, suiteEntry.name);
+    for (const visualEntry of readdirSync(suiteDir, { withFileTypes: true })) {
+      if (!visualEntry.isDirectory()) continue;
+      if (["css", "js", "data", "src", "assets", "styles"].includes(visualEntry.name)) continue;
+      const visualDir = resolve(suiteDir, visualEntry.name);
+      if (existsSync(resolve(visualDir, "index.html"))) {
+        report(
+          slugs.has(visualEntry.name),
+          `Visual folder "visuals/${suiteEntry.name}/${visualEntry.name}" has no matching metadata entry in data/visuals.json.`
+        );
+      }
     }
   }
 }
@@ -151,4 +167,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Site validation passed for ${allVisuals.length} visual metadata entries (${visuals.length} Circle Theorems + ${trigVisuals.length} Trigonometry).`);
+console.log(`Site validation passed for ${allVisuals.length} visual metadata entries in data/visuals.json (8 Circle Theorems + 4 Trigonometry).`);

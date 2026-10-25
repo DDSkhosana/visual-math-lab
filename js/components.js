@@ -472,8 +472,11 @@ export function mountSharedChrome() {
           if (Array.isArray(data) && list) {
             const published = data.filter((v) => v.published);
             if (published.length > 0) {
-              list.innerHTML = renderVisualsList(root, published, activeSlug, DEFAULT_TRIG_VISUALS);
-              if (count) count.textContent = `${published.length + DEFAULT_TRIG_VISUALS.length} Visuals`;
+              const circle = published.filter((v) => (v.suite || "circle-theorems") === "circle-theorems");
+              const trig = published.filter((v) => v.suite === "trigonometry");
+              const trigList = trig.length > 0 ? trig : DEFAULT_TRIG_VISUALS;
+              list.innerHTML = renderVisualsList(root, circle, activeSlug, trigList);
+              if (count) count.textContent = `${circle.length + trigList.length} Visuals`;
               initListOrder();
               if (searchInput && searchInput.value) {
                 filterVisuals(searchInput.value);

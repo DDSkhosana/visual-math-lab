@@ -23,18 +23,13 @@ const pages = [
 
 const trigVisuals = JSON.parse(readFileSync(resolve(root, "visuals", "trigonometry", "data", "trig-visuals.json"), "utf8"));
 
+const seenSlugs = new Set();
 for (const visual of visuals.filter((visual) => visual.published)) {
+  if (seenSlugs.has(visual.slug)) continue;
+  seenSlugs.add(visual.slug);
   const suite = visual.suite || "circle-theorems";
   pages.push({
     path: `/visuals/${suite}/${visual.slug}/`,
-    priority: "0.9",
-    changefreq: "weekly",
-  });
-}
-
-for (const visual of trigVisuals.filter((visual) => visual.published)) {
-  pages.push({
-    path: `/visuals/trigonometry/${visual.slug}/`,
     priority: "0.9",
     changefreq: "weekly",
   });

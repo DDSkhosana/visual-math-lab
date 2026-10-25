@@ -25,19 +25,33 @@ export async function renderCatalogue(container, root = ".") {
   }
 
   const visuals = await response.json();
-  const published = visuals.filter((visual) => visual.published);
+  const published = visuals.filter(
+    (visual) => visual.published && (visual.suite || "circle-theorems") === "circle-theorems"
+  );
   container.innerHTML = published
     .map((visual) => renderVisualCard(visual, root, "circle-theorems"))
     .join("");
 }
 
 export async function renderTrigCatalogue(container, root = ".") {
-  const response = await fetch(`${root}/visuals/trigonometry/data/trig-visuals.json`);
-  if (!response.ok) {
-    throw new Error(`Could not load trigonometry catalogue (${response.status}).`);
+  let visuals;
+  try {
+    const res = await fetch(`${root}/data/visuals.json`);
+    if (res.ok) {
+      const all = await res.json();
+      const trig = all.filter((v) => v.suite === "trigonometry");
+      if (trig.length > 0) visuals = trig;
+    }
+  } catch (_) {}
+
+  if (!visuals) {
+    const response = await fetch(`${root}/visuals/trigonometry/data/trig-visuals.json`);
+    if (!response.ok) {
+      throw new Error(`Could not load trigonometry catalogue (${response.status}).`);
+    }
+    visuals = await response.json();
   }
 
-  const visuals = await response.json();
   const published = visuals.filter((visual) => visual.published);
   container.innerHTML = published
     .map((visual) => renderVisualCard(visual, root, "trigonometry"))

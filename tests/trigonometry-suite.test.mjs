@@ -198,6 +198,16 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
         assert.equal(Array.isArray(catalog), true);
         assert.equal(catalog.length, 4);
 
+        const unifiedCatalog = JSON.parse(
+            fs.readFileSync(path.join(ROOT_DIR, 'data/visuals.json'), 'utf8')
+        );
+        assert.equal(Array.isArray(unifiedCatalog), true);
+        assert.equal(unifiedCatalog.length, 12, 'data/visuals.json must contain all 12 visual metadata entries');
+        const circleCount = unifiedCatalog.filter(v => (v.suite || 'circle-theorems') === 'circle-theorems').length;
+        const trigCount = unifiedCatalog.filter(v => v.suite === 'trigonometry').length;
+        assert.equal(circleCount, 8, 'Must have 8 circle theorems in unified catalog');
+        assert.equal(trigCount, 4, 'Must have 4 trigonometry visuals in unified catalog');
+
         const rootHtml = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
         assert.equal(rootHtml.includes('visuals/circle-theorems/'), true);
         assert.equal(rootHtml.includes('visuals/trigonometry/'), true);

@@ -59,9 +59,10 @@ test('Walkthrough & Tips: tutorial-walkthrough.js supports all 8 visuals with ta
 
   // Check that all 8 visual slugs are covered in theorem tips
   const visuals = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'visuals.json'), 'utf8'));
-  assert.strictEqual(visuals.length, 8, 'Must have 8 visuals');
+  const circleVisuals = visuals.filter((v) => (v.suite || 'circle-theorems') === 'circle-theorems');
+  assert.strictEqual(circleVisuals.length, 8, 'Must have 8 visuals');
 
-  for (const v of visuals) {
+  for (const v of circleVisuals) {
     assert.ok(
       modCode.includes(`'${v.slug}'`),
       `tutorial-walkthrough.js must define tailored tips for visual "${v.slug}"`

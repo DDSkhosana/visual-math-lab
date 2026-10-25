@@ -1212,7 +1212,8 @@ test('Gap 4: DOM Contract Linter — All JS DOM queries match existing HTML elem
   const missingReport = [];
 
   for (const visual of visuals) {
-    const htmlPath = path.join(ROOT, 'visuals', 'circle-theorems', visual.slug, 'index.html');
+    const suite = visual.suite || 'circle-theorems';
+    const htmlPath = path.join(ROOT, 'visuals', suite, visual.slug, 'index.html');
     assert.ok(fs.existsSync(htmlPath), `Visual ${visual.slug} must have index.html`);
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
@@ -1223,7 +1224,7 @@ test('Gap 4: DOM Contract Linter — All JS DOM queries match existing HTML elem
       htmlIds.add(m[1]);
     }
 
-    const jsDir = path.join(ROOT, 'visuals', 'circle-theorems', visual.slug, 'src');
+    const jsDir = path.join(ROOT, 'visuals', suite, visual.slug, 'src');
     if (!fs.existsSync(jsDir)) continue;
 
     function walkDir(dir) {
@@ -1269,7 +1270,7 @@ test('Gap 5: HTML Script Loading Contract — Zero blocking scripts in <head> an
   const visuals = JSON.parse(fs.readFileSync(visualsPath, 'utf8'));
 
   const pagesToCheck = [
-    ...visuals.map((v) => path.join('visuals', 'circle-theorems', v.slug, 'index.html')),
+    ...visuals.map((v) => path.join('visuals', v.suite || 'circle-theorems', v.slug, 'index.html')),
     'index.html',
     'about.html',
     'contact.html',

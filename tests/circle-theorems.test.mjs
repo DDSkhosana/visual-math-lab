@@ -944,7 +944,8 @@ test('Visual Thumbnails: all 8 SVG thumbnails exist, have valid viewBox, and con
   const rootDir = path.resolve(__dirname, '..');
   const visuals = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'visuals.json'), 'utf8'));
 
-  assert.strictEqual(visuals.length, 8, 'Must have exactly 8 visual metadata entries');
+  const circleVisuals = visuals.filter((v) => (v.suite || 'circle-theorems') === 'circle-theorems');
+  assert.strictEqual(circleVisuals.length, 8, 'Must have exactly 8 visual metadata entries');
 
   const expectedKeywords = {
     'thales-theorem': ['THALES', '90°', 'P', 'O'],
@@ -957,7 +958,7 @@ test('Visual Thumbnails: all 8 SVG thumbnails exist, have valid viewBox, and con
     'perpendicular-chord-bisector': ['PERPENDICULAR CHORD BISECTOR', 'OM', '90°', 'M'],
   };
 
-  for (const visual of visuals) {
+  for (const visual of circleVisuals) {
     const thumbPath = path.join(rootDir, visual.thumbnail);
     assert.ok(fs.existsSync(thumbPath), `Thumbnail must exist: ${visual.thumbnail}`);
     const svg = fs.readFileSync(thumbPath, 'utf8');
