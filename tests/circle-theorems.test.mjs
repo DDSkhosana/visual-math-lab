@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { get3DAngleBisector, get3DAngleDegrees } from '../js/circle-3d.js';
 import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections } from '../js/circle-core.js';
 import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/circle-theorems/thales-theorem/src/ui/Accordion.js';
+import { getMatchScore, highlightMatch } from '../js/components.js';
 
 const close = (actual, expected, eps = 1e-6) => assert.ok(Math.abs(actual - expected) < eps, `${actual} !~ ${expected}`);
 
@@ -803,6 +804,39 @@ test('Visuals Search Functionality: match strength ranking, top-of-list placemen
   const visCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
   assert.ok(visCss.includes('.site-nav__search-match'), 'visual.css must define .site-nav__search-match');
   assert.ok(visCss.includes('.site-nav__search-match-tag'), 'visual.css must define .site-nav__search-match-tag');
+
+  // 5. Functional assertions: multi-word tokenization, short query boundary filtering, and multi-token highlighting
+  const mockThales = {
+    dataset: {
+      title: "Thales' Theorem",
+      slug: 'thales-theorem',
+      suite: 'circle-theorems',
+      category: 'Geometry',
+      search: "thales' theorem thales-theorem geometry circle-theorems"
+    }
+  };
+  const mockCosines = {
+    dataset: {
+      title: 'Law of Cosines & Generalized Pythagorean Projection',
+      slug: 'law-of-cosines',
+      suite: 'trigonometry',
+      category: 'Trigonometry',
+      search: 'law of cosines & generalized pythagorean projection law-of-cosines trigonometry trigonometry'
+    }
+  };
+
+  // 2-character word-boundary filtering: 'th' matches Thales but rejects Pythagorean
+  assert.ok(getMatchScore(mockThales, 'th') > 0, "'th' must match Thales' Theorem at word boundary");
+  assert.equal(getMatchScore(mockCosines, 'th'), -1, "'th' must NOT match Law of Cosines via mid-word 'th' in Pythagorean");
+
+  // Multi-word compound queries across title and suite
+  assert.ok(getMatchScore(mockThales, 'thales circle') > 0, "Multi-word query 'thales circle' must match Thales' Theorem");
+  assert.equal(getMatchScore(mockCosines, 'thales circle'), -1, "Multi-word query 'thales circle' must not match Law of Cosines");
+
+  // Multi-token highlighting
+  const hl = highlightMatch("Thales' Theorem", 'thales theorem');
+  assert.ok(hl.includes('<mark class="site-nav__search-match">Thales</mark>'));
+  assert.ok(hl.includes('<mark class="site-nav__search-match">Theorem</mark>'));
 });
 
 test('Reflex Angle System: HTML toggles, 2D/3D telemetry, and perigon invariants across all 8 visuals', () => {

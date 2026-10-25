@@ -49,23 +49,34 @@ function getActiveSlug() {
 }
 
 function escapeHtml(value) {
-  const element = document.createElement("span");
-  element.textContent = value;
-  return element.innerHTML;
+  if (typeof document !== "undefined" && document.createElement) {
+    const element = document.createElement("span");
+    element.textContent = value;
+    return element.innerHTML;
+  }
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function highlightMatch(text, query) {
-  if (!query) return escapeHtml(text);
-  const escapedQuery = escapeRegex(query);
-  const regex = new RegExp("(" + escapedQuery + ")", "gi");
+export function highlightMatch(text, query) {
+  if (!query || !text) return escapeHtml(text || "");
+  const tokens = query.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return escapeHtml(text);
+  const pattern = tokens.map(escapeRegex).join("|");
+  const regex = new RegExp("(" + pattern + ")", "gi");
   const parts = text.split(regex);
   return parts
     .map((part) => {
-      if (part.toLowerCase() === query.toLowerCase()) {
+      const isMatch = tokens.some((t) => t.toLowerCase() === part.toLowerCase());
+      if (isMatch) {
         return '<mark class="site-nav__search-match">' + escapeHtml(part) + '</mark>';
       }
       return escapeHtml(part);
@@ -73,56 +84,114 @@ function highlightMatch(text, query) {
     .join("");
 }
 
-function getMatchScore(item, q) {
+function getSingleTokenScore(item, token) {
   const title = (item.dataset.title || "").toLowerCase();
   const slug = (item.dataset.slug || "").toLowerCase();
   const suite = (item.dataset.suite || "").toLowerCase();
+  const category = (item.dataset.category || "").toLowerCase();
   const searchTerms = (item.dataset.search || "").toLowerCase();
 
-  if (!searchTerms.includes(q)) return -1;
+  if (!searchTerms.includes(token)) return -1;
+
+  // Word boundary regex: matches token at start of string or after word-delimiter punctuation
+  const wordBoundaryRegex = new RegExp("(^|[\\s\\-_/(\\[])" + escapeRegex(token), "i");
+
+  // For short queries (<= 2 chars, like 'th', 'si', 'an', '3d'), require a word-boundary match
+  // to avoid matching broad internal substrings across unrelated words
+  if (token.length <= 2) {
+    const hasWordBoundary =
+      wordBoundaryRegex.test(title) ||
+      wordBoundaryRegex.test(slug) ||
+      wordBoundaryRegex.test(suite) ||
+      wordBoundaryRegex.test(category);
+    if (!hasWordBoundary) return -1;
+  }
 
   let score = 0;
 
   // 1. Exact title match
-  if (title === q) {
+  if (title === token) {
     score += 1000;
-  }
-  // 2. Title starts with query
-  else if (title.startsWith(q)) {
+  } else if (title.startsWith(token)) {
     score += 500;
-  }
-  // 3. Word boundary match in title
-  else {
-    const wordRegex = new RegExp("(^|\\s|[-_])" + escapeRegex(q), "i");
-    if (wordRegex.test(title)) {
-      score += 350;
-    } else if (title.includes(q)) {
-      score += 200;
-    }
+  } else if (wordBoundaryRegex.test(title)) {
+    score += 350;
+  } else if (title.includes(token)) {
+    score += 150;
   }
 
   // Bonus for position earlier in title
-  const titleIdx = title.indexOf(q);
+  const titleIdx = title.indexOf(token);
   if (titleIdx >= 0) {
     score += Math.max(0, 50 - titleIdx * 2);
-    score += Math.round((q.length / Math.max(1, title.length)) * 50);
+    score += Math.round((token.length / Math.max(1, title.length)) * 50);
   }
 
-  // 4. Slug match
-  if (slug === q) {
+  // 2. Slug match
+  if (slug === token) {
     score += 150;
-  } else if (slug.startsWith(q)) {
+  } else if (slug.startsWith(token)) {
     score += 100;
-  } else if (slug.includes(q)) {
-    score += 60;
+  } else if (wordBoundaryRegex.test(slug)) {
+    score += 80;
+  } else if (slug.includes(token)) {
+    score += 50;
   }
 
-  // 5. Suite match
-  if (suite.includes(q)) {
-    score += 40;
+  // 3. Suite match (e.g. 'circle-theorems', 'trigonometry')
+  if (suite === token) {
+    score += 120;
+  } else if (suite.startsWith(token)) {
+    score += 80;
+  } else if (wordBoundaryRegex.test(suite)) {
+    score += 60;
+  } else if (suite.includes(token)) {
+    score += 30;
+  }
+
+  // 4. Category match (e.g. 'geometry', 'trigonometry')
+  if (category === token) {
+    score += 120;
+  } else if (category.startsWith(token)) {
+    score += 80;
+  } else if (wordBoundaryRegex.test(category)) {
+    score += 60;
+  } else if (category.includes(token)) {
+    score += 30;
   }
 
   return score;
+}
+
+export function getMatchScore(item, q) {
+  const trimmed = (q || "").trim().toLowerCase();
+  if (!trimmed) return -1;
+
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return -1;
+
+  let totalScore = 0;
+
+  for (const token of tokens) {
+    const tokenScore = getSingleTokenScore(item, token);
+    if (tokenScore < 0) {
+      // Multi-word tokenization: all tokens must match (AND condition)
+      return -1;
+    }
+    totalScore += tokenScore;
+  }
+
+  // Multi-word phrase bonus: contiguous substring match in title or searchTerms
+  const title = (item.dataset.title || "").toLowerCase();
+  if (tokens.length > 1) {
+    if (title.includes(trimmed)) {
+      totalScore += 400;
+    } else {
+      totalScore += 50 * tokens.length;
+    }
+  }
+
+  return totalScore;
 }
 
 function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS) {
@@ -132,7 +201,7 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
     const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
     const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite}`.toLowerCase();
     return `
-      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-search="${escapeHtml(searchTerms)}">
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-category="${escapeHtml(v.category || "")}" data-search="${escapeHtml(searchTerms)}">
         <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
         ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
       </a>
@@ -286,7 +355,11 @@ export function mountSharedChrome() {
         let tagEl = item.querySelector(".site-nav__search-match-tag");
         const titleLower = title.toLowerCase();
         const suite = item.dataset.suite || "";
-        if (!titleLower.includes(q) && suite.toLowerCase().includes(q)) {
+        const category = item.dataset.category || "";
+        const tokens = q.split(/\s+/).filter(Boolean);
+        const allTokensInTitle = tokens.every((t) => titleLower.includes(t));
+        const matchedInSuiteOrCat = tokens.some((t) => suite.toLowerCase().includes(t) || category.toLowerCase().includes(t));
+        if (!allTokensInTitle && matchedInSuiteOrCat) {
           if (!tagEl) {
             tagEl = document.createElement("span");
             tagEl.className = "site-nav__search-match-tag";
