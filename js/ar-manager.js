@@ -70,8 +70,25 @@ export class ARManager {
         }
       }
 
-      if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-        camera = true;
+      if (navigator.mediaDevices) {
+        if (typeof navigator.mediaDevices.enumerateDevices === 'function') {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const hasVideoInput = devices.some((d) => d.kind === 'videoinput');
+            const hasOtherDevices = devices.some((d) => d.kind && d.kind !== 'videoinput');
+            if (hasOtherDevices && !hasVideoInput) {
+              camera = false;
+            } else if (hasVideoInput) {
+              camera = true;
+            } else {
+              camera = typeof navigator.mediaDevices.getUserMedia === 'function';
+            }
+          } catch (_) {
+            camera = typeof navigator.mediaDevices.getUserMedia === 'function';
+          }
+        } else if (typeof navigator.mediaDevices.getUserMedia === 'function') {
+          camera = true;
+        }
       }
     }
 

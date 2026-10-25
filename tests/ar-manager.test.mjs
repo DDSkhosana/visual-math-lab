@@ -190,3 +190,65 @@ test('Affine Mode: Canvas2DView and Scene3DView stateKeys subscribe to affine st
   assert.strictEqual(stretchPatch.affineMode, true, 'Adjusting stretch slider must auto-enable affineMode');
 });
 
+
+test('ARManager: Device camera availability inspection and cross-visual static toolbar compliance', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+  const manager = new ARManager();
+  const originalNav = globalThis.navigator;
+
+  // 1. enumerateDevices detects videoinput present
+  const navWithCam = {
+    mediaDevices: {
+      enumerateDevices: async () => [
+        { kind: 'audioinput', label: 'Microphone' },
+        { kind: 'videoinput', label: 'Webcam' },
+      ],
+      getUserMedia: async () => {},
+    },
+  };
+  Object.defineProperty(globalThis, 'navigator', { value: navWithCam, configurable: true, writable: true });
+  const caps1 = await manager.checkCapabilities();
+  assert.strictEqual(caps1.camera, true, 'checkCapabilities must return camera: true when videoinput device exists');
+
+  // 2. enumerateDevices detects camera absence (audio input only)
+  const navWithoutCam = {
+    mediaDevices: {
+      enumerateDevices: async () => [
+        { kind: 'audioinput', label: 'Microphone' },
+      ],
+      getUserMedia: async () => {},
+    },
+  };
+  Object.defineProperty(globalThis, 'navigator', { value: navWithoutCam, configurable: true, writable: true });
+  const caps2 = await manager.checkCapabilities();
+  assert.strictEqual(caps2.camera, false, 'checkCapabilities must return camera: false when no videoinput device exists');
+
+  // Restore navigator
+  Object.defineProperty(globalThis, 'navigator', { value: originalNav, configurable: true, writable: true });
+
+  // 3. Verify all 12 visualizer HTML pages contain static #btn-toggle-ar with #ar-status-pill
+  const allVisuals = [
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html',
+    'visuals/trigonometry/unit-circle-helix/index.html',
+    'visuals/trigonometry/law-of-sines/index.html',
+    'visuals/trigonometry/law-of-cosines/index.html',
+    'visuals/trigonometry/angle-sum-identities/index.html',
+  ];
+
+  for (const rel of allVisuals) {
+    const html = fs.readFileSync(path.join(rootDir, rel), 'utf8');
+    assert.ok(html.includes('id="btn-toggle-ar"'), `${rel} must contain static #btn-toggle-ar`);
+    assert.ok(html.includes('id="ar-status-pill"'), `${rel} must contain #ar-status-pill`);
+  }
+});
