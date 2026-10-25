@@ -1127,8 +1127,9 @@ export class TrigCanvas2DView {
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Stacked Right Triangles Shading (△OMQ and △OQP)
+    // Stacked Right Triangles Shading (△OMQ, △OQP, and △PSQ)
     if (state.showStackedTriangles !== false && showArea) {
+      // △OMQ (Sky Blue) - Base OM = cos α cos β, Height MQ = sin α cos β
       ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
@@ -1137,11 +1138,33 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
+      // △OQP (Violet) - Base OQ = cos β, Perpendicular leg QP = sin β
       ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(Q.x, Q.y);
       ctx.lineTo(P.x, P.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Upper Right Triangle △PSQ (Amber) - Horizontal leg QS = sin α sin β, Vertical leg PS = cos α sin β
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+      ctx.beginPath();
+      ctx.moveTo(P.x, P.y);
+      ctx.lineTo(S.x, S.y);
+      ctx.lineTo(Q.x, Q.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Difference Right Triangle Shading (△OQD)
+    if (state.showDifferenceRay !== false && showArea) {
+      // △OQD (Rose) - Congruent reflection of △OQP across ray OA: Base OQ = cos β, Opposite leg QD = sin β
+      ctx.fillStyle = 'rgba(244, 63, 94, 0.14)';
+      ctx.beginPath();
+      ctx.moveTo(O.x, O.y);
+      ctx.lineTo(Q.x, Q.y);
+      ctx.lineTo(Pdiff.x, Pdiff.y);
       ctx.closePath();
       ctx.fill();
     }
@@ -1189,11 +1212,19 @@ export class TrigCanvas2DView {
       if (showAngles) {
         drawRightAngle(ctx, Q, O, P, 11, PALETTE.violet);
         drawRightAngle(ctx, M, O, Q, 10, PALETTE.amber);
+        if (Math.abs(P.x - Q.x) > 6 && Math.abs(P.y - Q.y) > 6) {
+          drawRightAngle(ctx, S, P, Q, 9, PALETTE.amber);
+        }
         if (Math.abs(m.trig.sinSum) > 0.05 && Math.abs(m.trig.cosSum) > 0.05) {
           drawRightAngle(ctx, N, O, P, 10, PALETTE.emerald);
         }
-        if (state.showDifferenceRay !== false && Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05) {
-          drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose);
+        if (state.showDifferenceRay !== false) {
+          if (Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05) {
+            drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose);
+          }
+          if (Math.abs(Math.sin(m.beta)) > 0.05) {
+            drawRightAngle(ctx, Q, O, Pdiff, 11, PALETTE.rose);
+          }
         }
       }
     }
@@ -2574,9 +2605,20 @@ export class TrigScene3DView extends BaseScene3DView {
           g1.setIndex([0, 1, 2]);
           const g2 = new THREE.BufferGeometry().setFromPoints([O, Q, P]);
           g2.setIndex([0, 1, 2]);
+          const g3 = new THREE.BufferGeometry().setFromPoints([P, S, Q]);
+          g3.setIndex([0, 1, 2]);
           this.dynamicGroup.add(
             new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
-            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.2, side: THREE.DoubleSide }))
+            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.2, side: THREE.DoubleSide })),
+            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.16, side: THREE.DoubleSide }))
+          );
+        }
+
+        if (showArea && state.showDifferenceRay !== false) {
+          const gDiff = new THREE.BufferGeometry().setFromPoints([O, Q, Pdiff]);
+          gDiff.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.16, side: THREE.DoubleSide }))
           );
         }
 
@@ -2904,23 +2946,23 @@ export class TrigDerivationsView {
             'asi-step-2',
             'Step 2',
             `Cosine Addition Identity (${tag('amber', 'cos(α + β)')})`,
-            `From stacked right triangles ${tag('sky', '△OMQ')} and ${tag('violet', '△OQP')}:<br>` +
-            `${tag('amber', 'cos(α + β)')} = ${tag('amber', 'cos α cos β')} − ${tag('rose', 'sin α sin β')}`,
+            `From stacked right triangles ${tag('sky', '△OMQ')}, ${tag('violet', '△OQP')}, and upper triangle ${tag('amber', '△PSQ')}:<br>` +
+            `${tag('amber', 'cos(α + β)')} = ${tag('amber', 'OM')} − ${tag('amber', 'QS')} = ${tag('amber', 'cos α cos β')} − ${tag('rose', 'sin α sin β')}`,
             true
           )}
           ${cardTemplate(
             'asi-step-3',
             'Step 3',
             `Sine Addition Identity (${tag('emerald', 'sin(α + β)')})`,
-            `Vertical projection of ${tag('emerald', 'P(α + β)')} equals:<br>` +
-            `${tag('emerald', 'sin(α + β)')} = ${tag('sky', 'sin α cos β')} + ${tag('violet', 'cos α sin β')}`,
+            `Vertical projection of ${tag('emerald', 'P(α + β)')} decomposes across ${tag('sky', '△OMQ')} and ${tag('amber', '△PSQ')}:<br>` +
+            `${tag('emerald', 'sin(α + β)')} = ${tag('amber', 'MN')} + ${tag('amber', 'PS')} = ${tag('sky', 'sin α cos β')} + ${tag('violet', 'cos α sin β')}`,
             true
           )}
           ${cardTemplate(
             'asi-step-4',
             'Step 4',
             `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
-            `Replacing ${tag('violet', 'β ↦ −β')} (transpose inverse ${tag('violet', 'R(−β) = R(β)ᵀ')}):<br>` +
+            `Difference ray ${tag('rose', 'D(α − β)')} reflects across ray ${tag('sky', 'OA')} forming congruent triangle ${tag('rose', '△OQD')}:<br>` +
             `${tag('rose', 'cos(α − β)')} = cos α cos β + sin α sin β &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = sin α cos β − cos α sin β`,
             true
           )}

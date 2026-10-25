@@ -435,6 +435,20 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         const asHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/angle-sum-identities/index.html'), 'utf-8');
         assert.ok(asHtml.includes('<span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">'));
         assert.ok(asHtml.includes('<span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">'));
+
+        // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations
+        assert.ok(src.includes("Upper Right Triangle △PSQ (Amber)"));
+        assert.ok(src.includes("rgba(251, 191, 36, 0.14)"));
+        assert.ok(src.includes("drawRightAngle(ctx, S, P, Q, 9, PALETTE.amber)"));
+        assert.ok(src.includes("Difference Right Triangle Shading (△OQD)"));
+        assert.ok(src.includes("rgba(244, 63, 94, 0.14)"));
+        assert.ok(src.includes("drawRightAngle(ctx, Q, O, Pdiff, 11, PALETTE.rose)"));
+        assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([P, S, Q])"));
+        assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([O, Q, Pdiff])"));
+        assert.ok(src.includes("△PSQ"));
+        assert.ok(src.includes("△OQD"));
+        assert.ok(asHtml.includes("Stacked Right Triangles (△OMQ, △OQP, △PSQ)"));
+        assert.ok(asHtml.includes("Difference Ray D(α − β) &amp; △OQD"));
     });
 
     test('Law of Cosines bilinear interaction rectangle (2ab cos C) is represented in 3D ground plane with live badge', () => {
