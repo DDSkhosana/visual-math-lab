@@ -2253,4 +2253,71 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
   assert.ok(workspaceDockCss.includes('width: 10px;\n  height: 10px;'), 'workspace-dock.css must provide a 10px grabbable scrollbar track');
 });
 
+test('Universal Toolbar Footprint & Dynamic Viewport Width Calibration across all 8 Circle Theorems & 4 Trig Visuals', async () => {
+  const rootDir = path.resolve(fileURLToPath(import.meta.url), '../..');
+
+  // 1. computeOptimalViewportRadius
+  const { computeOptimalViewportRadius } = await import('../js/circle-core.js');
+  assert.strictEqual(typeof computeOptimalViewportRadius, 'function', 'circle-core.js must export computeOptimalViewportRadius');
+
+  // Exact calibration at baseline 450x420
+  assert.strictEqual(computeOptimalViewportRadius(450, 420), 180, 'Default radius at 450x420 must be 180');
+  assert.strictEqual(computeOptimalViewportRadius(450, 420, 'tangents-from-external-point'), 120, 'Tangents from Point radius at 450x420 must be 120');
+  assert.strictEqual(computeOptimalViewportRadius(450, 420, 'perpendicular-chord-bisector'), 170, 'Chord Bisector radius at 450x420 must be 170');
+  assert.strictEqual(computeOptimalViewportRadius(450, 420, 'unit-circle-helix'), 175, 'Unit Circle Helix radius at 450x420 must be 175');
+  assert.strictEqual(computeOptimalViewportRadius(450, 420, 'law-of-cosines'), 175, 'Law of Cosines radius at 450x420 must be 175');
+
+  // Dynamic width scaling at 800x600 (min((800-90)/2, (600-60)/2) = 270)
+  assert.strictEqual(computeOptimalViewportRadius(800, 600), 270, 'Default radius at 800x600 must dynamically scale to 270');
+  assert.strictEqual(computeOptimalViewportRadius(800, 600, 'tangents-from-external-point'), 180, 'Tangents from Point at 800x600 must scale to 180');
+  assert.strictEqual(computeOptimalViewportRadius(800, 600, 'perpendicular-chord-bisector'), 255, 'Chord Bisector at 800x600 must scale to 255');
+  assert.strictEqual(computeOptimalViewportRadius(800, 600, 'law-of-cosines'), 263, 'Law of Cosines at 800x600 must scale to 263');
+
+  // Zero / negative dimension safe fallback
+  assert.strictEqual(computeOptimalViewportRadius(0, 0), 180);
+  assert.strictEqual(computeOptimalViewportRadius(0, 0, 'tangents-from-external-point'), 120);
+
+  // 2. Standardized toolbar footprints & Affine Conic sections across all 8 Circle Theorems
+  const circleTheorems = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const dir of circleTheorems) {
+    const htmlPath = path.join(rootDir, 'visuals/circle-theorems', dir, 'index.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+
+    // Standard static toolbar buttons
+    assert.ok(html.includes('id="btn-toggle-affine"'), `${dir}/index.html must contain static #btn-toggle-affine button`);
+    assert.ok(html.includes('id="btn-toggle-ar"'), `${dir}/index.html must contain static #btn-toggle-ar button`);
+
+    // Standard static Affine Conic subpanel
+    assert.ok(html.includes('id="section-affine-conic"'), `${dir}/index.html must contain static #section-affine-conic`);
+    assert.ok(html.includes('id="toggle-affine-mode"'), `${dir}/index.html must contain #toggle-affine-mode switch`);
+    assert.ok(html.includes('id="affine-stretch-slider"'), `${dir}/index.html must contain #affine-stretch-slider`);
+    assert.ok(html.includes('id="affine-angle-slider"'), `${dir}/index.html must contain #affine-angle-slider`);
+
+    // Standard static Affine telemetry row
+    assert.ok(html.includes('id="row-affine-conic-inv"'), `${dir}/index.html must contain static #row-affine-conic-inv`);
+    assert.ok(html.includes('id="val-affine-inv"'), `${dir}/index.html must contain static #val-affine-inv`);
+    assert.ok(html.includes('id="val-affine-ecc"'), `${dir}/index.html must contain static #val-affine-ecc`);
+  }
+
+  // 3. Multi-color bilinear interaction rectangle in Law of Cosines
+  const trigCoreSrc = fs.readFileSync(path.join(rootDir, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+  assert.ok(trigCoreSrc.includes('ctx.createLinearGradient('), 'trig-core.js must use linear gradient for 2D interaction rectangle');
+  assert.ok(trigCoreSrc.includes("grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)')"), 'trig-core.js must blend Rose at origin corner (Angle C)');
+  assert.ok(trigCoreSrc.includes("grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)')"), 'trig-core.js must blend Emerald at far corner (Side b)');
+  assert.ok(trigCoreSrc.includes('vertexColors: true'), 'trig-core.js must enable vertexColors in 3D interaction rectangle mesh');
+  assert.ok(trigCoreSrc.includes('addSeg(R0, R1, PALETTE.sky, true)'), 'trig-core.js must wireframe width with Sky (Side a)');
+  assert.ok(trigCoreSrc.includes('addSeg(R0, R3, PALETTE.emerald, true)'), 'trig-core.js must wireframe depth with Emerald (Side b)');
+});
+
+
 

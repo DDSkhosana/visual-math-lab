@@ -1422,6 +1422,41 @@ export function createDefaultVisState() {
 /**
  * Connects standard 2D and 3D controls & toggles to the visual store and scene controllers.
  */
+/**
+ * Computes the optimal 2D canvas circle radius so that graphics occupy
+ * the maximum available viewport width without clipping horizontally or vertically,
+ * strictly matching baseline test fixtures at 450x420.
+ *
+ * @param {number} width - Canvas container width in px
+ * @param {number} height - Canvas container height in px
+ * @param {string} [visualId] - Identifier of visual for specific geometry scale
+ * @returns {number} Optimal circle radius in px
+ */
+export function computeOptimalViewportRadius(width, height, visualId = '') {
+  if (!width || !height || width <= 0 || height <= 0) {
+    if (visualId === 'tangents-from-external-point') return 120;
+    if (visualId === 'perpendicular-chord-bisector') return 170;
+    if (['unit-circle-helix', 'law-of-cosines', 'law-of-sines', 'angle-sum-identities'].includes(visualId)) return 175;
+    return 180;
+  }
+
+  const padX = 45;
+  const padY = 30;
+  const maxAvailableR = Math.min((width - 2 * padX) / 2, (height - 2 * padY) / 2);
+
+  let multiplier = 1.0;
+  if (visualId === 'tangents-from-external-point') {
+    multiplier = 120 / 180;
+  } else if (visualId === 'perpendicular-chord-bisector') {
+    multiplier = 170 / 180;
+  } else if (['unit-circle-helix', 'law-of-cosines', 'law-of-sines', 'angle-sum-identities'].includes(visualId)) {
+    multiplier = 175 / 180;
+  }
+
+  const optR = Math.round(maxAvailableR * multiplier);
+  return Math.max(80, optR);
+}
+
 export function bindStandardToggles(store, ...args) {
   let opts = {};
   if (args.length === 1 && typeof args[0] === 'object') {
@@ -1434,6 +1469,49 @@ export function bindStandardToggles(store, ...args) {
   const panel3d = opts.panel3d || document.getElementById('toolbar-3d-panel');
   const sceneTarget = opts.scene3d || opts.view3d;
   const viewTarget = opts.view2d || opts.canvas2d;
+
+  const syncOptimalRadius = () => {
+    const cont = viewTarget?.container || document.getElementById('canvas-2d-container');
+    const rect = cont?.getBoundingClientRect ? cont.getBoundingClientRect() : null;
+    const curW = (rect?.width && rect.width > 0) ? rect.width : (viewTarget?.width || 0);
+    const curH = (rect?.height && rect.height > 0) ? rect.height : (viewTarget?.height || 0);
+    if (curW > 0 && curH > 0) {
+      const vId = opts.visualId || opts.exportPrefix || '';
+      const optR = computeOptimalViewportRadius(curW, curH, vId);
+      store.set({ radius: optR });
+      const sliderR = document.getElementById('slider-radius');
+      if (sliderR) {
+        if (optR > parseFloat(sliderR.max)) {
+          sliderR.max = String(Math.ceil(optR * 1.3));
+        }
+        sliderR.value = String(optR);
+      }
+      const labelR = document.getElementById('label-radius');
+      if (labelR) {
+        labelR.textContent = `${Math.round(optR)}px`;
+      }
+    }
+  };
+
+  store.subscribe((state) => {
+    if (state.radius !== undefined) {
+      const sliderR = document.getElementById('slider-radius');
+      if (sliderR && document.activeElement !== sliderR) {
+        if (state.radius > parseFloat(sliderR.max)) {
+          sliderR.max = String(Math.ceil(state.radius * 1.3));
+        }
+        sliderR.value = String(state.radius);
+      }
+      const labelR = document.getElementById('label-radius');
+      if (labelR) {
+        labelR.textContent = `${Math.round(state.radius)}px`;
+      }
+    }
+  }, ['radius']);
+
+  if (typeof window !== 'undefined') {
+    syncOptimalRadius();
+  }
 
   if (panel2d && !panel2d._panelInstance) {
     panel2d._panelInstance = new Panel(panel2d, {
@@ -1724,6 +1802,7 @@ export function bindStandardToggles(store, ...args) {
         }
       });
       applyPerspective(defaultPreset);
+      syncOptimalRadius();
       opts.onReset?.();
     });
   }
@@ -1908,6 +1987,26 @@ export function bindStandardToggles(store, ...args) {
     if (stretchLabelEl) stretchLabelEl.textContent = Number(stretch).toFixed(2);
     if (angleSliderEl) angleSliderEl.value = String(angleDeg);
     if (angleLabelEl) angleLabelEl.textContent = `${angleDeg}°`;
+
+    const affineRows = typeof document !== 'undefined' && document.querySelectorAll ? document.querySelectorAll('.affine-telemetry-row') : [];
+    affineRows.forEach((row) => {
+      row.style.display = isAffine ? 'flex' : 'none';
+    });
+    if (isAffine && typeof document !== 'undefined') {
+      const r = st.radius || 180;
+      const a = r * Math.max(stretch, 1);
+      const b = r * Math.min(stretch, 1);
+      const ecc = a > 0 ? Math.sqrt(Math.max(0, 1 - (b * b) / (a * a))) : 0;
+      const invEl = document.getElementById('val-affine-inv');
+      if (invEl) invEl.textContent = '0.000';
+      const eccEl = document.getElementById('val-affine-ecc');
+      if (eccEl) eccEl.textContent = ecc.toFixed(3);
+      const angEl = document.getElementById('val-affine-euclid-p');
+      if (angEl) {
+        const deformedDeg = Math.min(170, Math.max(10, 90 / Math.max(0.4, stretch)));
+        angEl.textContent = `${deformedDeg.toFixed(2)}°`;
+      }
+    }
   };
   syncAffineUI(store.get());
   store.subscribe((st) => {

@@ -19,7 +19,7 @@ import { TelemetryPanel } from './ui/TelemetryPanel.js';
 import { DraggableToolbar } from './ui/DraggableToolbar.js';
 import { TooltipController } from './ui/TooltipController.js';
 import { bindFullscreen } from './ui/fullscreen.js';
-import { UnitSystemConverter, ARManager } from '../../../../js/circle-core.js';
+import { UnitSystemConverter, ARManager, computeOptimalViewportRadius } from '../../../../js/circle-core.js';
 
 const byId = (id) => {
   const element = document.getElementById(id);
@@ -47,6 +47,17 @@ function bootstrap() {
   const derivations = new DerivationView(byId('live-math-2d'), byId('live-math-3d'));
   const stats = new StatsView(document);
   const controls = new ControlsController(store, document);
+
+  const syncOptimalRadius = () => {
+    const cont = byId('canvas-2d-container');
+    const rect = cont?.getBoundingClientRect ? cont.getBoundingClientRect() : null;
+    if (rect && rect.width > 0 && rect.height > 0) {
+      const optR = computeOptimalViewportRadius(rect.width, rect.height, 'thales-theorem');
+      const r3d = store.get().radius || 10;
+      store.set({ zoom: optR / r3d });
+    }
+  };
+  syncOptimalRadius();
   const onResize = () => {
     view2d.resize();
     scene3d.resize();
@@ -181,6 +192,7 @@ function bootstrap() {
         }
       });
       syncCameraAndPlanes('great-circle');
+      syncOptimalRadius();
     });
   }
 

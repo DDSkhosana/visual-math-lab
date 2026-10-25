@@ -889,15 +889,30 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Bilinear Interaction Rectangle (2ab cos C) below AC (locked to PALETTE.amber invariant)
+    // Bilinear Interaction Rectangle (2ab cos C) below AC (locked to PALETTE.amber invariant with multi-color tensor decomposition)
     if (state.showInteractionRect !== false && showArea) {
       const rectW = m.projection.pProj * scale;
       const rectH = Math.min(68, m.b * scale * 0.3);
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.14)';
-      ctx.strokeStyle = PALETTE.amber;
-      ctx.lineWidth = 1.5;
+      const grad = ctx.createLinearGradient(C.x, C.y + 10, C.x + rectW, C.y + 10 + rectH);
+      grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)');
+      grad.addColorStop(0.5, 'rgba(251, 191, 36, 0.20)');
+      grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)');
+      ctx.fillStyle = grad;
       ctx.fillRect(C.x, C.y + 10, rectW, rectH);
-      ctx.strokeRect(C.x, C.y + 10, rectW, rectH);
+
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = PALETTE.sky;
+      ctx.beginPath();
+      ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10);
+      ctx.moveTo(C.x, C.y + 10 + rectH); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.stroke();
+
+      ctx.strokeStyle = PALETTE.emerald;
+      ctx.beginPath();
+      ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x, C.y + 10 + rectH);
+      ctx.moveTo(C.x + rectW, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.stroke();
+
       if (showLabels) {
         drawTextBadge(
           ctx,
@@ -2372,23 +2387,33 @@ export class TrigScene3DView extends BaseScene3DView {
 
           const rectGeom = new THREE.BufferGeometry().setFromPoints([R0, R1, R2, R3]);
           rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
+
+          const colors = [
+            0.957, 0.247, 0.369,
+            0.055, 0.647, 0.914,
+            0.961, 0.620, 0.043,
+            0.063, 0.725, 0.506,
+          ];
+          rectGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
           this.dynamicGroup.add(
             new THREE.Mesh(
               rectGeom,
               new THREE.MeshBasicMaterial({
                 color: rectColor,
+                vertexColors: true,
                 transparent: true,
-                opacity: 0.22,
+                opacity: 0.28,
                 side: THREE.DoubleSide,
               })
             )
           );
 
-          // Dashed rectangular wireframe perimeter
-          addSeg(R0, R1, rectColor, true);
-          addSeg(R1, R2, rectColor, true);
-          addSeg(R2, R3, rectColor, true);
-          addSeg(R3, R0, rectColor, true);
+          // Dashed rectangular wireframe perimeter decomposed by tensor components
+          addSeg(R0, R1, PALETTE.sky, true);
+          addSeg(R3, R2, PALETTE.sky, true);
+          addSeg(R0, R3, PALETTE.emerald, true);
+          addSeg(R1, R2, PALETTE.emerald, true);
         }
 
         const bisA = get3DAngleBisector(A, C, B, 3.0, THREE);
@@ -3273,6 +3298,7 @@ export function mountTrigVisual({ visualId }) {
     canvas2d: view2d,
     view3d: scene3d,
     exportPrefix: visualId,
+    visualId,
   });
 
   // Panels (compatible with WorkspaceDockManager)
@@ -3643,6 +3669,10 @@ function setText(id, val) {
 function syncSlider(id, val) {
   const el = document.getElementById(id);
   if (el && document.activeElement !== el) {
+    const num = parseFloat(val);
+    if (!isNaN(num) && num > parseFloat(el.max)) {
+      el.max = String(Math.ceil(num * 1.3));
+    }
     el.value = String(val);
   }
 }

@@ -116,6 +116,19 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
             <span>Flip</span>
           </button>
+                    <button type="button" class="btn-toolbar" id="btn-toggle-affine" title="Toggle between Euclidean Circle Mode and Affine Conic Mode" aria-pressed="false">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <ellipse cx="12" cy="12" rx="9" ry="5.5"/>
+            </svg>
+            <span>Affine: <b class="toggle-state-text" id="affine-status-pill">OFF</b></span>
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-toggle-ar" title="Enter Augmented Reality mode (WebXR / Camera Pass-Through)" aria-pressed="false">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <path d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+              <circle cx="12" cy="12" r="2.5"/>
+            </svg>
+            <span>AR: <b class="toggle-state-text" id="ar-status-pill">OFF</b></span>
+          </button>
           <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <span>Reset</span>
@@ -155,7 +168,16 @@
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand 2D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span class="color-blue">Angle at P₁ (∠AP₁B):</span><strong class="color-blue" id="tel-p1-angle">60.0°</strong></div>
+              <div class="stat-line"><span class="color-blue">Angle at P₁ (∠AP₁B):</span><strong class="color-blue" id="tel-p1-angle">60.0°</strong>              <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
+                <span class="color-yellow">Conic Inv (v₁ᵀ Q v₂):</span><span class="stat-value color-yellow" id="val-affine-inv">0.000</span>
+              </div>
+              <div class="stat-line affine-telemetry-row" id="row-affine-angle" style="display: none;">
+                <span class="color-rose">Deformed Angle:</span><span class="stat-value color-rose" id="val-affine-euclid-p">90.00°</span>
+              </div>
+              <div class="stat-line affine-telemetry-row" id="row-affine-ecc" style="display: none;">
+                <span class="color-cyan">Eccentricity e:</span><span class="stat-value color-cyan" id="val-affine-ecc">0.000</span>
+              </div>
+            </div>
               <div class="stat-line"><span class="color-blue">P₁ (<span class="color-amber">x</span>, <span class="color-lime">y</span>):</span><span id="tel-p1-coords"><span class="color-amber">0.0</span>, <span class="color-lime">0.0</span></span></div>
               <div class="stat-line"><span class="color-emerald">Angle at P₂ (∠AP₂B):</span><strong class="color-emerald" id="tel-p2-angle">60.0°</strong></div>
               <div class="stat-line"><span class="color-emerald">P₂ (<span class="color-amber">x</span>, <span class="color-lime">y</span>):</span><span id="tel-p2-coords"><span class="color-amber">0.0</span>, <span class="color-lime">0.0</span></span></div>
@@ -231,6 +253,31 @@
               </div>
               <div class="collapsible-content" id="content-unit-converter"></div>
             </div>
+            <!-- Section: Affine Conic Mode -->
+            <div class="collapsible-section collapsed" id="section-affine-conic">
+              <div class="collapsible-header" id="header-affine-conic" aria-expanded="false">
+                <span>Affine Conic Mode</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div class="toggle-tooltips-container" style="margin-bottom: 12px;">
+                  <span class="text-xs font-semibold text-slate-200">Affine Conic Mode</span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-affine-mode">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <p class="text-xs text-slate-400 mb-3" style="line-height: 1.4;">Deforms the circle into an ellipse. While Euclidean metric angles perturb, projective &amp; affine conic invariants (<b class="color-yellow">v₁ᵀ Q v₂</b>) remain strictly preserved under the Erlangen hierarchy.</p>
+                <div class="slider-container">
+                  <label><span class="color-yellow">Aspect Stretch (s)</span><span id="affine-stretch-label" class="color-yellow font-bold">1.00</span></label>
+                  <input type="range" id="affine-stretch-slider" min="0.4" max="2.5" step="0.05" value="1.0">
+                </div>
+                <div class="slider-container">
+                  <label><span class="color-cyan">Deformation Axis (ω)</span><span id="affine-angle-label" class="color-cyan font-bold">0°</span></label>
+                  <input type="range" id="affine-angle-slider" min="0" max="180" step="1" value="0">
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
         <div class="resize-handle"></div>
