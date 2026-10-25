@@ -369,6 +369,12 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("key: 'N', name: 'N'"));
         assert.ok(src.includes("key: 'cos-sum-len'"));
         assert.ok(src.includes("key: 'sin-sum-len'"));
+
+        // 2D coordinate toggling for auxiliary points M, Q, N, N_D
+        assert.ok(src.includes("getPointLabel('Q', m.points2D.Q.x * r, m.points2D.Q.y * r, vis)"), '2D Q must use getPointLabel');
+        assert.ok(src.includes("getPointLabel('M', m.points2D.M.x * r, m.points2D.M.y * r, vis)"), '2D M must use getPointLabel');
+        assert.ok(src.includes("getPointLabel('N', m.points2D.N.x * r, m.points2D.N.y * r, vis)"), '2D N must use getPointLabel');
+        assert.ok(src.includes("getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis)"), '2D N_D must use getPointLabel');
     });
 
     test('Angle Sum dropped line from P to X-axis is fully represented in 3D with right angle at N', () => {
