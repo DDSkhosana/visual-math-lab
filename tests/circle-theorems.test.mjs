@@ -11,7 +11,7 @@ import * as ChordBisector from '../visuals/circle-theorems/perpendicular-chord-b
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { get3DAngleBisector, get3DAngleDegrees } from '../js/circle-3d.js';
+import { get3DAngleBisector, get3DAngleDegrees, computeSphericalTriangleExcess, getGeodesicTangent } from '../js/circle-3d.js';
 import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections } from '../js/circle-core.js';
 import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/circle-theorems/thales-theorem/src/ui/Accordion.js';
 import { getMatchScore, highlightMatch } from '../js/components.js';
@@ -2194,4 +2194,154 @@ test('Playback Speed Controller: cycle button (0.5x, 1x, 1.5x, 2x), keyboard sho
   for (const [name, css] of [['circle-visual.css', circleCss], ['visual.css', visualCss], ['controls.css', controlsCss]]) {
     assert.ok(css.includes('.btn-playback-speed'), `${name} must include .btn-playback-speed styles`);
   }
+});
+
+test('3D Spherical Geometry on S²: Geodesic SLERP Arcs, Tangents, and Girard\'s Excess Invariant', () => {
+  const R = 10;
+
+  // 1. Octant Triangle test: 3 mutually orthogonal vertices on S²
+  const A = { x: R, y: 0, z: 0 };
+  const B = { x: 0, y: R, z: 0 };
+  const C = { x: 0, y: 0, z: R };
+
+  const octant = computeSphericalTriangleExcess(A, B, C, R);
+  close(octant.sphAngles.degA, 90, 1e-4);
+  close(octant.sphAngles.degB, 90, 1e-4);
+  close(octant.sphAngles.degC, 90, 1e-4);
+  close(octant.excessDeg, 90, 1e-4);
+  close(octant.excessRad, Math.PI / 2, 1e-4);
+
+  // Girard's theorem Area = R² * E_rad: for octant, area is exactly (1/8) of 4*pi*R² = (1/2)*pi*R²
+  const expectedOctantArea = 0.5 * Math.PI * R * R;
+  close(octant.area, expectedOctantArea, 1e-4);
+
+  // 2. Euclidean contraction limit: as triangle size shrinks toward 0, excess -> 0 and angle sum -> 180°
+  const delta = 0.001;
+  const A_small = { x: R, y: 0, z: 0 };
+  const B_small = { x: R * Math.cos(delta), y: R * Math.sin(delta), z: 0 };
+  const C_small = { x: R * Math.cos(delta), y: 0, z: R * Math.sin(delta) };
+
+  const smallTri = computeSphericalTriangleExcess(A_small, B_small, C_small, R);
+  assert.ok(smallTri.excessDeg < 0.001, 'Small triangle excess must approach zero');
+  const angleSum = smallTri.sphAngles.degA + smallTri.sphAngles.degB + smallTri.sphAngles.degC;
+  close(angleSum, 180, 0.001);
+
+  // 3. Geodesic Tangent test: unit vector orthogonal to position vector
+  const P = { x: 0, y: 0, z: R };
+  const Q = { x: R, y: 0, z: 0 };
+  const tanP = getGeodesicTangent(P, Q);
+  assert.ok(tanP, 'Tangent vector must be computed');
+  close(tanP.x, 1, 1e-6);
+  close(tanP.y, 0, 1e-6);
+  close(tanP.z, 0, 1e-6);
+  const uP = { x: 0, y: 0, z: 1 };
+  const dotPT = uP.x * tanP.x + uP.y * tanP.y + uP.z * tanP.z;
+  close(dotPT, 0, 1e-6);
+  const tanLen = Math.hypot(tanP.x, tanP.y, tanP.z);
+  close(tanLen, 1, 1e-6);
+});
+
+test('Circle Theorems 3D Dimension Mode: universal DOM wiring, status badges, and store contracts across all 8 visualizers', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  const circleVisualizers = [
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html',
+  ];
+
+  // 1. Verify all 8 circle theorem HTML pages contain the universal 3D containers
+  for (const rel of circleVisualizers) {
+    const html = fs.readFileSync(path.join(rootDir, rel), 'utf8');
+    assert.ok(html.includes('id="canvas-3d-container"'), `${rel} must contain #canvas-3d-container`);
+  }
+
+  // 2. Verify circle-core.js dynamic mounting contract for Dimension Mode
+  const circleCoreJs = fs.readFileSync(path.join(rootDir, 'js/circle-core.js'), 'utf8');
+  assert.ok(circleCoreJs.includes("btn-toggle-dimension-mode"), "circle-core.js must wire #btn-toggle-dimension-mode");
+  assert.ok(circleCoreJs.includes("toolbar-dimension-status"), "circle-core.js must wire #toolbar-dimension-status");
+  assert.ok(circleCoreJs.includes("section-dimension-mode"), "circle-core.js must mount #section-dimension-mode");
+  assert.ok(circleCoreJs.includes("toggle-dimension-mode"), "circle-core.js must wire #toggle-dimension-mode");
+  assert.ok(circleCoreJs.includes("btn-mode-planar-pill"), "circle-core.js must mount #btn-mode-planar-pill");
+  assert.ok(circleCoreJs.includes("btn-mode-spatial-pill"), "circle-core.js must mount #btn-mode-spatial-pill");
+  assert.ok(circleCoreJs.includes("dimension-mode-bar"), "circle-core.js must mount .dimension-mode-bar");
+
+  // 3. Verify store contract: reset restores dimensionMode to 'planar'
+  const store = createStore({ dimensionMode: 'planar', radius: 180 });
+  assert.equal(store.get().dimensionMode, 'planar');
+  store.set({ dimensionMode: 'spatial' });
+  assert.equal(store.get().dimensionMode, 'spatial');
+  store.reset();
+  assert.equal(store.get().dimensionMode, 'planar');
+
+  // 4. Verify circle-derivations.js includes Step 6 for Girard's excess invariant
+  const derivJs = fs.readFileSync(path.join(rootDir, 'js/circle-derivations.js'), 'utf8');
+  assert.ok(derivJs.includes("Girard's Excess"), "circle-derivations.js must include Step 6 on Girard's Excess");
+  assert.ok(derivJs.includes("computeSphericalTriangleExcess"), "circle-derivations.js must import computeSphericalTriangleExcess");
+});
+
+test('Circle Theorems 3D Spatial Invariants: Tangent-Radius orthogonality, Tangent Cone generators, and Chord Bisector planes', () => {
+  const R = 10;
+
+  // 1. Tangent-Radius Invariant: radial vector is normal to tangent plane T_T(S²)
+  const angT = 0.75;
+  const latT = 1.1; // non-equatorial latitude on S²
+  const T = {
+    x: R * Math.sin(latT) * Math.cos(angT),
+    y: R * Math.cos(latT),
+    z: R * Math.sin(latT) * Math.sin(angT)
+  };
+  const normalT = { x: T.x / R, y: T.y / R, z: T.z / R };
+  // Tangent vector along latitude circle
+  const tanVec = {
+    x: -Math.sin(angT),
+    y: 0,
+    z: Math.cos(angT)
+  };
+  // Dot product between normal vector and tangent vector must be zero
+  const dotTanNorm = normalT.x * tanVec.x + normalT.y * tanVec.y + normalT.z * tanVec.z;
+  close(dotTanNorm, 0, 1e-6);
+
+  // 2. External Tangents 3D Cone Invariant: Apex P outside S² with distance d
+  const d = 25;
+  const h = (R * R) / d; // distance from O to center of contact circle on S²
+  const rc = Math.sqrt(R * R - h * h); // contact circle radius
+  const coneHeight = d - h; // cone height from apex P to contact circle base
+  const generatorLen = Math.sqrt(d * d - R * R); // slant height / tangent length
+  // Check Pythagorean relation for right-triangle generator: rc² + (d - h)² = L²
+  close(rc * rc + coneHeight * coneHeight, generatorLen * generatorLen, 1e-4);
+
+  // 3. Chord Bisector 3D Invariant: bisector plane normal is parallel to chord AB
+  const angA = 0.3;
+  const latA = 1.2;
+  const angB = 1.8;
+  const latB = 1.4;
+  const ptA = {
+    x: R * Math.sin(latA) * Math.cos(angA),
+    y: R * Math.cos(latA),
+    z: R * Math.sin(latA) * Math.sin(angA)
+  };
+  const ptB = {
+    x: R * Math.sin(latB) * Math.cos(angB),
+    y: R * Math.cos(latB),
+    z: R * Math.sin(latB) * Math.sin(angB)
+  };
+  // Spherical midpoint M_sph
+  const mx = ptA.x + ptB.x;
+  const my = ptA.y + ptB.y;
+  const mz = ptA.z + ptB.z;
+  const mLen = Math.hypot(mx, my, mz);
+  const Msph = { x: (mx / mLen) * R, y: (my / mLen) * R, z: (mz / mLen) * R };
+
+  // Chord vector
+  const chord = { x: ptB.x - ptA.x, y: ptB.y - ptA.y, z: ptB.z - ptA.z };
+  // In 3D, vector from O to spherical midpoint Msph is orthogonal to chord AB
+  const dotChordMsph = chord.x * Msph.x + chord.y * Msph.y + chord.z * Msph.z;
+  close(dotChordMsph, 0, 1e-4);
 });

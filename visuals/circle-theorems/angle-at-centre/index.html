@@ -213,9 +213,13 @@
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-yellow">Dimension Mode:</span><strong class="color-yellow" id="val-3d-dim-mode">Planar (Y=0)</strong></div>
               <div class="stat-line"><span class="color-indigo">Radius R:</span><span class="color-indigo" id="val-3d-r">10.0</span></div>
               <div class="stat-line"><span class="color-amber">P.x (horizontal):</span><span class="color-amber" id="val-3d-px">0.00</span></div>
+              <div class="stat-line"><span class="color-lime">P.y (elevation):</span><span class="color-lime" id="val-3d-py">0.00</span></div>
               <div class="stat-line"><span class="color-steel">P.z (depth):</span><span class="color-steel" id="val-3d-pz">0.00</span></div>
+              <div class="stat-line spatial-telemetry-row" id="row-3d-excess" style="display: none;"><span class="color-sky">Spherical Excess E:</span><strong class="color-sky" id="val-3d-excess">0.00°</strong></div>
+              <div class="stat-line spatial-telemetry-row" id="row-3d-area" style="display: none;"><span class="color-sky">Spherical Area:</span><strong class="color-sky" id="val-3d-area">0.00</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span class="color-yellow">3D Central ∠AOB:</span><strong class="color-yellow" id="val-3d-central">120.0°</strong>
               </div>

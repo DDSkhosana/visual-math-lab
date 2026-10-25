@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter, computeSphericalTriangleExcess } from '../../../../js/circle-core.js';
 import { AngleAtCentreDerivations } from '../../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AngleAtCentre3DView } from '../../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -262,13 +262,37 @@ function bootstrap() {
     if (elTelArc) elTelArc.textContent = UnitSystemConverter.formatLength(g.arcLength, lenUnit, state.radius, 1);
 
     // Update 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const latP = state.latP ?? (Math.PI / 2);
+    const latA = state.latA ?? (Math.PI / 2);
+    const latB = state.latB ?? (Math.PI / 2);
+
     const R3D = ((state.radius || 180) / 180) * 10;
+    const elDimMode = document.getElementById('val-3d-dim-mode');
+    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spherical 3D (S²)' : 'Planar (Y=0)';
     const el3dR = document.getElementById('val-3d-r');
     if (el3dR) el3dR.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const elPx = document.getElementById('val-3d-px');
-    if (elPx) elPx.textContent = (R3D * Math.cos(state.angleP)).toFixed(2);
+    if (elPx) elPx.textContent = (R3D * Math.sin(latP) * Math.cos(state.angleP)).toFixed(2);
+    const elPy = document.getElementById('val-3d-py');
+    if (elPy) elPy.textContent = (R3D * Math.cos(latP)).toFixed(2);
     const elPz = document.getElementById('val-3d-pz');
-    if (elPz) elPz.textContent = (R3D * Math.sin(state.angleP)).toFixed(2);
+    if (elPz) elPz.textContent = (R3D * Math.sin(latP) * Math.sin(state.angleP)).toFixed(2);
+
+    const p3A = { x: R3D * Math.sin(latA) * Math.cos(state.angleA), y: R3D * Math.cos(latA), z: R3D * Math.sin(latA) * Math.sin(state.angleA) };
+    const p3B = { x: R3D * Math.sin(latB) * Math.cos(state.angleB), y: R3D * Math.cos(latB), z: R3D * Math.sin(latB) * Math.sin(state.angleB) };
+    const p3P = { x: R3D * Math.sin(latP) * Math.cos(state.angleP), y: R3D * Math.cos(latP), z: R3D * Math.sin(latP) * Math.sin(state.angleP) };
+    const sphExcess = computeSphericalTriangleExcess(p3A, p3B, p3P, R3D);
+
+    const rowExcess = document.getElementById('row-3d-excess');
+    const rowArea = document.getElementById('row-3d-area');
+    if (rowExcess) rowExcess.style.display = isSpatial ? 'flex' : 'none';
+    if (rowArea) rowArea.style.display = isSpatial ? 'flex' : 'none';
+    const elExcess = document.getElementById('val-3d-excess');
+    if (elExcess) elExcess.textContent = `${sphExcess.excessDeg.toFixed(2)}°`;
+    const elArea = document.getElementById('val-3d-area');
+    if (elArea) elArea.textContent = sphExcess.area.toFixed(2);
+
     const elCentral = document.getElementById('val-3d-central');
     if (elCentral) elCentral.textContent = UnitSystemConverter.formatAngle(g.centralDeg, angUnit);
     const elInscribed = document.getElementById('val-3d-inscribed');

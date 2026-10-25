@@ -1,4 +1,4 @@
-import { UnitSystemConverter } from './circle-core.js';
+import { UnitSystemConverter, computeSphericalTriangleExcess } from './circle-core.js';
 
 export const fmtAngle = (deg, unit = 'deg', decimals = null) => UnitSystemConverter.formatAngle(deg, unit, decimals);
 export const fmtLength = (px, unit = 'px', radius = 180, decimals = null) => UnitSystemConverter.formatLength(px, unit, radius, decimals);
@@ -78,6 +78,15 @@ export class AngleAtCentreDerivations {
         `• Reflex perigon invariant: 2(${tag('teal', 'θ*')} - ${tag('lavender', '180°')}) = ${tag('teal', '2θ*')} - ${tag('teal', '360°')} (exact dual conjugate of 2:1 ratio)`,
         true
       )}
+      ${cardTemplate(
+        'aac-step-6',
+        'Step 6',
+        `3D Spherical Geometry on S² & Girard's Excess (${tag('amber', 'E = A + B + P - 180° > 0')})`,
+        `Lifting vertices ${tag('red', 'A')}, ${tag('orange', 'B')}, ${tag('violet', 'P')} onto 2-sphere ${tag('sky', 'S²')} forms spherical triangle ${tag('sky', '△APB')} bounded by great-circle geodesic arcs.<br>` +
+        `Central rays ${tag('indigo', 'OA, OB, OP')} span a trihedral solid cone from origin ${tag('indigo', 'O')}.<br>` +
+        `Girard's excess ${tag('amber', 'E = ∠A_sph + ∠B_sph + ∠P_sph - π')} directly yields spherical surface area ${tag('sky', 'Area = R² E')}.`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -89,6 +98,8 @@ export class AngleAtCentreDerivations {
       s4e: this.container.querySelector('#aac-step-4 [data-eval]'),
       s5: this.container.querySelector('#aac-step-5 [data-sub]'),
       s5e: this.container.querySelector('#aac-step-5 [data-eval]'),
+      s6: this.container.querySelector('#aac-step-6 [data-sub]'),
+      s6e: this.container.querySelector('#aac-step-6 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -163,6 +174,34 @@ export class AngleAtCentreDerivations {
     if (this.slots.s5e) {
       this.slots.s5e.innerHTML =
         `<span>${tag('teal', `Perigon Invariant: 2θ + 2θ* = 360.0° & θ + θ* = 360.0°`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`;
+    }
+    if (this.slots.s6) {
+      const isSpatial = state.dimensionMode === 'spatial';
+      const latP = state.latP ?? (Math.PI / 2);
+      const latA = state.latA ?? (Math.PI / 2);
+      const latB = state.latB ?? (Math.PI / 2);
+      const R3D = 10;
+      const pA = { x: R3D * Math.sin(latA) * Math.cos(state.angleA), y: R3D * Math.cos(latA), z: R3D * Math.sin(latA) * Math.sin(state.angleA) };
+      const pB = { x: R3D * Math.sin(latB) * Math.cos(state.angleB), y: R3D * Math.cos(latB), z: R3D * Math.sin(latB) * Math.sin(state.angleB) };
+      const pP = { x: R3D * Math.sin(latP) * Math.cos(state.angleP), y: R3D * Math.cos(latP), z: R3D * Math.sin(latP) * Math.sin(state.angleP) };
+      const excessData = computeSphericalTriangleExcess(pA, pB, pP, R3D);
+
+      if (isSpatial) {
+        this.slots.s6.innerHTML =
+          `↳ Spherical Angles: ${tag('red', `A_sph = ${fmtAngle(excessData.sphAngles.degA, angUnit)}`)}, ${tag('orange', `B_sph = ${fmtAngle(excessData.sphAngles.degB, angUnit)}`)}, ${tag('green', `P_sph = ${fmtAngle(excessData.sphAngles.degC, angUnit)}`)}<br>` +
+          `↳ Spherical Angle Sum: ${tag('amber', fmtAngle(excessData.sphAngles.degA + excessData.sphAngles.degB + excessData.sphAngles.degC, angUnit))} > 180°<br>` +
+          `↳ Girard's Excess: ${tag('sky', `E = ${fmtAngle(excessData.excessDeg, angUnit)}`)} | Cap Area on S²: ${tag('sky', excessData.area.toFixed(2))}`;
+      } else {
+        this.slots.s6.innerHTML =
+          `↳ Planar Limit (Equatorial Disk Y = 0): Spherical Excess ${tag('sky', 'E = 0.00°')}<br>` +
+          `↳ Activate Spatial 3D on S² in toolbar to evaluate Girard's excess and curved geodesic arcs.`;
+      }
+    }
+    if (this.slots.s6e) {
+      const isSpatial = state.dimensionMode === 'spatial';
+      this.slots.s6e.innerHTML = isSpatial
+        ? `<span>${tag('amber', 'Girard\'s Invariant: E = A_sph + B_sph + P_sph - π > 0')}</span><span class="derivation-check">✓ Gauss-Bonnet S²</span>`
+        : `<span>${tag('teal', 'Euclidean Flat Disk Limit (Curvature K = 0)')}</span><span class="derivation-check">✓ Planar S¹</span>`;
     }
   }
 }

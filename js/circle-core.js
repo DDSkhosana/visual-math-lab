@@ -194,7 +194,7 @@ export class Panel {
     this.body = element.querySelector('.panel-body');
     this.minimizeButton = minimizeButton;
     this.expandButton = expandButton;
-    this.compact = window.matchMedia(COMPACT_QUERY);
+    this.compact = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(COMPACT_QUERY) : { matches: false, addEventListener: () => {} };
     this.compact.addEventListener('change', () => this.#resetLayout());
 
     this.#enableDrag(header);
@@ -388,7 +388,7 @@ export class DraggableToolbar {
     this.toolbar = toolbar;
     this.handle = handle;
     this.collapseBtn = toolbar.querySelector('#toolbar-collapse-btn, .toolbar-collapse-btn');
-    this.compact = window.matchMedia(COMPACT_QUERY);
+    this.compact = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(COMPACT_QUERY) : { matches: false, addEventListener: () => {} };
     this.compact.addEventListener('change', () => this.resetPosition());
 
     if (this.collapseBtn) {
@@ -402,17 +402,19 @@ export class DraggableToolbar {
       this.setCollapsed(true);
     }
 
-    window.addEventListener('resize', () => {
-      if (this.toolbar.style.transform === 'none') {
-        const parent = this.toolbar.offsetParent ?? document.body;
-        const maxX = parent.clientWidth - this.toolbar.offsetWidth;
-        const maxY = parent.clientHeight - this.toolbar.offsetHeight;
-        const curLeft = parseFloat(this.toolbar.style.left) || 0;
-        const curTop = parseFloat(this.toolbar.style.top) || 0;
-        this.toolbar.style.left = `${clamp(curLeft, 0, Math.max(0, maxX))}px`;
-        this.toolbar.style.top = `${clamp(curTop, 0, Math.max(0, maxY))}px`;
-      }
-    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => {
+        if (this.toolbar.style.transform === 'none') {
+          const parent = this.toolbar.offsetParent ?? document.body;
+          const maxX = parent.clientWidth - this.toolbar.offsetWidth;
+          const maxY = parent.clientHeight - this.toolbar.offsetHeight;
+          const curLeft = parseFloat(this.toolbar.style.left) || 0;
+          const curTop = parseFloat(this.toolbar.style.top) || 0;
+          this.toolbar.style.left = `${clamp(curLeft, 0, Math.max(0, maxX))}px`;
+          this.toolbar.style.top = `${clamp(curTop, 0, Math.max(0, maxY))}px`;
+        }
+      });
+    }
 
     this.toolbar.addEventListener('pointerdown', (e) => this.#onDown(e));
 
@@ -1789,6 +1791,7 @@ export function bindStandardToggles(store, ...args) {
         splitDirection: 'horizontal',
         splitRatio: 50,
         cameraMode: 'arcball',
+        dimensionMode: 'planar',
         affineMode: false,
         affineStretch: 1.0,
         affineAxisAngle: 0,
@@ -1814,10 +1817,24 @@ export function bindStandardToggles(store, ...args) {
     new UnitSystemConverter(unitConverterContainer, store);
   }
 
-  // Mount Affine Conic Mode & AR Toolbar buttons if not already present
+  // Mount Dimension Mode, Affine Conic Mode & AR Toolbar buttons if not already present
   const toolbarContent = document.getElementById('toolbar-content');
   if (toolbarContent && typeof document.createElement === 'function') {
     const refBtn = document.getElementById('btn-reset');
+    if (!document.getElementById('btn-toggle-dimension-mode')) {
+      const dimBtn = document.createElement('button');
+      dimBtn.type = 'button';
+      dimBtn.className = 'btn-toolbar';
+      dimBtn.id = 'btn-toggle-dimension-mode';
+      dimBtn.title = 'Toggle between Planar Euclidean (Y=0) and True Spherical 3D Geometry on S²';
+      dimBtn.setAttribute('aria-pressed', 'false');
+      dimBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg><span>Spatial: <b class="toggle-state-text" id="toolbar-dimension-status">OFF</b></span>`;
+      if (refBtn && refBtn.parentNode === toolbarContent && typeof toolbarContent.insertBefore === 'function') {
+        toolbarContent.insertBefore(dimBtn, refBtn);
+      } else {
+        toolbarContent.appendChild?.(dimBtn);
+      }
+    }
     if (!document.getElementById('btn-toggle-affine')) {
       const affineBtn = document.createElement('button');
       affineBtn.type = 'button';
@@ -1847,6 +1864,161 @@ export function bindStandardToggles(store, ...args) {
       }
     }
   }
+
+  // Mount Dimension Mode Section in 3D Toolbar Panel if not present
+  if (!document.getElementById('section-dimension-mode') && typeof document.createElement === 'function') {
+    const p3dBody = panel3d?.querySelector?.('.panel-body');
+    if (p3dBody) {
+      const dimSec = document.createElement('div');
+      dimSec.className = 'collapsible-section';
+      dimSec.id = 'section-dimension-mode';
+      dimSec.innerHTML = `
+        <div class="collapsible-header" id="header-dimension-mode" aria-expanded="true">
+          <span>Dimension Mode</span><span class="icon">▼</span>
+        </div>
+        <div class="collapsible-content">
+          <div class="toggle-tooltips-container" style="margin-bottom: 10px;">
+            <span class="text-xs font-semibold text-slate-200">Spherical 3D on S²</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-dimension-mode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="btn-group-pill" style="display: flex; gap: 6px; margin-bottom: 10px;">
+            <button type="button" class="btn active" id="btn-mode-planar-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Planar 2D</button>
+            <button type="button" class="btn" id="btn-mode-spatial-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Spatial 3D</button>
+          </div>
+          <p class="text-xs text-slate-400" style="line-height: 1.4; margin: 0;">
+            Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
+          </p>
+        </div>
+      `;
+      if (p3dBody.firstChild && typeof p3dBody.insertBefore === 'function') {
+        p3dBody.insertBefore(dimSec, p3dBody.firstChild);
+      } else {
+        p3dBody.appendChild?.(dimSec);
+      }
+      initCollapsibleSections(dimSec);
+    }
+  }
+
+  // Mount Floating Dimension Mode Pill Bar in 3D Container if not present
+  const cont3d = sceneTarget?.container || document.getElementById('canvas-3d-container');
+  if (cont3d && !cont3d.querySelector('.dimension-mode-bar') && typeof document.createElement === 'function') {
+    const bar = document.createElement('div');
+    bar.className = 'dimension-mode-bar';
+    bar.innerHTML = `
+      <div class="btn-group btn-group--pill">
+        <button type="button" class="btn active" id="btn-mode-planar" title="Planar Euclidean Disk (Y = 0)">Planar</button>
+        <button type="button" class="btn" id="btn-mode-spatial" title="True Spherical Geometry on S²">Spatial S²</button>
+      </div>
+    `;
+    cont3d.appendChild(bar);
+  }
+
+  // Universal Dimension Mode switching logic
+  const vId = opts.visualId || opts.exportPrefix || '';
+  const setDimensionMode = (mode) => {
+    const isSpatial = mode === 'spatial';
+    if (isSpatial) {
+      const updates = { dimensionMode: 'spatial' };
+      const cur = store.get();
+      if (cur.latA === undefined || Math.abs((cur.latA ?? (Math.PI / 2)) - Math.PI / 2) < 1e-3) {
+        if (vId.includes('angle-at-centre')) {
+          updates.latA = 1.22; updates.latB = 1.92; updates.latP = 0.73;
+        } else if (vId.includes('same-segment')) {
+          updates.latA = 1.31; updates.latB = 1.83; updates.latP1 = 0.84; updates.latP2 = 0.84;
+        } else if (vId.includes('cyclic-quad')) {
+          updates.latA = 1.05; updates.latB = 2.09; updates.latC = 2.09; updates.latD = 1.05;
+        } else if (vId.includes('tangent-radius')) {
+          updates.latT = 1.13;
+        } else if (vId.includes('alternate-segment')) {
+          updates.latT = 1.22; updates.latA = 1.92; updates.latB = 0.87;
+        } else if (vId.includes('tangents-from-external') || vId.includes('tangents-from-point')) {
+          updates.latT1 = 1.13; updates.latT2 = 2.01;
+        } else if (vId.includes('chord-bisector')) {
+          updates.latA = 1.13; updates.latB = 2.01;
+        } else {
+          updates.latA = 1.22; updates.latB = 1.92; updates.latP = 0.73;
+        }
+      }
+      store.set(updates);
+    } else {
+      store.set({
+        dimensionMode: 'planar',
+        latA: Math.PI / 2,
+        latB: Math.PI / 2,
+        latC: Math.PI / 2,
+        latD: Math.PI / 2,
+        latP: Math.PI / 2,
+        latP1: Math.PI / 2,
+        latP2: Math.PI / 2,
+        latT: Math.PI / 2,
+        latT1: Math.PI / 2,
+        latT2: Math.PI / 2,
+      });
+    }
+  };
+
+  const bindDimClick = (id, targetMode) => {
+    const el = document.getElementById(id);
+    if (el && !el._dimBound) {
+      el._dimBound = true;
+      el.addEventListener('click', () => setDimensionMode(targetMode));
+    }
+  };
+
+  bindDimClick('btn-mode-planar', 'planar');
+  bindDimClick('btn-mode-spatial', 'spatial');
+  bindDimClick('btn-mode-planar-pill', 'planar');
+  bindDimClick('btn-mode-spatial-pill', 'spatial');
+
+  const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
+  if (btnToggleDim && !btnToggleDim._dimBound) {
+    btnToggleDim._dimBound = true;
+    btnToggleDim.addEventListener('click', () => {
+      const isSpatial = store.get().dimensionMode === 'spatial';
+      setDimensionMode(isSpatial ? 'planar' : 'spatial');
+    });
+  }
+
+  const toggleDimCheck = document.getElementById('toggle-dimension-mode');
+  if (toggleDimCheck && !toggleDimCheck._dimBound) {
+    toggleDimCheck._dimBound = true;
+    toggleDimCheck.addEventListener('change', (e) => {
+      setDimensionMode(e.target.checked ? 'spatial' : 'planar');
+    });
+  }
+
+  const syncDimensionUI = (st = {}) => {
+    const isSpatial = st.dimensionMode === 'spatial';
+    const statusPill = document.getElementById('toolbar-dimension-status');
+    if (statusPill) {
+      statusPill.textContent = isSpatial ? 'ON' : 'OFF';
+      statusPill.classList.toggle('is-on', isSpatial);
+    }
+    if (btnToggleDim) {
+      btnToggleDim.classList.toggle('active', isSpatial);
+      btnToggleDim.setAttribute('aria-pressed', String(isSpatial));
+    }
+    if (toggleDimCheck && toggleDimCheck.checked !== isSpatial) {
+      toggleDimCheck.checked = isSpatial;
+    }
+    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
+    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
+    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
+    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
+
+    const btnPlanar = document.getElementById('btn-mode-planar');
+    const btnSpatial = document.getElementById('btn-mode-spatial');
+    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
+    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
+  };
+
+  syncDimensionUI(store.get());
+  store.subscribe((st) => {
+    syncDimensionUI(st);
+  }, ['dimensionMode']);
 
   // Mount Affine Conic Mode subpanel inside primary Interactive Controls panel if not present
   if (!document.getElementById('section-affine-conic') && typeof document.createElement === 'function') {
@@ -2627,3 +2799,11 @@ export {
   showShareToast,
   initPermalinkSync,
 } from './permalink.js';
+export {
+  createGeodesicArc3D,
+  updateGeodesicArc3D,
+  createSphericalTriangleMesh,
+  updateSphericalTriangleMesh,
+  computeSphericalTriangleExcess,
+  getGeodesicTangent,
+} from './circle-3d.js';
