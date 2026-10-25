@@ -1442,6 +1442,8 @@ export function computeOptimalViewportRadius(width, height, visualId = '') {
     return 180;
   }
 
+  // Label Clearance Protection: 36px - 44px ensures radial point markers (A, B, C, P),
+  // degree badges, and coordinate pills never clip outside the canvas boundary.
   const padX = 45;
   const padY = 30;
   const maxAvailableR = Math.min((width - 2 * padX) / 2, (height - 2 * padY) / 2);
@@ -1456,7 +1458,7 @@ export function computeOptimalViewportRadius(width, height, visualId = '') {
   }
 
   const optR = Math.round(maxAvailableR * multiplier);
-  return Math.max(80, optR);
+  return Math.max(70, optR);
 }
 
 export function bindStandardToggles(store, ...args) {
@@ -1472,7 +1474,16 @@ export function bindStandardToggles(store, ...args) {
   const sceneTarget = opts.scene3d || opts.view3d;
   const viewTarget = opts.view2d || opts.canvas2d;
 
-  const syncOptimalRadius = () => {
+  let userCustomizedRadius = false;
+  const sliderRadiusEl = document.getElementById('slider-radius');
+  if (sliderRadiusEl) {
+    sliderRadiusEl.addEventListener('input', () => {
+      userCustomizedRadius = true;
+    });
+  }
+
+  const syncOptimalRadius = (force = false) => {
+    if (userCustomizedRadius && !force) return;
     const cont = viewTarget?.container || document.getElementById('canvas-2d-container');
     const rect = cont?.getBoundingClientRect ? cont.getBoundingClientRect() : null;
     const curW = (rect?.width && rect.width > 0) ? rect.width : (viewTarget?.width || 0);
@@ -1480,7 +1491,20 @@ export function bindStandardToggles(store, ...args) {
     if (curW > 0 && curH > 0) {
       const vId = opts.visualId || opts.exportPrefix || '';
       const optR = computeOptimalViewportRadius(curW, curH, vId);
-      store.set({ radius: optR });
+      if (vId === 'tangents-from-external-point') {
+        const nextDist = Math.round(optR * (260 / 120));
+        store.set({ radius: optR, pointDist: nextDist });
+        const sliderDist = document.getElementById('slider-dist');
+        if (sliderDist) {
+          sliderDist.min = String(optR + 20);
+          if (nextDist > parseFloat(sliderDist.max)) {
+            sliderDist.max = String(Math.ceil(nextDist * 1.3));
+          }
+          sliderDist.value = String(nextDist);
+        }
+      } else {
+        store.set({ radius: optR });
+      }
       const sliderR = document.getElementById('slider-radius');
       if (sliderR) {
         if (optR > parseFloat(sliderR.max)) {
@@ -1511,8 +1535,23 @@ export function bindStandardToggles(store, ...args) {
     }
   }, ['radius']);
 
+  store.subscribe((state) => {
+    if (!userCustomizedRadius) {
+      setTimeout(() => syncOptimalRadius(), 60);
+    }
+  }, ['viewMode', 'splitRatio']);
+
   if (typeof window !== 'undefined') {
     syncOptimalRadius();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => syncOptimalRadius());
+    }
+    setTimeout(() => syncOptimalRadius(), 80);
+    window.addEventListener('resize', () => {
+      if (!userCustomizedRadius) {
+        setTimeout(() => syncOptimalRadius(), 80);
+      }
+    });
   }
 
   if (panel2d && !panel2d._panelInstance) {
@@ -1779,6 +1818,7 @@ export function bindStandardToggles(store, ...args) {
   const resetBtn = document.getElementById('btn-reset');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
+      userCustomizedRadius = false;
       if (typeof store.reset === 'function') {
         store.reset();
       } else if (opts.createInitialState) {
@@ -1806,7 +1846,7 @@ export function bindStandardToggles(store, ...args) {
         }
       });
       applyPerspective(defaultPreset);
-      syncOptimalRadius();
+      syncOptimalRadius(true);
       opts.onReset?.();
     });
   }

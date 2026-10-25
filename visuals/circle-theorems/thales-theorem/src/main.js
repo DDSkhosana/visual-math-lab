@@ -58,6 +58,15 @@ function bootstrap() {
     }
   };
   syncOptimalRadius();
+  if (typeof window !== 'undefined') {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => syncOptimalRadius());
+    }
+    setTimeout(() => syncOptimalRadius(), 80);
+  }
+  store.subscribe(() => {
+    setTimeout(() => syncOptimalRadius(), 60);
+  }, ['viewMode', 'splitRatio']);
   const onResize = () => {
     view2d.resize();
     scene3d.resize();

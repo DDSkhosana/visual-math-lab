@@ -43,7 +43,10 @@ import {
   getRadialLabelCoords,
   getPointLabel,
   createDefaultVisState,
+  computeOptimalViewportRadius,
 } from '../../../js/circle-core.js';
+
+export { computeOptimalViewportRadius };
 
 import {
   loadThree,

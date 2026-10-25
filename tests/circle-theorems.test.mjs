@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { get3DAngleBisector, get3DAngleDegrees, computeSphericalTriangleExcess, getGeodesicTangent } from '../js/circle-3d.js';
-import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections } from '../js/circle-core.js';
+import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections, computeOptimalViewportRadius } from '../js/circle-core.js';
 import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/circle-theorems/thales-theorem/src/ui/Accordion.js';
 import { getMatchScore, highlightMatch } from '../js/components.js';
 
@@ -2344,4 +2344,50 @@ test('Circle Theorems 3D Spatial Invariants: Tangent-Radius orthogonality, Tange
   // In 3D, vector from O to spherical midpoint Msph is orthogonal to chord AB
   const dotChordMsph = chord.x * Msph.x + chord.y * Msph.y + chord.z * Msph.z;
   close(dotChordMsph, 0, 1e-4);
+});
+
+test('Dynamic Optimal Viewport Radius: computeOptimalViewportRadius scales dynamically across all 12 visualizers, viewports, and reset contracts', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+
+  // 1. Test baseline split-view dimensions (450x420)
+  assert.equal(computeOptimalViewportRadius(450, 420, 'angle-at-centre'), 180, 'Default circle theorem radius must be 180 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'thales-theorem'), 180, 'Thales theorem radius must be 180 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'tangents-from-external-point'), 120, 'Tangents from external point must be 120 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'perpendicular-chord-bisector'), 170, 'Perpendicular chord bisector must be 170 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'unit-circle-helix'), 175, 'Unit circle helix must be 175 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'law-of-sines'), 175, 'Law of sines must be 175 in 450x420');
+  assert.equal(computeOptimalViewportRadius(450, 420, 'angle-sum-identities'), 175, 'Angle sum identities must be 175 in 450x420');
+
+  // 2. Test widescreen Full 2D desktop dimensions (1000x700)
+  const wideDefault = computeOptimalViewportRadius(1000, 700, 'angle-at-centre');
+  assert.ok(wideDefault >= 290 && wideDefault <= 330, `Widescreen default radius (${wideDefault}) must expand to occupy viewport width`);
+
+  const wideTangents = computeOptimalViewportRadius(1000, 700, 'tangents-from-external-point');
+  assert.ok(wideTangents >= 200 && wideTangents <= 330, `Widescreen tangents radius (${wideTangents}) must scale dynamically with span factor`);
+
+  const wideTrig = computeOptimalViewportRadius(1000, 700, 'unit-circle-helix');
+  assert.ok(wideTrig >= 280 && wideTrig <= 330, `Widescreen trig radius (${wideTrig}) must expand dynamically`);
+
+  // 3. Test fallback handling when width or height are zero or missing
+  assert.equal(computeOptimalViewportRadius(0, 0, 'angle-at-centre'), 180);
+  assert.equal(computeOptimalViewportRadius(0, 0, 'tangents-from-external-point'), 120);
+  assert.equal(computeOptimalViewportRadius(0, 0, 'perpendicular-chord-bisector'), 170);
+  assert.equal(computeOptimalViewportRadius(0, 0, 'law-of-sines'), 175);
+
+  // 4. Verify circle-core.js syncOptimalRadius contracts:
+  const circleCoreJs = fs.readFileSync(path.join(rootDir, 'js/circle-core.js'), 'utf8');
+  assert.ok(circleCoreJs.includes('syncOptimalRadius'), 'circle-core.js must implement syncOptimalRadius');
+  assert.ok(circleCoreJs.includes('computeOptimalViewportRadius'), 'circle-core.js must use computeOptimalViewportRadius');
+  assert.ok(circleCoreJs.includes('userCustomizedRadius'), 'circle-core.js must track userCustomizedRadius');
+
+  // 5. Verify trig-core.js exports computeOptimalViewportRadius and implements syncSlider expansion
+  const trigCoreJs = fs.readFileSync(path.join(rootDir, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+  assert.ok(trigCoreJs.includes('computeOptimalViewportRadius'), 'trig-core.js must import and export computeOptimalViewportRadius');
+  assert.ok(trigCoreJs.includes('num > parseFloat(el.max)'), 'trig-core.js syncSlider must expand slider max on large radii');
+
+  // 6. Verify Thales Theorem implements syncOptimalRadius on load and reset
+  const thalesMainJs = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/main.js'), 'utf8');
+  assert.ok(thalesMainJs.includes('computeOptimalViewportRadius'), 'thales main.js must use computeOptimalViewportRadius');
+  assert.ok(thalesMainJs.includes('store.set({ zoom: optR / r3d })'), 'thales main.js must dynamically set zoom = optR / r3d');
 });
