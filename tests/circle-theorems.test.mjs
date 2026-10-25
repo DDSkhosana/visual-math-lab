@@ -1911,6 +1911,9 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
   const dragC3d = { style: {} };
   const resizerListeners = {};
   const mockResizer = {
+    attributes: {},
+    setAttribute(k, v) { this.attributes[k] = String(v); },
+    getAttribute(k) { return this.attributes[k]; },
     classList: {
       _active: false,
       add(c) { if (c === 'active') this._active = true; },
@@ -1946,6 +1949,29 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
   resizerListeners['pointerup']?.[0]?.({ pointerId: 1 });
   assert.strictEqual(mockResizer.classList.contains('active'), false, 'Resizer active class must clear on pointerup');
   assert.ok(onResizeCount >= 2, 'onResize must be triggered during divider drag');
+
+  // Accessibility attributes on resizer divider
+  assert.strictEqual(mockResizer.getAttribute('role'), 'separator', 'Resizer must declare role="separator"');
+  assert.strictEqual(mockResizer.getAttribute('tabindex'), '0', 'Resizer must be keyboard focusable (tabindex="0")');
+  assert.strictEqual(mockResizer.getAttribute('aria-valuenow'), '65', 'Resizer aria-valuenow must reflect 65%');
+  assert.ok(mockResizer.getAttribute('title').includes('Double-click or press Home to reset to 50/50'), 'Resizer must contain informative tooltip');
+
+  // Double-click resets splitRatio to 50/50
+  resizerListeners['dblclick']?.[0]?.();
+  assert.strictEqual(dragStore.get().splitRatio, 50, 'Double-clicking resizer must reset splitRatio to 50%');
+  assert.strictEqual(mockResizer.getAttribute('aria-valuenow'), '50', 'Resizer aria-valuenow must update to 50% on reset');
+
+  // Keyboard navigation on resizer
+  resizerListeners['keydown']?.[0]?.({ key: 'ArrowLeft', preventDefault: () => {} });
+  assert.strictEqual(dragStore.get().splitRatio, 45, 'ArrowLeft must decrement splitRatio by 5%');
+
+  resizerListeners['keydown']?.[0]?.({ key: 'ArrowRight', preventDefault: () => {} });
+  assert.strictEqual(dragStore.get().splitRatio, 50, 'ArrowRight must increment splitRatio by 5%');
+
+  resizerListeners['keydown']?.[0]?.({ key: 'ArrowLeft', preventDefault: () => {} });
+  assert.strictEqual(dragStore.get().splitRatio, 45);
+  resizerListeners['keydown']?.[0]?.({ key: 'Home', preventDefault: () => {} });
+  assert.strictEqual(dragStore.get().splitRatio, 50, 'Home key must reset splitRatio to 50%');
 
   // 4. WorkspaceDockManager: Viewport deduction sets compact dataset
   const mockRoot = {

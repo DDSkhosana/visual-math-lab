@@ -15,6 +15,7 @@ export class ViewModeController {
     this.toolbar3d = toolbar3d;
     this.buttons = buttons;
     this.flipButton = flipButton;
+    this.resizer = resizer;
     this.onResize = onResize;
 
     for (const [mode, button] of Object.entries(buttons)) {
@@ -99,10 +100,49 @@ export class ViewModeController {
     if (this.toolbar2d) this.toolbar2d.style.display = viewMode === '3d' ? 'none' : '';
     if (this.toolbar3d) this.toolbar3d.style.display = viewMode === '2d' ? 'none' : '';
 
+    if (this.resizer) {
+      this.resizer.setAttribute?.('aria-orientation', horizontal ? 'vertical' : 'horizontal');
+      this.resizer.setAttribute?.('aria-valuenow', String(Math.round(splitRatio)));
+    }
+
     this.onResize?.();
   }
 
   #enableDividerDrag(resizer) {
+    if (!resizer) return;
+
+    resizer.setAttribute?.('role', 'separator');
+    resizer.setAttribute?.('tabindex', '0');
+    resizer.setAttribute?.('aria-label', 'Viewport split divider');
+    resizer.setAttribute?.('title', 'Drag to resize viewports (Double-click or press Home to reset to 50/50)');
+    resizer.setAttribute?.('aria-valuemin', String(LIMITS?.splitRatio?.min ?? 10));
+    resizer.setAttribute?.('aria-valuemax', String(LIMITS?.splitRatio?.max ?? 90));
+
+    resizer.addEventListener?.('dblclick', () => {
+      this.store.set(setSplitRatio(50));
+      this.onResize?.();
+    });
+
+    resizer.addEventListener?.('keydown', (e) => {
+      const curRatio = this.store.get().splitRatio ?? 50;
+      let nextRatio = null;
+      const minRatio = LIMITS?.splitRatio?.min ?? 10;
+      const maxRatio = LIMITS?.splitRatio?.max ?? 90;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        nextRatio = clamp(curRatio - 5, minRatio, maxRatio);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextRatio = clamp(curRatio + 5, minRatio, maxRatio);
+      } else if (e.key === 'Home') {
+        nextRatio = 50;
+      }
+      if (nextRatio !== null) {
+        e.preventDefault?.();
+        this.store.set(setSplitRatio(nextRatio));
+        this.onResize?.();
+      }
+    });
+
     resizer.addEventListener('pointerdown', (event) => {
       event.preventDefault?.();
       try {

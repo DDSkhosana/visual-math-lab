@@ -115,7 +115,8 @@ body.header-collapsed .circle-explorer {
   transition: background-color 0.15s ease;
 }
 .viewport-resizer:hover,
-.viewport-resizer.active {
+.viewport-resizer.active,
+.viewport-resizer:focus-visible {
   background-color: #38bdf8;
 }
 .layout-split.horizontal-split { flex-direction: row; }
