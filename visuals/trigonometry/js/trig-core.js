@@ -1951,7 +1951,8 @@ export class TrigScene3DView extends BaseScene3DView {
               const vy = wA * uA.y + wB * uB.y + wC * uC.y;
               const vz = wA * uA.z + wB * uB.z + wC * uC.z;
               const len = Math.hypot(vx, vy, vz) || 1;
-              positions.push((vx / len) * R, (vy / len) * R, (vz / len) * R);
+              const rLift = R * 1.002;
+              positions.push((vx / len) * rLift, (vy / len) * rLift, (vz / len) * rLift);
               grid[i][j] = idx++;
             }
           }
@@ -2116,6 +2117,17 @@ export class TrigScene3DView extends BaseScene3DView {
               new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
             )
           );
+
+          if (state.showCircumcircleDiameter !== false) {
+            const thalesGeom = new THREE.BufferGeometry().setFromPoints([Ap, B, C]);
+            thalesGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                thalesGeom,
+                new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+              )
+            );
+          }
         }
 
         const bisA = get3DAngleBisector(A, B, C, 3.2, THREE);

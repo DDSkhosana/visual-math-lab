@@ -512,6 +512,8 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("btn-mode-planar"));
         assert.ok(src.includes("btn-mode-spatial"));
         assert.ok(src.includes("btnToggleDim.classList.toggle('active', isSpatial)"));
+        assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([Ap, B, C])"), '3D planar mode must shade Thales right-triangle mesh in Amber');
+        assert.ok(src.includes("const rLift = R * 1.002;"), '3D spherical cap must have radial lift offset to prevent Z-fighting');
     });
 
     test('Law of Cosines dual-mode switch (Planar Euclidean vs Spherical 3D on S²) is fully wired into DOM, 3D scene, telemetry, and derivations', () => {
