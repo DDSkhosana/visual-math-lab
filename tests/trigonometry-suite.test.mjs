@@ -421,6 +421,10 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("key: 'rect-2abcos'"));
         assert.ok(src.includes("2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}"));
         assert.ok(src.includes("vis-3d-rect"));
+
+        // Colour Grammar Standard: 2ab cos C rectangle & badges are invariant in Amber
+        assert.ok(src.includes("const rectColor = PALETTE.amber;"), '3D interaction rectangle mesh must be strictly Amber');
+        assert.ok(!src.includes("m.cosC >= 0 ? PALETTE.amber : PALETTE.rose"), 'trig-core.js must not flip Amber to Rose for negative cosine');
     });
 
     test('Unit Circle Six Trig Functions & 3D Cylindrical Helix structure and wave projections are fully integrated', () => {
@@ -599,6 +603,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}"), '2D must render dynamic evaluation ratio badge');
         assert.ok(src.includes("Proj Ratio (a cos C)/b = ${projFrac.toFixed(3)}"), '2D must render proportional projection bar/gauge');
         assert.ok(src.includes("key: 'ratio-cos'"), '3D scene must push ratio-cos billboard label');
+        assert.ok(src.includes("const barColor = PALETTE.amber;"), 'Ratio evaluation badge & proportional bar must be strictly Amber');
         assert.ok(src.includes("setText('tel-cos-ratio', m.cosC.toFixed(4))"), '2D telemetry must set tel-cos-ratio');
         assert.ok(src.includes("setText('tel-proj-frac'"), '2D telemetry must set tel-proj-frac');
         assert.ok(src.includes("setText('val-3d-cos-ratio', m.cosC.toFixed(4))"), '3D telemetry must set val-3d-cos-ratio');

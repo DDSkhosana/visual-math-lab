@@ -889,12 +889,12 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Bilinear Interaction Rectangle (2ab cos C) below AC
+    // Bilinear Interaction Rectangle (2ab cos C) below AC (locked to PALETTE.amber invariant)
     if (state.showInteractionRect !== false && showArea) {
       const rectW = m.projection.pProj * scale;
       const rectH = Math.min(68, m.b * scale * 0.3);
-      ctx.fillStyle = m.cosC >= 0 ? 'rgba(251, 191, 36, 0.14)' : 'rgba(244, 63, 94, 0.14)';
-      ctx.strokeStyle = m.cosC >= 0 ? PALETTE.amber : PALETTE.rose;
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+      ctx.strokeStyle = PALETTE.amber;
       ctx.lineWidth = 1.5;
       ctx.fillRect(C.x, C.y + 10, rectW, rectH);
       ctx.strokeRect(C.x, C.y + 10, rectW, rectH);
@@ -904,7 +904,7 @@ export class TrigCanvas2DView {
           `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
           C.x + rectW / 2,
           C.y + 10 + rectH / 2,
-          m.cosC >= 0 ? PALETTE.amber : PALETTE.rose
+          PALETTE.amber
         );
       }
     }
@@ -1007,10 +1007,9 @@ export class TrigCanvas2DView {
       );
     }
 
-    // Dynamic Ratio Evaluation Badge and Proportional Projection Bar along baseline b
+    // Dynamic Ratio Evaluation Badge and Proportional Projection Bar along baseline b (locked to PALETTE.amber invariant)
     if (state.showRatioBadge !== false) {
-      const isPos = m.cosC >= 0;
-      const barColor = isPos ? PALETTE.amber : PALETTE.rose;
+      const barColor = PALETTE.amber;
 
       // 1. Dynamic Evaluation Ratio Badge near Vertex C / Angle C
       if (showLabels) {
@@ -1050,7 +1049,7 @@ export class TrigCanvas2DView {
       // Filled proportional segment: from C to D (a cos C)
       const projW = D.x - C.x;
       if (Math.abs(projW) > 1) {
-        ctx.fillStyle = isPos ? 'rgba(251, 191, 36, 0.65)' : 'rgba(244, 63, 94, 0.65)';
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.65)';
         ctx.beginPath();
         if (ctx.roundRect) {
           if (projW >= 0) {
@@ -2312,11 +2311,11 @@ export class TrigScene3DView extends BaseScene3DView {
           );
         }
 
-        // 3D Bilinear Interaction Rectangle Mesh (2ab cos C) in the XZ ground plane
+        // 3D Bilinear Interaction Rectangle Mesh (2ab cos C) in the XZ ground plane (locked to PALETTE.amber invariant)
         const showInteractionRect = state.showInteractionRect !== false && showArea;
         const rectDepth = Math.min(2.8, A.x * 0.28);
         if (showInteractionRect) {
-          const rectColor = m.cosC >= 0 ? PALETTE.amber : PALETTE.rose;
+          const rectColor = PALETTE.amber;
           const R0 = new THREE.Vector3(0, 0.015, 0);
           const R1 = new THREE.Vector3(D.x, 0.015, 0);
           const R2 = new THREE.Vector3(D.x, 0.015, -rectDepth);
@@ -2361,7 +2360,7 @@ export class TrigScene3DView extends BaseScene3DView {
             key: 'rect-2abcos',
             text: `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
             at: { x: D.x / 2, y: 0.35, z: -rectDepth / 2 },
-            color: m.cosC >= 0 ? 'color-amber' : 'color-rose',
+            color: 'color-amber',
             isAngle: true,
             show: showInteractionRect,
           },
@@ -2371,7 +2370,7 @@ export class TrigScene3DView extends BaseScene3DView {
                   key: 'ratio-cos',
                   text: `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}`,
                   at: { x: D.x / 2, y: 1.1, z: 0.6 },
-                  color: m.cosC >= 0 ? 'color-amber' : 'color-rose',
+                  color: 'color-amber',
                   isAngle: true,
                   show: true,
                 },
