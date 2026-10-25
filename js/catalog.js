@@ -34,25 +34,15 @@ export async function renderCatalogue(container, root = ".") {
 }
 
 export async function renderTrigCatalogue(container, root = ".") {
-  let visuals;
-  try {
-    const res = await fetch(`${root}/data/visuals.json`);
-    if (res.ok) {
-      const all = await res.json();
-      const trig = all.filter((v) => v.suite === "trigonometry");
-      if (trig.length > 0) visuals = trig;
-    }
-  } catch (_) {}
-
-  if (!visuals) {
-    const response = await fetch(`${root}/visuals/trigonometry/data/trig-visuals.json`);
-    if (!response.ok) {
-      throw new Error(`Could not load trigonometry catalogue (${response.status}).`);
-    }
-    visuals = await response.json();
+  const response = await fetch(`${root}/data/visuals.json`);
+  if (!response.ok) {
+    throw new Error(`Could not load trigonometry catalogue (${response.status}).`);
   }
 
-  const published = visuals.filter((visual) => visual.published);
+  const visuals = await response.json();
+  const published = visuals.filter(
+    (visual) => visual.published && visual.suite === "trigonometry"
+  );
   container.innerHTML = published
     .map((visual) => renderVisualCard(visual, root, "trigonometry"))
     .join("");
