@@ -3044,7 +3044,7 @@ export class TrigDerivationsView {
             'Step 5',
             `Parallelepiped Volume & Scalar Triple Product (${tag('teal', 'Volume = det(R) = +1.000000')})`,
             `Oriented volume spanned by orthonormal triad frame {e₁, e₂, e₃}:<br>` +
-            `${tag('teal', 'Volume')} = ${tag('teal', 'det(R)')} = ${tag('sky', 'e₁')} · (${tag('violet', 'e₂')} × ${tag('amber', 'e₃')}) ≡ ${tag('teal', '+1.000000')}`,
+            `${tag('teal', 'Volume')} = ${tag('teal', 'det(R)')} = ${tag('emerald', 'e₁')} · (${tag('amber', 'e₂')} × ${tag('indigo', 'e₃')}) ≡ ${tag('teal', '+1.000000')}`,
             true
           )}
         `;
@@ -3079,7 +3079,7 @@ export class TrigDerivationsView {
             'Step 4',
             `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
             `Difference ray ${tag('rose', 'D(α − β)')} reflects across ray ${tag('sky', 'OA')} forming congruent triangle ${tag('rose', '△OQD')}:<br>` +
-            `${tag('rose', 'cos(α − β)')} = cos α cos β + sin α sin β &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = sin α cos β − cos α sin β`,
+            `${tag('amber', 'cos(α − β)')} = ${tag('amber', 'cos α cos β')} + ${tag('rose', 'sin α sin β')} &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = ${tag('sky', 'sin α cos β')} − ${tag('violet', 'cos α sin β')}`,
             true
           )}
           ${cardTemplate(
@@ -3087,7 +3087,7 @@ export class TrigDerivationsView {
             'Step 5',
             `2×2 Algebraic Determinant & Area Preserving Invariant (${tag('teal', 'det(R) = +1.000000')})`,
             `Evaluating the 2×2 algebraic determinant of composite rotation matrix ${tag('emerald', 'R(α + β)')}:<br>` +
-            `${tag('teal', 'det(R)')} = ${tag('amber', 'R₀₀ R₁₁')} − ${tag('rose', 'R₀₁ R₁₀')} = ${tag('amber', 'cos²(α + β)')} + ${tag('rose', 'sin²(α + β)')} ≡ ${tag('teal', '+1.000000')}`,
+            `${tag('teal', 'det(R)')} = ${tag('amber', 'R₀₀ R₁₁')} − ${tag('rose', 'R₀₁ R₁₀')} = ${tag('amber', 'cos²(α + β)')} + ${tag('emerald', 'sin²(α + β)')} ≡ ${tag('teal', '+1.000000')}`,
             true
           )}
         `;
@@ -3321,7 +3321,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-2 [data-sub]',
-          `↳ ${tag('amber', `cos α cos β (${m.trig.cosACosB.toFixed(4)})`)} − ${tag('rose', `sin α sin β (${m.trig.sinASinB.toFixed(4)})`)} = ${tag('emerald', m.trig.cosSum.toFixed(4))}`
+          `↳ ${tag('amber', `cos α cos β (${m.trig.cosACosB.toFixed(4)})`)} − ${tag('rose', `sin α sin β (${m.trig.sinASinB.toFixed(4)})`)} = ${tag('amber', m.trig.cosSum.toFixed(4))}`
         );
         setSlot(
           '#asi-step-2 [data-eval]',
@@ -3337,11 +3337,11 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-4 [data-sub]',
-          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
+          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('amber', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
         );
         setSlot(
           '#asi-step-4 [data-eval]',
-          `<span>${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} | ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}</span><span class="derivation-check">✓ Difference Identity</span>`
+          `<span>${tag('amber', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} | ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}</span><span class="derivation-check">✓ Difference Identity</span>`
         );
         const det2D = m.matrices.R_comp[0] * m.matrices.R_comp[3] - m.matrices.R_comp[1] * m.matrices.R_comp[2];
         const r00r11 = (m.matrices.R_comp[0] * m.matrices.R_comp[3]).toFixed(4);
