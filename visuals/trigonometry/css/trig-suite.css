@@ -8,7 +8,7 @@
 .dimension-mode-bar {
   position: absolute;
   top: 0.75rem;
-  right: 4.8rem;
+  right: 4.5rem;
   z-index: 25 !important;
 }
 
@@ -25,8 +25,8 @@
     right: 4.2rem;
   }
   .dimension-mode-bar .viewmode-segmented-group .btn {
-    padding: 0.2rem 0.45rem;
-    font-size: 0.7rem;
+    padding: 0.18rem 0.45rem;
+    font-size: 0.68rem;
   }
   #canvas-3d-container .view-title {
     max-width: calc(100% - 15rem) !important;
@@ -34,26 +34,30 @@
 }
 
 .dimension-mode-bar .viewmode-segmented-group {
-  background: rgba(15, 23, 42, 0.95);
+  background: #0f172a !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(71, 85, 105, 0.7);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(71, 85, 105, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   gap: 2px;
+  padding: 2px;
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn {
+  background: #1e293b;
   font-weight: 600;
-  padding: 0.28rem 0.65rem;
-  font-size: 0.75rem;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
   color: #94a3b8;
   border-radius: 0.25rem;
+  border: 1px solid rgba(51, 65, 85, 0.5);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn:hover {
   color: #f8fafc;
-  background: rgba(51, 65, 85, 0.6);
+  background: rgba(51, 65, 85, 0.8);
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn.active {

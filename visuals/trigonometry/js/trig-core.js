@@ -1326,6 +1326,12 @@ export class TrigScene3DView extends BaseScene3DView {
     this.sphere.scale.setScalar(this.R);
     this.circleWire.scale.setScalar(this.R);
 
+    // Trigonometry 3D scene framing: proportional distance (d ≈ 44) to provide
+    // clear headroom below top header mode buttons for the +Y zenith axis label
+    this.camera.position.set(29, 21, 29);
+    this.camera.lookAt(0, 0, 0);
+    this.controls.target.set(0, 0, 0);
+
     this.dynamicGroup = new THREE.Group();
     this.scene.add(this.dynamicGroup);
 
@@ -2586,6 +2592,62 @@ export class TrigScene3DView extends BaseScene3DView {
     this.currentLabels = labels;
     this.overlay.render(this.currentLabels, vis3d);
   }
+
+  setCameraPreset(preset) {
+    if (this.controls?.angularVelocity) this.controls.angularVelocity.angle = 0;
+    const d = 44;
+    let targetPos;
+    const targetUp = new this.THREE.Vector3(0, 1, 0);
+    if (preset === 'top') {
+      targetPos = new this.THREE.Vector3(0, d, 0.001);
+    } else if (preset === 'front') {
+      targetPos = new this.THREE.Vector3(0, 0, d);
+    } else if (preset === 'side') {
+      targetPos = new this.THREE.Vector3(d, 0, 0);
+    } else {
+      // iso / perspective with comfortable headroom below mode bar
+      targetPos = new this.THREE.Vector3(29, 21, 29);
+    }
+
+    if (typeof requestAnimationFrame === 'function' && typeof performance !== 'undefined') {
+      if (this.camAnim) cancelAnimationFrame(this.camAnim);
+      const startPos = this.camera.position.clone();
+      const startUp = this.camera.up.clone();
+      const startTime = performance.now();
+      const duration = 380;
+
+      const step = (now) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const t = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        this.camera.position.lerpVectors(startPos, targetPos, t);
+        this.camera.up.lerpVectors(startUp, targetUp, t).normalize();
+        this.camera.lookAt(0, 0, 0);
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        if (this.currentLabels && this.currentLabels.length) {
+          this.overlay.render(this.currentLabels, this.latestVis3d);
+        }
+        this.renderer.render(this.scene, this.camera);
+        if (progress < 1) {
+          this.camAnim = requestAnimationFrame(step);
+        } else {
+          this.camAnim = null;
+        }
+      };
+      this.camAnim = requestAnimationFrame(step);
+    } else {
+      this.camera.position.copy(targetPos);
+      this.camera.up.copy(targetUp);
+      this.camera.lookAt(0, 0, 0);
+      this.controls.target.set(0, 0, 0);
+      this.controls.update();
+      if (this.currentLabels && this.currentLabels.length) {
+        this.overlay.render(this.currentLabels, this.latestVis3d);
+      }
+      this.renderer.render(this.scene, this.camera);
+    }
+  }
 }
 
 /* ============================================================================
@@ -3625,8 +3687,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spherical Law of Sines &amp; Excess on S² (<span class="color-amber">sin(a/R)/sin A = const</span>)'
-        : '3D: Circumscribed Sphere &amp; Antipodal Diameter (<span class="color-amber">A\'B = 2R</span>)';
+        ? '3D: Spherical Law of Sines (<span class="color-amber">S²</span>)'
+        : '3D: Circumscribed Sphere (<span class="color-amber">2R</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Sines & Excess on S² (sin(a/R)/sin A = const)'
         : "3D: Circumscribed Sphere & Antipodal Diameter (A'B = 2R)";
@@ -3741,8 +3803,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spherical Law of Cosines on S² (<span class="color-rose">cos(c/R)</span> = <span class="color-sky">cos(a/R)</span><span class="color-emerald">cos(b/R)</span> + <span class="color-sky">sin(a/R)</span><span class="color-emerald">sin(b/R)</span><span class="color-amber">cos C</span>)'
-        : '3D: Euclidean Parallelepiped &amp; Metric (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2ab cos C</span>)';
+        ? '3D: Spherical Law of Cosines (<span class="color-amber">S²</span>)'
+        : '3D: Euclidean Projection Prism (<span class="color-amber">c²</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Cosines on S² (cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C)'
         : '3D: Euclidean Parallelepiped & Metric (c² = a² + b² − 2ab cos C)';
@@ -3861,8 +3923,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spatial SO(3) Lie Group Euler Frame (<span class="color-amber">R = Rz(α+β)Rx(γ)</span>)'
-        : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span> + <span class="color-violet">β</span>)';
+        ? '3D: Spatial SO(3) Euler Frame (<span class="color-amber">γ</span>)'
+        : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span>+<span class="color-violet">β</span>)';
       titleEl.title = isSpatial
         ? '3D: Spatial SO(3) Lie Group Euler Frame (R = Rz(α+β)Rx(γ))'
         : '3D: SO(2) Planar Embedding (α + β)';
