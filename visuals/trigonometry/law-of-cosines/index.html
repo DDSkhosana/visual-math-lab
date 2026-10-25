@@ -110,7 +110,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Law of Cosines (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2ab cos C</span>)</div>
+          <div class="view-title">2D: Law of Cosines (<span class="color-rose">c²</span> = <span class="color-sky">a²</span> + <span class="color-emerald">b²</span> − <span class="color-amber">2</span>·<span class="color-sky">a</span>·<span class="color-emerald">b</span>·<span class="color-rose">cos C</span>)</div>
 
           <!-- 2D Telemetry -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -124,7 +124,7 @@
               <div class="stat-line"><span class="color-rose">Opposite Side c:</span><strong class="color-rose" id="tel-c">8.185</strong></div>
               <div class="stat-line"><span class="color-rose">Included Angle ∠C:</span><strong class="color-rose" id="tel-ang-c">60.0°</strong></div>
               <div class="stat-line"><span class="color-teal">Pythagorean a² + b²:</span><strong class="color-teal" id="tel-a2b2">130.00</strong></div>
-              <div class="stat-line"><span class="color-amber">Interaction 2ab cos C:</span><strong class="color-amber" id="tel-2abcos">63.00</strong></div>
+              <div class="stat-line"><span class="color-amber">Interaction −2·<span class="color-sky">a</span>·<span class="color-emerald">b</span>·<span class="color-rose">cos C</span>:</span><strong class="color-amber" id="tel-2abcos">63.00</strong></div>
               <div class="stat-line"><span class="color-rose">Resulting c²:</span><strong class="color-rose" id="tel-c2">67.00</strong></div>
               <div class="stat-line"><span class="color-amber">Mixed Partial −2 cos C:</span><strong class="color-amber" id="tel-mixed">-1.0000</strong></div>
               <div class="stat-line" id="row-tel-cos-ratio"><span class="color-amber">Cosine Ratio (a²+b²−c²)/(2ab):</span><strong class="color-amber" id="tel-cos-ratio">0.5000</strong></div>
@@ -275,7 +275,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Triangle △ABC Area Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angle (360° − C)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-projection-loc" checked><span class="checkmark"></span><span class="color-amber">Orthogonal Projection (a cos C)</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-interaction-rect" checked><span class="checkmark"></span><span class="color-amber">Bilinear Correction (−2ab cos C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-interaction-rect" checked><span class="checkmark"></span>Bilinear Correction (−<span class="color-amber">2</span>·<span class="color-sky">a</span>·<span class="color-emerald">b</span>·<span class="color-rose">cos C</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-ratio-badge" checked><span class="checkmark"></span><span class="color-amber">Cosine Ratio Badge &amp; Proportional Bar</span></label>
               </div>
             </div>
@@ -344,7 +344,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-rose">3D Angle Badge</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Triangle Mesh</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-rect" checked><span class="checkmark"></span><span class="color-amber">Bilinear Rectangle Mesh (−2ab cos C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-rect" checked><span class="checkmark"></span>Bilinear Rectangle Mesh (−<span class="color-amber">2</span>·<span class="color-sky">a</span>·<span class="color-emerald">b</span>·<span class="color-rose">cos C</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-ratio" checked><span class="checkmark"></span><span class="color-amber">Cosine Ratio Overlay Badge</span></label>
               </div>
             </div>

@@ -959,29 +959,38 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Bilinear Interaction Rectangle (2ab cos C) below AC (locked to PALETTE.amber invariant with multi-color tensor decomposition)
+    // Bilinear Interaction Rectangle (2ab cos C) below AC (multi-color tensor decomposition: a=Sky, b=Emerald, cos C=Rose)
     if (state.showInteractionRect !== false && showArea) {
       const rectW = m.projection.pProj * scale;
       const rectH = Math.min(68, m.b * scale * 0.3);
       const grad = ctx.createLinearGradient(C.x, C.y + 10, C.x + rectW, C.y + 10 + rectH);
-      grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)');
-      grad.addColorStop(0.5, 'rgba(251, 191, 36, 0.20)');
-      grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)');
+      grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)'); // Rose at origin vertex C
+      grad.addColorStop(0.5, 'rgba(2, 132, 199, 0.20)'); // Sky along width projection a cos C
+      grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)'); // Emerald along vertical depth b
       ctx.fillStyle = grad;
       ctx.fillRect(C.x, C.y + 10, rectW, rectH);
 
-      ctx.lineWidth = 1.5;
+      // Perimeter Edge Stroke Decomposition:
+      // Horizontal edges (X-span = |a cos C| from C to D): Stroked in Sky (PALETTE.sky, width 1.8)
+      ctx.lineWidth = 1.8;
       ctx.strokeStyle = PALETTE.sky;
       ctx.beginPath();
       ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10);
       ctx.moveTo(C.x, C.y + 10 + rectH); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
       ctx.stroke();
 
+      // Vertical edges (Y-span = |b| down from baseline): Stroked in Emerald (PALETTE.emerald, width 1.8)
       ctx.strokeStyle = PALETTE.emerald;
       ctx.beginPath();
       ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x, C.y + 10 + rectH);
       ctx.moveTo(C.x + rectW, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
       ctx.stroke();
+
+      // Vertex C anchor point: Accent dot in Rose (PALETTE.rose)
+      ctx.fillStyle = PALETTE.rose;
+      ctx.beginPath();
+      ctx.arc(C.x, C.y + 10, 3.5, 0, TAU);
+      ctx.fill();
 
       if (showLabels) {
         drawTextBadge(
@@ -2459,10 +2468,10 @@ export class TrigScene3DView extends BaseScene3DView {
           rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
 
           const colors = [
-            0.957, 0.247, 0.369,
-            0.055, 0.647, 0.914,
-            0.961, 0.620, 0.043,
-            0.063, 0.725, 0.506,
+            0.957, 0.247, 0.369, // Corner R0 at Vertex C: Rose (#f43f5e)
+            0.055, 0.647, 0.914, // Corner R1 at Projection Foot D (a cos C along X): Sky (#0284c7)
+            0.063, 0.725, 0.506, // Corner R2 at depth -rectDepth along Z: Emerald (#10b981)
+            0.063, 0.725, 0.506, // Corner R3 at depth -rectDepth along Z: Emerald (#10b981)
           ];
           rectGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
@@ -2983,9 +2992,9 @@ export class TrigDerivationsView {
           ${cardTemplate(
             'loc-step-2',
             'Step 2',
-            `Right-Triangle Expansion in ${tag('teal', '△ADB')} (${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2ab cos C')})`,
+            `Right-Triangle Expansion in ${tag('teal', '△ADB')} (${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('rose', 'cos C')})`,
             `Applying Pythagoras to ${tag('teal', '△ADB')}:<br>` +
-            `${tag('rose', 'c²')} = (${tag('amber', 'a sin C')})² + (${tag('emerald', 'b')} − ${tag('amber', 'a cos C')})² = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2ab cos C')}`,
+            `${tag('rose', 'c²')} = (${tag('amber', 'a sin C')})² + (${tag('emerald', 'b')} − ${tag('amber', 'a cos C')})² = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('rose', 'cos C')}`,
             true
           )}
           ${cardTemplate(
@@ -3247,7 +3256,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#loc-step-2 [data-sub]',
-          `↳ ${tag('sky', `a² = ${m.squares.a2.toFixed(2)}`)}, ${tag('emerald', `b² = ${m.squares.b2.toFixed(2)}`)}, ${tag('amber', `2ab cos C = ${m.squares.interaction2abCosC.toFixed(2)}`)}`
+          `↳ ${tag('sky', `a² = ${m.squares.a2.toFixed(2)}`)}, ${tag('emerald', `b² = ${m.squares.b2.toFixed(2)}`)}, ${tag('amber', '2')}·${tag('sky', `a(${m.a.toFixed(1)})`)}·${tag('emerald', `b(${m.b.toFixed(1)})`)}·${tag('rose', `cos C(${m.cosC.toFixed(3)})`)} = ${tag('amber', m.squares.interaction2abCosC.toFixed(2))}`
         );
         setSlot(
           '#loc-step-2 [data-eval]',
