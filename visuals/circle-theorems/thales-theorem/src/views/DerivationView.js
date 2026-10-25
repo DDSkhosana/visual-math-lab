@@ -70,7 +70,7 @@ export class DerivationView {
         'Step 5',
         `Right Angle at ${tag('violet', 'P')}: Euclidean Isosceles & Dot Product`,
         `<b>Euclidean Proof:</b> Radius ${tag('indigo', '|OP|')} = ${tag('red', '|OA|')} = ${tag('orange', '|OB|')} = ${tag('indigo', 'r')}<br>` +
-        `⇒ ${tag('blue', '△OAP')} isosceles (${tag('red', 'OA')} = ${tag('indigo', 'OP')}): base angle ${tag('lime', '∠OAP')} = ${tag('lime', '∠OPA')} = ${tag('lime', 'α')}<br>` +
+        `⇒ ${tag('lime', '△OAP')} isosceles (${tag('red', 'OA')} = ${tag('indigo', 'OP')}): base angle ${tag('lime', '∠OAP')} = ${tag('lime', '∠OPA')} = ${tag('lime', 'α')}<br>` +
         `⇒ ${tag('orange', '△OBP')} isosceles (${tag('orange', 'OB')} = ${tag('indigo', 'OP')}): base angle ${tag('orange', '∠OBP')} = ${tag('orange', '∠OPB')} = ${tag('orange', 'β')}<br>` +
         `⇒ At vertex ${tag('violet', 'P')}: ${tag('teal', '∠APB')} = ${tag('lime', 'α')} + ${tag('orange', 'β')}<br>` +
         `Angle sum in △APB: ${tag('lime', 'α')} + ${tag('orange', 'β')} + (${tag('lime', 'α')} + ${tag('orange', 'β')}) = 2(${tag('lime', 'α')} + ${tag('orange', 'β')}) = ${tag('lavender', '180°')} ⇒ ${tag('teal', '∠APB = 90.0°')}<br>` +

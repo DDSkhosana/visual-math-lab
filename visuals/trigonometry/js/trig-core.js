@@ -453,13 +453,48 @@ export class TrigCanvas2DView {
       ctx.fill();
       ctx.restore();
 
-      ctx.fillStyle = 'rgba(20, 184, 166, 0.16)';
+      // Decomposed Pythagorean Right Triangle (Amber along cos θ, Teal at projX, Emerald along sin θ)
+      const pythagGrad = ctx.createLinearGradient(O.x, O.y, P.x, P.y);
+      pythagGrad.addColorStop(0, 'rgba(251, 191, 36, 0.20)');  // Amber at origin O (cos θ span)
+      pythagGrad.addColorStop(0.5, 'rgba(20, 184, 166, 0.18)'); // Teal at right-angle corner projX
+      pythagGrad.addColorStop(1, 'rgba(16, 185, 129, 0.22)');  // Emerald at apex P (sin θ span)
+      ctx.fillStyle = pythagGrad;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(projX.x, projX.y);
       ctx.lineTo(P.x, P.y);
       ctx.closePath();
       ctx.fill();
+
+      // Decomposed Secant-Tangent Right Triangle (Indigo at O -> Rose at tanBase -> Sky at tanTip)
+      if (state.showTanSec !== false && Math.abs(m.tan) < 4.0) {
+        const tanGrad = ctx.createLinearGradient(O.x, O.y, tanTip.x, tanTip.y);
+        tanGrad.addColorStop(0, 'rgba(99, 102, 241, 0.16)');  // Indigo at origin O (r=1)
+        tanGrad.addColorStop(0.6, 'rgba(244, 63, 94, 0.18)'); // Rose at tangent baseline (tan θ)
+        tanGrad.addColorStop(1, 'rgba(2, 132, 199, 0.18)');   // Sky along secant hypotenuse (sec θ)
+        ctx.fillStyle = tanGrad;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(tanBase.x, tanBase.y);
+        ctx.lineTo(tanTip.x, tanTip.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Decomposed Cotangent-Cosecant Right Triangle (Indigo at O -> Orange at cotBase -> Fuchsia at cotTip)
+      if (state.showCotCsc !== false && Math.abs(m.cot) < 4.0) {
+        const cotGrad = ctx.createLinearGradient(O.x, O.y, cotTip.x, cotTip.y);
+        cotGrad.addColorStop(0, 'rgba(99, 102, 241, 0.16)');  // Indigo at origin O (r=1)
+        cotGrad.addColorStop(0.6, 'rgba(249, 115, 22, 0.18)'); // Orange at cotangent baseline (cot θ)
+        cotGrad.addColorStop(1, 'rgba(217, 70, 239, 0.18)'); // Fuchsia along cosecant hypotenuse (csc θ)
+        ctx.fillStyle = cotGrad;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(cotBase.x, cotBase.y);
+        ctx.lineTo(cotTip.x, cotTip.y);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
 
     // Angle Wedge theta & Right Angle Marker
@@ -685,18 +720,51 @@ export class TrigCanvas2DView {
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Inscribed Triangle & Thales Right Triangle Shading
+    // Inscribed Triangle & Thales Right Triangle Shading (Multi-Color Altitude Decomposition)
     if (showArea) {
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.14)';
-      ctx.beginPath();
-      ctx.moveTo(A.x, A.y);
-      ctx.lineTo(B.x, B.y);
-      ctx.lineTo(C.x, C.y);
-      ctx.closePath();
-      ctx.fill();
+      if (state.showAltitude !== false) {
+        // Left sub-triangle CAD (or C-Hc-A): Hypotenuse b in Green/Emerald, altitude hc in Teal
+        const gradCAD = ctx.createLinearGradient(A.x, A.y, footHc.x, footHc.y);
+        gradCAD.addColorStop(0, 'rgba(16, 185, 129, 0.20)'); // Emerald along side b
+        gradCAD.addColorStop(1, 'rgba(20, 184, 166, 0.20)'); // Teal along altitude hc
+        ctx.fillStyle = gradCAD;
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        ctx.lineTo(footHc.x, footHc.y);
+        ctx.lineTo(C.x, C.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right sub-triangle CBD (or C-Hc-B): Hypotenuse a in Red, altitude hc in Teal
+        const gradCBD = ctx.createLinearGradient(B.x, B.y, footHc.x, footHc.y);
+        gradCBD.addColorStop(0, 'rgba(239, 68, 68, 0.20)'); // Red along side a
+        gradCBD.addColorStop(1, 'rgba(20, 184, 166, 0.20)'); // Teal along altitude hc
+        ctx.fillStyle = gradCBD;
+        ctx.beginPath();
+        ctx.moveTo(B.x, B.y);
+        ctx.lineTo(footHc.x, footHc.y);
+        ctx.lineTo(C.x, C.y);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        const triGrad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+        triGrad.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+        triGrad.addColorStop(0.5, 'rgba(59, 130, 246, 0.16)');
+        triGrad.addColorStop(1, 'rgba(239, 68, 68, 0.18)');
+        ctx.fillStyle = triGrad;
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        ctx.lineTo(B.x, B.y);
+        ctx.lineTo(C.x, C.y);
+        ctx.closePath();
+        ctx.fill();
+      }
 
       if (state.showCircumcircleDiameter !== false) {
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.08)';
+        const diamGrad = ctx.createLinearGradient(antipodeA.x, antipodeA.y, C.x, C.y);
+        diamGrad.addColorStop(0, 'rgba(251, 191, 36, 0.16)'); // Amber along 2R hypotenuse A'B
+        diamGrad.addColorStop(1, 'rgba(20, 184, 166, 0.16)'); // Teal at right-angle C
+        ctx.fillStyle = diamGrad;
         ctx.beginPath();
         ctx.moveTo(antipodeA.x, antipodeA.y);
         ctx.lineTo(B.x, B.y);
@@ -775,6 +843,7 @@ export class TrigCanvas2DView {
 
       if (showAngles) {
         drawRightAngle(ctx, footHc, C, B, 10, PALETTE.teal);
+        drawRightAngle(ctx, footHc, C, A, 10, PALETTE.teal);
       }
       if (showPoints) {
         drawLabelledPoint(ctx, footHc, PALETTE.teal, showLabels ? 'Hc' : '', 0, 15, 4);
@@ -1226,8 +1295,12 @@ export class TrigCanvas2DView {
 
     // Stacked Right Triangles Shading (△OMQ, △OQP, and △PSQ)
     if (state.showStackedTriangles !== false && showArea) {
-      // △OMQ (Sky Blue) - Base OM = cos α cos β, Height MQ = sin α cos β
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+      // △OMQ (Sky Blue to Amber to Violet) - Base OM = cos α cos β, Height MQ = sin α cos β
+      const gradOMQ = ctx.createLinearGradient(O.x, O.y, Q.x, Q.y);
+      gradOMQ.addColorStop(0, 'rgba(2, 132, 199, 0.20)');   // Sky at origin O
+      gradOMQ.addColorStop(0.5, 'rgba(251, 191, 36, 0.18)'); // Amber along horizontal projection OM
+      gradOMQ.addColorStop(1, 'rgba(168, 85, 247, 0.20)');  // Violet at vertex Q
+      ctx.fillStyle = gradOMQ;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(M.x, M.y);
@@ -1235,8 +1308,12 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      // △OQP (Violet) - Base OQ = cos β, Perpendicular leg QP = sin β
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
+      // △OQP (Sky to Violet to Emerald) - Base OQ = cos β, Perpendicular leg QP = sin β
+      const gradOQP = ctx.createLinearGradient(O.x, O.y, P.x, P.y);
+      gradOQP.addColorStop(0, 'rgba(2, 132, 199, 0.20)');   // Sky at origin O
+      gradOQP.addColorStop(0.5, 'rgba(168, 85, 247, 0.20)'); // Violet at vertex Q
+      gradOQP.addColorStop(1, 'rgba(16, 185, 129, 0.22)');  // Emerald at apex P
+      ctx.fillStyle = gradOQP;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(Q.x, Q.y);
@@ -1244,8 +1321,12 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      // Upper Right Triangle △PSQ (Amber) - Horizontal leg QS = sin α sin β, Vertical leg PS = cos α sin β
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+      // Upper Right Triangle △PSQ (Amber) - Multi-color tensor gradient (Violet at Q, Amber along QS, Emerald at P)
+      const gradPSQ = ctx.createLinearGradient(Q.x, Q.y, P.x, P.y);
+      gradPSQ.addColorStop(0, 'rgba(168, 85, 247, 0.18)');  // Violet at leg base Q
+      gradPSQ.addColorStop(0.5, 'rgba(251, 191, 36, 0.14)'); // Amber along horizontal leg QS
+      gradPSQ.addColorStop(1, 'rgba(16, 185, 129, 0.22)');  // Emerald at vertical apex P
+      ctx.fillStyle = gradPSQ;
       ctx.beginPath();
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(S.x, S.y);
@@ -1256,8 +1337,12 @@ export class TrigCanvas2DView {
 
     // Difference Right Triangle Shading (△OQD)
     if (state.showDifferenceRay !== false && showArea) {
-      // △OQD (Rose) - Congruent reflection of △OQP across ray OA: Base OQ = cos β, Opposite leg QD = sin β
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.14)';
+      // △OQD (Rose) - Multi-color gradient (Sky at O, Violet along shared leg OQ, Rose at D)
+      const gradOQD = ctx.createLinearGradient(O.x, O.y, Pdiff.x, Pdiff.y);
+      gradOQD.addColorStop(0, 'rgba(2, 132, 199, 0.18)');   // Sky at origin O
+      gradOQD.addColorStop(0.5, 'rgba(168, 85, 247, 0.18)'); // Violet along shared leg OQ
+      gradOQD.addColorStop(1, 'rgba(244, 63, 94, 0.14)');   // Rose at difference point D
+      ctx.fillStyle = gradOQD;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(Q.x, Q.y);
@@ -1820,10 +1905,16 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && Math.abs(m.tan) < 3.2) {
           const tanTri = new THREE.BufferGeometry().setFromPoints([O, T_base, T_tip]);
           tanTri.setIndex([0, 1, 2]);
+          const tanColors = [
+            0.388, 0.400, 0.945, // Indigo at O (r=1)
+            0.957, 0.247, 0.369, // Rose at T_base (tan θ)
+            0.008, 0.518, 0.780, // Sky at T_tip (sec θ)
+          ];
+          tanTri.setAttribute('color', new THREE.Float32BufferAttribute(tanColors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
               tanTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+              new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
             )
           );
         }
@@ -1877,10 +1968,16 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && Math.abs(m.cot) < 3.2) {
           const cotTri = new THREE.BufferGeometry().setFromPoints([O, C_base, C_tip]);
           cotTri.setIndex([0, 1, 2]);
+          const cotColors = [
+            0.388, 0.400, 0.945, // Indigo at O (r=1)
+            0.976, 0.451, 0.086, // Orange at C_base (cot θ)
+            0.851, 0.275, 0.937, // Fuchsia at C_tip (csc θ)
+          ];
+          cotTri.setAttribute('color', new THREE.Float32BufferAttribute(cotColors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
               cotTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.orange, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+              new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
             )
           );
         }
@@ -1933,10 +2030,16 @@ export class TrigScene3DView extends BaseScene3DView {
           new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
         ]);
         triGeom.setIndex([0, 1, 2]);
+        const triColors = [
+          0.984, 0.749, 0.141, // Amber at origin O (cos θ span)
+          0.078, 0.722, 0.651, // Teal at right-angle projX
+          0.063, 0.725, 0.506, // Emerald at apex P_eq (sin θ span)
+        ];
+        triGeom.setAttribute('color', new THREE.Float32BufferAttribute(triColors, 3));
         this.dynamicGroup.add(
           new THREE.Mesh(
             triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false })
+            new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false })
           )
         );
       }
@@ -2206,22 +2309,60 @@ export class TrigScene3DView extends BaseScene3DView {
         this.reflexWedge1.visible = showReflex;
 
         if (showArea) {
-          const triGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
-          triGeom.setIndex([0, 1, 2]);
-          this.dynamicGroup.add(
-            new THREE.Mesh(
-              triGeom,
-              new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
-            )
-          );
+          if (state.showAltitude !== false) {
+            const leftGeom = new THREE.BufferGeometry().setFromPoints([A, Hc, C]);
+            leftGeom.setIndex([0, 1, 2]);
+            const leftColors = [
+              0.133, 0.773, 0.369, // Emerald at A
+              0.078, 0.722, 0.651, // Teal at Hc
+              0.133, 0.773, 0.369, // Emerald at C
+            ];
+            leftGeom.setAttribute('color', new THREE.Float32BufferAttribute(leftColors, 3));
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                leftGeom,
+                new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+              )
+            );
+
+            const rightGeom = new THREE.BufferGeometry().setFromPoints([B, Hc, C]);
+            rightGeom.setIndex([0, 1, 2]);
+            const rightColors = [
+              0.937, 0.267, 0.267, // Red at B
+              0.078, 0.722, 0.651, // Teal at Hc
+              0.937, 0.267, 0.267, // Red at C
+            ];
+            rightGeom.setAttribute('color', new THREE.Float32BufferAttribute(rightColors, 3));
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                rightGeom,
+                new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+              )
+            );
+          } else {
+            const triGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
+            triGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                triGeom,
+                new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+              )
+            );
+          }
 
           if (state.showCircumcircleDiameter !== false) {
             const thalesGeom = new THREE.BufferGeometry().setFromPoints([Ap, B, C]);
             thalesGeom.setIndex([0, 1, 2]);
+            const thalesColors = [
+              0.984, 0.749, 0.141, // Amber at Ap
+              0.984, 0.749, 0.141, // Amber at B
+              0.078, 0.722, 0.651, // Teal at C
+            ];
+            thalesGeom.setAttribute('color', new THREE.Float32BufferAttribute(thalesColors, 3));
             this.dynamicGroup.add(
               new THREE.Mesh(
                 thalesGeom,
-                new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+                new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
               )
             );
           }
@@ -2722,22 +2863,49 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && state.showStackedTriangles !== false) {
           const g1 = new THREE.BufferGeometry().setFromPoints([O, M, Q]);
           g1.setIndex([0, 1, 2]);
+          const g1Colors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.984, 0.749, 0.141, // Amber at M (cos α cos β)
+            0.659, 0.333, 0.969, // Violet at Q (cos β)
+          ];
+          g1.setAttribute('color', new THREE.Float32BufferAttribute(g1Colors, 3));
+
           const g2 = new THREE.BufferGeometry().setFromPoints([O, Q, P]);
           g2.setIndex([0, 1, 2]);
+          const g2Colors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.659, 0.333, 0.969, // Violet at Q
+            0.063, 0.725, 0.506, // Emerald at P (sin(α+β))
+          ];
+          g2.setAttribute('color', new THREE.Float32BufferAttribute(g2Colors, 3));
+
           const g3 = new THREE.BufferGeometry().setFromPoints([P, S, Q]);
           g3.setIndex([0, 1, 2]);
+          const g3Colors = [
+            0.063, 0.725, 0.506, // Emerald at P
+            0.984, 0.749, 0.141, // Amber at S
+            0.659, 0.333, 0.969, // Violet at Q
+          ];
+          g3.setAttribute('color', new THREE.Float32BufferAttribute(g3Colors, 3));
+
           this.dynamicGroup.add(
-            new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
-            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.2, side: THREE.DoubleSide })),
-            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.16, side: THREE.DoubleSide }))
+            new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })),
+            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })),
+            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.20, side: THREE.DoubleSide }))
           );
         }
 
         if (showArea && state.showDifferenceRay !== false) {
           const gDiff = new THREE.BufferGeometry().setFromPoints([O, Q, Pdiff]);
           gDiff.setIndex([0, 1, 2]);
+          const gDiffColors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.659, 0.333, 0.969, // Violet at Q
+            0.957, 0.247, 0.369, // Rose at Pdiff
+          ];
+          gDiff.setAttribute('color', new THREE.Float32BufferAttribute(gDiffColors, 3));
           this.dynamicGroup.add(
-            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.16, side: THREE.DoubleSide }))
+            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide }))
           );
         }
 
@@ -2866,9 +3034,9 @@ export class TrigDerivationsView {
         ${cardTemplate(
           'uch-step-3',
           'Step 3',
-          `Exterior Tangent & Secant Duality (${tag('teal', '1')} + ${tag('rose', 'tan²θ')} = ${tag('violet', 'sec²θ')})`,
-          `At contact point ${tag('violet', 'P')}, exterior tangent ${tag('rose', 'tan θ = sin θ / cos θ')} and secant ${tag('violet', 'sec θ = 1 / cos θ')} satisfy:<br>` +
-          `${tag('teal', '1')} + ${tag('rose', 'tan²θ')} = ${tag('violet', 'sec²θ')} &nbsp;|&nbsp; ${tag('teal', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')}`,
+          `Exterior Tangent & Secant Duality (${tag('indigo', '1')} + ${tag('rose', 'tan²θ')} = ${tag('sky', 'sec²θ')})`,
+          `At contact point ${tag('violet', 'P')}, exterior tangent ${tag('rose', 'tan θ = sin θ / cos θ')} and secant ${tag('sky', 'sec θ = 1 / cos θ')} satisfy:<br>` +
+          `${tag('indigo', '1')} + ${tag('rose', 'tan²θ')} = ${tag('sky', 'sec²θ')} &nbsp;|&nbsp; ${tag('indigo', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')}`,
           true
         )}
         ${cardTemplate(
@@ -2928,7 +3096,7 @@ export class TrigDerivationsView {
             'los-step-2',
             'Step 2',
             `Thales Antipodal Diameter Bridge (${tag('red', 'a / sin A')} = ${tag('amber', '2R')})`,
-            `Drawing circumdiameter ${tag('amber', "A'B = 2R")} through center ${tag('indigo', 'O')} subtends ${tag('amber', "∠A'CB = 90°")}:<br>` +
+            `Drawing circumdiameter ${tag('amber', "A'B = 2R")} through center ${tag('indigo', 'O')} subtends ${tag('teal', "∠A'CB = 90°")}:<br>` +
             `In right ${tag('amber', "△A'CB")}, sin ${tag('red', 'A')} = ${tag('red', 'a')} / ${tag('amber', '2R')} ⟹ ${tag('red', 'a / sin A')} = ${tag('amber', '2R')}`,
             true
           )}
@@ -3075,7 +3243,7 @@ export class TrigDerivationsView {
             'Step 2',
             `Cosine Addition Identity (${tag('amber', 'cos(α + β)')})`,
             `From stacked right triangles ${tag('sky', '△OMQ')}, ${tag('violet', '△OQP')}, and upper triangle ${tag('amber', '△PSQ')}:<br>` +
-            `${tag('amber', 'cos(α + β)')} = ${tag('amber', 'OM')} − ${tag('amber', 'QS')} = ${tag('amber', 'cos α cos β')} − ${tag('rose', 'sin α sin β')}`,
+            `${tag('amber', 'cos(α + β)')} = ${tag('amber', 'OM')} − ${tag('amber', 'QS')} = (${tag('sky', 'cos α')} · ${tag('violet', 'cos β')}) − (${tag('sky', 'sin α')} · ${tag('violet', 'sin β')})`,
             true
           )}
           ${cardTemplate(
@@ -3083,7 +3251,7 @@ export class TrigDerivationsView {
             'Step 3',
             `Sine Addition Identity (${tag('emerald', 'sin(α + β)')})`,
             `Vertical projection of ${tag('emerald', 'P(α + β)')} decomposes across ${tag('sky', '△OMQ')} and ${tag('amber', '△PSQ')}:<br>` +
-            `${tag('emerald', 'sin(α + β)')} = ${tag('amber', 'MN')} + ${tag('amber', 'PS')} = ${tag('sky', 'sin α cos β')} + ${tag('violet', 'cos α sin β')}`,
+            `${tag('emerald', 'sin(α + β)')} = ${tag('amber', 'MN')} + ${tag('amber', 'PS')} = (${tag('sky', 'sin α')} · ${tag('violet', 'cos β')}) + (${tag('sky', 'cos α')} · ${tag('violet', 'sin β')})`,
             true
           )}
           ${cardTemplate(
@@ -3091,7 +3259,7 @@ export class TrigDerivationsView {
             'Step 4',
             `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
             `Difference ray ${tag('rose', 'D(α − β)')} reflects across ray ${tag('sky', 'OA')} forming congruent triangle ${tag('rose', '△OQD')}:<br>` +
-            `${tag('amber', 'cos(α − β)')} = ${tag('amber', 'cos α cos β')} + ${tag('rose', 'sin α sin β')} &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = ${tag('sky', 'sin α cos β')} − ${tag('violet', 'cos α sin β')}`,
+            `${tag('amber', 'cos(α − β)')} = (${tag('sky', 'cos α')} · ${tag('violet', 'cos β')}) + (${tag('sky', 'sin α')} · ${tag('violet', 'sin β')}) &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = (${tag('sky', 'sin α')} · ${tag('violet', 'cos β')}) − (${tag('sky', 'cos α')} · ${tag('violet', 'sin β')})`,
             true
           )}
           ${cardTemplate(
@@ -3146,7 +3314,7 @@ export class TrigDerivationsView {
       );
       setSlot(
         '#uch-step-3 [data-eval]',
-        `<span>${tag('violet', `1 + tan²θ = sec²θ`)} (Residual: ${tag('teal', Math.abs(m.invariants.pythagoreanTanSec).toExponential(1))})</span><span class="derivation-check">✓ Verified</span>`
+        `<span>${tag('indigo', '1')} + ${tag('rose', 'tan²θ')} = ${tag('sky', 'sec²θ')} (Residual: ${tag('teal', Math.abs(m.invariants.pythagoreanTanSec).toExponential(1))})</span><span class="derivation-check">✓ Verified</span>`
       );
       setSlot(
         '#uch-step-4 [data-sub]',
@@ -3333,7 +3501,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-2 [data-sub]',
-          `↳ ${tag('amber', `cos α cos β (${m.trig.cosACosB.toFixed(4)})`)} − ${tag('rose', `sin α sin β (${m.trig.sinASinB.toFixed(4)})`)} = ${tag('amber', m.trig.cosSum.toFixed(4))}`
+          `↳ (${tag('sky', `cos α`)})·(${tag('violet', `cos β`)}) [${tag('amber', m.trig.cosACosB.toFixed(4))}] − (${tag('sky', `sin α`)})·(${tag('violet', `sin β`)}) [${tag('rose', m.trig.sinASinB.toFixed(4))}] = ${tag('amber', m.trig.cosSum.toFixed(4))}`
         );
         setSlot(
           '#asi-step-2 [data-eval]',
@@ -3341,7 +3509,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-3 [data-sub]',
-          `↳ ${tag('sky', `sin α cos β (${m.trig.sinACosB.toFixed(4)})`)} + ${tag('violet', `cos α sin β (${m.trig.cosASinB.toFixed(4)})`)} = ${tag('emerald', m.trig.sinSum.toFixed(4))}`
+          `↳ (${tag('sky', `sin α`)})·(${tag('violet', `cos β`)}) [${tag('sky', m.trig.sinACosB.toFixed(4))}] + (${tag('sky', `cos α`)})·(${tag('violet', `sin β`)}) [${tag('violet', m.trig.cosASinB.toFixed(4))}] = ${tag('emerald', m.trig.sinSum.toFixed(4))}`
         );
         setSlot(
           '#asi-step-3 [data-eval]',

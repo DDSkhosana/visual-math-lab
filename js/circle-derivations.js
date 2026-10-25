@@ -366,16 +366,16 @@ export class CyclicQuadDerivations {
       ${cardTemplate(
         'cq-step-3',
         'Step 3',
-        `Supplementary Opposite Pair (${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('lavender', '180°')})`,
-        `2${tag('violet', '∠A')} + 2${tag('amber', '∠C')} = ${tag('teal', '360°')} ⟹ ${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('lavender', '180°')}`,
+        `Supplementary Opposite Pair (${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('teal', '180°')})`,
+        `2${tag('violet', '∠A')} + 2${tag('amber', '∠C')} = ${tag('teal', '360°')} ⟹ ${tag('violet', '∠A')} + ${tag('amber', '∠C')} = ${tag('teal', '180°')}`,
         true
       )}
       ${cardTemplate(
         'cq-step-4',
         'Step 4',
-        `Second Opposite Pair (${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('sky', '180°')}) & Total Sum`,
-        `Similarly: ${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('sky', '180°')}<br>` +
-        `Total interior angle sum = ${tag('violet', '∠A')} + ${tag('cyan', '∠B')} + ${tag('amber', '∠C')} + ${tag('rose', '∠D')} = ${tag('platinum', '360°')}`,
+        `Second Opposite Pair (${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('teal', '180°')}) & Total Sum`,
+        `Similarly: ${tag('cyan', '∠B')} + ${tag('rose', '∠D')} = ${tag('teal', '180°')}<br>` +
+        `Total interior angle sum = ${tag('violet', '∠A')} + ${tag('cyan', '∠B')} + ${tag('amber', '∠C')} + ${tag('rose', '∠D')} = ${tag('teal', '360°')}`,
         true
       )}
       ${cardTemplate(
@@ -861,7 +861,7 @@ export class TangentsFromPointDerivations {
         `In right triangle ${tag('emerald', 'ΔOT₁P')}: |${tag('emerald', 'OT₁')}|² + |${tag('emerald', 'PT₁')}|² = |${tag('yellow', 'OP')}|² ⟹ r² + |${tag('emerald', 'PT₁')}|² = d².<br>` +
         `Rearranging yields: ${tag('emerald', '|PT₁|')} = √(${tag('yellow', 'd²')} - ${tag('sky', 'r²')}).<br>` +
         `Similarly in ${tag('blue', 'ΔOT₂P')}: ${tag('blue', '|PT₂|')} = √(${tag('yellow', 'd²')} - ${tag('sky', 'r²')}).<br>` +
-        `The shaded area enclosed by kite ${tag('sky', 'O')}-${tag('emerald', 'T₁')}-${tag('red', 'P')}-${tag('blue', 'T₂')} is ${tag('amber', 'Area = r · √(d² - r²)')}.`
+        `The shaded area enclosed by kite ${tag('sky', 'O')}-${tag('emerald', 'T₁')}-${tag('red', 'P')}-${tag('blue', 'T₂')} is ${tag('teal', 'Area = r · √(d² - r²)')}.`
       )}
       ${cardTemplate(
         'tfp-step-4',
@@ -943,9 +943,9 @@ export class TangentsFromPointDerivations {
       const r2 = (r * r).toFixed(1);
       const diffRad = Math.max(0, dVal * dVal - r * r).toFixed(1);
       this.slots.s3.innerHTML =
-        `↳ ${tag('emerald', '|PT₁|')} = √(${tag('yellow', '|OP|²')} - ${tag('emerald', '|OT₁|²')}) = √(${tag('yellow', `${dVal.toFixed(1)}²`)} - ${tag('emerald', `${r}²`)})<br>` +
-        `= √(${tag('yellow', d2)} - ${tag('emerald', r2)}) = √(${diffRad}) = ${tag('emerald', `${len1Str}`)}<br>` +
-        `↳ Shaded Kite Area = ${tag('amber', `${kiteAreaStr}`)} (Sum of congruent right triangles)`;
+        `↳ ${tag('emerald', '|PT₁|')} = √(${tag('yellow', '|OP|²')} - ${tag('sky', '|OT₁|²')}) = √(${tag('yellow', `${dVal.toFixed(1)}²`)} - ${tag('sky', `${r}²`)})<br>` +
+        `= √(${tag('yellow', d2)} - ${tag('sky', r2)}) = √(${diffRad}) = ${tag('emerald', `${len1Str}`)}<br>` +
+        `↳ Shaded Kite Area = ${tag('teal', `${kiteAreaStr}`)} (Sum of congruent right triangles)`;
     }
     if (this.slots.s4) {
       this.slots.s4.innerHTML =
@@ -1009,7 +1009,8 @@ export class ChordBisectorDerivations {
         'cb-step-4',
         'Step 4',
         `RHS Congruence & Bisector Invariant (${tag('blue', '|AM|')} = ${tag('orange', '|MB|')})`,
-        `In right ${tag('blue', '△OMA')} and ${tag('orange', '△OMB')}: ${tag('blue', 'OA')} = ${tag('orange', 'OB')} = ${tag('indigo', 'r')} (hypotenuses), ${tag('emerald', 'OM')} shared leg, ${tag('teal', '∠OMA = ∠OMB = 90.0°')}.<br>` +
+        `In right ${tag('blue', '△OMA')} and ${tag('orange', '△OMB')}: ${tag('sky', 'OA')} = ${tag('sky', 'OB')} = ${tag('indigo', 'r')} (hypotenuses), ${tag('emerald', 'OM')} shared apothem, ${tag('teal', '∠OMA = ∠OMB = 90.0°')}.<br>` +
+        `Pythagorean decomposition: ${tag('sky', 'r²')} = ${tag('emerald', '|OM|²')} + ${tag('blue', '|AM|²')} &nbsp;|&nbsp; Sagitta extension: ${tag('teal', 's')} = ${tag('sky', 'r')} − ${tag('emerald', '|OM|')}.<br>` +
         `By RHS congruence: ${tag('blue', '△OMA')} ≅ ${tag('orange', '△OMB')} ⟹ ${tag('blue', '|AM|')} = ${tag('orange', '|MB|')} (Bisected)`,
         true
       )}

@@ -282,13 +282,33 @@ function drawDiameter(ctx, f) {
 }
 
 function drawArea(ctx, state, f) {
+  // Dual Isosceles Triangles Decomposed Shading (△AOP in Lime, △POB in Orange)
   ctx.beginPath();
-  ctx.moveTo(f.a.x, f.a.y);
+  ctx.moveTo(f.cx, f.cy);
+  ctx.lineTo(f.a.x, f.a.y);
   ctx.lineTo(f.p.x, f.p.y);
-  ctx.lineTo(f.b.x, f.b.y);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
+  ctx.fillStyle = 'rgba(132, 204, 22, 0.18)'; // Lime for △AOP (base angle α)
   ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(f.cx, f.cy);
+  ctx.lineTo(f.b.x, f.b.y);
+  ctx.lineTo(f.p.x, f.p.y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(249, 115, 22, 0.18)'; // Orange for △POB (base angle β)
+  ctx.fill();
+
+  // Median radius vector OP separating the two constitutive isosceles triangles
+  ctx.save();
+  ctx.strokeStyle = PALETTE.indigo;
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(f.cx, f.cy);
+  ctx.lineTo(f.p.x, f.p.y);
+  ctx.stroke();
+  ctx.restore();
 
   // Altitude line from P perpendicular to diameter AB (shows height h and explains quadrant area variation)
   const dxAB = f.b.x - f.a.x;
@@ -377,6 +397,31 @@ function drawAngles(ctx, state, f) {
     const size = 16;
 
     if (state.vis2d.angles) {
+      // Dual sub-angle sectors at P meeting at median ray PO: α (Lime) and β (Orange)
+      const lenPO = Math.hypot(f.cx - f.p.x, f.cy - f.p.y);
+      if (lenPO > 10 && lenPA > 12 && lenPB > 12) {
+        const ox = (f.cx - f.p.x) / lenPO, oy = (f.cy - f.p.y) / lenPO;
+        const angPA = Math.atan2(uy, ux);
+        const angPO = Math.atan2(oy, ox);
+        const angPB = Math.atan2(vy, vx);
+
+        const crossA = ux * oy - uy * ox;
+        ctx.beginPath();
+        ctx.moveTo(f.p.x, f.p.y);
+        ctx.arc(f.p.x, f.p.y, 20, angPA, angPO, crossA < 0);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(132, 204, 22, 0.22)';
+        ctx.fill();
+
+        const crossB = ox * vy - oy * vx;
+        ctx.beginPath();
+        ctx.moveTo(f.p.x, f.p.y);
+        ctx.arc(f.p.x, f.p.y, 20, angPO, angPB, crossB < 0);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.22)';
+        ctx.fill();
+      }
+
       ctx.beginPath();
       ctx.moveTo(f.p.x + ux * size, f.p.y + uy * size);
       ctx.lineTo(f.p.x + ux * size + vx * size, f.p.y + uy * size + vy * size);
