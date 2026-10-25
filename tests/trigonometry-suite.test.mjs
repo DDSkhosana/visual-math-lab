@@ -315,6 +315,11 @@ describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle T
         assert.ok(src.includes("'grabbing'"));
         assert.ok(src.includes("'dblclick'"));
         assert.ok(src.includes("'wheel'"));
+        // Law of Sines 2D interaction affordances
+        assert.ok(src.includes("field: 'antipodeA'"), 'Law of Sines must declare interactive antipodeA handle');
+        assert.ok(src.includes("store.set({ angleB: normalizeAngle(ang + Math.PI) })"), 'Dragging antipode A rotates vertex B');
+        assert.ok(src.includes('this.hoverCircumference'), 'Canvas must support circumference hover indicator');
+        assert.ok(src.includes('canvas.addEventListener(\'keydown\''), 'Canvas must support keyboard arrow navigation');
     });
 
     test('derivations use collapsible cardTemplate with unit-aware formatting and reflex shading', () => {

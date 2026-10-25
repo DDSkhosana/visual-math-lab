@@ -251,6 +251,17 @@ export class TrigCanvas2DView {
     this.visualId = visualId;
     this.ctx = canvas.getContext('2d');
     this.state = null;
+    this.hoverHandle = null;
+    this.hoverCircumference = false;
+    this.activeDrag = null;
+    this.selectedVertexId = 'C';
+
+    if (this.canvas && typeof this.canvas.setAttribute === 'function') {
+      if (!this.canvas.hasAttribute('tabindex')) this.canvas.setAttribute('tabindex', '0');
+      if (!this.canvas.hasAttribute('aria-label')) {
+        this.canvas.setAttribute('aria-label', 'Interactive 2D Geometric Proof Canvas');
+      }
+    }
 
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -299,15 +310,27 @@ export class TrigCanvas2DView {
     if (this.visualId === 'law-of-sines') {
       const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
       const scale = r / getModelRadius(state);
+      const handles = [
+        { id: 'A', x: cx + m.vertices2D.A.x * scale, y: cy - m.vertices2D.A.y * scale, field: 'angleA', color: PALETTE.red, label: 'A', polarAngle: state.angleA },
+        { id: 'B', x: cx + m.vertices2D.B.x * scale, y: cy - m.vertices2D.B.y * scale, field: 'angleB', color: PALETTE.green, label: 'B', polarAngle: state.angleB },
+        { id: 'C', x: cx + m.vertices2D.C.x * scale, y: cy - m.vertices2D.C.y * scale, field: 'angleC', color: PALETTE.violet, label: 'C', polarAngle: state.angleC },
+      ];
+      if (state.showCircumcircleDiameter !== false) {
+        handles.push({
+          id: 'antipodeA',
+          x: cx + m.vertices2D.antipodeA.x * scale,
+          y: cy - m.vertices2D.antipodeA.y * scale,
+          field: 'antipodeA',
+          color: PALETTE.amber,
+          label: "A'",
+          polarAngle: normalizeAngle((state.angleB || 0) + Math.PI),
+        });
+      }
       return {
         cx,
         cy,
         r,
-        handles: [
-          { id: 'A', x: cx + m.vertices2D.A.x * scale, y: cy - m.vertices2D.A.y * scale, field: 'angleA' },
-          { id: 'B', x: cx + m.vertices2D.B.x * scale, y: cy - m.vertices2D.B.y * scale, field: 'angleB' },
-          { id: 'C', x: cx + m.vertices2D.C.x * scale, y: cy - m.vertices2D.C.y * scale, field: 'angleC' },
-        ],
+        handles,
       };
     }
     if (this.visualId === 'law-of-cosines') {
@@ -835,6 +858,53 @@ export class TrigCanvas2DView {
       drawRadialLabelledPoint(ctx, A, O, PALETTE.red, getPointLabel('A', m.vertices2D.A.x * scale, m.vertices2D.A.y * scale, vis), 20, 5);
       drawRadialLabelledPoint(ctx, B, O, PALETTE.green, getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis), 20, 5);
       drawRadialLabelledPoint(ctx, C, O, PALETTE.violet, getPointLabel('C', m.vertices2D.C.x * scale, m.vertices2D.C.y * scale, vis), 20, 5);
+    }
+
+    // 2D Interactive Affordances: Circumference Hover Highlight, Handle Hover Halos & Active Drag Rings
+    if (this.hoverCircumference && !this.hoverHandle && !this.activeDrag) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (this.hoverHandle && !this.activeDrag) {
+      const hh = this.hoverHandle;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(hh.x, hh.y, 14, 0, TAU);
+      ctx.fillStyle = hh.color ? `${hh.color}44` : 'rgba(56, 189, 248, 0.35)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (this.activeDrag && this.activeDrag.type === 'handle' && this.activeDrag.handle) {
+      const adh = this.activeDrag.handle;
+      const curInfo = this.getInteractiveHandles2D(state);
+      const activeH = curInfo.handles.find((h) => h.id === adh.id) || adh;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(activeH.x, activeH.y, 18, 0, TAU);
+      ctx.fillStyle = activeH.color ? `${activeH.color}55` : 'rgba(245, 158, 11, 0.4)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+
+      const curAngDeg = Math.round(((toDegrees(state[adh.field] ?? 0) % 360) + 360) % 360);
+      drawTextBadge(ctx, `${adh.label || adh.id}: ${curAngDeg}°`, activeH.x, activeH.y - 28, activeH.color || PALETTE.amber);
+    } else if (this.activeDrag && this.activeDrag.type === 'radius') {
+      drawTextBadge(ctx, `r = ${Math.round(r)}px`, cx + r, cy - 14, PALETTE.sky);
     }
   }
 
@@ -3553,14 +3623,26 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   let activeDrag = null;
   let panOrigin = { x: 0, y: 0 };
 
-  const findHoveredHandle = (x, y, handles, radius = 22) => {
+  const findHoveredHandle = (x, y, handles, radius = 28) => {
     let best = null;
     let bestDist = radius;
+    const { cx, cy, r } = view2d.getCenterAndRadius(store.get());
     for (const h of handles) {
       const d = Math.hypot(x - h.x, y - h.y);
       if (d < bestDist) {
         bestDist = d;
         best = h;
+      }
+      if (r > 0) {
+        const ux = (h.x - cx) / r;
+        const uy = (h.y - cy) / r;
+        const lx = h.x + ux * 20;
+        const ly = h.y + uy * 20;
+        const dLabel = Math.hypot(x - lx, y - ly);
+        if (dLabel < bestDist) {
+          bestDist = dLabel;
+          best = h;
+        }
       }
     }
     return best;
@@ -3573,10 +3655,34 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     const y = e.clientY - rect.top;
     const st = store.get();
     const info = view2d.getInteractiveHandles2D(st);
-    const hitHandle = findHoveredHandle(x, y, info.handles, 28);
+    let hitHandle = findHoveredHandle(x, y, info.handles, 34);
     const circCx = info.circleCx ?? info.cx;
     const circCy = info.circleCy ?? info.cy;
     const circR = info.circleR ?? info.r;
+
+    // Direct radial spoke / angular proximity fallback for law-of-sines
+    if (!hitHandle && visualId === 'law-of-sines') {
+      const dx = x - circCx;
+      const dy = circCy - y;
+      const distFromCenter = Math.hypot(dx, dy);
+      if (distFromCenter >= 18 && distFromCenter <= circR + 25) {
+        const clickAng = pointerToAngle(dx, dy);
+        let closestH = null;
+        let minDiff = 0.35; // ~20 degrees
+        for (const h of info.handles) {
+          const hAng = pointerToAngle(h.x - circCx, circCy - h.y);
+          let diff = Math.abs(normalizeAngle(clickAng - hAng));
+          if (diff > Math.PI) diff = 2 * Math.PI - diff;
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestH = h;
+          }
+        }
+        if (closestH) {
+          hitHandle = closestH;
+        }
+      }
+    }
 
     // Direct radial spoke click/drag fallback for unit-circle-helix
     let spokeHit = false;
@@ -3591,6 +3697,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
         if (diffAng < 0.4 || Math.abs(diffAng - 2 * Math.PI) < 0.4) {
           spokeHit = true;
           activeDrag = { type: 'handle', handle: info.handles[0] };
+          view2d.activeDrag = activeDrag;
           canvas.style.cursor = 'grabbing';
           store.set({ angleTheta: clickAng });
         }
@@ -3599,16 +3706,24 @@ function bindVisualSpecificControls(store, visualId, view2d) {
 
     if (hitHandle) {
       activeDrag = { type: 'handle', handle: hitHandle };
+      view2d.activeDrag = activeDrag;
+      if (hitHandle.id && ['A', 'B', 'C'].includes(hitHandle.id)) {
+        view2d.selectedVertexId = hitHandle.id;
+      }
       canvas.style.cursor = 'grabbing';
+      view2d.render(st);
     } else if (spokeHit) {
       // already set
     } else if (isNearCircumference(x, y, circCx, circCy, circR, 14)) {
       activeDrag = { type: 'radius', cx: circCx, cy: circCy };
+      view2d.activeDrag = activeDrag;
       canvas.style.cursor = 'ew-resize';
+      view2d.render(st);
     } else {
       const curPan = st.pan || { x: 0, y: 0 };
       panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
       activeDrag = { type: 'pan' };
+      view2d.activeDrag = activeDrag;
       canvas.style.cursor = 'grabbing';
     }
 
@@ -3629,9 +3744,15 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     const circR = info.circleR ?? info.r;
 
     if (!activeDrag) {
-      const hoverH = findHoveredHandle(x, y, info.handles, 24);
+      const hoverH = findHoveredHandle(x, y, info.handles, 32);
       const hoverCirc = !hoverH && isNearCircumference(x, y, circCx, circCy, circR, 14);
+      const changed = view2d.hoverHandle !== hoverH || view2d.hoverCircumference !== hoverCirc;
+      view2d.hoverHandle = hoverH;
+      view2d.hoverCircumference = hoverCirc;
       canvas.style.cursor = hoverH ? 'pointer' : hoverCirc ? 'ew-resize' : 'grab';
+      if (changed) {
+        view2d.render(st);
+      }
       return;
     }
 
@@ -3657,7 +3778,9 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       canvas.style.cursor = 'grabbing';
       const h = activeDrag.handle;
       const ang = pointerToAngle(x - info.cx, info.cy - y);
-      if (visualId === 'law-of-cosines') {
+      if (visualId === 'law-of-sines' && (h.field === 'antipodeA' || h.id === 'antipodeA')) {
+        store.set({ angleB: normalizeAngle(ang + Math.PI) });
+      } else if (visualId === 'law-of-cosines') {
         if (h.field === 'angleC' || h.id === 'B') {
           const raw = Math.atan2(info.cy - y, x - info.cx);
           const ang = raw < 0 ? raw + TAU : raw;
@@ -3678,22 +3801,81 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       } else {
         store.set({ [h.field]: ang });
       }
+      view2d.activeDrag = activeDrag;
     }
   });
 
   const stop = (e) => {
     if (activeDrag) {
       activeDrag = null;
+      view2d.activeDrag = null;
       canvas.style.cursor = 'grab';
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch (_) {}
+      view2d.render(store.get());
     }
   };
   canvas.addEventListener('pointerup', stop);
   canvas.addEventListener('pointercancel', stop);
   window.addEventListener('pointerup', stop);
   window.addEventListener('pointercancel', stop);
+
+  canvas.addEventListener('pointerleave', () => {
+    if (!activeDrag) {
+      const changed = view2d.hoverHandle !== null || view2d.hoverCircumference !== false;
+      view2d.hoverHandle = null;
+      view2d.hoverCircumference = false;
+      if (changed) view2d.render(store.get());
+    }
+  });
+
+  // Canvas Keyboard Interaction: Focus & Arrow Key Nudging of Vertices & Radius
+  canvas.addEventListener('keydown', (e) => {
+    const st = store.get();
+    let handled = false;
+    const currentHandleId = view2d.selectedVertexId || 'C';
+    const fieldMap = { A: 'angleA', B: 'angleB', C: 'angleC' };
+    const field = fieldMap[currentHandleId] || (visualId === 'law-of-sines' ? 'angleC' : 'angleTheta');
+    const step = e.shiftKey ? toRadians(5) : toRadians(1);
+
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      store.set({ [field]: normalizeAngle((st[field] || 0) - step) });
+      handled = true;
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      store.set({ [field]: normalizeAngle((st[field] || 0) + step) });
+      handled = true;
+    } else if (e.key === '+' || e.key === '=') {
+      store.set({ radius: clamp((st.radius || 175) + 5, 100, 260) });
+      handled = true;
+    } else if (e.key === '-' || e.key === '_') {
+      store.set({ radius: clamp((st.radius || 175) - 5, 100, 260) });
+      handled = true;
+    } else if (e.key.toLowerCase() === 'a') {
+      view2d.selectedVertexId = 'A';
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'A') || null;
+      view2d.render(store.get());
+      handled = true;
+    } else if (e.key.toLowerCase() === 'b') {
+      view2d.selectedVertexId = 'B';
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'B') || null;
+      view2d.render(store.get());
+      handled = true;
+    } else if (e.key.toLowerCase() === 'c') {
+      view2d.selectedVertexId = 'C';
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'C') || null;
+      view2d.render(store.get());
+      handled = true;
+    } else if (e.key === 'Home') {
+      store.set({ pan: { x: 0, y: 0 } });
+      handled = true;
+    }
+
+    if (handled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
 
   // Double-click canvas to recenter pan (matching Circle Theorems)
   canvas.addEventListener('dblclick', () => {
