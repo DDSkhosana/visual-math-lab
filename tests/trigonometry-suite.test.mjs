@@ -596,6 +596,10 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Orthonormal Frame Triad & Metric Invariance"));
         assert.ok(src.includes("Planar SO(2) Principal Subgroup Embedding"));
         assert.ok(src.includes("Lie Algebra Trace & Rotation Angle"));
+        assert.ok(src.includes("Parallelepiped Volume & Scalar Triple Product"));
+        assert.ok(src.includes("2×2 Algebraic Determinant & Area Preserving Invariant"));
+        assert.ok(src.includes("det(R) = R₀₀R₁₁ − R₀₁R₁₀"));
+        assert.ok(src.includes("asi-step-5"));
         assert.ok(src.includes("slider-gamma"));
         assert.ok(src.includes("val-3d-gamma"));
         assert.ok(src.includes("val-3d-trace"));

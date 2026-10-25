@@ -2969,6 +2969,14 @@ export class TrigDerivationsView {
             `${tag('violet', 'Tr(R) = R₀₀ + R₁₁ + R₂₂ = 1 + 2 cos θ_rot')}`,
             true
           )}
+          ${cardTemplate(
+            'asi-step-5',
+            'Step 5',
+            `Parallelepiped Volume & Scalar Triple Product (${tag('teal', 'Volume = det(R) = +1.000000')})`,
+            `Oriented volume spanned by orthonormal triad frame {e₁, e₂, e₃}:<br>` +
+            `${tag('teal', 'Volume')} = ${tag('teal', 'det(R)')} = ${tag('sky', 'e₁')} · (${tag('violet', 'e₂')} × ${tag('amber', 'e₃')}) ≡ ${tag('teal', '+1.000000')}`,
+            true
+          )}
         `;
       } else {
         this.container.innerHTML = `
@@ -2977,7 +2985,8 @@ export class TrigDerivationsView {
             'Step 1',
             `SO(2) Rotation Matrix Homomorphism (${tag('emerald', 'R(α)R(β) = R(α+β)')})`,
             `Composing planar rotations ${tag('sky', 'R(α)')} and ${tag('violet', 'R(β)')} on the unit circle:<br>` +
-            `${tag('emerald', 'R(α + β)')} = ${tag('sky', 'R(α)')} · ${tag('violet', 'R(β)')} with determinant ${tag('teal', 'det(R) = 1')}`
+            `${tag('emerald', 'R(α + β)')} = ${tag('sky', 'R(α)')} · ${tag('violet', 'R(β)')}`,
+            true
           )}
           ${cardTemplate(
             'asi-step-2',
@@ -3001,6 +3010,14 @@ export class TrigDerivationsView {
             `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
             `Difference ray ${tag('rose', 'D(α − β)')} reflects across ray ${tag('sky', 'OA')} forming congruent triangle ${tag('rose', '△OQD')}:<br>` +
             `${tag('rose', 'cos(α − β)')} = cos α cos β + sin α sin β &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = sin α cos β − cos α sin β`,
+            true
+          )}
+          ${cardTemplate(
+            'asi-step-5',
+            'Step 5',
+            `2×2 Algebraic Determinant & Area Preserving Invariant (${tag('teal', 'det(R) = +1.000000')})`,
+            `Evaluating the 2×2 algebraic determinant of composite rotation matrix ${tag('emerald', 'R(α + β)')}:<br>` +
+            `${tag('teal', 'det(R)')} = ${tag('amber', 'R₀₀ R₁₁')} − ${tag('rose', 'R₀₁ R₁₀')} = ${tag('amber', 'cos²(α + β)')} + ${tag('rose', 'sin²(α + β)')} ≡ ${tag('teal', '+1.000000')}`,
             true
           )}
         `;
@@ -3214,11 +3231,23 @@ export class TrigDerivationsView {
           '#asi-step-4 [data-eval]',
           `<span>${tag('violet', `Tr(R) = 1 + 2 cos θ_rot`)} (Residual: ${tag('teal', Math.abs(eM.lieAlgebra.trace - (1 + 2 * Math.cos(eM.lieAlgebra.rotAngle))).toExponential(1))})</span><span class="derivation-check">✓ Lie Trace Invariant</span>`
         );
+        setSlot(
+          '#asi-step-5 [data-sub]',
+          `↳ Scalar triple product: e₁ · (e₂ × e₃) = Volume spanned by basis triad = ${tag('teal', eM.lieAlgebra.detR.toFixed(6))}`
+        );
+        setSlot(
+          '#asi-step-5 [data-eval]',
+          `<span>${tag('teal', `Volume = det(R) = ${eM.lieAlgebra.detR.toFixed(6)} ≝ +1`)} (Parallelepiped Unit Metric)</span><span class="derivation-check">✓ SO(3) Parallelepiped Invariant</span>`
+        );
       } else {
         const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
         setSlot(
           '#asi-step-1 [data-sub]',
           `↳ ${tag('sky', `α = ${fmtAngle(m.alphaDeg, angUnit)}`)}, ${tag('violet', `β = ${fmtAngle(m.betaDeg, angUnit)}`)} ⟹ ${tag('emerald', `α + β = ${fmtAngle(m.sumAngleDeg, angUnit)}`)}`
+        );
+        setSlot(
+          '#asi-step-1 [data-eval]',
+          `<span>${tag('emerald', `R(α+β) = R(α)·R(β)`)}: [${m.matrices.R_comp[0].toFixed(3)}, ${m.matrices.R_comp[1].toFixed(3)}; ${m.matrices.R_comp[2].toFixed(3)}, ${m.matrices.R_comp[3].toFixed(3)}]</span><span class="derivation-check">✓ SO(2) Homomorphism</span>`
         );
         setSlot(
           '#asi-step-2 [data-sub]',
@@ -3242,7 +3271,18 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-4 [data-eval]',
-          `<span>${tag('teal', `det(R(α)R(β)) = 1.000000`)}</span><span class="derivation-check">✓ SO(2) Group</span>`
+          `<span>${tag('rose', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} | ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}</span><span class="derivation-check">✓ Difference Identity</span>`
+        );
+        const det2D = m.matrices.R_comp[0] * m.matrices.R_comp[3] - m.matrices.R_comp[1] * m.matrices.R_comp[2];
+        const r00r11 = (m.matrices.R_comp[0] * m.matrices.R_comp[3]).toFixed(4);
+        const r01r10 = (m.matrices.R_comp[1] * m.matrices.R_comp[2]).toFixed(4);
+        setSlot(
+          '#asi-step-5 [data-sub]',
+          `↳ det(R) = (${m.matrices.R_comp[0].toFixed(4)})(${m.matrices.R_comp[3].toFixed(4)}) − (${m.matrices.R_comp[1].toFixed(4)})(${m.matrices.R_comp[2].toFixed(4)}) = ${r00r11} − (${r01r10}) = ${tag('teal', det2D.toFixed(6))}`
+        );
+        setSlot(
+          '#asi-step-5 [data-eval]',
+          `<span>${tag('teal', `det(R) = R₀₀R₁₁ − R₀₁R₁₀ = ${det2D.toFixed(6)} ≝ +1`)} (Area Preserving)</span><span class="derivation-check">✓ SO(2) Metric Invariant</span>`
         );
       }
     }
