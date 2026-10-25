@@ -395,6 +395,37 @@ h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 3rem); }
 .visual-card:hover img { transform: scale(1.025); }
 .visual-card__title { margin: 0; font-size: 1.35rem; }
 .visual-card__category { margin: 0.25rem 0 0; font-size: 0.85rem; }
+.visual-card__badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+}
+.visual-card__formula {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+.visual-card__formula code {
+  font-family: var(--font-mono, monospace);
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.18rem 0.45rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Support Project Endnote Panel */
 .support-panel {

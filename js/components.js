@@ -2,21 +2,21 @@ import SITE_CONFIG, { hasConfiguredUrl } from "../config/site-config.js?v=202605
 import { trackEvent } from "./analytics.js?v=20260523";
 
 const DEFAULT_CIRCLE_VISUALS = [
-  { slug: "thales-theorem", suite: "circle-theorems", title: "Thales' Theorem", category: "Geometry" },
-  { slug: "angle-at-centre", suite: "circle-theorems", title: "Angle at the Centre Theorem", category: "Geometry" },
-  { slug: "angles-in-same-segment", suite: "circle-theorems", title: "Angles in the Same Segment", category: "Geometry" },
-  { slug: "cyclic-quadrilateral", suite: "circle-theorems", title: "Cyclic Quadrilateral Theorem", category: "Geometry" },
-  { slug: "tangent-radius", suite: "circle-theorems", title: "Tangent-Radius Perpendicularity", category: "Geometry" },
-  { slug: "alternate-segment", suite: "circle-theorems", title: "Alternate Segment Theorem", category: "Geometry" },
-  { slug: "tangents-from-external-point", suite: "circle-theorems", title: "Tangents from an External Point", category: "Geometry" },
-  { slug: "perpendicular-chord-bisector", suite: "circle-theorems", title: "Perpendicular Chord Bisector", category: "Geometry" },
+  { slug: "thales-theorem", suite: "circle-theorems", title: "Thales' Theorem", category: "Geometry", badge: "Theorem 01", formula: "∠APB = 90°  |  |OP| = r" },
+  { slug: "angle-at-centre", suite: "circle-theorems", title: "Angle at the Centre Theorem", category: "Geometry", badge: "Theorem 02", formula: "∠AOB = 2 · ∠APB  |  θ_centre = 2θ_circumference" },
+  { slug: "angles-in-same-segment", suite: "circle-theorems", title: "Angles in the Same Segment", category: "Geometry", badge: "Theorem 03", formula: "∠AP₁B = ∠AP₂B = θ" },
+  { slug: "cyclic-quadrilateral", suite: "circle-theorems", title: "Cyclic Quadrilateral Theorem", category: "Geometry", badge: "Theorem 04", formula: "∠A + ∠C = 180°,  ∠B + ∠D = 180°" },
+  { slug: "tangent-radius", suite: "circle-theorems", title: "Tangent-Radius Perpendicularity", category: "Geometry", badge: "Theorem 05", formula: "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)" },
+  { slug: "alternate-segment", suite: "circle-theorems", title: "Alternate Segment Theorem", category: "Geometry", badge: "Theorem 06", formula: "∠TAB = ∠APB" },
+  { slug: "tangents-from-external-point", suite: "circle-theorems", title: "Tangents from an External Point", category: "Geometry", badge: "Theorem 07", formula: "|PT₁| = |PT₂| = √(d² − r²)" },
+  { slug: "perpendicular-chord-bisector", suite: "circle-theorems", title: "Perpendicular Chord Bisector", category: "Geometry", badge: "Theorem 08", formula: "OM ⊥ AB  ⟺  |AM| = |MB|" },
 ];
 
 const DEFAULT_TRIG_VISUALS = [
-  { slug: "unit-circle-helix", suite: "trigonometry", title: "Unit Circle, Six Trig Functions & 3D Helix Waves", category: "Trigonometry" },
-  { slug: "law-of-sines", suite: "trigonometry", title: "Law of Sines & Circumcircle Invariant", category: "Trigonometry" },
-  { slug: "law-of-cosines", suite: "trigonometry", title: "Law of Cosines & Generalized Pythagorean Projection", category: "Trigonometry" },
-  { slug: "angle-sum-identities", suite: "trigonometry", title: "Angle Sum, Difference & Rotation Matrix Composition", category: "Trigonometry" },
+  { slug: "unit-circle-helix", suite: "trigonometry", title: "Unit Circle, Six Trig Functions & 3D Helix Waves", category: "Trigonometry", badge: "Trig 01", formula: "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, R sin θ, kθ)" },
+  { slug: "law-of-sines", suite: "trigonometry", title: "Law of Sines & Circumcircle Invariant", category: "Trigonometry", badge: "Trig 02", formula: "a / sin A = b / sin B = c / sin C = 2R" },
+  { slug: "law-of-cosines", suite: "trigonometry", title: "Law of Cosines & Generalized Pythagorean Projection", category: "Trigonometry", badge: "Trig 03", formula: "c² = a² + b² − 2ab cos C" },
+  { slug: "angle-sum-identities", suite: "trigonometry", title: "Angle Sum, Difference & Rotation Matrix Composition", category: "Trigonometry", badge: "Trig 04", formula: "R(α + β) = R(α) ∘ R(β)" },
 ];
 
 function route(root, path) {
@@ -199,9 +199,9 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
     const suite = v.suite || defaultSuite;
     const isActive = v.slug === activeSlug;
     const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
-    const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite}`.toLowerCase();
+    const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite} ${v.badge || ""} ${v.formula || ""}`.toLowerCase();
     return `
-      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-category="${escapeHtml(v.category || "")}" data-search="${escapeHtml(searchTerms)}">
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-category="${escapeHtml(v.category || "")}" data-badge="${escapeHtml(v.badge || "")}" data-formula="${escapeHtml(v.formula || "")}" data-search="${escapeHtml(searchTerms)}">
         <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
         ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
       </a>

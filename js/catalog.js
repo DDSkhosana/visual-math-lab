@@ -7,12 +7,16 @@ function escapeHtml(value) {
 function renderVisualCard(visual, root = ".", defaultSuite = "circle-theorems") {
   const suite = visual.suite || defaultSuite;
   const thumbnail = visual.thumbnail || "assets/images/thales-thumbnail.svg";
+  const badgeHtml = visual.badge ? `<span class="visual-card__badge">${escapeHtml(visual.badge)}</span>` : "";
+  const formulaHtml = visual.formula ? `<div class="visual-card__formula"><code>${escapeHtml(visual.formula)}</code></div>` : "";
   return `
     <a class="visual-card" href="${root}/visuals/${encodeURIComponent(suite)}/${encodeURIComponent(visual.slug)}/">
       <img src="${root}/${thumbnail}" alt="" width="1200" height="800" loading="lazy">
       <div class="visual-card__content">
+        ${badgeHtml}
         <h3 class="visual-card__title">${escapeHtml(visual.title)}</h3>
         <p class="visual-card__category">${escapeHtml(visual.category)}</p>
+        ${formulaHtml}
       </div>
     </a>
   `;
