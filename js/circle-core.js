@@ -1784,6 +1784,7 @@ export function bindStandardToggles(store, ...args) {
       }
       store.set({
         playing: false,
+        playbackSpeed: 1.0,
         viewMode: 'split',
         splitDirection: 'horizontal',
         splitRatio: 50,
@@ -2453,12 +2454,13 @@ export class PlaybackController {
     if (typeof options === 'function') {
       this.onStep = options;
       this.field = null;
-      this.speed = 0.6;
+      this.baseSpeed = 0.6;
     } else {
       this.field = options?.field ?? 'angleP';
-      this.speed = options?.speed ?? 0.6;
+      this.baseSpeed = options?.speed ?? 0.6;
       this.onStep = options?.onStep;
     }
+    this.speed = this.baseSpeed;
     this.animId = null;
     this.lastTime = null;
 
@@ -2469,8 +2471,56 @@ export class PlaybackController {
       });
     }
 
-    this.store.subscribe((state) => this.render(state), ['playing']);
+    // Playback Speed Controller: Button & Slider
+    this.speedBtn = options?.speedButton || (typeof document !== 'undefined' ? document.getElementById('btn-playback-speed') : null);
+    this.speedLabel = typeof document !== 'undefined' ? document.getElementById('playback-speed-label') : null;
+    this.speedSlider = typeof document !== 'undefined' ? document.getElementById('slider-playback-speed') : null;
+    this.speedSliderLabel = typeof document !== 'undefined' ? document.getElementById('label-playback-speed') : null;
+
+    const speeds = [0.5, 1.0, 1.5, 2.0];
+    if (this.speedBtn && !this.speedBtn._speedBound) {
+      this.speedBtn._speedBound = true;
+      this.speedBtn.addEventListener('click', () => {
+        const curSpeed = this.store.get().playbackSpeed ?? 1.0;
+        const curIdx = speeds.findIndex((s) => Math.abs(s - curSpeed) < 0.05);
+        const nextIdx = (curIdx === -1 ? 1 : curIdx + 1) % speeds.length;
+        this.store.set({ playbackSpeed: speeds[nextIdx] });
+      });
+    }
+
+    if (this.speedSlider && !this.speedSlider._speedBound) {
+      this.speedSlider._speedBound = true;
+      this.speedSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (Number.isFinite(val) && val > 0) {
+          this.store.set({ playbackSpeed: val });
+        }
+      });
+    }
+
+    if (typeof document !== 'undefined' && !document._playbackKeyBound) {
+      document._playbackKeyBound = true;
+      document.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        if (e.key === 'p' || e.key === 'P') {
+          if (e.shiftKey) {
+            e.preventDefault();
+            const curSpeed = this.store.get().playbackSpeed ?? 1.0;
+            const curIdx = speeds.findIndex((s) => Math.abs(s - curSpeed) < 0.05);
+            const nextIdx = (curIdx === -1 ? 1 : curIdx + 1) % speeds.length;
+            this.store.set({ playbackSpeed: speeds[nextIdx] });
+          }
+        }
+      });
+    }
+
+    this.store.subscribe((state) => {
+      this.render(state);
+      this.renderSpeed(state);
+    }, ['playing', 'playbackSpeed']);
+
     this.render(this.store.get());
+    this.renderSpeed(this.store.get());
   }
 
   render(state) {
@@ -2498,6 +2548,20 @@ export class PlaybackController {
     }
   }
 
+  renderSpeed(state) {
+    const spd = state?.playbackSpeed ?? 1.0;
+    const txt = `${spd}x`;
+    if (this.speedLabel) this.speedLabel.textContent = txt;
+    if (this.speedBtn) {
+      this.speedBtn.setAttribute('title', `Playback speed: ${txt} (Click or Shift+P to cycle 0.5x, 1x, 1.5x, 2x)`);
+      this.speedBtn.setAttribute('aria-label', `Playback speed ${txt}`);
+    }
+    if (this.speedSlider && document.activeElement !== this.speedSlider) {
+      this.speedSlider.value = String(spd);
+    }
+    if (this.speedSliderLabel) this.speedSliderLabel.textContent = txt;
+  }
+
   #loop(now) {
     if (!this.store.get().playing) {
       this.animId = null;
@@ -2507,11 +2571,13 @@ export class PlaybackController {
     const delta = Math.min(0.1, (now - (this.lastTime ?? now)) / 1000);
     this.lastTime = now;
     const current = this.store.get();
+    const speedMult = current.playbackSpeed ?? 1.0;
+    const effectiveDelta = delta * speedMult;
 
     if (typeof this.onStep === 'function') {
-      this.onStep(delta, this.store, current);
+      this.onStep(effectiveDelta, this.store, current);
     } else if (this.field) {
-      let nextVal = ((current[this.field] ?? 0) + this.speed * delta) % (Math.PI * 2);
+      let nextVal = ((current[this.field] ?? 0) + this.baseSpeed * effectiveDelta) % (Math.PI * 2);
       if (nextVal < 0) nextVal += Math.PI * 2;
       this.store.set({ [this.field]: nextVal });
     }

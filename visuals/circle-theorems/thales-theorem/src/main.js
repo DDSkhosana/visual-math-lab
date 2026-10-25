@@ -174,6 +174,7 @@ function bootstrap() {
       store.reset();
       store.set({
         playing: false,
+        playbackSpeed: 1.0,
         viewMode: 'split',
         splitDirection: 'horizontal',
         splitRatio: 50,

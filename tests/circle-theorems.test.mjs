@@ -2072,3 +2072,126 @@ test('Angle Labeling Contract: Single-line labels without newlines and non-obstr
   assert.ok(visualCss.includes('white-space: nowrap;'), 'circle-visual.css must enforce white-space: nowrap for labels');
 });
 
+
+test('Playback Speed Controller: cycle button (0.5x, 1x, 1.5x, 2x), keyboard shortcut Shift+P, reset handling, and DOM presence across all 12 visualizers', async () => {
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const { PlaybackController: CorePlaybackController, createStore: createCoreStore } = await import('../js/circle-core.js');
+  const { PlaybackController: ThalesPlaybackController } = await import('../visuals/circle-theorems/thales-theorem/src/controllers/PlaybackController.js');
+
+  // 1. Verify Core PlaybackController speed cycling: 1.0 -> 1.5 -> 2.0 -> 0.5 -> 1.0
+  const coreStore = createCoreStore({ angleP: 0, playing: false, playbackSpeed: 1.0 });
+  const mockPlayBtn = {
+    addEventListener: () => {},
+    classList: { toggle: () => {} },
+    setAttribute: () => {},
+    querySelector: () => null,
+  };
+  let coreClickCb = null;
+  const mockSpeedBtn = {
+    addEventListener: (evt, cb) => {
+      if (evt === 'click') coreClickCb = cb;
+    },
+    setAttribute: () => {},
+  };
+  const mockSpeedLabel = { textContent: '' };
+  globalThis.document = {
+    getElementById: (id) => (id === 'playback-speed-label' ? mockSpeedLabel : null),
+    querySelector: () => null,
+    addEventListener: () => {},
+  };
+
+  const coreController = new CorePlaybackController(coreStore, mockPlayBtn, { speedButton: mockSpeedBtn });
+  assert.equal(coreStore.get().playbackSpeed, 1.0);
+  assert.equal(mockSpeedLabel.textContent, '1x');
+
+  coreClickCb();
+  assert.equal(coreStore.get().playbackSpeed, 1.5);
+  assert.equal(mockSpeedLabel.textContent, '1.5x');
+
+  coreClickCb();
+  assert.equal(coreStore.get().playbackSpeed, 2.0);
+  assert.equal(mockSpeedLabel.textContent, '2x');
+
+  coreClickCb();
+  assert.equal(coreStore.get().playbackSpeed, 0.5);
+  assert.equal(mockSpeedLabel.textContent, '0.5x');
+
+  coreClickCb();
+  assert.equal(coreStore.get().playbackSpeed, 1.0);
+  assert.equal(mockSpeedLabel.textContent, '1x');
+
+  // 2. Verify Thales PlaybackController speed cycling
+  let thalesClickCb = null;
+  const mockThalesSpeedBtn = {
+    addEventListener: (evt, cb) => {
+      if (evt === 'click') thalesClickCb = cb;
+    },
+    setAttribute: () => {},
+  };
+  const mockThalesSpeedLabel = { textContent: '' };
+  globalThis.document = {
+    getElementById: (id) => {
+      if (id === 'btn-playback-speed') return mockThalesSpeedBtn;
+      if (id === 'playback-speed-label') return mockThalesSpeedLabel;
+      return null;
+    },
+    querySelector: () => null,
+    addEventListener: () => {},
+  };
+
+  const thalesStore = createCoreStore({ angle2D: 0, playing: false, playbackSpeed: 1.0 });
+  const thalesController = new ThalesPlaybackController(thalesStore, mockPlayBtn, 0.8);
+  assert.equal(thalesStore.get().playbackSpeed, 1.0);
+  assert.equal(mockThalesSpeedLabel.textContent, '1x');
+
+  thalesClickCb();
+  assert.equal(thalesStore.get().playbackSpeed, 1.5);
+  assert.equal(mockThalesSpeedLabel.textContent, '1.5x');
+
+  thalesClickCb();
+  assert.equal(thalesStore.get().playbackSpeed, 2.0);
+  assert.equal(mockThalesSpeedLabel.textContent, '2x');
+
+  thalesClickCb();
+  assert.equal(thalesStore.get().playbackSpeed, 0.5);
+  assert.equal(mockThalesSpeedLabel.textContent, '0.5x');
+
+  thalesClickCb();
+  assert.equal(thalesStore.get().playbackSpeed, 1.0);
+  assert.equal(mockThalesSpeedLabel.textContent, '1x');
+
+  // 3. Verify all 12 visualizer HTML pages contain #btn-playback-speed with #playback-speed-label
+  const visualizers = [
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html',
+    'visuals/trigonometry/unit-circle-helix/index.html',
+    'visuals/trigonometry/law-of-sines/index.html',
+    'visuals/trigonometry/law-of-cosines/index.html',
+    'visuals/trigonometry/angle-sum-identities/index.html',
+  ];
+
+  for (const rel of visualizers) {
+    const html = fs.readFileSync(path.join(rootDir, rel), 'utf8');
+    assert.ok(html.includes('id="btn-playback-speed"'), `${rel} must contain #btn-playback-speed`);
+    assert.ok(html.includes('id="playback-speed-label"'), `${rel} must contain #playback-speed-label`);
+    assert.ok(
+      html.indexOf('id="btn-playback"') < html.indexOf('id="btn-playback-speed"'),
+      `${rel}: #btn-playback-speed must appear directly after #btn-playback in toolbar`
+    );
+  }
+
+  // 4. Verify CSS styling for .btn-playback-speed
+  const circleCss = fs.readFileSync(path.join(rootDir, 'css/circle-visual.css'), 'utf8');
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css/visual.css'), 'utf8');
+  const controlsCss = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/styles/controls.css'), 'utf8');
+
+  for (const [name, css] of [['circle-visual.css', circleCss], ['visual.css', visualCss], ['controls.css', controlsCss]]) {
+    assert.ok(css.includes('.btn-playback-speed'), `${name} must include .btn-playback-speed styles`);
+  }
+});

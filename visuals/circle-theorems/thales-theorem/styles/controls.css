@@ -339,3 +339,24 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
     content: ""; position: absolute; display: none; left: 4px; top: 1px; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .checkbox-container input:checked ~ .checkmark:after { display: block; }
+
+.btn-playback-speed {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 0 7px;
+  min-width: 34px;
+  height: 28px;
+  justify-content: center;
+  align-items: center;
+  color: #38bdf8;
+  letter-spacing: -0.02em;
+  border-radius: 4px;
+}
+.btn-playback-speed:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+}
+.btn-playback-speed:active {
+  transform: scale(0.96);
+}
