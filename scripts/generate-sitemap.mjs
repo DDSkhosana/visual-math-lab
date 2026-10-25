@@ -21,7 +21,7 @@ const pages = [
   { path: "/privacy.html", priority: "0.3", changefreq: "yearly" },
 ];
 
-const trigVisuals = JSON.parse(readFileSync(resolve(root, "visuals", "trigonometry", "data", "trig-visuals.json"), "utf8"));
+
 
 const seenSlugs = new Set();
 for (const visual of visuals.filter((visual) => visual.published)) {
