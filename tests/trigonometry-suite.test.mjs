@@ -566,6 +566,8 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("val-3d-gamma"));
         assert.ok(src.includes("val-3d-trace"));
         assert.ok(src.includes("val-3d-rot-angle"));
+        assert.ok(src.includes("D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma)"), 'Spatial SO(3) mode must project difference vector D');
+        assert.ok(src.includes("addSeg(e1, D_spatial, PALETTE.rose, true)"), 'Spatial SO(3) mode must draw rigid spatial chord PD');
 
         // Spatial mode initial Euler tilt & planar reset invariant
         assert.ok(src.includes("angleGamma: toRadians(28)"), 'Switching to Spatial SO(3) must initialize non-zero Euler tilt');

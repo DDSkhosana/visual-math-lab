@@ -2400,7 +2400,23 @@ export class TrigScene3DView extends BaseScene3DView {
         this.handleP.position.copy(e1);
         this.handleA.visible = true;
         this.handleP.visible = true;
-        this.handleC.visible = false;
+
+        // Spatial difference vector D(α-β) under the Euler rotation frame
+        const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
+        const sinDiff = Math.sin(state.angleAlpha - state.angleBeta);
+        const cosGamma = Math.cos(state.angleGamma || 0);
+        const sinGamma = Math.sin(state.angleGamma || 0);
+        const D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
+
+        if (state.showDifferenceRay !== false) {
+          this.handleC.position.copy(D_spatial);
+          this.handleC.visible = true;
+          addVectorArrow(O, D_spatial, PALETTE.rose);
+          // Spatial chord PD rigidly invariant at |PD| = 2R sin β under SO(3)
+          addSeg(e1, D_spatial, PALETTE.rose, true);
+        } else {
+          this.handleC.visible = false;
+        }
 
         addVectorArrow(O, Aray, PALETTE.sky);
         addVectorArrow(O, e1, PALETTE.emerald);
@@ -2478,6 +2494,9 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'e1', name: 'e₁: P(α+β)', at: { x: e1.x * 1.15, y: e1.y + 0.4, z: e1.z * 1.15 }, coords: e1, color: 'color-emerald' },
           { key: 'e2', name: 'e₂(γ)', at: { x: e2.x * 1.12, y: e2.y + 0.4, z: e2.z * 1.12 }, coords: e2, color: 'color-amber' },
           { key: 'e3', name: 'e₃: n(Euler)', at: { x: e3.x * 1.12, y: e3.y + 0.6, z: e3.z * 1.12 }, coords: e3, color: 'color-indigo' },
+          ...(state.showDifferenceRay !== false
+            ? [{ key: 'Pdiff', name: 'D(α−β)', at: { x: D_spatial.x * 1.15, y: D_spatial.y + 0.4, z: D_spatial.z * 1.15 }, coords: D_spatial, color: 'color-rose' }]
+            : []),
           { key: 'angAlpha', text: `α = ${fmtAngle(eM.alphaDeg, angUnit)}`, at: { x: Aray.x * 0.5 + 0.8, y: 0.4, z: Aray.z * 0.5 }, color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'angBeta', text: `β = ${fmtAngle(eM.betaDeg, angUnit)}`, at: { x: (Aray.x + e1.x) * 0.4, y: 0.4, z: (Aray.z + e1.z) * 0.4 }, color: 'color-violet', isAngle: true, show: showAngles },
           { key: 'detR', text: `det(R) = ${eM.lieAlgebra.detR.toFixed(4)}`, at: { x: e3.x * 0.5, y: e3.y * 0.5 + 0.5, z: e3.z * 0.5 }, color: 'color-teal', isAngle: true, show: true }
