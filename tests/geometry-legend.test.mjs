@@ -63,22 +63,36 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
   } = await import('../js/geometry-legend.js');
 
   assert.ok(Array.isArray(GEOMETRY_ELEMENTS), 'GEOMETRY_ELEMENTS must be an array');
-  assert.ok(GEOMETRY_ELEMENTS.length >= 10, 'Must have at least 10 geometric notation elements');
+  assert.ok(GEOMETRY_ELEMENTS.length >= 22, 'Must have at least 22 geometric notation elements covering circle theorems and trigonometry');
 
   const expectedIds = [
+    // Classical Lines & Segments
     'radius',
     'diameter',
     'chord',
     'secant',
     'tangent',
+    // Regions & Arcs
     'arc',
     'sector',
     'segment',
     'alternate-segment',
+    // Angles & Classical Invariants
     'inscribed-angle',
     'central-angle',
     'reflex-perigon',
-    'cyclic-quad'
+    'cyclic-quad',
+    // Missing Circle Theorem Features
+    'thales-semicircle',
+    'tangents-external-point',
+    'perpendicular-chord-bisector',
+    'affine-conic-invariants',
+    // Trigonometry Suite Features
+    'six-trig-functions',
+    'cylindrical-helix-waves',
+    'law-of-sines-circumdiameter',
+    'law-of-cosines-projection',
+    'angle-sum-difference-rotation'
   ];
 
   for (const id of expectedIds) {
@@ -95,8 +109,27 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
     assert.ok(rendered && rendered.length > 0, `${id}: rendered formula must be non-empty`);
   }
 
+  // Verify categories distribution
+  const trigElements = GEOMETRY_ELEMENTS.filter((item) => item.category === 'trig');
+  assert.strictEqual(trigElements.length, 5, 'Must have 5 dedicated trigonometry elements');
+
   assert.ok(Array.isArray(COLOR_GRAMMAR_TOKENS), 'COLOR_GRAMMAR_TOKENS must be an array');
-  assert.ok(COLOR_GRAMMAR_TOKENS.length >= 10, 'Must have at least 10 colour grammar tokens');
+  assert.ok(COLOR_GRAMMAR_TOKENS.length >= 13, 'Must have at least 13 colour grammar tokens');
+
+  // Verify that COLOR_GRAMMAR_TOKENS includes trigonometry mappings
+  const amberToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.amber');
+  assert.ok(amberToken?.role?.includes('cos θ'), 'Amber token must document Cosine leg (cos θ)');
+  assert.ok(amberToken?.role?.includes('Bilinear interaction rectangle'), 'Amber token must document Bilinear interaction rectangle');
+
+  const emeraldToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.emerald');
+  assert.ok(emeraldToken?.role?.includes('sin θ'), 'Emerald token must document Sine leg (sin θ)');
+
+  const roseToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.rose');
+  assert.ok(roseToken?.role?.includes('tan θ'), 'Rose token must document Tangent ratio leg (tan θ)');
+
+  const skyToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.sky');
+  assert.ok(skyToken?.role?.includes('sec θ'), 'Sky token must document Secant line (sec θ)');
+  assert.ok(skyToken?.role?.includes('helix'), 'Sky token must document Cylindrical helix curve');
 
   assert.strictEqual(typeof openLegendModal, 'function');
   assert.strictEqual(typeof closeLegendModal, 'function');
@@ -113,5 +146,28 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
   assert.ok(!formatted.includes('\\sin'), 'Fallback must resolve \\sin to sin');
   assert.ok(formatted.includes('²'), 'Fallback must format exponent to ²');
   assert.ok(formatted.includes('θ'), 'Fallback must include Greek letter θ');
+
+  // Verify new trigonometric & square root fallback formatting
+  const trigFormula = '\\cos(\\alpha \\pm \\beta) = \\sqrt{d^2 - r^2}';
+  const trigFormatted = formatLatexFallback(trigFormula);
+  assert.ok(trigFormatted.includes('cos'), 'Fallback must resolve \\cos');
+  assert.ok(trigFormatted.includes('α'), 'Fallback must resolve \\alpha to α');
+  assert.ok(trigFormatted.includes('±'), 'Fallback must resolve \\pm to ±');
+  assert.ok(trigFormatted.includes('β'), 'Fallback must resolve \\beta to β');
+  assert.ok(trigFormatted.includes('√(d² - r²)'), 'Fallback must format square root to √(d² - r²)');
+});
+
+test('Geometry Legend: js/geometry-legend.js modal includes Trigonometry tab and dynamic suite-aware title', () => {
+  const legendJsPath = path.join(rootDir, 'js', 'geometry-legend.js');
+  const legendJs = fs.readFileSync(legendJsPath, 'utf8');
+
+  // Dedicated Trigonometry tab
+  assert.ok(legendJs.includes('data-filter="trig"'), 'Modal toolbar must include data-filter="trig"');
+  assert.ok(legendJs.includes('Trigonometry &amp; Functions'), 'Modal toolbar must include "Trigonometry & Functions" tab label');
+
+  // Dynamic header context
+  assert.ok(legendJs.includes('eyebrowText'), 'mountLegendModal must dynamically define eyebrowText');
+  assert.ok(legendJs.includes('subtitleText'), 'mountLegendModal must dynamically define subtitleText');
+  assert.ok(legendJs.includes('isTrig'), 'openLegendModal and mountLegendModal must check isTrig');
 });
 
