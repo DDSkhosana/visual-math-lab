@@ -3,7 +3,19 @@ import { resolve, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
-const requiredFields = ["slug", "title", "category", "description", "thumbnail", "published", "youtubeId", "video"];
+const requiredFields = [
+  "slug",
+  "suite",
+  "title",
+  "category",
+  "badge",
+  "formula",
+  "description",
+  "thumbnail",
+  "published",
+  "youtubeId",
+  "video"
+];
 const errors = [];
 
 function report(condition, message) {
@@ -65,6 +77,11 @@ const trigVisualsPath = resolve(root, "visuals", "trigonometry", "data", "trig-v
 const trigVisuals = existsSync(trigVisualsPath) ? readJson(trigVisualsPath) : [];
 report(Array.isArray(visuals), "data/visuals.json must contain an array.");
 report(Array.isArray(trigVisuals), "visuals/trigonometry/data/trig-visuals.json must contain an array.");
+for (const trigV of trigVisuals) {
+  for (const field of requiredFields) {
+    report(Object.hasOwn(trigV, field), `trig-visuals.json entry "${trigV.slug}" is missing required field "${field}".`);
+  }
+}
 // Verify synchronization between data/visuals.json and trig-visuals.json
 const trigInVisuals = visuals.filter((v) => v.suite === 'trigonometry');
 report(
@@ -80,6 +97,8 @@ for (const visual of allVisuals) {
     report(Object.hasOwn(visual, field), `Visual entry "${visual.slug}" is missing required field "${field}".`);
   }
 
+  report(typeof visual.badge === "string" && visual.badge.trim() !== "", `Visual "${visual.slug}" must have non-empty string "badge".`);
+  report(typeof visual.formula === "string" && visual.formula.trim() !== "", `Visual "${visual.slug}" must have non-empty string "formula".`);
   report(typeof visual.slug === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(visual.slug), `Invalid slug "${visual.slug}".`);
   report(!slugs.has(visual.slug), `Duplicate slug "${visual.slug}".`);
   slugs.add(visual.slug);

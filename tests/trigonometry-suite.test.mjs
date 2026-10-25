@@ -208,6 +208,33 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
         assert.equal(circleCount, 8, 'Must have 8 circle theorems in unified catalog');
         assert.equal(trigCount, 4, 'Must have 4 trigonometry visuals in unified catalog');
 
+        // Verify 100% key-value parity and schema completeness across all 12 visualizers
+        const expectedKeys = ['slug', 'suite', 'title', 'category', 'badge', 'formula', 'description', 'thumbnail', 'published', 'youtubeId', 'video'];
+        for (const entry of unifiedCatalog) {
+            for (const key of expectedKeys) {
+                assert.ok(Object.hasOwn(entry, key), `Visual "${entry.slug}" is missing unified key "${key}"`);
+            }
+            assert.ok(typeof entry.badge === 'string' && entry.badge.length > 0, `Visual "${entry.slug}" must have non-empty badge`);
+            assert.ok(typeof entry.formula === 'string' && entry.formula.length > 0, `Visual "${entry.slug}" must have non-empty formula`);
+        }
+
+        // Verify badge convention: Circle Theorems Theorem 01-08, Trigonometry Trig 01-04
+        const circleEntries = unifiedCatalog.filter(v => (v.suite || 'circle-theorems') === 'circle-theorems');
+        circleEntries.forEach((v, idx) => {
+            const expectedBadge = `Theorem 0${idx + 1}`;
+            assert.equal(v.badge, expectedBadge, `Circle theorem "${v.slug}" badge should be ${expectedBadge}`);
+        });
+
+        const trigEntries = unifiedCatalog.filter(v => v.suite === 'trigonometry');
+        trigEntries.forEach((v, idx) => {
+            const expectedBadge = `Trig 0${idx + 1}`;
+            assert.equal(v.badge, expectedBadge, `Trigonometry "${v.slug}" badge should be ${expectedBadge}`);
+            const trigCatalogMatch = catalog.find(c => c.slug === v.slug);
+            assert.ok(trigCatalogMatch, `trig-visuals.json must contain ${v.slug}`);
+            assert.equal(trigCatalogMatch.badge, expectedBadge, `trig-visuals.json "${v.slug}" badge should be ${expectedBadge}`);
+            assert.equal(trigCatalogMatch.formula, v.formula, `trig-visuals.json "${v.slug}" formula should match data/visuals.json`);
+        });
+
         const rootHtml = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
         assert.equal(rootHtml.includes('visuals/circle-theorems/'), true);
         assert.equal(rootHtml.includes('visuals/trigonometry/'), true);
