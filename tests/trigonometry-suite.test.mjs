@@ -341,6 +341,14 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("drawRadialLabelledPoint(\n        ctx,\n        B,\n        centroid,\n        PALETTE.emerald"));
         assert.ok(src.includes("key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky'"));
         assert.ok(src.includes("key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald'"));
+
+        // HTML & Telemetry token consistency: A (sky), B (emerald), C & c² (rose), D & 2ab cos C (amber)
+        const locHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/law-of-cosines/index.html'), 'utf-8');
+        assert.ok(locHtml.includes('3D: Euclidean Projection Prism (<span class="color-rose">c²</span>)'));
+        assert.ok(!locHtml.includes('3D: Euclidean Projection Prism (<span class="color-amber">c²</span>)'));
+        assert.ok(locHtml.includes('<span class="color-rose">Vertex C (origin):</span>'));
+        assert.ok(locHtml.includes('<span class="color-emerald">Vertex B (a cos C, a sin C):</span>'));
+        assert.ok(locHtml.includes('Labels (<span class="color-sky">A</span>, <span class="color-emerald">B</span>, <span class="color-rose">C</span>, <span class="color-amber">D</span>)'));
     });
 
     test('Angle Sum 3D scene colors and right-angle markers match 2D and derivation cards', () => {

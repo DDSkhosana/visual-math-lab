@@ -3706,7 +3706,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spherical Law of Sines (<span class="color-amber">S²</span>)'
+        ? '3D: Spherical Law of Sines (<span class="color-teal">S²</span>)'
         : '3D: Circumscribed Sphere (<span class="color-amber">2R</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Sines & Excess on S² (sin(a/R)/sin A = const)'
@@ -3822,8 +3822,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
-        ? '3D: Spherical Law of Cosines (<span class="color-amber">S²</span>)'
-        : '3D: Euclidean Projection Prism (<span class="color-amber">c²</span>)';
+        ? '3D: Spherical Law of Cosines (<span class="color-teal">S²</span>)'
+        : '3D: Euclidean Projection Prism (<span class="color-rose">c²</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Cosines on S² (cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C)'
         : '3D: Euclidean Parallelepiped & Metric (c² = a² + b² − 2ab cos C)';
