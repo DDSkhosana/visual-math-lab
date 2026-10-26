@@ -638,3 +638,37 @@ test('Canvas Header Info & Overlay Minimal Styling: Canvas never hides under inf
     'visual.css .interaction-tip-badge.tip-3d must be positioned below camera presets bar at top: 10.5rem'
   );
 });
+
+test("Container Queries & Non-Overlapping Viewport Layout: canvas3d container query prevents view-title and dimension-mode-bar collision", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, "..");
+
+  const circleCss = fs.readFileSync(path.join(rootDir, "css", "circle-visual.css"), "utf8");
+  const thalesCss = fs.readFileSync(path.join(rootDir, "visuals", "circle-theorems", "thales-theorem", "styles", "overlays.css"), "utf8");
+  const thalesLayoutCss = fs.readFileSync(path.join(rootDir, "visuals", "circle-theorems", "thales-theorem", "styles", "layout.css"), "utf8");
+  const visualCss = fs.readFileSync(path.join(rootDir, "css", "visual.css"), "utf8");
+
+  // 1. Container type is declared
+  assert.ok(circleCss.includes("container-type: inline-size;"), "circle-visual.css must declare container-type: inline-size");
+  assert.ok(thalesLayoutCss.includes("container-type: inline-size;"), "thales layout.css must declare container-type: inline-size");
+  assert.ok(visualCss.includes("container-type: inline-size;"), "visual.css must declare container-type: inline-size");
+
+  // 2. Container query hides perspective-badge and moves dimension-mode-bar to row 2 on compact width
+  for (const [name, css] of [["circle-visual.css", circleCss], ["overlays.css", thalesCss], ["visual.css", visualCss]]) {
+    assert.ok(
+      css.includes("@container canvas3d (max-width: 56rem)"),
+      `${name} must have container query for canvas3d (max-width: 56rem)`
+    );
+    assert.ok(
+      css.includes("@container canvas3d (max-width: 38rem)"),
+      `${name} must have container query for canvas3d (max-width: 38rem)`
+    );
+    assert.ok(
+      css.includes("top: 2.15rem !important;"),
+      `${name} must place .dimension-mode-bar on row 2 on narrow viewports to avoid header collisions`
+    );
+  }
+});

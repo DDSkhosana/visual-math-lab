@@ -2597,6 +2597,16 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 /* 3D Floating Dimension Mode Bar (Planar vs Spatial S² / SO(3)) */
+#canvas-3d-container {
+  container-type: inline-size;
+  container-name: canvas3d;
+}
+
+#canvas-2d-container {
+  container-type: inline-size;
+  container-name: canvas2d;
+}
+
 .dimension-mode-bar {
   position: absolute;
   top: 0.75rem;
@@ -2604,6 +2614,25 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   z-index: 25 !important;
   display: flex;
   align-items: center;
+}
+
+@container canvas3d (max-width: 56rem) {
+  .perspective-badge {
+    display: none !important;
+  }
+}
+
+@container canvas3d (max-width: 38rem) {
+  .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
+  .dimension-mode-bar .btn-group--pill .btn,
+  .dimension-mode-bar .viewmode-segmented-group .btn {
+    padding: 0.18rem 0.45rem;
+    font-size: 0.68rem;
+  }
 }
 
 @media (max-width: 48rem) {
@@ -2619,8 +2648,9 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
     padding: 3px 6px;
   }
   .dimension-mode-bar {
-    top: 0.55rem;
-    right: 7.25rem;
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
   }
   .dimension-mode-bar .btn-group--pill .btn,
   .dimension-mode-bar .viewmode-segmented-group .btn {
@@ -2684,14 +2714,21 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   left: 8.5rem !important;
 }
 
+@container canvas3d (max-width: 38rem) {
+  [dir="rtl"] .dimension-mode-bar {
+    right: 0.6rem !important;
+    left: auto !important;
+  }
+}
+
 @media (max-width: 48rem) {
   [dir="rtl"] .camera-presets-bar {
     right: auto !important;
     left: 0.5rem !important;
   }
   [dir="rtl"] .dimension-mode-bar {
-    right: auto !important;
-    left: 7.0rem !important;
+    right: 0.6rem !important;
+    left: auto !important;
   }
 }
 
@@ -2703,9 +2740,28 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   text-overflow: ellipsis !important;
 }
 
+@container canvas3d (max-width: 56rem) {
+  #canvas-3d-container .view-title {
+    max-width: calc(100% - 19.5rem) !important;
+  }
+}
+
+@container canvas3d (max-width: 38rem) {
+  #canvas-3d-container .view-title {
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
 @media (max-width: 48rem) {
   #canvas-3d-container .view-title {
-    max-width: calc(100% - 16rem) !important;
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
