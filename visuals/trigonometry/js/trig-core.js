@@ -425,11 +425,11 @@ export class TrigCanvas2DView {
     const circCy = info.circleCy ?? cy;
     const circR = info.circleR ?? r;
 
-    // 1. Circumference Hover Highlight
+    // 1. Circumference Hover Highlight (non-obstructive dashed circumcircle outline)
     if (this.hoverCircumference && !this.hoverHandle && !this.activeDrag) {
       ctx.save();
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
       ctx.arc(circCx, circCy, circR, 0, TAU);
@@ -437,35 +437,10 @@ export class TrigCanvas2DView {
       ctx.restore();
     }
 
-    // 2. Handle Hover Halo
-    if (this.hoverHandle && !this.activeDrag) {
-      const hh = this.hoverHandle;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(hh.x, hh.y, 14, 0, TAU);
-      ctx.fillStyle = hh.color ? `${hh.color}44` : 'rgba(56, 189, 248, 0.35)';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 3. Active Drag Halo and Live Value Badge
+    // 2. Active Drag Live Value Badge (floats 28px above handle, leaving interaction point 100% unobstructed)
     if (this.activeDrag && this.activeDrag.type === 'handle' && this.activeDrag.handle) {
       const adh = this.activeDrag.handle;
       const activeH = info.handles.find((h) => h.id === adh.id) || adh;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(activeH.x, activeH.y, 18, 0, TAU);
-      ctx.fillStyle = activeH.color ? `${activeH.color}55` : 'rgba(245, 158, 11, 0.4)';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.restore();
 
       if (this.visualId === 'law-of-cosines') {
         if (adh.id === 'B') {
