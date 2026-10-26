@@ -236,6 +236,15 @@
                     <label for="slider-audio-volume"><span class="color-teal">Master Volume:</span><span id="label-audio-volume" class="color-teal font-bold">45%</span></label>
                     <input type="range" id="slider-audio-volume" min="0" max="100" value="45">
                   </div>
+                  <div class="unit-select-group" style="margin-top:4px; display:flex; flex-direction:column; gap:4px;">
+                    <label for="select-audio-tuning"><span class="color-indigo font-semibold" style="font-size:0.75rem;">Tuning Standard:</span></label>
+                    <select id="select-audio-tuning" class="unit-select" style="width: 100%;" aria-label="Audio Tuning Standard">
+                      <option value="standard" selected>Standard (A = 440 Hz, C = 261.63 Hz)</option>
+                      <option value="verdi">Verdi / Natural (A = 432 Hz, C = 256.87 Hz)</option>
+                      <option value="scientific">Scientific Binary (C = 256 Hz, A = 430.54 Hz)</option>
+                      <option value="baroque">Baroque Chamber (A = 415 Hz, C = 246.77 Hz)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

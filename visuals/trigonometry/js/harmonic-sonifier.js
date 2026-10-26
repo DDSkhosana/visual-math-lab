@@ -5,16 +5,47 @@
  * stereo panning to cos(θ), and triggers harmonic chimes on quadrant boundary crossings.
  */
 
+export const TUNING_PRESETS = {
+  standard: {
+    id: 'standard',
+    name: 'Standard (A = 440 Hz, C = 261.63 Hz)',
+    baseFreq: 261.625565, // C4
+    refA: 440.0,
+    desc: 'ISO 16 standard concert pitch'
+  },
+  verdi: {
+    id: 'verdi',
+    name: 'Verdi / Natural (A = 432 Hz, C = 256.87 Hz)',
+    baseFreq: 256.868735, // C4
+    refA: 432.0,
+    desc: 'Historical Italian opera pitch advocated by Verdi'
+  },
+  scientific: {
+    id: 'scientific',
+    name: 'Scientific Binary (C = 256 Hz, A = 430.54 Hz)',
+    baseFreq: 256.0,      // C4 = 2^8
+    refA: 430.538964,
+    desc: 'Powers-of-2 octave tuning (2^8 = 256 Hz)'
+  },
+  baroque: {
+    id: 'baroque',
+    name: 'Baroque Chamber (A = 415 Hz, C = 246.76 Hz)',
+    baseFreq: 415 / Math.pow(2, 0.75), // C4 ≈ 246.7605 Hz
+    refA: 415.0,
+    desc: 'Authentic 18th-century European baroque pitch'
+  }
+};
+
 export function thetaToFrequency(theta, baseFreq = 261.625565) {
   const twoPi = 2 * Math.PI;
   const norm = ((theta % twoPi) + twoPi) % twoPi;
   return baseFreq * Math.pow(2, norm / twoPi);
 }
 
-export function freqToNoteName(f) {
+export function freqToNoteName(f, refA = 440) {
   if (!f || !isFinite(f) || f <= 0) return 'C4';
   const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const midi = Math.round(12 * Math.log2(f / 440)) + 69;
+  const midi = Math.round(12 * Math.log2(f / refA)) + 69;
   const name = notes[((midi % 12) + 12) % 12];
   const oct = Math.floor(midi / 12) - 1;
   return `${name}${oct}`;
@@ -22,7 +53,10 @@ export function freqToNoteName(f) {
 
 export class HarmonicSonifier {
   constructor(options = {}) {
-    this.baseFreq = options.baseFreq || 261.625565; // C4 Middle C
+    this.tuning = options.tuning || 'standard';
+    const preset = TUNING_PRESETS[this.tuning] || TUNING_PRESETS.standard;
+    this.baseFreq = options.baseFreq || preset.baseFreq;
+    this.refA = options.refA || preset.refA;
     this.enabled = false;
     this.volume = options.volume !== undefined ? options.volume : 0.45;
     this.enableChimes = options.enableChimes !== false;
@@ -139,6 +173,31 @@ export class HarmonicSonifier {
     }
   }
 
+  setTuning(presetKey) {
+    const preset = TUNING_PRESETS[presetKey] || TUNING_PRESETS.standard;
+    this.tuning = preset.id;
+    this.baseFreq = preset.baseFreq;
+    this.refA = preset.refA;
+
+    if (this.lastTheta !== null) {
+      this.update({ angleTheta: this.lastTheta });
+    } else {
+      this.currentFreq = this.baseFreq;
+      this.currentNote = freqToNoteName(this.baseFreq, this.refA);
+      const freqValEl = typeof document !== 'undefined' ? document.getElementById('val-audio-freq') : null;
+      if (freqValEl) {
+        freqValEl.textContent = `${this.baseFreq.toFixed(1)} Hz (${this.currentNote})`;
+      }
+    }
+
+    if (typeof document !== 'undefined') {
+      const tuningSelect = document.getElementById('select-audio-tuning');
+      if (tuningSelect && tuningSelect.value !== this.tuning) {
+        tuningSelect.value = this.tuning;
+      }
+    }
+  }
+
   #rampVolume(targetVolume) {
     if (!this.masterGain || !this.audioCtx) return;
     const now = this.audioCtx.currentTime;
@@ -153,7 +212,7 @@ export class HarmonicSonifier {
     const theta = state.angleTheta;
     const freq = thetaToFrequency(theta, this.baseFreq);
     this.currentFreq = freq;
-    this.currentNote = freqToNoteName(freq);
+    this.currentNote = freqToNoteName(freq, this.refA);
 
     // Audio node updates
     if (this.audioCtx && this.audioCtx.state === 'running' && this.fundamentalOsc) {
@@ -201,13 +260,13 @@ export class HarmonicSonifier {
       const chimeOsc = this.audioCtx.createOscillator();
       const chimeGain = this.audioCtx.createGain();
 
-      // Pitch chords for the 4 cardinal axes:
-      // 0 (0°): C6 (1046.5 Hz)
-      // 1 (90°): E6 (1318.5 Hz)
-      // 2 (180°): G6 (1567.98 Hz)
-      // 3 (270°): C7 (2093.0 Hz)
-      const chimePitches = [1046.5, 1318.51, 1567.98, 2093.0];
-      const pitch = chimePitches[quadrant] || 1046.5;
+      // Dynamic chord ratios for cardinal axes based on baseFreq:
+      // 0 (0°): C6 (baseFreq * 4)
+      // 1 (90°): E6 (baseFreq * 4 * 2^(4/12))
+      // 2 (180°): G6 (baseFreq * 4 * 2^(7/12))
+      // 3 (270°): C7 (baseFreq * 8)
+      const chimeRatios = [4, 4 * Math.pow(2, 4 / 12), 4 * Math.pow(2, 7 / 12), 8];
+      const pitch = this.baseFreq * (chimeRatios[quadrant] || 4);
 
       chimeOsc.type = 'triangle';
       chimeOsc.frequency.setValueAtTime(pitch, this.audioCtx.currentTime);
@@ -246,6 +305,10 @@ export class HarmonicSonifier {
     if (checkbox && checkbox.checked !== this.enabled) {
       checkbox.checked = this.enabled;
     }
+    const tuningSelect = document.getElementById('select-audio-tuning');
+    if (tuningSelect && tuningSelect.value !== this.tuning) {
+      tuningSelect.value = this.tuning;
+    }
   }
 
   attachControls(root = (typeof document !== 'undefined' ? document : null)) {
@@ -264,6 +327,15 @@ export class HarmonicSonifier {
       checkbox._hasSoundBound = true;
       checkbox.addEventListener('change', (e) => {
         this.setEnabled(e.target.checked);
+      });
+    }
+
+    const tuningSelect = root.getElementById('select-audio-tuning');
+    if (tuningSelect && !tuningSelect._hasSoundBound) {
+      tuningSelect._hasSoundBound = true;
+      tuningSelect.value = this.tuning;
+      tuningSelect.addEventListener('change', (e) => {
+        this.setTuning(e.target.value);
       });
     }
 

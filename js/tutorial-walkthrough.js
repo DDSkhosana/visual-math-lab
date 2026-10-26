@@ -465,7 +465,8 @@ function mountTutorialModal(visual, theoremData) {
         <div class="tutorial-card-section">
           <h4>Harmonic Audio Sonification &amp; Multi-Sensory Waves</h4>
           <ul class="tutorial-feature-list">
-            <li><strong>Real-Time Sound Synthesis:</strong> In the Unit Circle &amp; Helix visualizer, circular rotation generates live sine wave tones ($f(\theta) = 261.6\,\text{Hz} \cdot 2^{\theta/2\pi}$ from C4 to C5), spatial stereo panning ($\cos\theta$), 2nd harmonic overtones, and axis-crossing chimes ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).</li>
+            <li><strong>Real-Time Sound Synthesis:</strong> In the Unit Circle &amp; Helix visualizer, circular rotation generates live sine wave tones ($f(\theta) = f_0 \cdot 2^{\theta/2\pi}$ from C4 to C5), spatial stereo panning ($\cos\theta$), 2nd harmonic overtones, and axis-crossing chimes ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).</li>
+            <li><strong>Acoustic Tuning Standards:</strong> Switch dynamically in the controls panel between <strong>Standard ($A = 440\,\text{Hz}$)</strong>, historical <strong>Verdi / Natural ($A = 432\,\text{Hz}$)</strong>, pure binary <strong>Scientific ($C = 256\,\text{Hz} = 2^8$)</strong>, and <strong>Baroque Chamber ($A = 415\,\text{Hz}$)</strong>.</li>
             <li><strong>Pure Web Audio API:</strong> Operates entirely client-side with zero external libraries. Muted by default to respect browser autoplay policies.</li>
             <li><strong>Instant Keyboard Control:</strong> Press <kbd>M</kbd> anytime to toggle audio on and off immediately.</li>
           </ul>

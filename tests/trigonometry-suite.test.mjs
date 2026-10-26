@@ -689,7 +689,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
     });
 
     test('Unit Circle Harmonic Audio Sonification: Web Audio API mathematical mapping and DOM wiring', async () => {
-        const { thetaToFrequency, freqToNoteName, HarmonicSonifier } = await import('../visuals/trigonometry/js/harmonic-sonifier.js');
+        const { thetaToFrequency, freqToNoteName, HarmonicSonifier, TUNING_PRESETS } = await import('../visuals/trigonometry/js/harmonic-sonifier.js');
 
         // 1. Frequency calculation: f(θ) = f0 * 2^(θ/2π)
         const baseFreq = 261.625565; // C4 Middle C
@@ -698,17 +698,43 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(Math.abs(thetaToFrequency(1.5 * Math.PI, baseFreq) - 440.0) < 1e-3, 'At 3π/2 rad, frequency must be concert A4 (440.0 Hz)');
         assert.ok(Math.abs(thetaToFrequency(2 * Math.PI, baseFreq) - 261.625565) < 1e-4, 'At 2π rad, frequency wraps to octave C4');
 
-        // 2. Note name mapping
-        assert.equal(freqToNoteName(261.63), 'C4');
-        assert.equal(freqToNoteName(440.0), 'A4');
-        assert.equal(freqToNoteName(523.25), 'C5');
+        // 2. Note name mapping & Tuning Presets
+        assert.ok(TUNING_PRESETS.standard && TUNING_PRESETS.verdi && TUNING_PRESETS.scientific && TUNING_PRESETS.baroque);
+        assert.equal(freqToNoteName(261.63, 440), 'C4');
+        assert.equal(freqToNoteName(440.0, 440), 'A4');
+        assert.equal(freqToNoteName(523.25, 440), 'C5');
+        assert.equal(freqToNoteName(432.0, 432), 'A4', 'Verdi 432 Hz maps to A4 under A=432 ref');
+        assert.equal(freqToNoteName(415.0, 415), 'A4', 'Baroque 415 Hz maps to A4 under A=415 ref');
 
-        // 3. Sonifier instance lifecycle (headless safe)
+        // 3. Sonifier instance lifecycle & dynamic tuning standard switching (headless safe)
         const sonifier = new HarmonicSonifier({ baseFreq });
         assert.equal(sonifier.enabled, false, 'Audio must be muted/disabled by default (autoplay policy)');
         sonifier.update({ angleTheta: Math.PI / 2 });
         assert.ok(sonifier.currentFreq > 310 && sonifier.currentFreq < 312, 'Calculates frequency at 90 degrees (~311.1 Hz)');
         assert.equal(sonifier.currentNote, 'D#4');
+
+        // Switch to Verdi tuning (A = 432 Hz, C = 256.87 Hz)
+        sonifier.setTuning('verdi');
+        assert.equal(sonifier.tuning, 'verdi');
+        assert.ok(Math.abs(sonifier.baseFreq - 256.8687) < 1e-3);
+        sonifier.update({ angleTheta: 1.5 * Math.PI }); // 270 degrees
+        assert.ok(Math.abs(sonifier.currentFreq - 432.0) < 1e-3, 'At 270 deg in Verdi tuning, frequency must be exactly 432.0 Hz');
+        assert.equal(sonifier.currentNote, 'A4');
+
+        // Switch to Scientific tuning (C = 256.0 Hz = 2^8)
+        sonifier.setTuning('scientific');
+        assert.equal(sonifier.tuning, 'scientific');
+        assert.equal(sonifier.baseFreq, 256.0);
+        sonifier.update({ angleTheta: 0 });
+        assert.equal(sonifier.currentFreq, 256.0);
+        assert.equal(sonifier.currentNote, 'C4');
+
+        // Switch to Baroque tuning (A = 415 Hz)
+        sonifier.setTuning('baroque');
+        assert.equal(sonifier.tuning, 'baroque');
+        sonifier.update({ angleTheta: 1.5 * Math.PI });
+        assert.ok(Math.abs(sonifier.currentFreq - 415.0) < 1e-3, 'At 270 deg in Baroque tuning, frequency must be 415.0 Hz');
+        assert.equal(sonifier.currentNote, 'A4');
 
         sonifier.setVolume(0.75);
         assert.equal(sonifier.volume, 0.75);
@@ -720,6 +746,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(uchHtml.includes('id="val-audio-freq"'), 'Telemetry must display live #val-audio-freq');
         assert.ok(uchHtml.includes('id="section-audio-sonification"'), 'Controls panel must have collapsible #section-audio-sonification');
         assert.ok(uchHtml.includes('id="check-audio-enable"'), 'Controls must include #check-audio-enable');
+        assert.ok(uchHtml.includes('id="select-audio-tuning"'), 'Controls must include #select-audio-tuning dropdown');
         assert.ok(uchHtml.includes('id="slider-audio-volume"'), 'Controls must include volume slider');
 
         // 5. trig-core.js wiring
