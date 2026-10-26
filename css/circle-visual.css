@@ -233,7 +233,7 @@ body.header-collapsed .circle-explorer {
 .dimension-mode-bar {
   position: absolute;
   top: 0.75rem;
-  right: 7.2rem;
+  right: 8.2rem;
   z-index: 25 !important;
   display: flex;
   align-items: center;
@@ -242,7 +242,7 @@ body.header-collapsed .circle-explorer {
 @media (max-width: 48rem) {
   .dimension-mode-bar {
     top: 0.55rem;
-    right: 6.0rem;
+    right: 7.0rem;
   }
   .dimension-mode-bar .btn-group--pill .btn,
   .dimension-mode-bar .viewmode-segmented-group .btn {
@@ -253,13 +253,13 @@ body.header-collapsed .circle-explorer {
 
 [dir="rtl"] .dimension-mode-bar {
   right: auto !important;
-  left: 7.2rem !important;
+  left: 8.2rem !important;
 }
 
 @media (max-width: 48rem) {
   [dir="rtl"] .dimension-mode-bar {
     right: auto !important;
-    left: 6.0rem !important;
+    left: 7.0rem !important;
   }
 }
 
@@ -950,6 +950,9 @@ input[type=range] {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: nowrap !important;
+  gap: 0.45rem;
+  min-width: 0;
   transition: background-color 0.15s ease;
 }
 
@@ -992,11 +995,11 @@ input[type=range] {
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 0 1 auto;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 0 1 auto !important;
 }
 
 .stats-body {

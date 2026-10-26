@@ -8,7 +8,7 @@
 .dimension-mode-bar {
   position: absolute;
   top: 0.75rem;
-  right: 7.2rem;
+  right: 8.2rem;
   z-index: 25 !important;
 }
 
@@ -22,7 +22,7 @@
 @media (max-width: 48rem) {
   .dimension-mode-bar {
     top: 0.55rem;
-    right: 6.0rem;
+    right: 7.0rem;
   }
   .dimension-mode-bar .viewmode-segmented-group .btn {
     padding: 0.18rem 0.45rem;
@@ -35,13 +35,13 @@
 
 [dir="rtl"] .dimension-mode-bar {
   right: auto !important;
-  left: 7.2rem !important;
+  left: 8.2rem !important;
 }
 
 @media (max-width: 48rem) {
   [dir="rtl"] .dimension-mode-bar {
     right: auto !important;
-    left: 6.0rem !important;
+    left: 7.0rem !important;
   }
 }
 

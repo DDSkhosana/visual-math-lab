@@ -347,6 +347,11 @@ describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle T
         assert.ok(src.includes("store.set({ angleB: normalizeAngle(ang + Math.PI) })"), 'Dragging antipode A rotates vertex B');
         assert.ok(src.includes('this.hoverCircumference'), 'Canvas must support circumference hover indicator');
         assert.ok(src.includes('canvas.addEventListener(\'keydown\''), 'Canvas must support keyboard arrow navigation');
+
+        // Law of Cosines 2D interaction affordances
+        assert.ok(src.includes("originY = cy + m.projection.hAlt * scale * 0.35"), 'Law of Cosines getInteractiveHandles2D must align originY with altitude projection offset');
+        assert.ok(src.includes("store.set({ sideA: Math.round(nextA * 2) / 2 })"), 'Dragging reference circumference in Law of Cosines resizes sideA');
+        assert.ok(src.includes('#renderInteractiveAffordances(ctx, state, cx, cy, r)'), 'render must centralize interactive affordances across all trig visualizers');
     });
 
     test('derivations use collapsible cardTemplate with unit-aware formatting and reflex shading', () => {

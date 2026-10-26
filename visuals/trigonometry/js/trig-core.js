@@ -342,28 +342,32 @@ export class TrigCanvas2DView {
       const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
       const scale = (r * 1.15) / Math.max(m.a, m.b, m.c, 10);
       const originX = cx - m.b * scale * 0.42;
-      const originY = cy;
+      const originY = cy + m.projection.hAlt * scale * 0.35;
       return {
         cx: originX,
         cy: originY,
         r: m.a * scale,
-        circleCx: cx,
-        circleCy: cy,
-        circleR: r,
+        circleCx: originX,
+        circleCy: originY,
+        circleR: m.a * scale,
         handles: [
           {
             id: 'B',
+            label: 'B',
             x: originX + m.vertices2D.B.x * scale,
             y: originY - m.vertices2D.B.y * scale,
             field: 'angleC',
             scale,
+            color: PALETTE.emerald,
           },
           {
             id: 'A',
+            label: 'A',
             x: originX + m.vertices2D.A.x * scale,
             y: originY - m.vertices2D.A.y * scale,
             field: 'sideB',
             scale,
+            color: PALETTE.sky,
           },
         ],
       };
@@ -410,6 +414,87 @@ export class TrigCanvas2DView {
       this.#renderLawOfCosines(ctx, state, cx, cy, r);
     } else {
       this.#renderAngleSum(ctx, state, cx, cy, r);
+    }
+
+    this.#renderInteractiveAffordances(ctx, state, cx, cy, r);
+  }
+
+  #renderInteractiveAffordances(ctx, state, cx, cy, r) {
+    const info = this.getInteractiveHandles2D(state);
+    const circCx = info.circleCx ?? cx;
+    const circCy = info.circleCy ?? cy;
+    const circR = info.circleR ?? r;
+
+    // 1. Circumference Hover Highlight
+    if (this.hoverCircumference && !this.hoverHandle && !this.activeDrag) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(circCx, circCy, circR, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 2. Handle Hover Halo
+    if (this.hoverHandle && !this.activeDrag) {
+      const hh = this.hoverHandle;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(hh.x, hh.y, 14, 0, TAU);
+      ctx.fillStyle = hh.color ? `${hh.color}44` : 'rgba(56, 189, 248, 0.35)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 3. Active Drag Halo and Live Value Badge
+    if (this.activeDrag && this.activeDrag.type === 'handle' && this.activeDrag.handle) {
+      const adh = this.activeDrag.handle;
+      const activeH = info.handles.find((h) => h.id === adh.id) || adh;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(activeH.x, activeH.y, 18, 0, TAU);
+      ctx.fillStyle = activeH.color ? `${activeH.color}55` : 'rgba(245, 158, 11, 0.4)';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+
+      if (this.visualId === 'law-of-cosines') {
+        if (adh.id === 'B') {
+          const cDeg = Math.round(((toDegrees(state.angleC ?? 0) % 360) + 360) % 360);
+          drawTextBadge(ctx, `B: ∠C = ${cDeg}°, a = ${state.sideA}`, activeH.x, activeH.y - 28, PALETTE.emerald);
+        } else if (adh.id === 'A') {
+          drawTextBadge(ctx, `A: b = ${state.sideB}`, activeH.x, activeH.y - 28, PALETTE.sky);
+        }
+      } else if (this.visualId === 'angle-sum-identities') {
+        if (adh.id === 'P') {
+          const pDeg = Math.round(((toDegrees((state.angleAlpha || 0) + (state.angleBeta || 0)) % 360) + 360) % 360);
+          drawTextBadge(ctx, `P: α+β = ${pDeg}°`, activeH.x, activeH.y - 28, PALETTE.emerald);
+        } else if (adh.id === 'A') {
+          const aDeg = Math.round(((toDegrees(state.angleAlpha || 0) % 360) + 360) % 360);
+          drawTextBadge(ctx, `A: α = ${aDeg}°`, activeH.x, activeH.y - 28, PALETTE.sky);
+        } else if (adh.id === 'D') {
+          const dDeg = Math.round(((toDegrees((state.angleAlpha || 0) - (state.angleBeta || 0)) % 360) + 360) % 360);
+          drawTextBadge(ctx, `D: α−β = ${dDeg}°`, activeH.x, activeH.y - 28, PALETTE.rose);
+        }
+      } else {
+        const curAngDeg = Math.round(((toDegrees(state[adh.field] ?? 0) % 360) + 360) % 360);
+        drawTextBadge(ctx, `${adh.label || adh.id}: ${curAngDeg}°`, activeH.x, activeH.y - 28, adh.color || PALETTE.amber);
+      }
+    } else if (this.activeDrag && this.activeDrag.type === 'radius') {
+      if (this.visualId === 'law-of-cosines') {
+        drawTextBadge(ctx, `a = ${state.sideA}`, circCx + circR, circCy - 14, PALETTE.sky);
+      } else {
+        drawTextBadge(ctx, `r = ${Math.round(circR)}px`, circCx + circR, circCy - 14, PALETTE.sky);
+      }
     }
   }
 
@@ -909,53 +994,6 @@ export class TrigCanvas2DView {
       drawRadialLabelledPoint(ctx, A, O, PALETTE.red, getPointLabel('A', m.vertices2D.A.x * scale, m.vertices2D.A.y * scale, vis), 20, 5);
       drawRadialLabelledPoint(ctx, B, O, PALETTE.green, getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis), 20, 5);
       drawRadialLabelledPoint(ctx, C, O, PALETTE.violet, getPointLabel('C', m.vertices2D.C.x * scale, m.vertices2D.C.y * scale, vis), 20, 5);
-    }
-
-    // 2D Interactive Affordances: Circumference Hover Highlight, Handle Hover Halos & Active Drag Rings
-    if (this.hoverCircumference && !this.hoverHandle && !this.activeDrag) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([8, 6]);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, TAU);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    if (this.hoverHandle && !this.activeDrag) {
-      const hh = this.hoverHandle;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(hh.x, hh.y, 14, 0, TAU);
-      ctx.fillStyle = hh.color ? `${hh.color}44` : 'rgba(56, 189, 248, 0.35)';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    if (this.activeDrag && this.activeDrag.type === 'handle' && this.activeDrag.handle) {
-      const adh = this.activeDrag.handle;
-      const curInfo = this.getInteractiveHandles2D(state);
-      const activeH = curInfo.handles.find((h) => h.id === adh.id) || adh;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(activeH.x, activeH.y, 18, 0, TAU);
-      ctx.fillStyle = activeH.color ? `${activeH.color}55` : 'rgba(245, 158, 11, 0.4)';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.restore();
-
-      const curAngDeg = Math.round(((toDegrees(state[adh.field] ?? 0) % 360) + 360) % 360);
-      drawTextBadge(ctx, `${adh.label || adh.id}: ${curAngDeg}°`, activeH.x, activeH.y - 28, activeH.color || PALETTE.amber);
-    } else if (this.activeDrag && this.activeDrag.type === 'radius') {
-      drawTextBadge(ctx, `r = ${Math.round(r)}px`, cx + r, cy - 14, PALETTE.sky);
     }
   }
 
@@ -3778,6 +3816,31 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       }
     }
 
+    // Direct spoke / vertex B & A proximity fallback for law-of-cosines
+    if (!hitHandle && visualId === 'law-of-cosines') {
+      const dx = x - circCx;
+      const dy = circCy - y;
+      const distFromCenter = Math.hypot(dx, dy);
+      const hB = info.handles.find((h) => h.id === 'B') || info.handles[0];
+      const hA = info.handles.find((h) => h.id === 'A') || info.handles[1];
+      // Check baseline AC interaction (side b)
+      if (hA && Math.abs(dy) <= 22 && dx >= -10 && dx <= (st.sideB * (hA.scale || 1)) + 28) {
+        if (Math.abs(x - hA.x) <= 32 || dx > (st.sideB * (hA.scale || 1)) * 0.5) {
+          hitHandle = hA;
+        }
+      }
+      // Check side a (ray CB) or reference circle locus of B
+      if (!hitHandle && hB) {
+        const clickAng = pointerToAngle(dx, dy);
+        const curC = normalizeAngle(st.angleC || 0);
+        let diff = Math.abs(normalizeAngle(clickAng - curC));
+        if (diff > Math.PI) diff = 2 * Math.PI - diff;
+        if (diff < 0.45 && distFromCenter >= 14 && distFromCenter <= circR + 32) {
+          hitHandle = hB;
+        }
+      }
+    }
+
     // Direct radial spoke click/drag fallback for unit-circle-helix
     let spokeHit = false;
     if (!hitHandle && visualId === 'unit-circle-helix') {
@@ -3864,7 +3927,14 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     if (activeDrag.type === 'radius') {
       canvas.style.cursor = 'ew-resize';
       const dist = Math.hypot(x - activeDrag.cx, y - activeDrag.cy);
-      store.set({ radius: clamp(Math.round(dist), 100, 260) });
+      if (visualId === 'law-of-cosines') {
+        const hB = info.handles.find((h) => h.id === 'B') || info.handles[0];
+        const scale = hB?.scale || 20;
+        const nextA = clamp(dist / scale, 2, 12);
+        store.set({ sideA: Math.round(nextA * 2) / 2 });
+      } else {
+        store.set({ radius: clamp(Math.round(dist), 100, 260) });
+      }
       return;
     }
 

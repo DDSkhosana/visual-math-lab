@@ -81,8 +81,12 @@ export class StatsView {
         field.textContent = angUnit === 'deg' ? `${value.toFixed(2)}°` : UnitSystemConverter.formatAngle(value, angUnit);
       } else if (lengthKeys.has(key)) {
         field.textContent = lenUnit === 'px' ? value.toFixed(2) : UnitSystemConverter.formatLength(value, lenUnit, state.radius);
+      } else if (key === 'mode3d' || typeof value === 'string') {
+        field.textContent = value;
+      } else if (typeof value === 'number') {
+        field.textContent = Number.isFinite(value) ? value.toFixed(2) : String(value);
       } else {
-        field.textContent = value.toFixed(2);
+        field.textContent = String(value);
       }
     }
   }

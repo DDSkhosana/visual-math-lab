@@ -184,8 +184,7 @@ export function thalesStats2D(radius, angle, options = {}) {
 
 export function sphereStats(radius, lat, lon, dimensionMode = 'planar') {
   const isSpatial = dimensionMode === 'spatial';
-  const effLat = isSpatial ? lat : Math.PI / 2;
-  const p = sphericalToCartesian(radius, effLat, lon);
+  const p = sphericalToCartesian(radius, lat, lon);
   const s = Math.hypot(p.x + radius, p.y, p.z);
   const t = Math.hypot(p.x - radius, p.y, p.z);
   const d = 2 * radius;
