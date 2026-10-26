@@ -29,7 +29,7 @@
     font-size: 0.68rem;
   }
   #canvas-3d-container .view-title {
-    max-width: calc(100% - 15rem) !important;
+    max-width: calc(100% - 16rem) !important;
   }
 }
 

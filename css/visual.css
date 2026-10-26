@@ -2694,3 +2694,23 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
     left: 7.0rem !important;
   }
 }
+
+
+#canvas-3d-container .view-title {
+  max-width: calc(100% - 19.5rem) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+@media (max-width: 48rem) {
+  #canvas-3d-container .view-title {
+    max-width: calc(100% - 16rem) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .perspective-badge {
+    display: none !important;
+  }
+}

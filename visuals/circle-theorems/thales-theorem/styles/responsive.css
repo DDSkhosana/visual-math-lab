@@ -202,7 +202,10 @@
   .thales-explorer #canvas-3d-container .view-title {
     top: 0.55rem;
     left: 0.6rem;
-    max-width: calc(100% - 5.5rem);
+    max-width: calc(100% - 16rem) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     font-size: 0.7rem;
     line-height: 1.25;
   }
