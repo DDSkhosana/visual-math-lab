@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "Déduisez les formules d'addition et de soustraction de sinus et cosinus par empilement de triangles et repères Euler SO(3)."
     }
+  },
+  "cookie": {
+    "title": "Choix de Confidentialité & Cookies",
+    "text": "Nous utilisons des analyses techniques agrégées et respectueuses de la vie privée pour adapter l'affichage. Nous ne traçons pas d'un site à l'autre, ne profilons pas et ne vendons aucune donnée.",
+    "accept": "Accepter les Analyses",
+    "decline": "Refuser les Non-Essentiels",
+    "settings": "Paramètres des Cookies",
+    "manage": "Gérer les Préférences de Cookies",
+    "status_granted": "Statut: Analyses Autorisées",
+    "status_denied": "Statut: Analyses Bloquées",
+    "status_unset": "Statut: Non Défini",
+    "policy_link": "Politique de Confidentialité"
   }
 }

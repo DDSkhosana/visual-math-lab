@@ -422,3 +422,4 @@ export async function initI18n(options = {}) {
 
   return targetLocale;
 }
+

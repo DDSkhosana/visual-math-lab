@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "通过堆叠直角三角形与三维 SO(3) 欧拉坐标旋转框架推修正弦与余弦加法定理。"
     }
+  },
+  "cookie": {
+    "title": "隐私与 Cookie 选项",
+    "text": "我们使用保护隐私的聚合技术分析来了解屏幕分辨率并改进数学可视化工具。我们不会进行跨网站追踪、用户画像或出售数据。",
+    "accept": "接受分析",
+    "decline": "拒绝非必要 Cookie",
+    "settings": "Cookie 设置",
+    "manage": "管理 Cookie 偏好",
+    "status_granted": "状态：已允许分析",
+    "status_denied": "状态：已阻止分析",
+    "status_unset": "状态：尚未选择",
+    "policy_link": "隐私政策"
   }
 }

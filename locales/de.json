@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "Leiten Sie Summen- und Differenzformeln für Sinus und Kosinus aus geschachtelten Dreiecken und SO(3)-Euler-Drehsystemen her."
     }
+  },
+  "cookie": {
+    "title": "Datenschutz- & Cookie-Einstellungen",
+    "text": "Wir nutzen datenschutzfreundliche, aggregierte Analysen, um Bildschirmgrößen zu erkennen und Visualisierungen zu optimieren. Kein websiteübergreifendes Tracking, kein Profiling, kein Datenverkauf.",
+    "accept": "Analytik Akzeptieren",
+    "decline": "Nicht-Erforderliche Ablehnen",
+    "settings": "Cookie-Einstellungen",
+    "manage": "Cookie-Präferenzen Verwalten",
+    "status_granted": "Status: Analytik Erlaubt",
+    "status_denied": "Status: Analytik Blockiert",
+    "status_unset": "Status: Noch Nicht Gewählt",
+    "policy_link": "Datenschutzrichtlinie"
   }
 }

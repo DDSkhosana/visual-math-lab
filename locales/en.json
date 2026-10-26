@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "Derive sine and cosine compound angle formulas from stacked right triangles and SO(3) Euler rotation frames."
     }
+  },
+  "cookie": {
+    "title": "Cookie & Privacy Choices",
+    "text": "We use privacy-preserving, aggregated technical analytics to understand screen sizes and improve our geometry visualizers. We do not track you across websites, profile you, or sell your data. Choose whether to allow analytics cookies.",
+    "accept": "Accept Analytics",
+    "decline": "Decline Non-Essential",
+    "settings": "Cookie Settings",
+    "manage": "Manage Cookie Preferences",
+    "status_granted": "Status: Analytics Allowed",
+    "status_denied": "Status: Analytics Blocked",
+    "status_unset": "Status: Not Yet Chosen",
+    "policy_link": "Privacy Policy"
   }
 }

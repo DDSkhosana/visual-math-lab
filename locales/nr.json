@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "Thola amafomula wekhompawundi ye-sine ne-cosine kusukela kuma-triangle ane-kona eqondileko ahlanganisiweko namafreyimu we-rotation e-SO(3) Euler."
     }
+  },
+  "cookie": {
+    "title": "Iinketho ze-Privacy nama-Cookies",
+    "text": "Sisebenzisa i-analytics ehlanganisiweko evikela i-privacy ukuze sizwisise ubukhulu besikrini nokwenza ngcono iziboniso zethu. Asikulandeli kwamanye amaphepha, asithengisi imininingwana yakho.",
+    "accept": "Vumela i-Analytics",
+    "decline": "Yala Engasi Qakatheko",
+    "settings": "Ukuhlelwa kwama-Cookie",
+    "manage": "Phatha Ukukhetha kwama-Cookie",
+    "status_granted": "Ubujamo: I-Analytics Ivunyelwe",
+    "status_denied": "Ubujamo: I-Analytics Ivaliwe",
+    "status_unset": "Ubujamo: Akukakhethwa",
+    "policy_link": "Umgomo we-Privacy"
   }
 }

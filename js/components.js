@@ -1,6 +1,7 @@
 import { initI18n, t, getLocale, getLocaleInfo, getSupportedLocales, setLocale } from "./i18n.js";
 import SITE_CONFIG, { hasConfiguredUrl } from "../config/site-config.js?v=20260523";
 import { trackEvent } from "./analytics.js?v=20260523";
+import { initCookieConsent } from "./cookie-consent.js";
 
 const DEFAULT_CIRCLE_VISUALS = [
   { slug: "thales-theorem", suite: "circle-theorems", title: "Thales' Theorem", category: "Geometry", badge: "Theorem 01", formula: "∠APB = 90°  |  |OP| = r" },
@@ -735,6 +736,9 @@ export function mountSharedChrome() {
 
         const contactLink = header.querySelector('a.site-nav__link[href*="contact.html"]');
         if (contactLink) contactLink.textContent = t('nav.contact', {}, 'Contact');
+
+        const cookieBtn = footer ? footer.querySelector(".site-footer__cookie-btn") : null;
+        if (cookieBtn) cookieBtn.textContent = t('cookie.settings', {}, 'Cookie Settings');
       };
 
       if (typeof window !== "undefined") {
@@ -771,8 +775,13 @@ export function mountSharedChrome() {
     const supportLink = hasConfiguredUrl(SITE_CONFIG.buyMeACoffee.profileUrl)
       ? `<a data-support-link href="${SITE_CONFIG.buyMeACoffee.profileUrl}" target="_blank" rel="noopener noreferrer">Support the project</a>`
       : "";
+    const cookieSettingsLabel = t("cookie.settings", {}, "Cookie Settings");
     footer.className = "site-footer";
-    const links = [supportLink, `<a href="${route(root, "privacy.html")}">Privacy</a>`].filter(Boolean).join(' &middot; ');
+    const links = [
+      supportLink,
+      `<a href="${route(root, "privacy.html")}">Privacy</a>`,
+      `<button type="button" class="site-footer__cookie-btn" data-cookie-settings>${escapeHtml(cookieSettingsLabel)}</button>`
+    ].filter(Boolean).join(' &middot; ');
     footer.innerHTML = `
       <div class="site-footer__main">
         <span>&copy; ${new Date().getFullYear()} ${SITE_CONFIG.site.name}</span>
@@ -782,6 +791,11 @@ export function mountSharedChrome() {
         <p><strong>Disclaimer:</strong> Use of this product is at your own discretion. Neither the authors, contributors, nor Visual Mathematics Lab shall be held liable or responsible for any material loss or damages associated with the use of the app. The product may contain occasional inconsistencies in the colour grammar to visual canvas component mapping; users should interpret all figures, measurements, and derivations with discretion.</p>
       </div>
     `;
+  }
+
+  // Initialize Cookie Consent & Privacy Manager
+  if (typeof window !== "undefined") {
+    initCookieConsent(root);
   }
 
   document.querySelectorAll("[data-support-container]").forEach((container) => {

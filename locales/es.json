@@ -169,5 +169,17 @@
       "formula": "R(α + β) = R(α) ∘ R(β)",
       "description": "Deduce fórmulas de suma y diferencia de senos y cosenos mediante triángulos rectángulos apilados y marcos de rotación Euler SO(3)."
     }
+  },
+  "cookie": {
+    "title": "Opciones de Privacidad y Cookies",
+    "text": "Utilizamos análisis técnicos agregados que preservan la privacidad para comprender tamaños de pantalla y mejorar nuestros visualizadores. No rastreamos entre sitios, no elaboramos perfiles ni vendemos datos.",
+    "accept": "Aceptar Analítica",
+    "decline": "Rechazar No Esenciales",
+    "settings": "Configuración de Cookies",
+    "manage": "Gestionar Preferencias de Cookies",
+    "status_granted": "Estado: Analítica Permitida",
+    "status_denied": "Estado: Analítica Bloqueada",
+    "status_unset": "Estado: No Seleccionado",
+    "policy_link": "Política de Privacidad"
   }
 }
