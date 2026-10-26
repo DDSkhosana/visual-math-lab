@@ -71,8 +71,10 @@ export function generateSceneSVG(state, f) {
   <path d="${arcD}" fill="${isPhi ? 'rgba(217, 70, 239, 0.25)' : 'rgba(234, 179, 8, 0.25)'}" stroke="${angleColor}" stroke-width="1.5"/>
   <text x="${cx + 33 * Math.cos(-angle / 2)}" y="${cy + 33 * Math.sin(-angle / 2)}" fill="${angleColor}" font-style="italic" font-size="13" font-weight="bold" text-anchor="middle" dominant-baseline="central">${angleLabel}</text>
 
-  <!-- Inscribed Triangle Area Shading -->
-  <polygon points="${a.x},${a.y} ${b.x},${b.y} ${p.x},${p.y}" fill="rgba(34, 197, 94, 0.2)" stroke="rgba(34, 197, 94, 0.6)" stroke-width="1"/>
+  <!-- Decomposed Constituent Isosceles Triangles (AOP Lime, POB Orange) -->
+  <polygon points="${cx},${cy} ${a.x},${a.y} ${p.x},${p.y}" fill="rgba(132, 204, 22, 0.16)" stroke="none"/>
+  <polygon points="${cx},${cy} ${b.x},${b.y} ${p.x},${p.y}" fill="rgba(249, 115, 22, 0.16)" stroke="none"/>
+  <line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="${PALETTE.indigo}" stroke-width="1.6" stroke-dasharray="4,4"/>
 
   <!-- Right Angle Square at P -->
   <polygon points="${p.x},${p.y} ${c1x},${c1y} ${c2x},${c2y} ${c3x},${c3y}" fill="rgba(20, 184, 166, 0.25)" stroke="${PALETTE.teal}" stroke-width="1.5"/>

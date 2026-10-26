@@ -19,7 +19,7 @@ import { TelemetryPanel } from './ui/TelemetryPanel.js';
 import { DraggableToolbar } from './ui/DraggableToolbar.js';
 import { TooltipController } from './ui/TooltipController.js';
 import { bindFullscreen } from './ui/fullscreen.js';
-import { UnitSystemConverter, ARManager, computeOptimalViewportRadius } from '../../../../js/circle-core.js';
+import { UnitSystemConverter, ARManager, computeOptimalViewportRadius, bindStandardToggles } from '../../../../js/circle-core.js';
 
 const byId = (id) => {
   const element = document.getElementById(id);
@@ -90,6 +90,11 @@ function bootstrap() {
   new Canvas2DInteraction(store, view2d);
   new Scene3DInteraction(store, scene3d);
   new PlaybackController(store, byId('btn-playback'));
+
+  bindStandardToggles(store, {
+    sceneTarget: scene3d,
+    visualId: 'thales-theorem',
+  });
 
   const exportPngBtn = document.getElementById('btn-export-png');
   if (exportPngBtn) {

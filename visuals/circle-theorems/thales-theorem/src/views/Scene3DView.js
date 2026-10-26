@@ -5,7 +5,7 @@ import { ArcballTrackballControls } from '../../../../../js/circle-3d.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
-  static stateKeys = ['radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D', 'affineMode', 'affineStretch', 'affineAxisAngle'];
+  static stateKeys = ['dimensionMode', 'radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D', 'affineMode', 'affineStretch', 'affineAxisAngle'];
 
   constructor(THREE, container) {
     this.THREE = THREE;
@@ -78,7 +78,9 @@ export class Scene3DView {
     const rot = state.baselineRotation || 0;
     const cosR = Math.cos(rot);
     const sinR = Math.sin(rot);
-    const raw = sphericalToCartesian(r, state.lat3D, state.lon3D);
+    const isSpatial = state.dimensionMode === 'spatial';
+    const effLat = isSpatial ? (state.lat3D ?? Math.PI / 4) : Math.PI / 2;
+    const raw = sphericalToCartesian(r, effLat, state.lon3D);
     const x = raw.x * cosR - raw.y * sinR;
     const y = raw.x * sinR + raw.y * cosR;
     const z = raw.z;
@@ -132,8 +134,15 @@ export class Scene3DView {
     o.radiusLine.computeLineDistances();
 
     const a = o.pointA.position, b = o.pointB.position, p = o.pointP.position;
+    const originPt = new THREE.Vector3(0, 0, 0);
+    if (o.areaAOP && o.areaPOB) {
+      setPositions(THREE, o.areaAOP.geometry, [originPt.x, originPt.y, originPt.z, a.x, a.y, a.z, p.x, p.y, p.z]);
+      setPositions(THREE, o.areaPOB.geometry, [originPt.x, originPt.y, originPt.z, b.x, b.y, b.z, p.x, p.y, p.z]);
+      o.areaAOP.visible = state.show3dArea;
+      o.areaPOB.visible = state.show3dArea;
+    }
     setPositions(THREE, o.areaTriangle.geometry, [a.x, a.y, a.z, b.x, b.y, b.z, p.x, p.y, p.z]);
-    o.areaTriangle.visible = state.show3dArea;
+    o.areaTriangle.visible = false;
 
     if (o.altitudeLine) {
       const proj = x * cosR + y * sinR;

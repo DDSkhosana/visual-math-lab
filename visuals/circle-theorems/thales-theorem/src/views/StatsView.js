@@ -14,11 +14,12 @@ const IDS = {
   alphaReflex3d: 'val-3d-alpha-reflex', betaReflex3d: 'val-3d-beta-reflex', reflexSum3d: 'val-3d-reflex-sum',
   surf: 'val-surf', volume: 'val-volume',
   affineInv: 'val-affine-inv', affineAngle: 'val-affine-euclid-p', affineEcc: 'val-affine-ecc',
+  mode3d: 'val-3d-mode-label', excess3d: 'val-3d-excess', sphArea3d: 'val-3d-sph-area',
 };
 
 /** Writes the numeric read-outs shown over each canvas. */
 export class StatsView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle'];
+  static stateKeys = ['dimensionMode', 'radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle'];
 
   constructor(root = document) {
     this.root = root;
@@ -31,7 +32,8 @@ export class StatsView {
     const lenUnit = state.lengthUnit || 'px';
     const angUnit = state.angleUnit || 'deg';
     const flat = thalesStats2D(state.radius, state.angle2D, state);
-    const solid = sphereStats(state.radius, state.lat3D, state.lon3D);
+    const isSpatial = state.dimensionMode === 'spatial';
+    const solid = sphereStats(state.radius, state.lat3D, state.lon3D, state.dimensionMode);
     const theta2dDeg = ((state.angle2D * 180 / Math.PI % 360) + 360) % 360;
     const theta3dDeg = state.lat3D * 180 / Math.PI;
     const phi3dDeg = state.lon3D * 180 / Math.PI;
@@ -54,15 +56,18 @@ export class StatsView {
       alpha3d: solid.alphaDeg, beta3d: solid.betaDeg, sumAB3d: solid.alphaDeg + solid.betaDeg,
       alphaReflex3d: solid.alphaReflexDeg, betaReflex3d: solid.betaReflexDeg, reflexSum3d: solid.reflexSumDeg,
       surf: solid.surfaceArea, volume: solid.volume,
+      mode3d: isSpatial ? 'Spatial S²' : 'Planar (Y = 0)',
+      excess3d: solid.excessDeg || 0,
+      sphArea3d: solid.sphericalArea || 0,
       affineInv: flat.affine ? flat.affine.apolloniusConjugacy : 0,
       affineAngle: flat.affine ? flat.affine.angleEuclidDeg : 90,
       affineEcc: flat.affine ? flat.affine.eccentricity : 0,
     };
-    const angleKeys = new Set([
+    const angleKeys = new Set(['excess3d',
       'theta2d', 'alpha2d', 'beta2d', 'sumAB2d', 'alphaReflex2d', 'betaReflex2d', 'pReflex2d', 'reflexSum2d',
       'theta3d', 'phi3d', 'alpha3d', 'beta3d', 'sumAB3d', 'alphaReflex3d', 'betaReflex3d', 'reflexSum3d', 'affineAngle',
     ]);
-    const lengthKeys = new Set([
+    const lengthKeys = new Set(['sphArea3d',
       'r2d', 'd2d', 'circ2d', 's', 't', 'r3d', 'd3d', 'circ3d', 'x', 'y', 'z', 's3d', 't3d'
     ]);
     for (const [key, value] of Object.entries(values)) {

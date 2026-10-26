@@ -1,3 +1,4 @@
+import { computeSphericalTriangleExcess } from '../../../../../js/circle-3d.js';
 /** Pure geometry. No DOM, canvas or Three.js dependencies. */
 
 export const TAU = Math.PI * 2;
@@ -181,14 +182,23 @@ export function thalesStats2D(radius, angle, options = {}) {
   };
 }
 
-export function sphereStats(radius, lat, lon) {
-  const p = sphericalToCartesian(radius, lat, lon);
+export function sphereStats(radius, lat, lon, dimensionMode = 'planar') {
+  const isSpatial = dimensionMode === 'spatial';
+  const effLat = isSpatial ? lat : Math.PI / 2;
+  const p = sphericalToCartesian(radius, effLat, lon);
   const s = Math.hypot(p.x + radius, p.y, p.z);
   const t = Math.hypot(p.x - radius, p.y, p.z);
   const d = 2 * radius;
   const alpha = Math.asin(clamp(t / d, -1, 1));
   const beta = Math.asin(clamp(s / d, -1, 1));
+  const pA = { x: -radius, y: 0, z: 0 };
+  const pB = { x: radius, y: 0, z: 0 };
+  const excessData = computeSphericalTriangleExcess(pA, pB, p, radius);
   return {
+    dimensionMode,
+    isSpatial,
+    excessDeg: isSpatial ? excessData.excessDeg : 0,
+    sphericalArea: isSpatial ? excessData.area : 0,
     radius,
     diameter: radius * 2,
     circumference: TAU * radius,

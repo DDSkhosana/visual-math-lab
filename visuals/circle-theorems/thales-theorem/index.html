@@ -146,6 +146,10 @@
           </svg>
           <span>AR: <b class="toggle-state-text" id="ar-status-pill">OFF</b></span>
         </button>
+        <button type="button" class="btn-toolbar" id="btn-toggle-dimension-mode" title="Toggle between Planar Euclidean (Y=0) and True Spherical 3D Geometry on S²" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+          <span>Spatial: <b class="toggle-state-text" id="toolbar-dimension-status">OFF</b></span>
+        </button>
         <button type="button" class="btn-toolbar" id="btn-reset" title="Reset to initial load configuration">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           <span>Reset</span>
@@ -234,7 +238,13 @@
         <div id="canvas-3d-container">
             <div id="labels-3d-container"></div>
             <div class="view-title">3D: Spherical Extension (<span class="color-sky">Sphere</span> &amp; <span class="color-violet">Volume</span>)</div>
-            <div class="camera-presets-bar">
+            <div class="dimension-mode-bar">
+                <div class="btn-group btn-group--pill">
+                    <button type="button" class="btn active" id="btn-mode-planar" title="Planar Euclidean Disk (Y = 0)">Planar</button>
+                    <button type="button" class="btn" id="btn-mode-spatial" title="True Spherical Geometry on S²">Spatial S²</button>
+                </div>
+            </div>
+            <div class="camera-presets-bar">>
                 <button type="button" data-preset="top">Top</button>
                 <button type="button" data-preset="front">Front</button>
                 <button type="button" data-preset="side">Side</button>
@@ -247,6 +257,7 @@
                     <button type="button" class="stats-toggle-btn panel-minimize-btn" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
                 </div>
                 <div class="stats-body hidden" id="stats-3d-body">
+                    <div class="stat-line" id="row-3d-mode"><span class="color-sky">3D Geometry:</span> <strong class="color-sky" id="val-3d-mode-label">Planar (Y = 0)</strong></div>
                     <div class="stat-line"><span class="color-indigo">Radius r:</span> <span class="stat-value color-indigo" id="val-3d-r">0.00</span></div>
                     <div class="stat-line"><span class="color-red">Diameter |d|:</span> <span class="stat-value color-red" id="val-3d-d">0.00</span></div>
                     <div class="stat-line"><span class="color-sky">Circumf. 2πr:</span> <span class="stat-value color-sky" id="val-3d-circ">0.00</span></div>
@@ -267,6 +278,8 @@
                     <div class="stat-line"><span class="color-orange">Side t (P to B):</span> <span class="stat-value color-orange" id="val-3d-t">0.00</span></div>
                     <div class="stat-line"><span class="color-lavender">s² + t²:</span> <span class="stat-value color-lavender" id="val-3d-thales-sum-sq">0.00</span></div>
                     <div class="stat-line"><span class="color-green">Inscribed Area (½st):</span> <span class="stat-value color-green" id="val-3d-area">0.00</span></div>
+                    <div class="stat-line" id="row-3d-excess"><span class="color-amber">Spherical Excess E:</span> <strong class="stat-value color-amber" id="val-3d-excess">0.00°</strong></div>
+                    <div class="stat-line" id="row-3d-sph-area"><span class="color-teal">Spherical Area (r²E):</span> <strong class="stat-value color-teal" id="val-3d-sph-area">0.00</strong></div>
                     <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                         <span class="color-lime">3D Angle α at A:</span> <span class="stat-value color-lime" id="val-3d-alpha">0.00°</span>
                     </div>
@@ -303,6 +316,27 @@
             </div>
             
             <div class="panel-body hidden">
+                <div class="collapsible-section collapsed" id="section-dimension-mode">
+                    <div class="collapsible-header" id="header-dimension-mode" aria-expanded="false">
+                        <span>Dimension Mode</span><span class="icon">▶</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="toggle-tooltips-container" style="margin-bottom: 10px;">
+                            <span class="text-xs font-semibold text-slate-200">Spherical 3D on S²</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-dimension-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="btn-group-pill" style="display: flex; gap: 6px; margin-bottom: 10px;">
+                            <button type="button" class="btn active" id="btn-mode-planar-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Planar 2D</button>
+                            <button type="button" class="btn" id="btn-mode-spatial-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Spatial 3D</button>
+                        </div>
+                        <p class="text-xs text-slate-400" style="line-height: 1.4; margin: 0;">
+                            Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
+                        </p>
+                    </div>
+                </div>
                 <!-- Section: Theory -->
                 <div class="collapsible-section collapsed">
                     <div class="collapsible-header" aria-expanded="false">
@@ -412,6 +446,27 @@
                 </div>
             </div>
             <div class="panel-body hidden">
+                <div class="collapsible-section collapsed" id="section-dimension-mode">
+                    <div class="collapsible-header" id="header-dimension-mode" aria-expanded="false">
+                        <span>Dimension Mode</span><span class="icon">▶</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="toggle-tooltips-container" style="margin-bottom: 10px;">
+                            <span class="text-xs font-semibold text-slate-200">Spherical 3D on S²</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-dimension-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="btn-group-pill" style="display: flex; gap: 6px; margin-bottom: 10px;">
+                            <button type="button" class="btn active" id="btn-mode-planar-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Planar 2D</button>
+                            <button type="button" class="btn" id="btn-mode-spatial-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Spatial 3D</button>
+                        </div>
+                        <p class="text-xs text-slate-400" style="line-height: 1.4; margin: 0;">
+                            Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
+                        </p>
+                    </div>
+                </div>
                 <div class="collapsible-section collapsed">
                     <div class="collapsible-header" aria-expanded="false">
                         <span>Projection Plane</span><span class="icon">▶</span>

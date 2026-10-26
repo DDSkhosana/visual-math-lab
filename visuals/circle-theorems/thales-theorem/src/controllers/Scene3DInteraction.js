@@ -86,7 +86,13 @@ export class Scene3DInteraction {
       }
     } else if (this.activeTarget === 'P') {
       const hit = this.scene.pickSphere(this.store.get().baselineRotation || 0);
-      if (hit) this.store.set(setSpherePoint(cartesianToSpherical(hit, this.store.get().radius), this.store.get()));
+      if (hit) {
+        const sph = cartesianToSpherical(hit, this.store.get().radius);
+        if (this.store.get().dimensionMode === "planar") {
+          sph.lat = Math.PI / 2;
+        }
+        this.store.set(setSpherePoint(sph, this.store.get()));
+      }
     } else if (this.activeTarget === 'A' || this.activeTarget === 'B') {
       const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(0);
       if (hit) {

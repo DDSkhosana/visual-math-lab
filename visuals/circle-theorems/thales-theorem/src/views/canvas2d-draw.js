@@ -288,7 +288,7 @@ function drawArea(ctx, state, f) {
   ctx.lineTo(f.a.x, f.a.y);
   ctx.lineTo(f.p.x, f.p.y);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(132, 204, 22, 0.18)'; // Lime for △AOP (base angle α)
+  ctx.fillStyle = 'rgba(132, 204, 22, 0.16)'; // Lime for △AOP (base angle α)
   ctx.fill();
 
   ctx.beginPath();
@@ -296,7 +296,7 @@ function drawArea(ctx, state, f) {
   ctx.lineTo(f.b.x, f.b.y);
   ctx.lineTo(f.p.x, f.p.y);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(249, 115, 22, 0.18)'; // Orange for △POB (base angle β)
+  ctx.fillStyle = 'rgba(249, 115, 22, 0.16)'; // Orange for △POB (base angle β)
   ctx.fill();
 
   // Median radius vector OP separating the two constitutive isosceles triangles

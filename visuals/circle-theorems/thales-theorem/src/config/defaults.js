@@ -22,6 +22,7 @@ export function createInitialState() {
     lengthUnit: 'px',
     angleUnit: 'deg',
     cameraMode: 'arcball',
+    dimensionMode: 'planar',
     playing: false,
     affineMode: false,
     affineStretch: 1.0,

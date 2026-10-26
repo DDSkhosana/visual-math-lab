@@ -1924,16 +1924,10 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && Math.abs(m.cot) < 3.2) {
           const cotTri = new THREE.BufferGeometry().setFromPoints([O, C_base, C_tip]);
           cotTri.setIndex([0, 1, 2]);
-          const cotColors = [
-            0.388, 0.400, 0.945, // Indigo at O (r=1)
-            0.976, 0.451, 0.086, // Orange at C_base (cot θ)
-            0.851, 0.275, 0.937, // Fuchsia at C_tip (csc θ)
-          ];
-          cotTri.setAttribute('color', new THREE.Float32BufferAttribute(cotColors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
               cotTri,
-              new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+              new THREE.MeshBasicMaterial({ color: PALETTE.fuchsia, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })
             )
           );
         }

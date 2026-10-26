@@ -82,3 +82,12 @@ export function setFlag(state, path, value) {
   const [group, key] = path;
   return { [group]: { ...state[group], [key]: value } };
 }
+
+export const setDimensionMode = (mode, state = null) => {
+  const isSpatial = mode === "spatial";
+  if (isSpatial) {
+    const lat = (state?.lat3D !== undefined && Math.abs(state.lat3D - Math.PI / 2) > 0.05) ? state.lat3D : Math.PI / 4;
+    return { dimensionMode: "spatial", lat3D: lat };
+  }
+  return { dimensionMode: "planar", lat3D: Math.PI / 2 };
+};
