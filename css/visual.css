@@ -2518,6 +2518,156 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   flex-direction: row-reverse;
 }
 
+/* 3D Camera Presets & Rotation Mode Toggle */
+.camera-presets-bar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px 3px;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.camera-presets-bar button {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.camera-presets-bar button:hover {
+  background: rgba(51, 65, 85, 0.7);
+  color: #ffffff;
+}
+
+.camera-presets-bar button.active {
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.camera-presets-bar .camera-mode-toggle {
+  border-left: none;
+  border-top: 1px solid rgba(51, 65, 85, 0.6);
+  margin-left: 0;
+  margin-top: 2px;
+  padding-top: 5px;
+  padding-bottom: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
+  color: #38bdf8;
+  font-weight: 600;
+  font-size: 0.68rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+
+.camera-presets-bar .camera-mode-toggle:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #ffffff;
+}
+
+/* 3D Floating Dimension Mode Bar (Planar vs Spatial S² / SO(3)) */
+.dimension-mode-bar {
+  position: absolute;
+  top: 0.75rem;
+  right: 8.2rem;
+  z-index: 25 !important;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 48rem) {
+  .camera-presets-bar {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 3px 2px;
+    gap: 2px;
+    z-index: 25;
+  }
+  .camera-presets-bar button {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+  .dimension-mode-bar {
+    top: 0.55rem;
+    right: 7.2rem;
+  }
+  .dimension-mode-bar .btn-group--pill .btn,
+  .dimension-mode-bar .viewmode-segmented-group .btn {
+    padding: 0.18rem 0.45rem;
+    font-size: 0.68rem;
+  }
+}
+
+.dimension-mode-bar .btn-group--pill,
+.dimension-mode-bar .viewmode-segmented-group {
+  display: inline-flex;
+  align-items: center;
+  background: #0f172a !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(71, 85, 105, 0.85);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  gap: 2px;
+  padding: 2px;
+}
+
+.dimension-mode-bar .btn-group--pill .btn,
+.dimension-mode-bar .viewmode-segmented-group .btn {
+  background: #1e293b;
+  font-weight: 600;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.dimension-mode-bar .btn-group--pill .btn:hover,
+.dimension-mode-bar .viewmode-segmented-group .btn:hover {
+  color: #f8fafc;
+  background: rgba(51, 65, 85, 0.8);
+}
+
+.dimension-mode-bar .btn-group--pill .btn.active,
+.dimension-mode-bar .viewmode-segmented-group .btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.45) !important;
+  font-weight: 700 !important;
+}
+
 [dir="rtl"] .camera-presets-bar {
   flex-direction: column !important;
   right: auto !important;

@@ -1474,11 +1474,11 @@ export function bindStandardToggles(store, ...args) {
 
   const panel2d = opts.panel2d || document.getElementById('toolbar-2d-panel');
   const panel3d = opts.panel3d || document.getElementById('toolbar-3d-panel');
-  const sceneTarget = opts.scene3d || opts.view3d;
-  const viewTarget = opts.view2d || opts.canvas2d;
+  const sceneTarget = opts.scene3d || opts.view3d || opts.sceneTarget;
+  const viewTarget = opts.view2d || opts.canvas2d || opts.viewTarget;
 
   let userCustomizedRadius = false;
-  const sliderRadiusEl = document.getElementById('slider-radius');
+  const sliderRadiusEl = document.getElementById('slider-radius') || document.getElementById('radius-slider');
   if (sliderRadiusEl) {
     sliderRadiusEl.addEventListener('input', () => {
       userCustomizedRadius = true;
@@ -1494,6 +1494,11 @@ export function bindStandardToggles(store, ...args) {
     if (curW > 0 && curH > 0) {
       const vId = opts.visualId || opts.exportPrefix || '';
       const optR = computeOptimalViewportRadius(curW, curH, vId);
+      if (vId === 'thales-theorem') {
+        const r3d = store.get().radius || 10;
+        store.set({ zoom: optR / r3d });
+        return;
+      }
       if (vId === 'tangents-from-external-point') {
         const nextDist = Math.round(optR * (260 / 120));
         store.set({ radius: optR, pointDist: nextDist });
@@ -1524,6 +1529,18 @@ export function bindStandardToggles(store, ...args) {
 
   store.subscribe((state) => {
     if (state.radius !== undefined) {
+      const vId = opts.visualId || opts.exportPrefix || '';
+      if (vId === 'thales-theorem') {
+        const sliderR = document.getElementById('radius-slider');
+        if (sliderR && document.activeElement !== sliderR) {
+          sliderR.value = String(state.radius);
+        }
+        const labelR = document.getElementById('radius-val-label');
+        if (labelR) {
+          labelR.textContent = `${Number(state.radius).toFixed(1)}`;
+        }
+        return;
+      }
       const sliderR = document.getElementById('slider-radius');
       if (sliderR && document.activeElement !== sliderR) {
         if (state.radius > parseFloat(sliderR.max)) {
@@ -1838,6 +1855,7 @@ export function bindStandardToggles(store, ...args) {
         affineMode: false,
         affineStretch: 1.0,
         affineAxisAngle: 0,
+        ...(vId === 'thales-theorem' ? { radius: 10, angle2D: Math.PI / 4, lat3D: Math.PI / 4, lon3D: Math.PI / 2 } : {}),
       });
       sceneTarget?.controls?.setMode?.('arcball');
       presetBars.forEach((bar) => {

@@ -58,14 +58,19 @@ export function createThalesScene(THREE) {
 
   const diameter = add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: PALETTE.red })));
 
-  const markerGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+  const markerGeometry = new THREE.SphereGeometry(0.35, 24, 24);
   const materials = {
+    markerA: new THREE.MeshStandardMaterial({ color: PALETTE.red, roughness: 0.25, metalness: 0.1 }),
+    markerB: new THREE.MeshStandardMaterial({ color: PALETTE.orange, roughness: 0.25, metalness: 0.1 }),
+    markerP: new THREE.MeshStandardMaterial({ color: PALETTE.violet, roughness: 0.25, metalness: 0.1 }),
+    markerO: new THREE.MeshStandardMaterial({ color: PALETTE.indigo, roughness: 0.25, metalness: 0.1 }),
+    markerHover: new THREE.MeshStandardMaterial({ color: PALETTE.amber, roughness: 0.2, emissive: PALETTE.amber, emissiveIntensity: 0.4 }),
     markerHidden: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
-    markerHover: new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.9, depthWrite: false }),
   };
-  const pointA = add(new THREE.Mesh(markerGeometry, materials.markerHidden));
-  const pointB = add(new THREE.Mesh(markerGeometry, materials.markerHidden));
-  const pointP = add(new THREE.Mesh(markerGeometry, materials.markerHidden));
+  const pointA = add(new THREE.Mesh(markerGeometry, materials.markerA));
+  const pointB = add(new THREE.Mesh(markerGeometry, materials.markerB));
+  const pointP = add(new THREE.Mesh(markerGeometry, materials.markerP));
+  const pointO = add(new THREE.Mesh(new THREE.SphereGeometry(0.25, 24, 24), materials.markerO));
 
   const arrowPA = add(new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, PALETTE.blue, 1, 0.5));
   const arrowPB = add(new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, PALETTE.orange, 1, 0.5));
@@ -92,16 +97,17 @@ export function createThalesScene(THREE) {
     areaAOP: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.18))),
     areaPOB: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.orange, 0.18))),
     areaTriangle: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.green, 0.2))),
+    pointO,
     radiusLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.indigo, dashSize: 0.5, gapSize: 0.3 }))),
-    altitudeLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.lime, dashSize: 0.4, gapSize: 0.25 }))),
+    altitudeLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.emerald, dashSize: 0.4, gapSize: 0.25 }))),
     thetaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.yellow, 0.25))),
-    phiSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.magenta, 0.25))),
-    phiProjectionLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.magenta, dashSize: 0.4, gapSize: 0.25, transparent: true, opacity: 0.75 }))),
+    phiSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.fuchsia, 0.25))),
+    phiProjectionLine: add(new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: PALETTE.fuchsia, dashSize: 0.4, gapSize: 0.25, transparent: true, opacity: 0.75 }))),
     rightAngle: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.8))),
-    alphaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.35))),
-    betaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.amber, 0.35))),
-    alphaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.16))),
-    betaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.amber, 0.16))),
-    pReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.16))),
+    alphaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.28))),
+    betaSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.orange, 0.28))),
+    alphaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.lime, 0.22))),
+    betaReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.orange, 0.22))),
+    pReflexSector: add(new THREE.Mesh(new THREE.BufferGeometry(), translucent(THREE, PALETTE.teal, 0.25))),
   };
 }

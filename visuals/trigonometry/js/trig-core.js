@@ -503,20 +503,10 @@ export class TrigCanvas2DView {
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Relevant Area Shading (Circular Sector + Orthogonal Right Triangle)
+    // Relevant Area Shading (Discrete Right-Triangle Area Shading, no sector bleed)
     if (showArea) {
-      const canvasAngP = Math.atan2(P.y - O.y, P.x - O.x);
-      ctx.save();
-      ctx.fillStyle = 'rgba(234, 179, 8, 0.11)';
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.arc(O.x, O.y, r, 0, canvasAngP, true);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      // Discrete Pythagorean Right Triangle (Crisp neutral backing, distinct Amber cos θ & Emerald sin θ edges)
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.10)';
+      // Discrete Pythagorean Right Triangle (Crisp Indigo backing, distinct Amber cos θ & Emerald sin θ edges)
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(projX.x, projX.y);
@@ -526,7 +516,7 @@ export class TrigCanvas2DView {
 
       // Discrete Secant-Tangent Right Triangle (Crisp Rose backing, sharp Rose tangent & Sky secant edges)
       if (state.showTanSec !== false && Math.abs(m.tan) < 4.0) {
-        ctx.fillStyle = 'rgba(244, 63, 94, 0.10)';
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.16)';
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
         ctx.lineTo(tanBase.x, tanBase.y);
@@ -537,7 +527,7 @@ export class TrigCanvas2DView {
 
       // Discrete Cotangent-Cosecant Right Triangle (Crisp Fuchsia backing, sharp Orange cotangent & Fuchsia cosecant edges)
       if (state.showCotCsc !== false && Math.abs(m.cot) < 4.0) {
-        ctx.fillStyle = 'rgba(217, 70, 239, 0.10)';
+        ctx.fillStyle = 'rgba(217, 70, 239, 0.16)';
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
         ctx.lineTo(cotBase.x, cotBase.y);
@@ -1883,7 +1873,7 @@ export class TrigScene3DView extends BaseScene3DView {
           this.dynamicGroup.add(
             new THREE.Mesh(
               tanTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.14, side: THREE.DoubleSide })
+              new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
             )
           );
         }
@@ -1940,7 +1930,7 @@ export class TrigScene3DView extends BaseScene3DView {
           this.dynamicGroup.add(
             new THREE.Mesh(
               cotTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.fuchsia, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })
+              new THREE.MeshBasicMaterial({ color: PALETTE.fuchsia, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
             )
           );
         }
@@ -1996,7 +1986,7 @@ export class TrigScene3DView extends BaseScene3DView {
         this.dynamicGroup.add(
           new THREE.Mesh(
             triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.indigo, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false })
+            new THREE.MeshBasicMaterial({ color: PALETTE.indigo, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
           )
         );
       }

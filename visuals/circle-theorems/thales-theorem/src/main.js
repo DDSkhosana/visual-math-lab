@@ -92,7 +92,10 @@ function bootstrap() {
   new PlaybackController(store, byId('btn-playback'));
 
   bindStandardToggles(store, {
+    scene3d,
     sceneTarget: scene3d,
+    view2d,
+    viewTarget: view2d,
     visualId: 'thales-theorem',
   });
 

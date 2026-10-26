@@ -112,9 +112,12 @@ export class Scene3DView {
     o.pointP.position.set(x * scaleX, y * scaleY, z * scaleZ);
     o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
     o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
-    o.pointP.material = state.hoverP3D ? o.materials.markerHover : o.materials.markerHidden;
-    o.pointA.material = state.hoverA3D ? o.materials.markerHover : o.materials.markerHidden;
-    o.pointB.material = state.hoverB3D ? o.materials.markerHover : o.materials.markerHidden;
+    o.pointP.material = state.hoverP3D ? o.materials.markerHover : (o.materials.markerP || o.materials.markerHidden);
+    o.pointA.material = state.hoverA3D ? o.materials.markerHover : (o.materials.markerA || o.materials.markerHidden);
+    o.pointB.material = state.hoverB3D ? o.materials.markerHover : (o.materials.markerB || o.materials.markerHidden);
+    if (o.pointO) {
+      o.pointO.position.set(0, 0, 0);
+    }
 
     const toA = new THREE.Vector3().subVectors(o.pointA.position, o.pointP.position);
     const toB = new THREE.Vector3().subVectors(o.pointB.position, o.pointP.position);
