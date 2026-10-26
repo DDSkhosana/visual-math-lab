@@ -136,12 +136,14 @@ test('Walkthrough & Tips: Guide includes steps for Breadcrumb Dock Navigation, A
   // Verify multi-lingual, privacy, and composite sections
   assert.ok(code.includes('Multilingual Localization &amp; Privacy'), 'Must include i18n & privacy cheatsheet');
   assert.ok(code.includes('Composite Elements &amp; Color Tokens'), 'Must include composite elements cheatsheet');
+  assert.ok(code.includes('Harmonic Audio Sonification'), 'Must document harmonic audio sonification in guide');
   assert.ok(code.includes('IsiNdebele'), 'Must document IsiNdebele in guide');
   assert.ok(code.includes('Google Consent Mode v2'), 'Must document Google Consent Mode v2 in guide');
 
   // Verify shortcuts
   assert.ok(code.includes('<kbd>S</kbd> Share Link'), 'Must include Share shortcut');
   assert.ok(code.includes('<kbd>L</kbd> Legend'), 'Must include Legend shortcut');
+  assert.ok(code.includes('<kbd>M</kbd> Sound'), 'Must include Sound M shortcut');
   assert.ok(code.includes('<kbd>Shift+P</kbd> Presets'), 'Must include Shift+P Presets shortcut');
   assert.ok(code.includes('<kbd>Alt+1..9</kbd>'), 'Must include Alt+1..9 panel jumping shortcut');
   assert.ok(code.includes('<kbd>Alt+\\\\</kbd>'), 'Must include Alt+\\ float cycle shortcut');

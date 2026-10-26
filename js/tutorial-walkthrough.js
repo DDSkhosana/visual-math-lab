@@ -107,6 +107,7 @@ const THEOREM_TIPS = {
       'Drag Point P around the circumference or use Play to sweep θ ∈ [0, 2π) continuously.',
       'Observe the exterior tangent line at P intersecting the X-axis at sec θ and Y-axis at csc θ, forming complementary right triangles.',
       'In the 3D viewport, see how the cylindrical helix r(θ) = (R cos θ, kθ, R sin θ) projects orthogonally onto Cosine and Sine wave walls.',
+      'Harmonic Audio Sonification: Click the Sound button (or press M) to turn circular rotation into real-time harmonic sine waves (f(θ) = 261.6 Hz to 523.3 Hz) with stereo panning and quadrant axis crossing chimes.',
       'Toggle Coordinates (x, y) and Reflex Angles (360° − θ) in 2D/3D Controls to inspect full quadrant telemetry.'
     ],
     highlightPoint: 'Point P on Unit Circle'
@@ -460,6 +461,15 @@ function mountTutorialModal(visual, theoremData) {
             <li><strong>Notation Legend:</strong> Press <kbd>L</kbd> anytime to open the full notation cheatsheet, formula references, and token guides.</li>
           </ul>
         </div>
+
+        <div class="tutorial-card-section">
+          <h4>Harmonic Audio Sonification &amp; Multi-Sensory Waves</h4>
+          <ul class="tutorial-feature-list">
+            <li><strong>Real-Time Sound Synthesis:</strong> In the Unit Circle &amp; Helix visualizer, circular rotation generates live sine wave tones ($f(\theta) = 261.6\,\text{Hz} \cdot 2^{\theta/2\pi}$ from C4 to C5), spatial stereo panning ($\cos\theta$), 2nd harmonic overtones, and axis-crossing chimes ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).</li>
+            <li><strong>Pure Web Audio API:</strong> Operates entirely client-side with zero external libraries. Muted by default to respect browser autoplay policies.</li>
+            <li><strong>Instant Keyboard Control:</strong> Press <kbd>M</kbd> anytime to toggle audio on and off immediately.</li>
+          </ul>
+        </div>
       </div>
 
       <!-- Keyboard Shortcuts Reference -->
@@ -469,6 +479,7 @@ function mountTutorialModal(visual, theoremData) {
           <span><kbd>S</kbd> Share Link</span>
           <span><kbd>L</kbd> Legend</span>
           <span><kbd>?</kbd> Guide</span>
+          <span><kbd>M</kbd> Sound</span>
           <span><kbd>Shift+P</kbd> Presets</span>
           <span><kbd>Alt+1..9</kbd> Panels</span>
           <span><kbd>Alt+\\</kbd> Float Cycle</span>
@@ -720,6 +731,7 @@ function createTourController(slug, theoremData) {
         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
           <li><strong>1-Click Permalink:</strong> Click <strong>Share</strong> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine deformation, view mode, camera angle, and dock layout.</li>
           <li><strong>Geometry Legend:</strong> Click <strong>Legend</strong> (or press <kbd>L</kbd>) to inspect the KaTeX notation cheat-sheet, composite multi-color elements, color tokens, and coordinate conventions.</li>
+          <li><strong>Harmonic Audio Sonification:</strong> In the Unit Circle visualizer, click <strong>Sound</strong> (or press <kbd>M</kbd>) to hear continuous frequency glides, stereo panning, and quadrant chimes.</li>
           <li><strong>Multilingual Support:</strong> Switch between 7 languages (EN, ES, FR, DE, ZH, AR, NR) using the language selector in the navbar.</li>
           <li><strong>Privacy &amp; Cookie Consent:</strong> Manage analytics cookies with strict Google Consent Mode v2 protections.</li>
         </ul>`,
