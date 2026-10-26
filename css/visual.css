@@ -400,6 +400,7 @@ html, body {
 
 .stats-overlay.collapsed {
   min-width: min(220px, calc(100% - 2rem)) !important;
+  max-width: min(26rem, calc(100% - 2rem)) !important;
   width: max-content !important;
 }
 
@@ -2517,5 +2518,23 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 [dir="rtl"] .camera-presets-bar {
-  flex-direction: row-reverse;
+  flex-direction: column !important;
+  right: auto !important;
+  left: 1rem !important;
+}
+
+[dir="rtl"] .dimension-mode-bar {
+  right: auto !important;
+  left: 7.2rem !important;
+}
+
+@media (max-width: 48rem) {
+  [dir="rtl"] .camera-presets-bar {
+    right: auto !important;
+    left: 0.5rem !important;
+  }
+  [dir="rtl"] .dimension-mode-bar {
+    right: auto !important;
+    left: 6.0rem !important;
+  }
 }

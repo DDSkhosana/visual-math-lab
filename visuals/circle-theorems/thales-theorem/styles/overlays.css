@@ -16,7 +16,9 @@
 }
 
 .stats-overlay.collapsed {
-    min-width: auto;
+    min-width: min(220px, calc(100% - 2rem)) !important;
+    max-width: min(26rem, calc(100% - 2rem)) !important;
+    width: max-content !important;
 }
 
 .stats-header {
@@ -405,4 +407,78 @@
 .camera-presets-bar .camera-mode-toggle:hover {
     background: rgba(56, 189, 248, 0.2);
     color: #ffffff;
+}
+
+
+/* 3D Floating Dimension Mode Bar (Planar vs Spatial S²) */
+.dimension-mode-bar {
+    position: absolute;
+    top: 0.75rem;
+    right: 7.2rem;
+    z-index: 25 !important;
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 48rem) {
+    .dimension-mode-bar {
+        top: 0.55rem;
+        right: 6.0rem;
+    }
+    .dimension-mode-bar .btn-group--pill .btn {
+        padding: 0.18rem 0.45rem;
+        font-size: 0.68rem;
+    }
+}
+
+[dir="rtl"] .dimension-mode-bar {
+    right: auto !important;
+    left: 7.2rem !important;
+}
+
+@media (max-width: 48rem) {
+    [dir="rtl"] .dimension-mode-bar {
+        right: auto !important;
+        left: 6.0rem !important;
+    }
+}
+
+.dimension-mode-bar .btn-group--pill {
+    display: inline-flex;
+    align-items: center;
+    background: #0f172a !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(71, 85, 105, 0.85);
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    gap: 2px;
+    padding: 2px;
+}
+
+.dimension-mode-bar .btn-group--pill .btn {
+    background: #1e293b;
+    font-weight: 600;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.dimension-mode-bar .btn-group--pill .btn:hover {
+    color: #f8fafc;
+    background: rgba(51, 65, 85, 0.8);
+}
+
+.dimension-mode-bar .btn-group--pill .btn.active {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #38bdf8 !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.45) !important;
+    font-weight: 700 !important;
 }

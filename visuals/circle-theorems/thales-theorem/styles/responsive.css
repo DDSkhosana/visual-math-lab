@@ -127,7 +127,7 @@
     left: 0.5rem;
     right: auto;
     bottom: 0.5rem;
-    max-width: min(15rem, calc(100% - 1rem));
+    max-width: min(26rem, calc(100% - 1rem));
     min-width: 0;
     padding: 0;
   }
