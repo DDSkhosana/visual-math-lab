@@ -201,6 +201,63 @@ async function initializeVisualPage() {
         badge.textContent = `${verifiedText} ✓`;
       }
     });
+
+    // Synchronize Derivations Panel Headers
+    const derivTitle = t("derivations.panel_title", {}, "Live Math Derivations");
+    const derivHeaders = document.querySelectorAll("#derivation-header h1, #deriv-header h1, #derivations-panel .panel-header h1, #live-derivation-panel .panel-header h1");
+    derivHeaders.forEach((h1) => {
+      h1.textContent = derivTitle;
+    });
+
+    // Synchronize Controls Panel Headers
+    const controlsTitle = t("controls.panel_title", {}, "Interactive Controls");
+    const controlsHeaders = document.querySelectorAll("#controls-header h1, #panel-header h1");
+    controlsHeaders.forEach((h1) => {
+      h1.textContent = controlsTitle;
+    });
+
+    // Synchronize 2D & 3D Toolbar Panel Headers
+    const toolbar2DHeaders = document.querySelectorAll("#toolbar-2d-header h1");
+    toolbar2DHeaders.forEach((h1) => {
+      h1.textContent = `2D ${controlsTitle}`;
+    });
+    const toolbar3DHeaders = document.querySelectorAll("#toolbar-3d-header h1, #toolbar-header h1");
+    toolbar3DHeaders.forEach((h1) => {
+      h1.textContent = `3D ${controlsTitle}`;
+    });
+
+    // Synchronize Expand/Collapse All Buttons
+    const expandAllText = t("derivations.expand_all", {}, "Expand All");
+    const collapseAllText = t("derivations.collapse_all", {}, "Collapse All");
+    document.querySelectorAll(".panel-expand-btn, #toggle-deriv-expand, #toggle-controls-expand").forEach((btn) => {
+      const label = btn.querySelector(".panel-expand-label");
+      if (label) {
+        const isExpanded = btn.getAttribute("aria-expanded") === "true";
+        label.textContent = isExpanded ? collapseAllText : expandAllText;
+      }
+    });
+
+    // Synchronize Viewport Toolbar Buttons
+    const legendBtn = document.getElementById("btn-toolbar-legend");
+    if (legendBtn) {
+      const span = legendBtn.querySelector("span");
+      if (span) span.textContent = t("controls.geometry_legend", {}, "Legend");
+      legendBtn.title = `${t("controls.geometry_legend", {}, "Legend")} (Shortcut: L)`;
+    }
+
+    const resetBtn = document.getElementById("btn-reset");
+    if (resetBtn) {
+      resetBtn.title = t("controls.reset_view", {}, "Reset View");
+    }
+
+    const splitBtn = document.getElementById("btn-split");
+    if (splitBtn) splitBtn.title = t("controls.split_view", {}, "Split View");
+
+    const btn2d = document.getElementById("btn-2d");
+    if (btn2d) btn2d.title = t("controls.full_2d", {}, "2D View");
+
+    const btn3d = document.getElementById("btn-3d");
+    if (btn3d) btn3d.title = t("controls.full_3d", {}, "3D View");
   };
 
   updateVisualMetadata();

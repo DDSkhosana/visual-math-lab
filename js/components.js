@@ -739,6 +739,9 @@ export function mountSharedChrome() {
 
         const cookieBtn = footer ? footer.querySelector(".site-footer__cookie-btn") : null;
         if (cookieBtn) cookieBtn.textContent = t('cookie.settings', {}, 'Cookie Settings');
+
+        const privacyLink = footer ? footer.querySelector('a[href*="privacy.html"]') : null;
+        if (privacyLink) privacyLink.textContent = t('cookie.policy_link', {}, 'Privacy');
       };
 
       if (typeof window !== "undefined") {

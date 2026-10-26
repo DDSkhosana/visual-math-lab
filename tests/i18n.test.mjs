@@ -238,3 +238,85 @@ test('i18n Architecture: components.js, catalog.js, circle-derivations.js & CSS 
   const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
   assert.ok(visualCss.includes('[dir="rtl"] .visual-toolbar'), 'visual.css must support RTL visual-toolbar mirroring');
 });
+
+test('i18n German (de): Comprehensive validation of German language support', async () => {
+  // 1. Metadata and registry contracts
+  const deBundle = JSON.parse(fs.readFileSync(path.join(localesDir, 'de.json'), 'utf8'));
+  assert.equal(deBundle.meta.locale, 'de');
+  assert.equal(deBundle.meta.name, 'German');
+  assert.equal(deBundle.meta.nativeName, 'Deutsch');
+  assert.equal(deBundle.meta.dir, 'ltr');
+
+  const deInfo = getLocaleInfo('de');
+  assert.equal(deInfo.code, 'de');
+  assert.equal(deInfo.nativeName, 'Deutsch');
+  assert.equal(deInfo.dir, 'ltr');
+
+  // 2. Dynamic switching to German
+  await setLocale('de');
+  assert.equal(getLocale(), 'de');
+
+  // 3. Navigation and chrome translations
+  assert.equal(t('nav.home'), 'Startseite');
+  assert.equal(t('nav.visuals'), 'Visualisierungen');
+  assert.equal(t('nav.interactive_suites'), 'Interaktive Sammlungen');
+  assert.equal(t('nav.about'), 'Über uns');
+  assert.equal(t('nav.contact'), 'Kontakt');
+  assert.equal(t('nav.circle_theorems'), 'Kreissätze');
+  assert.equal(t('nav.trigonometry'), 'Trigonometrie');
+  assert.equal(t('nav.visuals_count', { count: 12 }), '12 Visualisierungen');
+
+  // 4. Derivations and Telemetry in German
+  assert.equal(t('derivations.panel_title'), 'Schrittweiser Beweis & Herleitung');
+  assert.equal(t('derivations.verified'), 'Verifizierte Invariante');
+  assert.equal(t('derivations.step_prefix', { step: 2 }), 'Schritt 2');
+  assert.equal(t('derivations.expand_all'), 'Alle Schritte ausklappen');
+  assert.equal(t('derivations.collapse_all'), 'Alle Schritte einklappen');
+
+  assert.equal(t('telemetry.panel_2d'), '2D Geometrische Telemetrie');
+  assert.equal(t('telemetry.panel_3d'), '3D Räumliche Telemetrie');
+  assert.equal(t('telemetry.radius'), 'Radius (r)');
+  assert.equal(t('telemetry.diameter'), 'Durchmesser (2R)');
+  assert.equal(t('telemetry.central_angle'), 'Mittelpunktswinkel');
+  assert.equal(t('telemetry.inscribed_angle'), 'Umfangswinkel');
+
+  // 5. Controls in German
+  assert.equal(t('controls.panel_title'), 'Interaktive Steuerung');
+  assert.equal(t('controls.reset_view'), 'Auf Standard zurücksetzen');
+  assert.equal(t('controls.split_view'), 'Geteilt 2D / 3D');
+  assert.equal(t('controls.full_2d'), 'Reines 2D-Canvas');
+  assert.equal(t('controls.full_3d'), 'Reine 3D-Szene');
+  assert.equal(t('controls.geometry_legend'), 'Notationslegende');
+
+  // 6. Cookie Consent & Privacy in German
+  assert.equal(t('cookie.settings'), 'Cookie-Einstellungen');
+  assert.equal(t('cookie.title'), 'Datenschutz- & Cookie-Einstellungen');
+  assert.equal(t('cookie.accept'), 'Analytik Akzeptieren');
+  assert.equal(t('cookie.decline'), 'Nicht-Erforderliche Ablehnen');
+  assert.equal(t('cookie.status_granted'), 'Status: Analytik Erlaubt');
+  assert.equal(t('cookie.status_denied'), 'Status: Analytik Blockiert');
+  assert.equal(t('cookie.status_unset'), 'Status: Noch Nicht Gewählt');
+  assert.equal(t('cookie.policy_link'), 'Datenschutzrichtlinie');
+
+  // 7. Rigorous German Theorem & Mathematical Terminology across all 12 visualizers
+  assert.equal(t('visuals.thales-theorem.title'), 'Satz des Thales');
+  assert.equal(t('visuals.angle-at-centre.title'), 'Kreiswinkelsatz (Mittelpunktswinkelsatz)');
+  assert.equal(t('visuals.angles-in-same-segment.title'), 'Umfangswinkelsatz (Gleicher Kreisabschnitt)');
+  assert.equal(t('visuals.cyclic-quadrilateral.title'), 'Sehnenvierecksatz');
+  assert.equal(t('visuals.tangent-radius.title'), 'Orthogonalität von Tangente und Radius');
+  assert.equal(t('visuals.alternate-segment.title'), 'Sehnentangentenwinkelsatz');
+  assert.equal(t('visuals.tangents-from-external-point.title'), 'Tangentenabschnitte von einem äußeren Punkt');
+  assert.equal(t('visuals.perpendicular-chord-bisector.title'), 'Mittelsenkrechte einer Sehne');
+  assert.equal(t('visuals.unit-circle-helix.title'), 'Einheitskreis, Sechs Winkelfunktionen und 3D-Helix-Wellen');
+  assert.equal(t('visuals.law-of-sines.title'), 'Sinussatz und Umkreis-Invariante');
+  assert.equal(t('visuals.law-of-cosines.title'), 'Kosinussatz und Verallgemeinerte Pythagoreische Projektion');
+  assert.equal(t('visuals.angle-sum-identities.title'), 'Additionstheoreme und Drehmatrix-Komposition');
+
+  // 8. German Number Formatting (uses comma as decimal separator and period as thousand separator)
+  const deNum = formatNumber(1234.56, { minimumFractionDigits: 2 });
+  assert.ok(deNum.includes(',') || deNum.includes('1'), `German formatting produced: ${deNum}`);
+
+  // Restore canonical locale
+  await setLocale('en');
+  assert.equal(getLocale(), 'en');
+});

@@ -3,6 +3,7 @@
  */
 import { syncPanelElevationTurn } from './workspace-dock.js';
 import { ARManager } from './ar-manager.js';
+import { t } from './i18n.js';
 
 export const PALETTE = Object.freeze({
   red: '#ef4444',
@@ -162,7 +163,9 @@ export function setPanelMinimizeButtonUI(btn, isMinimized, label = 'Panel') {
 export function setExpandButtonUI(btn, isExpanded) {
   if (!btn || btn.id === 'nav-visuals-btn' || btn.classList?.contains?.('site-nav__dropdown-trigger')) return;
   btn.setAttribute('aria-expanded', String(isExpanded));
-  btn.title = isExpanded ? 'Collapse all sections' : 'Expand all sections';
+  const collapseLabel = t('derivations.collapse_all', {}, 'Collapse All');
+  const expandLabel = t('derivations.expand_all', {}, 'Expand All');
+  btn.title = isExpanded ? (t('derivations.collapse_all', {}, 'Collapse all sections')) : (t('derivations.expand_all', {}, 'Expand all sections'));
 
   let icon = btn.querySelector('.panel-expand-icon');
   let label = btn.querySelector('.panel-expand-label');
@@ -171,13 +174,13 @@ export function setExpandButtonUI(btn, isExpanded) {
     btn.classList.add('panel-expand-btn');
     btn.innerHTML = `
       <span class="panel-expand-icon" aria-hidden="true">${isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG}</span>
-      <span class="panel-expand-label">${isExpanded ? 'Collapse All' : 'Expand All'}</span>
+      <span class="panel-expand-label">${isExpanded ? collapseLabel : expandLabel}</span>
     `;
     return;
   }
 
   icon.innerHTML = isExpanded ? CHEVRON_UP_SVG : CHEVRON_DOWN_SVG;
-  label.textContent = isExpanded ? 'Collapse All' : 'Expand All';
+  label.textContent = isExpanded ? collapseLabel : expandLabel;
 }
 
 /**

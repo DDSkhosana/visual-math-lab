@@ -147,4 +147,58 @@ export function initCookieConsent(root = ".") {
       mountCookieBanner(rootDir);
     }
   });
+  // Initialize interactive privacy manager if present on page (e.g. privacy.html)
+  initPrivacyManager();
+}
+
+/**
+ * Wire interactive privacy controls on privacy.html with live i18n support.
+ */
+export function initPrivacyManager() {
+  const allowBtn = document.getElementById("privacy-btn-allow");
+  const blockBtn = document.getElementById("privacy-btn-block");
+  const statusEl = document.getElementById("privacy-consent-status");
+
+  if (!allowBtn && !blockBtn && !statusEl) return;
+
+  function updateStatusDisplay() {
+    if (!statusEl) return;
+    const current = getConsentStatus();
+    if (current === true) {
+      statusEl.textContent = t("cookie.status_granted", {}, "Status: Analytics Allowed");
+      statusEl.style.color = "#22c55e";
+    } else if (current === false) {
+      statusEl.textContent = t("cookie.status_denied", {}, "Status: Analytics Blocked");
+      statusEl.style.color = "#f43f5e";
+    } else {
+      statusEl.textContent = t("cookie.status_unset", {}, "Status: Not Yet Chosen");
+      statusEl.style.color = "#94a3b8";
+    }
+    if (allowBtn) {
+      allowBtn.textContent = t("cookie.accept", {}, "Allow Analytics");
+    }
+    if (blockBtn) {
+      blockBtn.textContent = t("cookie.decline", {}, "Block Analytics");
+    }
+  }
+
+  if (allowBtn && !allowBtn._hasPrivacyBound) {
+    allowBtn._hasPrivacyBound = true;
+    allowBtn.addEventListener("click", () => {
+      updateConsent(true);
+      updateStatusDisplay();
+    });
+  }
+
+  if (blockBtn && !blockBtn._hasPrivacyBound) {
+    blockBtn._hasPrivacyBound = true;
+    blockBtn.addEventListener("click", () => {
+      updateConsent(false);
+      updateStatusDisplay();
+    });
+  }
+
+  updateStatusDisplay();
+  window.addEventListener("vml:locale-changed", updateStatusDisplay);
+  window.addEventListener("vml:consent-changed", updateStatusDisplay);
 }
