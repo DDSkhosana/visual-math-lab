@@ -1,3 +1,4 @@
+import { initI18n, t, getLocale, getLocaleInfo, getSupportedLocales, setLocale } from "./i18n.js";
 import SITE_CONFIG, { hasConfiguredUrl } from "../config/site-config.js?v=20260523";
 import { trackEvent } from "./analytics.js?v=20260523";
 
@@ -194,15 +195,31 @@ export function getMatchScore(item, q) {
   return totalScore;
 }
 
+function renderLanguageItems() {
+  const current = getLocale();
+  return getSupportedLocales().map((loc) => {
+    const isActive = loc.code === current;
+    return `
+      <button type="button" class="site-nav__dropdown-item site-nav__lang-item ${isActive ? "is-active" : ""}" role="menuitem" data-lang="${escapeHtml(loc.code)}" ${isActive ? 'aria-current="true"' : ""}>
+        <span class="site-nav__lang-native">${escapeHtml(loc.nativeName)}</span>
+        <span class="site-nav__lang-name">${escapeHtml(loc.name)}</span>
+        ${isActive ? '<span class="site-nav__dropdown-item-badge">✓</span>' : ""}
+      </button>
+    `;
+  }).join("");
+}
+
 function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS) {
   const renderItem = (v, defaultSuite) => {
     const suite = v.suite || defaultSuite;
     const isActive = v.slug === activeSlug;
     const visualUrl = route(root, `visuals/${encodeURIComponent(suite)}/${encodeURIComponent(v.slug)}/index.html`);
-    const searchTerms = `${v.title} ${v.slug} ${v.category || ""} ${suite} ${v.badge || ""} ${v.formula || ""}`.toLowerCase();
+    const translatedTitle = t(`visuals.${v.slug}.title`, {}, v.title);
+    const translatedCategory = t(`visuals.${v.slug}.category`, {}, v.category || "");
+    const searchTerms = `${translatedTitle} ${v.title} ${v.slug} ${translatedCategory} ${suite} ${v.badge || ""} ${v.formula || ""}`.toLowerCase();
     return `
-      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(v.title)}" data-category="${escapeHtml(v.category || "")}" data-badge="${escapeHtml(v.badge || "")}" data-formula="${escapeHtml(v.formula || "")}" data-search="${escapeHtml(searchTerms)}">
-        <span class="site-nav__dropdown-item-title">${escapeHtml(v.title)}</span>
+      <a href="${visualUrl}" class="site-nav__dropdown-item ${isActive ? "is-active" : ""}" role="menuitem" ${isActive ? 'aria-current="page"' : ""} data-suite="${escapeHtml(suite)}" data-slug="${escapeHtml(v.slug)}" data-title="${escapeHtml(translatedTitle)}" data-category="${escapeHtml(translatedCategory)}" data-badge="${escapeHtml(v.badge || "")}" data-formula="${escapeHtml(v.formula || "")}" data-search="${escapeHtml(searchTerms)}">
+        <span class="site-nav__dropdown-item-title">${escapeHtml(translatedTitle)}</span>
         ${isActive ? '<span class="site-nav__dropdown-item-badge">Active</span>' : ""}
       </a>
     `;
@@ -260,6 +277,21 @@ export function mountSharedChrome() {
             </div>
             <div class="site-nav__dropdown-footer">
               <a href="${route(root, "index.html#visuals")}" class="site-nav__dropdown-all-link">Browse Full Gallery &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="site-nav__dropdown site-nav__lang-dropdown" id="nav-lang-dropdown">
+          <button type="button" class="site-nav__dropdown-trigger site-nav__lang-btn" id="nav-lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="nav-lang-menu" title="${escapeHtml(t('nav.language_selector', {}, 'Change Language'))}">
+            <svg class="site-nav__globe-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <span class="site-nav__lang-code" id="nav-lang-current">${escapeHtml(getLocale().toUpperCase())}</span>
+            <svg class="site-nav__caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="site-nav__dropdown-menu site-nav__lang-menu" id="nav-lang-menu" role="menu" aria-label="${escapeHtml(t('nav.language_selector', {}, 'Change Language'))}" hidden>
+            <div class="site-nav__dropdown-header">
+              <span class="site-nav__dropdown-title">${escapeHtml(t('nav.language_selector', {}, 'Change Language'))}</span>
+            </div>
+            <div class="site-nav__lang-list" id="nav-lang-list" role="none">
+              ${renderLanguageItems()}
             </div>
           </div>
         </div>
@@ -537,6 +569,178 @@ export function mountSharedChrome() {
           }
         }
       });
+
+      // Language dropdown interaction logic
+      const langDropdown = header.querySelector("#nav-lang-dropdown");
+      const langTrigger = header.querySelector("#nav-lang-btn");
+      const langMenu = header.querySelector("#nav-lang-menu");
+      const langList = header.querySelector("#nav-lang-list");
+      const langCurrent = header.querySelector("#nav-lang-current");
+
+      const updateLangMenuPosition = () => {
+        if (!langMenu || langMenu.hidden) return;
+        if (typeof window === "undefined" || !langTrigger || !langTrigger.getBoundingClientRect) return;
+        const rect = langTrigger.getBoundingClientRect();
+        if (!rect.width && !rect.height && !rect.top) return;
+
+        const viewportWidth = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 1024);
+        if (rect.right < 0 || rect.left > viewportWidth) {
+          closeLangMenu();
+          return;
+        }
+
+        langMenu.style.position = "fixed";
+        langMenu.style.top = `${Math.round(rect.bottom + 6)}px`;
+        const menuWidth = langMenu.offsetWidth || 230;
+
+        const isRtl = document.documentElement && document.documentElement.dir === "rtl";
+        let finalLeft;
+        if (isRtl) {
+          finalLeft = Math.max(8, Math.min(rect.left, viewportWidth - menuWidth - 8));
+        } else {
+          const leftCandidate = rect.right - menuWidth;
+          const maxLeft = viewportWidth - menuWidth - 8;
+          finalLeft = Math.max(8, Math.min(leftCandidate, maxLeft));
+        }
+
+        langMenu.style.left = `${Math.round(finalLeft)}px`;
+        langMenu.style.right = "auto";
+      };
+
+      const openLangMenu = () => {
+        if (!langMenu || !langTrigger) return;
+        if (menu && !menu.hidden) closeMenu();
+        langMenu.hidden = false;
+        langTrigger.setAttribute("aria-expanded", "true");
+        updateLangMenuPosition();
+        const activeItem = langMenu.querySelector(".site-nav__lang-item.is-active") || langMenu.querySelector(".site-nav__lang-item");
+        if (activeItem) setTimeout(() => activeItem.focus(), 40);
+      };
+
+      const closeLangMenu = () => {
+        if (!langMenu || !langTrigger) return;
+        langMenu.hidden = true;
+        langTrigger.setAttribute("aria-expanded", "false");
+      };
+
+      if (langTrigger && langMenu) {
+        langTrigger.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (langMenu.hidden) {
+            openLangMenu();
+          } else {
+            closeLangMenu();
+          }
+        });
+
+        document.addEventListener("pointerdown", (e) => {
+          if (langDropdown && !langDropdown.contains(e.target)) {
+            closeLangMenu();
+          }
+        });
+
+        if (typeof window !== "undefined") {
+          window.addEventListener("resize", () => {
+            if (!langMenu.hidden) updateLangMenuPosition();
+          }, { passive: true });
+          window.addEventListener("scroll", () => {
+            if (!langMenu.hidden) updateLangMenuPosition();
+          }, { passive: true });
+        }
+
+        if (langList) {
+          langList.addEventListener("click", async (e) => {
+            const btn = e.target.closest("[data-lang]");
+            if (!btn) return;
+            const langCode = btn.dataset.lang;
+            if (langCode) {
+              await setLocale(langCode);
+              closeLangMenu();
+              langTrigger.focus();
+            }
+          });
+        }
+
+        langDropdown.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            closeLangMenu();
+            langTrigger.focus();
+          } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            if (langMenu.hidden) {
+              openLangMenu();
+              return;
+            }
+            const items = Array.from(langMenu.querySelectorAll(".site-nav__lang-item"));
+            if (items.length === 0) return;
+            const currentIndex = items.indexOf(document.activeElement);
+            let nextIndex;
+            if (e.key === "ArrowDown") {
+              nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+            } else {
+              nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+            }
+            items[nextIndex]?.focus();
+          }
+        });
+      }
+
+      // Synchronize chrome whenever active locale changes
+      const syncChromeWithLocale = () => {
+        const loc = getLocale();
+        if (langCurrent) langCurrent.textContent = loc.toUpperCase();
+        if (langList) langList.innerHTML = renderLanguageItems();
+
+        if (list) {
+          const items = Array.from(list.querySelectorAll(".site-nav__dropdown-item"));
+          items.forEach((item) => {
+            const slug = item.dataset.slug;
+            if (!slug) return;
+            const titleEl = item.querySelector(".site-nav__dropdown-item-title");
+            const translated = t(`visuals.${slug}.title`, {}, item.dataset.title);
+            if (titleEl) titleEl.textContent = translated;
+            item.dataset.title = translated;
+          });
+
+          const circleHeader = list.querySelector('[data-suite-header="circle-theorems"] span');
+          if (circleHeader) {
+            circleHeader.textContent = `Suite 01 · ${t('nav.circle_theorems', {}, 'Circle Theorems')} (${DEFAULT_CIRCLE_VISUALS.length})`;
+          }
+          const trigHeader = list.querySelector('[data-suite-header="trigonometry"] span');
+          if (trigHeader) {
+            trigHeader.textContent = `Suite 02 · ${t('nav.trigonometry', {}, 'Trigonometry')} (${DEFAULT_TRIG_VISUALS.length})`;
+          }
+        }
+
+        const visualsBtn = header.querySelector("#nav-visuals-btn span");
+        if (visualsBtn) visualsBtn.textContent = t('nav.visuals', {}, 'Visuals');
+
+        const visualsTitle = header.querySelector(".site-nav__dropdown-title");
+        if (visualsTitle) visualsTitle.textContent = t('nav.interactive_suites', {}, 'Interactive Suites');
+
+        const visualsCount = header.querySelector("#nav-visuals-count");
+        if (visualsCount) visualsCount.textContent = t('nav.visuals_count', { count: totalCount }, `${totalCount} Visuals`);
+
+        const searchInputEl = header.querySelector("#nav-visuals-search");
+        if (searchInputEl) searchInputEl.setAttribute("placeholder", t('nav.search_placeholder', {}, 'Search visualisations (e.g. Helix, Sine, Thales)...'));
+
+        const galleryLink = header.querySelector(".site-nav__dropdown-all-link");
+        if (galleryLink) galleryLink.textContent = t('nav.browse_gallery', {}, 'Browse Full Gallery →');
+
+        const homeLink = header.querySelector('a.site-nav__link[href*="index.html"]');
+        if (homeLink) homeLink.textContent = t('nav.home', {}, 'Home');
+
+        const aboutLink = header.querySelector('a.site-nav__link[href*="about.html"]');
+        if (aboutLink) aboutLink.textContent = t('nav.about', {}, 'About');
+
+        const contactLink = header.querySelector('a.site-nav__link[href*="contact.html"]');
+        if (contactLink) contactLink.textContent = t('nav.contact', {}, 'Contact');
+      };
+
+      if (typeof window !== "undefined") {
+        window.addEventListener("vml:locale-changed", syncChromeWithLocale);
+        initI18n().then(syncChromeWithLocale).catch(() => {});
+      }
 
       // Asynchronously fetch live data/visuals.json to ensure any dynamic updates are synced
       fetch(route(root, "data/visuals.json"))

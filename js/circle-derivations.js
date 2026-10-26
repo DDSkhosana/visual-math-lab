@@ -1,4 +1,5 @@
 import { UnitSystemConverter, computeSphericalTriangleExcess } from './circle-core.js';
+import { t } from './i18n.js';
 
 export const fmtAngle = (deg, unit = 'deg', decimals = null) => UnitSystemConverter.formatAngle(deg, unit, decimals);
 export const fmtLength = (px, unit = 'px', radius = 180, decimals = null) => UnitSystemConverter.formatLength(px, unit, radius, decimals);
@@ -7,11 +8,13 @@ export const fmtArea = (pxSq, unit = 'px', radius = 180, decimals = null) => Uni
 export const tag = (color, text) => `<span class="color-${color}">${text}</span>`;
 
 export function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
+  const matchStep = typeof badge === 'string' && badge.match(/^Step\s+(\d+)$/i);
+  const localizedBadge = matchStep ? t('derivations.step_prefix', { step: matchStep[1] }, badge) : badge;
   return `
     <div class="derivation-card" id="${id}">
       <div class="derivation-card-header collapsible-header" role="button" tabindex="0" aria-expanded="false">
         <div class="derivation-card-header-title">
-          <span class="derivation-badge">${badge}</span>
+          <span class="derivation-badge">${localizedBadge}</span>
           <span class="derivation-title">${title}</span>
         </div>
         <span class="icon">▶</span>

@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "fr",
+    "name": "French",
+    "nativeName": "Français",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "Accueil",
+    "visuals": "Visualisations",
+    "interactive_suites": "Suites Interactives",
+    "visuals_count": "{count} Visualisations",
+    "search_placeholder": "Rechercher des théorèmes, formules (ex. Hélice, Sinus, Thalès)...",
+    "clear_search": "Effacer la recherche",
+    "no_visuals_found": "Aucune visualisation trouvée pour \"{query}\"",
+    "browse_gallery": "Parcourir la Galerie Complète →",
+    "about": "À propos",
+    "contact": "Contact",
+    "language_selector": "Changer de Langue",
+    "circle_theorems": "Théorèmes du Cercle",
+    "trigonometry": "Trigonométrie"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "Visualiseurs interactifs 2D et 3D de géométrie euclidienne et trigonométrie avec démonstrations mathématiques en direct et télémétrie physique.",
+    "filter_all": "Toutes les Visualisations",
+    "filter_circle": "Théorèmes du Cercle",
+    "filter_trig": "Trigonométrie",
+    "badge_theorem": "Théorème {num}",
+    "badge_trig": "Trigo {num}",
+    "launch_visualizer": "Lancer le Visualiseur"
+  },
+  "controls": {
+    "panel_title": "Commandes Interactives",
+    "view_mode": "Mode d'Affichage",
+    "split_view": "Scindé 2D / 3D",
+    "full_2d": "Canevas 2D Plein",
+    "full_3d": "Scène 3D Pleine",
+    "labels": "Étiquettes Points et Angles",
+    "lengths": "Longueurs de Segments",
+    "angles": "Secteurs Angulaires",
+    "reflex_angles": "Angles Rentrés (>180°)",
+    "area_shading": "Ombrage des Aires",
+    "dimension_mode": "Mode Dimensionnel",
+    "planar": "Plan (2D)",
+    "spatial": "Spatial 3D (S²)",
+    "ar_view": "Réalité Augmentée (RA)",
+    "reset_view": "Réinitialiser",
+    "recenter": "Recentrer la Vue",
+    "radius": "Rayon du Cercle",
+    "angle": "Angle",
+    "playback_speed": "Vitesse de Lecture",
+    "camera_preset": "Préréglage Caméra",
+    "export_svg": "Exporter Vecteur 2D (SVG)",
+    "export_png": "Exporter PNG Haute Résolution",
+    "geometry_legend": "Légende des Notations",
+    "tutorial_tips": "Guide Interactif & Astuces"
+  },
+  "telemetry": {
+    "panel_2d": "Télémétrie Géométrique 2D",
+    "panel_3d": "Télémétrie Spatiale 3D",
+    "radius": "Rayon (r)",
+    "diameter": "Diamètre (2R)",
+    "central_angle": "Angle au Centre",
+    "inscribed_angle": "Angle Inscrit",
+    "ratio_verification": "Rapport Centre / Inscrit",
+    "tangent_length": "Longueur Tangente (|PT|)",
+    "chord_length": "Longueur de Corde (|AB|)",
+    "sagitta": "Flèche (s)",
+    "apothem": "Apothème (|OM|)",
+    "pythagorean_identity": "sin²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sin A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "Excès Sphérique de Girard (E)",
+    "spherical_area": "Aire Sphérique (R² E)"
+  },
+  "derivations": {
+    "panel_title": "Démonstration et Étapes",
+    "theorem_statement": "Énoncé du Théorème",
+    "step_prefix": "Étape {step}",
+    "expand_all": "Déplier toutes les étapes",
+    "collapse_all": "Replier toutes les étapes",
+    "axiomatic_principles": "Principes Axiomatiques",
+    "verified": "Invariant Vérifié"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "Théorème de Thalès (Cercle)",
+      "category": "Géométrie",
+      "badge": "Théorème 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "Découvrez pourquoi tout angle sous-tendu par un diamètre sur la circonférence est toujours un angle droit (90°)."
+    },
+    "angle-at-centre": {
+      "title": "Théorème de l'Angle au Centre",
+      "category": "Géométrie",
+      "badge": "Théorème 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_centre = 2θ_circonférence",
+      "description": "Démontrez que l'angle sous-tendu par un arc au centre est exactement le double de l'angle inscrit sur la circonférence."
+    },
+    "angles-in-same-segment": {
+      "title": "Angles Inscrits dans un Même Segment",
+      "category": "Géométrie",
+      "badge": "Théorème 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "Vérifiez que les angles inscrits interceptant le même arc dans un cercle sont strictement égaux."
+    },
+    "cyclic-quadrilateral": {
+      "title": "Quadrilatère Inscriptible",
+      "category": "Géométrie",
+      "badge": "Théorème 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "Prouvez que les angles opposés d'un quadrilatère inscriptible sont supplémentaires et totalisent 180°."
+    },
+    "tangent-radius": {
+      "title": "Perpendicularité Tangente-Rayon",
+      "category": "Géométrie",
+      "badge": "Théorème 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "Montrez que la tangente en tout point d'un cercle est orthogonale au rayon passant par le point de contact."
+    },
+    "alternate-segment": {
+      "title": "Théorème du Segment Alterné",
+      "category": "Géométrie",
+      "badge": "Théorème 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "Explorez pourquoi l'angle formé par une tangente et une corde est égal à l'angle inscrit dans le segment alterné."
+    },
+    "tangents-from-external-point": {
+      "title": "Tangentes Issues d'un Point Extérieur",
+      "category": "Géométrie",
+      "badge": "Théorème 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "Démontrez que les deux segments tangents menés d'un point extérieur à un cercle ont des longueurs égales formant un cerf-volant inscriptible."
+    },
+    "perpendicular-chord-bisector": {
+      "title": "Médiatrice d'une Corde",
+      "category": "Géométrie",
+      "badge": "Théorème 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "Prouvez que la médiatrice perpendiculaire de toute corde passe par le centre du cercle et divise l'arc sous-tendu."
+    },
+    "unit-circle-helix": {
+      "title": "Cercle Trigonométrique, Six Fonctions et Ondes Hélicoïdales 3D",
+      "category": "Trigonométrie",
+      "badge": "Trigo 01",
+      "formula": "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sin θ)",
+      "description": "Explorez les rapports trigonométriques projetés sur des hélices cylindriques 3D avec parois de projection harmonique."
+    },
+    "law-of-sines": {
+      "title": "Loi des Sinus et Invariant du Cercle Circonscrit",
+      "category": "Trigonométrie",
+      "badge": "Trigo 02",
+      "formula": "a / sin A = b / sin B = c / sin C = 2R",
+      "description": "Vérifiez que le rapport des côtés aux sinus opposés vaut le diamètre circonscrit 2R, ouvrant vers la géométrie sphérique sur S²."
+    },
+    "law-of-cosines": {
+      "title": "Loi des Cosinus et Projection de Pythagore Généralisée",
+      "category": "Trigonométrie",
+      "badge": "Trigo 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "Comprenez le théorème de Pythagore généralisé avec rectangle bilinéaire d'interaction et loi des cosinus sphérique."
+    },
+    "angle-sum-identities": {
+      "title": "Somme, Différence d'Angles et Composition Matricielle",
+      "category": "Trigonométrie",
+      "badge": "Trigo 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "Déduisez les formules d'addition et de soustraction de sinus et cosinus par empilement de triangles et repères Euler SO(3)."
+    }
+  }
+}

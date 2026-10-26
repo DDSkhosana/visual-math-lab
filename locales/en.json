@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "en",
+    "name": "English",
+    "nativeName": "English",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "Home",
+    "visuals": "Visuals",
+    "interactive_suites": "Interactive Suites",
+    "visuals_count": "{count} Visuals",
+    "search_placeholder": "Search visualisations (e.g. Helix, Sine, Thales)...",
+    "clear_search": "Clear query",
+    "no_visuals_found": "No visualisations found matching \"{query}\"",
+    "browse_gallery": "Browse Full Gallery →",
+    "about": "About",
+    "contact": "Contact",
+    "language_selector": "Change Language",
+    "circle_theorems": "Circle Theorems",
+    "trigonometry": "Trigonometry"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "Interactive 2D & 3D Euclidean geometry and trigonometry visualizers with live mathematical proofs and physical telemetry.",
+    "filter_all": "All Visuals",
+    "filter_circle": "Circle Theorems",
+    "filter_trig": "Trigonometry",
+    "badge_theorem": "Theorem {num}",
+    "badge_trig": "Trig {num}",
+    "launch_visualizer": "Launch Visualizer"
+  },
+  "controls": {
+    "panel_title": "Interactive Controls",
+    "view_mode": "View Mode",
+    "split_view": "Split 2D / 3D",
+    "full_2d": "Full 2D Canvas",
+    "full_3d": "Full 3D Scene",
+    "labels": "Point & Angle Labels",
+    "lengths": "Segment Lengths",
+    "angles": "Angle Wedges",
+    "reflex_angles": "Reflex Angles (>180°)",
+    "area_shading": "Area Shading",
+    "dimension_mode": "Dimension Mode",
+    "planar": "Planar (2D)",
+    "spatial": "Spatial 3D (S²)",
+    "ar_view": "Augmented Reality (AR)",
+    "reset_view": "Reset to Default",
+    "recenter": "Recenter View",
+    "radius": "Circle Radius",
+    "angle": "Angle",
+    "playback_speed": "Playback Speed",
+    "camera_preset": "Camera Preset",
+    "export_svg": "Export 2D Vector (SVG)",
+    "export_png": "Export High-Res PNG",
+    "geometry_legend": "Notation Legend",
+    "tutorial_tips": "Interactive Guide & Tips"
+  },
+  "telemetry": {
+    "panel_2d": "2D Geometric Telemetry",
+    "panel_3d": "3D Spatial Telemetry",
+    "radius": "Radius (r)",
+    "diameter": "Diameter (2R)",
+    "central_angle": "Central Angle",
+    "inscribed_angle": "Inscribed Angle",
+    "ratio_verification": "Central / Inscribed Ratio",
+    "tangent_length": "Tangent Length (|PT|)",
+    "chord_length": "Chord Length (|AB|)",
+    "sagitta": "Sagitta (s)",
+    "apothem": "Apothem (|OM|)",
+    "pythagorean_identity": "sin²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sin A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "Girard's Spherical Excess (E)",
+    "spherical_area": "Spherical Area (R² E)"
+  },
+  "derivations": {
+    "panel_title": "Step-by-Step Proof & Derivations",
+    "theorem_statement": "Theorem Statement",
+    "step_prefix": "Step {step}",
+    "expand_all": "Expand all steps",
+    "collapse_all": "Collapse all steps",
+    "axiomatic_principles": "Axiomatic Principles",
+    "verified": "Verified Invariant"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "Thales' Theorem",
+      "category": "Geometry",
+      "badge": "Theorem 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "Explore why any angle subtended by a diameter at the circle circumference is always a right angle (90°)."
+    },
+    "angle-at-centre": {
+      "title": "Angle at the Centre Theorem",
+      "category": "Geometry",
+      "badge": "Theorem 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_centre = 2θ_circumference",
+      "description": "Demonstrate that the angle subtended by an arc at the centre is exactly twice the angle subtended at the circumference."
+    },
+    "angles-in-same-segment": {
+      "title": "Angles in the Same Segment",
+      "category": "Geometry",
+      "badge": "Theorem 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "Verify that angles in the same segment of a circle subtended by the same chord are identical."
+    },
+    "cyclic-quadrilateral": {
+      "title": "Cyclic Quadrilateral Theorem",
+      "category": "Geometry",
+      "badge": "Theorem 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "Prove that opposite angles of an inscribed cyclic quadrilateral are supplementary and sum strictly to 180°."
+    },
+    "tangent-radius": {
+      "title": "Tangent-Radius Perpendicularity",
+      "category": "Geometry",
+      "badge": "Theorem 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "Show that a tangent line at any point on a circle is strictly perpendicular to the radial vector at the point of contact."
+    },
+    "alternate-segment": {
+      "title": "Alternate Segment Theorem",
+      "category": "Geometry",
+      "badge": "Theorem 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "Explore why the angle between a tangent and a chord through the point of contact equals the angle in the alternate segment."
+    },
+    "tangents-from-external-point": {
+      "title": "Tangents from an External Point",
+      "category": "Geometry",
+      "badge": "Theorem 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "Demonstrate that two tangents drawn to a circle from a common external point are equal in length and form a cyclic kite."
+    },
+    "perpendicular-chord-bisector": {
+      "title": "Perpendicular Chord Bisector",
+      "category": "Geometry",
+      "badge": "Theorem 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "Prove that the perpendicular bisector of any chord passes through the circle centre and bisects the subtended arc."
+    },
+    "unit-circle-helix": {
+      "title": "Unit Circle, Six Trig Functions & 3D Helix Waves",
+      "category": "Trigonometry",
+      "badge": "Trig 01",
+      "formula": "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sin θ)",
+      "description": "Explore trigonometric ratios projected onto 3D cylindrical wave helices with harmonic projection walls."
+    },
+    "law-of-sines": {
+      "title": "Law of Sines & Circumcircle Invariant",
+      "category": "Trigonometry",
+      "badge": "Trig 02",
+      "formula": "a / sin A = b / sin B = c / sin C = 2R",
+      "description": "Verify the ratio of side lengths to opposite sines equals circumdiameter 2R, bridging to spherical geometry on S²."
+    },
+    "law-of-cosines": {
+      "title": "Law of Cosines & Generalized Pythagorean Projection",
+      "category": "Trigonometry",
+      "badge": "Trig 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "Understand the generalized Pythagorean theorem with bilinear interaction rectangle and spherical cosine law."
+    },
+    "angle-sum-identities": {
+      "title": "Angle Sum, Difference & Rotation Matrix Composition",
+      "category": "Trigonometry",
+      "badge": "Trig 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "Derive sine and cosine compound angle formulas from stacked right triangles and SO(3) Euler rotation frames."
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "es",
+    "name": "Spanish",
+    "nativeName": "Español",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "Inicio",
+    "visuals": "Visualizaciones",
+    "interactive_suites": "Suites Interactivas",
+    "visuals_count": "{count} Visualizaciones",
+    "search_placeholder": "Buscar teoremas, fórmulas, conceptos (ej. Hélice, Seno, Tales)...",
+    "clear_search": "Borrar búsqueda",
+    "no_visuals_found": "No se encontraron visualizaciones para \"{query}\"",
+    "browse_gallery": "Explorar Galería Completa →",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "language_selector": "Cambiar Idioma",
+    "circle_theorems": "Teoremas del Círculo",
+    "trigonometry": "Trigonometría"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "Visualizadores interactivos en 2D y 3D de geometría euclidiana y trigonometría con demostraciones matemáticas en vivo y telemetría física.",
+    "filter_all": "Todas las Visualizaciones",
+    "filter_circle": "Teoremas del Círculo",
+    "filter_trig": "Trigonometría",
+    "badge_theorem": "Teorema {num}",
+    "badge_trig": "Trig {num}",
+    "launch_visualizer": "Iniciar Visualizador"
+  },
+  "controls": {
+    "panel_title": "Controles Interactivos",
+    "view_mode": "Modo de Vista",
+    "split_view": "Dividida 2D / 3D",
+    "full_2d": "Lienzo 2D Completo",
+    "full_3d": "Escena 3D Completa",
+    "labels": "Etiquetas de Puntos y Ángulos",
+    "lengths": "Longitudes de Segmentos",
+    "angles": "Sectores Angulares",
+    "reflex_angles": "Ángulos Cóncavos (>180°)",
+    "area_shading": "Sombreado de Área",
+    "dimension_mode": "Modo Dimensional",
+    "planar": "Plano (2D)",
+    "spatial": "Espacial 3D (S²)",
+    "ar_view": "Realidad Aumentada (RA)",
+    "reset_view": "Restablecer Valores",
+    "recenter": "Centrar Vista",
+    "radius": "Radio del Círculo",
+    "angle": "Ángulo",
+    "playback_speed": "Velocidad de Reproducción",
+    "camera_preset": "Preajuste de Cámara",
+    "export_svg": "Exportar Vector 2D (SVG)",
+    "export_png": "Exportar PNG Alta Resolución",
+    "geometry_legend": "Leyenda de Notación",
+    "tutorial_tips": "Guía Interactiva y Consejos"
+  },
+  "telemetry": {
+    "panel_2d": "Telemetría Geométrica 2D",
+    "panel_3d": "Telemetría Espacial 3D",
+    "radius": "Radio (r)",
+    "diameter": "Diámetro (2R)",
+    "central_angle": "Ángulo Central",
+    "inscribed_angle": "Ángulo Inscrito",
+    "ratio_verification": "Razón Central / Inscrito",
+    "tangent_length": "Longitud Tangente (|PT|)",
+    "chord_length": "Longitud de Cuerda (|AB|)",
+    "sagitta": "Sagita (s)",
+    "apothem": "Apotema (|OM|)",
+    "pythagorean_identity": "sen²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sen A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "Exceso Esférico de Girard (E)",
+    "spherical_area": "Área Esférica (R² E)"
+  },
+  "derivations": {
+    "panel_title": "Demostración y Pasos",
+    "theorem_statement": "Enunciado del Teorema",
+    "step_prefix": "Paso {step}",
+    "expand_all": "Expandir todos los pasos",
+    "collapse_all": "Contraer todos los pasos",
+    "axiomatic_principles": "Principios Axiomáticos",
+    "verified": "Invariante Verificado"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "Teorema de Tales",
+      "category": "Geometría",
+      "badge": "Teorema 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "Descubre por qué cualquier ángulo subtendido por un diámetro en la circunferencia siempre es un ángulo recto (90°)."
+    },
+    "angle-at-centre": {
+      "title": "Teorema del Ángulo Central",
+      "category": "Geometría",
+      "badge": "Teorema 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_central = 2θ_circunferencia",
+      "description": "Demuestra que el ángulo subtendido por un arco en el centro es exactamente el doble del ángulo subtendido en la circunferencia."
+    },
+    "angles-in-same-segment": {
+      "title": "Ángulos en el Mismo Segmento",
+      "category": "Geometría",
+      "badge": "Teorema 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "Verifica que los ángulos inscritos en el mismo segmento de un círculo subtendidos por la misma cuerda son idénticos."
+    },
+    "cyclic-quadrilateral": {
+      "title": "Cuadrilátero Cíclico",
+      "category": "Geometría",
+      "badge": "Teorema 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "Demuestra que los ángulos opuestos de un cuadrilátero cíclico inscrito son suplementarios y suman exactamente 180°."
+    },
+    "tangent-radius": {
+      "title": "Perpendicularidad Tangente-Radio",
+      "category": "Geometría",
+      "badge": "Teorema 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "Muestra que la recta tangente en cualquier punto de un círculo es estrictamente perpendicular al vector radial en el punto de contacto."
+    },
+    "alternate-segment": {
+      "title": "Teorema del Segmento Alterno",
+      "category": "Geometría",
+      "badge": "Teorema 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "Explora por qué el ángulo entre una tangente y una cuerda equivale al ángulo inscrito en el segmento alterno."
+    },
+    "tangents-from-external-point": {
+      "title": "Tangentes desde un Punto Exterior",
+      "category": "Geometría",
+      "badge": "Teorema 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "Demuestra que las dos tangentes trazadas a un círculo desde un punto exterior común son iguales en longitud y forman una cometa cíclica."
+    },
+    "perpendicular-chord-bisector": {
+      "title": "Mediatriz Perpendicular de la Cuerda",
+      "category": "Geometría",
+      "badge": "Teorema 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "Demuestra que la mediatriz perpendicular de cualquier cuerda pasa por el centro del círculo y biseca el arco subtendido."
+    },
+    "unit-circle-helix": {
+      "title": "Círculo Unitario, Seis Funciones Trigonométricas y Ondas Helicoidales 3D",
+      "category": "Trigonometría",
+      "badge": "Trig 01",
+      "formula": "sen²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sen θ)",
+      "description": "Explora las razones trigonométricas proyectadas en hélices de ondas cilíndricas 3D con paredes de proyección armónica."
+    },
+    "law-of-sines": {
+      "title": "Ley de Senos e Invariante de la Circunferencia",
+      "category": "Trigonometría",
+      "badge": "Trig 02",
+      "formula": "a / sen A = b / sen B = c / sen C = 2R",
+      "description": "Verifica que la razón entre los lados y sus senos opuestos equivale al diámetro circunscrito 2R, conectando con la geometría esférica en S²."
+    },
+    "law-of-cosines": {
+      "title": "Ley de Cosenos y Proyección Pitagórica Generalizada",
+      "category": "Trigonometría",
+      "badge": "Trig 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "Comprende el teorema de Pitágoras generalizado con rectángulo de interacción bilineal y ley de cosenos esférica."
+    },
+    "angle-sum-identities": {
+      "title": "Suma, Diferencia de Ángulos y Composición de Matrices de Rotación",
+      "category": "Trigonometría",
+      "badge": "Trig 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "Deduce fórmulas de suma y diferencia de senos y cosenos mediante triángulos rectángulos apilados y marcos de rotación Euler SO(3)."
+    }
+  }
+}

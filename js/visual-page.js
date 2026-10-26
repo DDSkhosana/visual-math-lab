@@ -4,6 +4,7 @@ import { initTutorialAndTips, openTutorialModal, isTipsEnabled, setTipsEnabled }
 import { initGeometryLegend, openLegendModal, toggleLegendModal } from "./geometry-legend.js?v=20260523";
 import { initWorkspaceDock } from "./workspace-dock.js?v=20260523";
 import { initPermalinkSync, copyShareUrl } from "./permalink.js?v=20260523";
+import { initI18n, t, getLocale } from "./i18n.js";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -121,20 +122,38 @@ async function initializeVisualPage() {
     throw new Error("This visual is not published.");
   }
 
-  document.title = `${visual.title} | Visual Mathematics Lab`;
   const root = document.body.dataset.root || "../../..";
   if (visual.thumbnail) {
     setFavicon(`${root}/${visual.thumbnail.replace(/^\//, "")}`);
   }
-  document.querySelectorAll("[data-visual-title]").forEach((el) => {
-    el.textContent = visual.title;
-  });
-  document.querySelectorAll("[data-visual-description]").forEach((el) => {
-    el.textContent = visual.description;
-  });
-  document.querySelectorAll("[data-visual-category]").forEach((el) => {
-    el.textContent = visual.category;
-  });
+
+  const updateVisualMetadata = () => {
+    const slug = visual.slug;
+    const translatedTitle = t(`visuals.${slug}.title`, {}, visual.title);
+    const translatedDesc = t(`visuals.${slug}.description`, {}, visual.description);
+    const translatedCat = t(`visuals.${slug}.category`, {}, visual.category);
+
+    document.title = `${translatedTitle} | Visual Mathematics Lab`;
+    document.querySelectorAll("[data-visual-title]").forEach((el) => {
+      el.textContent = translatedTitle;
+    });
+    document.querySelectorAll("[data-visual-description]").forEach((el) => {
+      el.textContent = translatedDesc;
+    });
+    document.querySelectorAll("[data-visual-category]").forEach((el) => {
+      el.textContent = translatedCat;
+    });
+
+    const headerTitle = document.querySelector(".site-header__title");
+    if (headerTitle) headerTitle.textContent = translatedTitle;
+    const headerCat = document.querySelector(".site-header__category");
+    if (headerCat) headerCat.textContent = translatedCat;
+  };
+
+  updateVisualMetadata();
+  if (typeof window !== "undefined") {
+    window.addEventListener("vml:locale-changed", updateVisualMetadata);
+  }
 
   setupHeaderAndModal(visual);
   renderVideo(visual);

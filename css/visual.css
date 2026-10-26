@@ -2370,3 +2370,44 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 .btn-playback-speed:active {
   transform: scale(0.96);
 }
+
+
+/* ==========================================================================
+   RTL Layout Mirroring for Visualizer Workspace
+   ========================================================================== */
+
+[dir="rtl"] .visual-page-body .site-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .site-header__visual-meta {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .visual-toolbar {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .toolbar-group {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .stat-line {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .derivation-card-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .derivation-card-header .icon {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .stats-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .camera-presets-bar {
+  flex-direction: row-reverse;
+}

@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "zh",
+    "name": "Simplified Chinese",
+    "nativeName": "简体中文",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "首页",
+    "visuals": "可视化演示",
+    "interactive_suites": "交互式几何套件",
+    "visuals_count": "{count} 个可视化",
+    "search_placeholder": "搜索定理、公式、概念（如：螺旋线、正弦、泰勒斯）...",
+    "clear_search": "清除搜索",
+    "no_visuals_found": "未找到匹配 \"{query}\" 的可视化",
+    "browse_gallery": "浏览完整图库 →",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "language_selector": "选择语言",
+    "circle_theorems": "圆几何定理",
+    "trigonometry": "三角学"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "交互式 2D 与 3D 欧几里得几何与三角学可视化平台，提供实时数学证明与物理几何遥测。",
+    "filter_all": "全部可视化",
+    "filter_circle": "圆几何定理",
+    "filter_trig": "三角学",
+    "badge_theorem": "定理 {num}",
+    "badge_trig": "三角 {num}",
+    "launch_visualizer": "启动可视化"
+  },
+  "controls": {
+    "panel_title": "交互控制面板",
+    "view_mode": "视图模式",
+    "split_view": "2D / 3D 分屏",
+    "full_2d": "全屏 2D 画布",
+    "full_3d": "全屏 3D 场景",
+    "labels": "点与角标签",
+    "lengths": "线段长度",
+    "angles": "角扇形标记",
+    "reflex_angles": "优角 / 共轭角 (>180°)",
+    "area_shading": "面积阴影",
+    "dimension_mode": "空间维度模式",
+    "planar": "平面 (2D)",
+    "spatial": "三维球面 (S²)",
+    "ar_view": "增强现实 (AR)",
+    "reset_view": "重置为默认",
+    "recenter": "居中视角",
+    "radius": "圆半径",
+    "angle": "角度",
+    "playback_speed": "播放速度",
+    "camera_preset": "相机预设",
+    "export_svg": "导出 2D 矢量图 (SVG)",
+    "export_png": "导出高清 PNG 图片",
+    "geometry_legend": "几何符号图例",
+    "tutorial_tips": "交互式引导与技巧"
+  },
+  "telemetry": {
+    "panel_2d": "2D 几何遥测数据",
+    "panel_3d": "3D 空间遥测数据",
+    "radius": "半径 (r)",
+    "diameter": "直径 (2R)",
+    "central_angle": "圆心角",
+    "inscribed_angle": "圆周角",
+    "ratio_verification": "圆心角 / 圆周角 比值",
+    "tangent_length": "切线长 (|PT|)",
+    "chord_length": "弦长 (|AB|)",
+    "sagitta": "矢高 (s)",
+    "apothem": "边心距 / 弦心距 (|OM|)",
+    "pythagorean_identity": "sin²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sin A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "吉拉德球面角盈 (E)",
+    "spherical_area": "球面面积 (R² E)"
+  },
+  "derivations": {
+    "panel_title": "分步严格数学证明",
+    "theorem_statement": "定理陈述",
+    "step_prefix": "第 {step} 步",
+    "expand_all": "展开全部步骤",
+    "collapse_all": "折叠全部步骤",
+    "axiomatic_principles": "公理化原理",
+    "verified": "已验证不变量"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "泰勒斯定理（半圆上的圆周角）",
+      "category": "几何学",
+      "badge": "定理 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "探究为什么圆直径在圆周上所对的任何圆周角都恒为直角（90°）。"
+    },
+    "angle-at-centre": {
+      "title": "圆心角定理",
+      "category": "几何学",
+      "badge": "定理 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_圆心 = 2θ_圆周",
+      "description": "证明同弧所对的圆心角大小恒等于同弧所对圆周角的两倍（2:1 比例关系）。"
+    },
+    "angles-in-same-segment": {
+      "title": "同弓形（同弧）圆周角定理",
+      "category": "几何学",
+      "badge": "定理 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "验证同弦在同侧圆弓形内所对的所有圆周角大小完全相同。"
+    },
+    "cyclic-quadrilateral": {
+      "title": "圆内接四边形对角互补定理",
+      "category": "几何学",
+      "badge": "定理 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "严格证明圆内接四边形的对角互补，内角和严格等于 360°。"
+    },
+    "tangent-radius": {
+      "title": "切线垂直于半径定理",
+      "category": "几何学",
+      "badge": "定理 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "展示经过圆上切点的切线严格垂直于过该切点的半径向量（内积为零）。"
+    },
+    "alternate-segment": {
+      "title": "弦切角定理（交错弓形角定理）",
+      "category": "几何学",
+      "badge": "定理 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "探究切线与过切点的弦所夹的弦切角等于其所夹弧所对的交错圆周角。"
+    },
+    "tangents-from-external-point": {
+      "title": "圆外一点引切线长定理",
+      "category": "几何学",
+      "badge": "定理 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "证明从圆外一点向圆引出的两条切线段长相等，构成对称的正交圆内接筝形。"
+    },
+    "perpendicular-chord-bisector": {
+      "title": "垂径定理（弦垂直平分线）",
+      "category": "几何学",
+      "badge": "定理 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "证明垂直于弦的直径或半径平分这条弦，并平分弦所对的两条弧。"
+    },
+    "unit-circle-helix": {
+      "title": "单位圆、六大三角函数与 3D 螺旋波动",
+      "category": "三角学",
+      "badge": "三角 01",
+      "formula": "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sin θ)",
+      "description": "探索投影到三维圆柱螺旋线上的三角比，伴随谐波连续投影波形壁。"
+    },
+    "law-of-sines": {
+      "title": "正弦定理与外接圆不变量",
+      "category": "三角学",
+      "badge": "三角 02",
+      "formula": "a / sin A = b / sin B = c / sin C = 2R",
+      "description": "验证三角形各边与对角正弦之比等于外接圆直径 2R，并连接到 S² 球面正弦定理。"
+    },
+    "law-of-cosines": {
+      "title": "余弦定理与广义毕达哥拉斯正交投影",
+      "category": "三角学",
+      "badge": "三角 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "深入理解具有双线性张量分解矩形与 S² 球面余弦定理的广义勾股定理。"
+    },
+    "angle-sum-identities": {
+      "title": "和差角公式与旋转矩阵李群复合",
+      "category": "三角学",
+      "badge": "三角 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "通过堆叠直角三角形与三维 SO(3) 欧拉坐标旋转框架推修正弦与余弦加法定理。"
+    }
+  }
+}

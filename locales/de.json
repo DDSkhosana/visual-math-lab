@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "de",
+    "name": "German",
+    "nativeName": "Deutsch",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "Startseite",
+    "visuals": "Visualisierungen",
+    "interactive_suites": "Interaktive Sammlungen",
+    "visuals_count": "{count} Visualisierungen",
+    "search_placeholder": "Theoreme, Formeln suchen (z. B. Helix, Sinus, Thales)...",
+    "clear_search": "Suche löschen",
+    "no_visuals_found": "Keine Visualisierungen für \"{query}\" gefunden",
+    "browse_gallery": "Gesamte Galerie ansehen →",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "language_selector": "Sprache wechseln",
+    "circle_theorems": "Kreissätze",
+    "trigonometry": "Trigonometrie"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "Interaktive 2D- und 3D-Visualisierungen der euklidischen Geometrie und Trigonometrie mit mathematischen Beweisen und physikalischer Telemetrie.",
+    "filter_all": "Alle Visualisierungen",
+    "filter_circle": "Kreissätze",
+    "filter_trig": "Trigonometrie",
+    "badge_theorem": "Satz {num}",
+    "badge_trig": "Trig {num}",
+    "launch_visualizer": "Visualisierer starten"
+  },
+  "controls": {
+    "panel_title": "Interaktive Steuerung",
+    "view_mode": "Ansichtsmodus",
+    "split_view": "Geteilt 2D / 3D",
+    "full_2d": "Reines 2D-Canvas",
+    "full_3d": "Reine 3D-Szene",
+    "labels": "Punkt- & Winkelbeschriftungen",
+    "lengths": "Streckenlängen",
+    "angles": "Winkelsektoren",
+    "reflex_angles": "Überstumpfe Winkel (>180°)",
+    "area_shading": "Flächenschattierung",
+    "dimension_mode": "Dimensionsmodus",
+    "planar": "Eben (2D)",
+    "spatial": "Räumlich 3D (S²)",
+    "ar_view": "Erweiterte Realität (AR)",
+    "reset_view": "Auf Standard zurücksetzen",
+    "recenter": "Ansicht zentrieren",
+    "radius": "Kreisradius",
+    "angle": "Winkel",
+    "playback_speed": "Wiedergabetempo",
+    "camera_preset": "Kamera-Voreinstellung",
+    "export_svg": "2D-Vektor exportieren (SVG)",
+    "export_png": "Hochauflösendes PNG exportieren",
+    "geometry_legend": "Notationslegende",
+    "tutorial_tips": "Interaktive Anleitung & Tipps"
+  },
+  "telemetry": {
+    "panel_2d": "2D Geometrische Telemetrie",
+    "panel_3d": "3D Räumliche Telemetrie",
+    "radius": "Radius (r)",
+    "diameter": "Durchmesser (2R)",
+    "central_angle": "Mittelpunktswinkel",
+    "inscribed_angle": "Umfangswinkel",
+    "ratio_verification": "Verhältnis Mittelpunkt / Umfang",
+    "tangent_length": "Tangentenabschnitt (|PT|)",
+    "chord_length": "Sehnenlänge (|AB|)",
+    "sagitta": "Bogenhöhe (s)",
+    "apothem": "Apothema (|OM|)",
+    "pythagorean_identity": "sin²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sin A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "Girardscher sphärischer Exzess (E)",
+    "spherical_area": "Sphärische Fläche (R² E)"
+  },
+  "derivations": {
+    "panel_title": "Schrittweiser Beweis & Herleitung",
+    "theorem_statement": "Satzformulierung",
+    "step_prefix": "Schritt {step}",
+    "expand_all": "Alle Schritte ausklappen",
+    "collapse_all": "Alle Schritte einklappen",
+    "axiomatic_principles": "Axiomatische Prinzipien",
+    "verified": "Verifizierte Invariante"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "Satz des Thales",
+      "category": "Geometrie",
+      "badge": "Satz 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "Erkunden Sie, warum jeder Winkel im Halbkreis über dem Durchmesser immer ein rechter Winkel (90°) ist."
+    },
+    "angle-at-centre": {
+      "title": "Kreiswinkelsatz (Mittelpunktswinkelsatz)",
+      "category": "Geometrie",
+      "badge": "Satz 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_zentrum = 2θ_umfang",
+      "description": "Beweisen Sie, dass der Mittelpunktswinkel über einem Kreisbogen genau doppelt so groß wie der Umfangswinkel ist."
+    },
+    "angles-in-same-segment": {
+      "title": "Umfangswinkelsatz (Gleicher Kreisabschnitt)",
+      "category": "Geometrie",
+      "badge": "Satz 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "Überprüfen Sie, dass Umfangswinkel über derselben Sehne im gleichen Kreisbogenabschnitt stets identisch sind."
+    },
+    "cyclic-quadrilateral": {
+      "title": "Sehnenvierecksatz",
+      "category": "Geometrie",
+      "badge": "Satz 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "Beweisen Sie, dass sich gegenüberliegende Winkel in einem Sehnenviereck zu genau 180° ergänzen."
+    },
+    "tangent-radius": {
+      "title": "Orthogonalität von Tangente und Radius",
+      "category": "Geometrie",
+      "badge": "Satz 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "Zeigen Sie, dass die Tangente in jedem Berührpunkt eines Kreises senkrecht auf dem Berührungsradius steht."
+    },
+    "alternate-segment": {
+      "title": "Sehnentangentenwinkelsatz",
+      "category": "Geometrie",
+      "badge": "Satz 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "Erforschen Sie, warum der Winkel zwischen Tangente und Sehne gleich dem Umfangswinkel im gegenüberliegenden Kreisabschnitt ist."
+    },
+    "tangents-from-external-point": {
+      "title": "Tangentenabschnitte von einem äußeren Punkt",
+      "category": "Geometrie",
+      "badge": "Satz 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "Beweisen Sie, dass die beiden Tangentenabschnitte von einem äußeren Punkt an einen Kreis kongruent sind und ein Drachenviereck bilden."
+    },
+    "perpendicular-chord-bisector": {
+      "title": "Mittelsenkrechte einer Sehne",
+      "category": "Geometrie",
+      "badge": "Satz 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "Beweisen Sie, dass die Mittelsenkrechte jeder Sehne durch das Kreiszentrum verläuft und die Sehne exakt halbiert."
+    },
+    "unit-circle-helix": {
+      "title": "Einheitskreis, Sechs Winkelfunktionen und 3D-Helix-Wellen",
+      "category": "Trigonometrie",
+      "badge": "Trig 01",
+      "formula": "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sin θ)",
+      "description": "Erkunden Sie trigonometrische Verhältnisse projiziert auf 3D-Zylinderwellen mit harmonischen Projektionswänden."
+    },
+    "law-of-sines": {
+      "title": "Sinussatz und Umkreis-Invariante",
+      "category": "Trigonometrie",
+      "badge": "Trig 02",
+      "formula": "a / sin A = b / sin B = c / sin C = 2R",
+      "description": "Verifizieren Sie das Verhältnis von Seitenlängen zu Gegensinuswerten als Umkreisdurchmesser 2R und Übergang zur sphärischen Geometrie auf S²."
+    },
+    "law-of-cosines": {
+      "title": "Kosinussatz und Verallgemeinerte Pythagoreische Projektion",
+      "category": "Trigonometrie",
+      "badge": "Trig 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "Verstehen Sie den verallgemeinerten Satz des Pythagoras mit bilinearem Interaktionsrechteck und sphärischem Kosinussatz."
+    },
+    "angle-sum-identities": {
+      "title": "Additionstheoreme und Drehmatrix-Komposition",
+      "category": "Trigonometrie",
+      "badge": "Trig 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "Leiten Sie Summen- und Differenzformeln für Sinus und Kosinus aus geschachtelten Dreiecken und SO(3)-Euler-Drehsystemen her."
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "locale": "nr",
+    "name": "IsiNdebele",
+    "nativeName": "isiNdebele",
+    "dir": "ltr"
+  },
+  "nav": {
+    "brand": "Visual Mathematics Lab",
+    "home": "Ikhaya",
+    "visuals": "Iziboniso",
+    "interactive_suites": "Iinkundla Zokufunda Ezisebenzisanako",
+    "visuals_count": "Iziboniso ezi-{count}",
+    "search_placeholder": "Rhubhulula iziboniso (isib. i-Helix, i-Sine, i-Thales)...",
+    "clear_search": "Sula umbuzo",
+    "no_visuals_found": "Azikho iziboniso ezitholakeleko ezihambelana ne-\"{query}\"",
+    "browse_gallery": "Qala Isiboniso Soke Sakwa-VML →",
+    "about": "Mayelana Nathi",
+    "contact": "Xhumana Nathi",
+    "language_selector": "Tjhugulula Ilimi",
+    "circle_theorems": "Imithetho ye-Sidiriki",
+    "trigonometry": "I-Trigonometri"
+  },
+  "catalog": {
+    "hero_title": "Visual Mathematics Lab",
+    "hero_subtitle": "Iziboniso ze-geometry ye-Euclidean 2D & 3D ne-trigonometri ezisebenzisanako ezinobufakazi bezibalo nokuqapha ubunjalo bemvelo.",
+    "filter_all": "Zoke Iziboniso",
+    "filter_circle": "Imithetho ye-Sidiriki",
+    "filter_trig": "I-Trigonometri",
+    "badge_theorem": "UmThetho {num}",
+    "badge_trig": "I-Trig {num}",
+    "launch_visualizer": "Vula Isiboniso"
+  },
+  "controls": {
+    "panel_title": "Izilawuli Zokusebenza",
+    "view_mode": "Indlela Yokubuka",
+    "split_view": "Hlukanisa 2D / 3D",
+    "full_2d": "Isikrini Soke se-2D",
+    "full_3d": "Indawo Yoke ye-3D",
+    "labels": "Amalebula Wamahlangothi ne-Kona",
+    "lengths": "Ubude Bamalunga",
+    "angles": "Amakona (Angle Wedges)",
+    "reflex_angles": "Amakona A-Reflex (>180°)",
+    "area_shading": "Umthunzi Wendawo",
+    "dimension_mode": "Indlela Yobukhulu",
+    "planar": "Iplani (2D)",
+    "spatial": "Indawo e-3D (S²)",
+    "ar_view": "I-Augmented Reality (AR)",
+    "reset_view": "Buyisela Ekuqaleni",
+    "recenter": "Beka Phakathi Godu",
+    "radius": "I-Radius ye-Sidiriki",
+    "angle": "Ikona",
+    "playback_speed": "Ibelo Lokudlala",
+    "camera_preset": "Ukuhlelwa Kwekhamera",
+    "export_svg": "Khipha i-Vector ye-2D (SVG)",
+    "export_png": "Khipha i-PNG Yekhwalithi Ephakamileko",
+    "geometry_legend": "Incazelo Yamatshwayo",
+    "tutorial_tips": "Isinqophiso Samatshwayo Namacebiso"
+  },
+  "telemetry": {
+    "panel_2d": "I-Telemetry ye-Jometri 2D",
+    "panel_3d": "I-Telemetry ye-Ndawo 3D",
+    "radius": "I-Radius (r)",
+    "diameter": "I-Diameter (2R)",
+    "central_angle": "Ikona Ephakathi",
+    "inscribed_angle": "Ikona Ebhaliweko",
+    "ratio_verification": "Isilinganiso se-Kona Ephakathi / Ebhaliweko",
+    "tangent_length": "Ubude be-Tangent (|PT|)",
+    "chord_length": "Ubude be-Chord (|AB|)",
+    "sagitta": "I-Sagitta (s)",
+    "apothem": "I-Apothem (|OM|)",
+    "pythagorean_identity": "sin²θ + cos²θ = 1",
+    "sine_rule_ratio": "a / sin A = 2R",
+    "cosine_law": "c² = a² + b² − 2ab cos C",
+    "excess": "I-Spherical Excess ka-Girard (E)",
+    "spherical_area": "Indawo ye-Sfera (R² E)"
+  },
+  "derivations": {
+    "panel_title": "Ubufakazi Nokusungulwa Kwesinyathelo Ngesinyathelo",
+    "theorem_statement": "Isitatimende SomThetho",
+    "step_prefix": "Isinyathelo {step}",
+    "expand_all": "Vula zoke iinyathelo",
+    "collapse_all": "Vala zoke iinyathelo",
+    "axiomatic_principles": "Iinkambiso Ze-Axiom",
+    "verified": "Kufakazelwe Ngokugcweleko"
+  },
+  "visuals": {
+    "thales-theorem": {
+      "title": "UmThetho ka-Thales",
+      "category": "Ijometri",
+      "badge": "UmThetho 01",
+      "formula": "∠APB = 90°  |  |OP| = r",
+      "description": "Rhubhulula bonyana kubayini nanyana ngiyiphi ikona eyakhiwe yi-diameter emaphethelweni we-sidiriki iyikona enqophileko (90°)."
+    },
+    "angle-at-centre": {
+      "title": "UmThetho we-Kona e-Phakathi",
+      "category": "Ijometri",
+      "badge": "UmThetho 02",
+      "formula": "∠AOB = 2 · ∠APB  |  θ_centre = 2θ_circumference",
+      "description": "Bonisa bonyana ikona eyakhiwe yi-arc phakathi nendawo iphindwe kabili ngobukhulu bekona eyakhiwe emaphethelweni we-sidiriki."
+    },
+    "angles-in-same-segment": {
+      "title": "Amakona a-Segimendeni e-Fanako",
+      "category": "Ijometri",
+      "badge": "UmThetho 03",
+      "formula": "∠AP₁B = ∠AP₂B = θ",
+      "description": "Fakazela bonyana amakona a-segimendeni efanako ye-sidiriki ayakhiwe yi-chord efanako alingana ncamashi."
+    },
+    "cyclic-quadrilateral": {
+      "title": "UmThetho we-Cyclic Quadrilateral",
+      "category": "Ijometri",
+      "badge": "UmThetho 04",
+      "formula": "∠A + ∠C = 180°,  ∠B + ∠D = 180°",
+      "description": "Fakazela bonyana amakona aqaleneko e-cyclic quadrilateral ebhalwe ngekhephu enza isamba esiqinileko se-180°."
+    },
+    "tangent-radius": {
+      "title": "Ukunqopha kwe-Tangent ne-Radius",
+      "category": "Ijometri",
+      "badge": "UmThetho 05",
+      "formula": "OP ⊥ PT  ⟺  OP · PT = 0  (∠OPT = 90°)",
+      "description": "Bonisa bonyana umuda we-tangent kunanyana ngiliphi iphuzu le-sidiriki unqophile (90°) ku-radius endaweni yokuthintana."
+    },
+    "alternate-segment": {
+      "title": "UmThetho we-Segimende e-Tjhugulukako",
+      "category": "Ijometri",
+      "badge": "UmThetho 06",
+      "formula": "∠TAB = ∠APB",
+      "description": "Rhubhulula bonyana kubayini ikona ephakathi kwe-tangent ne-chord edlula ephuzwini lokuthintana ilingana nekona esegimendeni etjhugulukako."
+    },
+    "tangents-from-external-point": {
+      "title": "Iin-Tangent Eziphuma e-Phuzwini Lange-Ndle",
+      "category": "Ijometri",
+      "badge": "UmThetho 07",
+      "formula": "|PT₁| = |PT₂| = √(d² − r²)",
+      "description": "Bonisa bonyana iin-tangent ezimbili ezidonselwe ku-sidiriki kusukela ephuzwini linye langaphandle zilingana ngobude begodu zakha i-cyclic kite."
+    },
+    "perpendicular-chord-bisector": {
+      "title": "Umsiki O-Perpendicular we-Chord",
+      "category": "Ijometri",
+      "badge": "UmThetho 08",
+      "formula": "OM ⊥ AB  ⟺  |AM| = |MB|",
+      "description": "Fakazela bonyana umsiki o-perpendicular wananyana ngiyiphi i-chord udlula phakathi kwe-sidiriki begodu uhlukanisa i-arc kabili."
+    },
+    "unit-circle-helix": {
+      "title": "I-Unit Circle, Imisebenzi e-Tjhuphe ye-Trig Namaza we-Helix 3D",
+      "category": "I-Trigonometri",
+      "badge": "I-Trig 01",
+      "formula": "sin²θ + cos²θ = 1  |  r(θ) = (R cos θ, y(θ), R sin θ)",
+      "description": "Rhubhulula izilinganiso ze-trigonometri eziboniswe phezu kwamaza we-helix e-cylinder 3D ngebonda lokubikezela i-harmonic."
+    },
+    "law-of-sines": {
+      "title": "UmThetho wama-Sine ne-Circumcircle Invariant",
+      "category": "I-Trigonometri",
+      "badge": "I-Trig 02",
+      "formula": "a / sin A = b / sin B = c / sin C = 2R",
+      "description": "Fakazela isilinganiso sobude bamahlangothi kuma-sine aqaleneko silingana ne-circumdiameter 2R, sithintana nejometri ye-spherical ku-S²."
+    },
+    "law-of-cosines": {
+      "title": "UmThetho wama-Cosine Nokuboniswa Okuvamileko kwe-Pythagoras",
+      "category": "I-Trigonometri",
+      "badge": "I-Trig 03",
+      "formula": "c² = a² + b² − 2ab cos C",
+      "description": "Zwisisa umthetho ka-Pythagoras owandisiweko one-rectangle yokuhlangana ye-bilinear nomthetho we-cosine we-spherical."
+    },
+    "angle-sum-identities": {
+      "title": "Isamba se-Kona, Umehluko Nokuhlanganiswa kwe-Matrix ye-Rotation",
+      "category": "I-Trigonometri",
+      "badge": "I-Trig 04",
+      "formula": "R(α + β) = R(α) ∘ R(β)",
+      "description": "Thola amafomula wekhompawundi ye-sine ne-cosine kusukela kuma-triangle ane-kona eqondileko ahlanganisiweko namafreyimu we-rotation e-SO(3) Euler."
+    }
+  }
+}
