@@ -523,6 +523,16 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, C_base"));
         assert.ok(src.includes("key: 'helix-y'"));
 
+        // Shading Standards: Multi-stop gradients in 2D and vertexColors in 3D
+        assert.ok(src.includes("gradUnitDisk = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)"), '2D Unit Circle must use radial gradient shading');
+        assert.ok(src.includes("gradPythag = ctx.createLinearGradient(O.x, O.y, P.x, P.y)"), '2D Pythagorean triangle must use decomposed linear gradient');
+        assert.ok(src.includes("gradTanSec = ctx.createLinearGradient(O.x, O.y, tanTip.x, tanTip.y)"), '2D Tan-Sec triangle must use decomposed linear gradient');
+        assert.ok(src.includes("gradCotCsc = ctx.createLinearGradient(O.x, O.y, cotTip.x, cotTip.y)"), '2D Cot-Csc triangle must use decomposed linear gradient');
+        assert.ok(src.includes("new THREE.CircleGeometry(R, 64)"), '3D scene must include equatorial unit circle disk');
+        assert.ok(src.includes("triColors = ["), '3D Pythagorean right triangle must declare vertexColors');
+        assert.ok(src.includes("tanColors = ["), '3D Tan-Sec right triangle must declare vertexColors');
+        assert.ok(src.includes("cotColors = ["), '3D Cot-Csc right triangle must declare vertexColors');
+
         // HTML 2D & 3D Telemetry coherence for all 6 trig functions
         const uchHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/unit-circle-helix/index.html'), 'utf-8');
         assert.ok(uchHtml.includes('id="val-3d-tan"'), '3D Telemetry must include tan θ');

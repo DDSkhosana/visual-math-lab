@@ -518,6 +518,18 @@ export class TrigCanvas2DView {
     const cotBase = toScreen(m.points2D.cotLineBase);
     const cotTip = toScreen(m.points2D.cotLineTip);
 
+    // Unit Circle Interior Shading (Subtle radial gradient disk)
+    if (showArea) {
+      const gradUnitDisk = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      gradUnitDisk.addColorStop(0, 'rgba(56, 189, 248, 0.03)');
+      gradUnitDisk.addColorStop(0.75, 'rgba(2, 132, 199, 0.06)');
+      gradUnitDisk.addColorStop(1, 'rgba(14, 165, 233, 0.10)');
+      ctx.fillStyle = gradUnitDisk;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, TAU);
+      ctx.fill();
+    }
+
     // Main Circle
     ctx.strokeStyle = PALETTE.sky;
     ctx.lineWidth = 2.5;
@@ -525,10 +537,15 @@ export class TrigCanvas2DView {
     ctx.arc(cx, cy, r, 0, TAU);
     ctx.stroke();
 
-    // Relevant Area Shading (Discrete Right-Triangle Area Shading, no sector bleed)
+    // Relevant Area Shading (Discrete Mathematical Decomposed Gradient Shading for 6 Trig Functions)
     if (showArea) {
-      // Discrete Pythagorean Right Triangle (Crisp Indigo backing, distinct Amber cos θ & Emerald sin θ edges)
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
+      // 1. Primary Pythagorean Right Triangle: cos²θ + sin²θ = 1
+      // Decomposed gradient: Indigo at Origin O (r=1) -> Amber at Cx (cos θ) -> Emerald at P (sin θ)
+      const gradPythag = ctx.createLinearGradient(O.x, O.y, P.x, P.y);
+      gradPythag.addColorStop(0, 'rgba(99, 102, 241, 0.22)');   // Indigo at Origin O (r=1 root)
+      gradPythag.addColorStop(0.5, 'rgba(251, 191, 36, 0.22)'); // Amber at horizontal leg Cx (cos θ)
+      gradPythag.addColorStop(1, 'rgba(16, 185, 129, 0.26)');  // Emerald at circle point P (sin θ)
+      ctx.fillStyle = gradPythag;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(projX.x, projX.y);
@@ -536,9 +553,14 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      // Discrete Secant-Tangent Right Triangle (Crisp Rose backing, sharp Rose tangent & Sky secant edges)
+      // 2. Discrete Secant-Tangent Right Triangle: 1 + tan²θ = sec²θ
+      // Decomposed gradient: Violet at Origin O (sec θ ray) -> Sky at contact T0 (r=1) -> Rose at apex T (tan θ)
       if (state.showTanSec !== false && Math.abs(m.tan) < 4.0) {
-        ctx.fillStyle = 'rgba(244, 63, 94, 0.16)';
+        const gradTanSec = ctx.createLinearGradient(O.x, O.y, tanTip.x, tanTip.y);
+        gradTanSec.addColorStop(0, 'rgba(168, 85, 247, 0.22)');  // Violet at Origin O (sec θ ray)
+        gradTanSec.addColorStop(0.5, 'rgba(2, 132, 199, 0.20)'); // Sky at contact base T0 (r=1)
+        gradTanSec.addColorStop(1, 'rgba(244, 63, 94, 0.26)');   // Rose at tangent apex T (tan θ)
+        ctx.fillStyle = gradTanSec;
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
         ctx.lineTo(tanBase.x, tanBase.y);
@@ -547,9 +569,14 @@ export class TrigCanvas2DView {
         ctx.fill();
       }
 
-      // Discrete Cotangent-Cosecant Right Triangle (Crisp Fuchsia backing, sharp Orange cotangent & Fuchsia cosecant edges)
+      // 3. Discrete Cotangent-Cosecant Right Triangle: 1 + cot²θ = csc²θ
+      // Decomposed gradient: Fuchsia at Origin O (csc θ ray) -> Teal at contact C0 (r=1) -> Orange at apex Cot (cot θ)
       if (state.showCotCsc !== false && Math.abs(m.cot) < 4.0) {
-        ctx.fillStyle = 'rgba(217, 70, 239, 0.16)';
+        const gradCotCsc = ctx.createLinearGradient(O.x, O.y, cotTip.x, cotTip.y);
+        gradCotCsc.addColorStop(0, 'rgba(217, 70, 239, 0.22)');  // Fuchsia at Origin O (csc θ ray)
+        gradCotCsc.addColorStop(0.5, 'rgba(20, 184, 166, 0.20)'); // Teal at contact base C0 (r=1)
+        gradCotCsc.addColorStop(1, 'rgba(249, 115, 22, 0.26)');  // Orange at cotangent apex Cot (cot θ)
+        ctx.fillStyle = gradCotCsc;
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
         ctx.lineTo(cotBase.x, cotBase.y);
@@ -1769,6 +1796,24 @@ export class TrigScene3DView extends BaseScene3DView {
       this.handleP.position.copy(P_eq);
       this.handleP.visible = true;
 
+      // 0. Equatorial Unit Disk Mesh on XZ ground plane (y = 0)
+      if (showArea) {
+        const diskGeom = new THREE.CircleGeometry(R, 64);
+        const diskMesh = new THREE.Mesh(
+          diskGeom,
+          new THREE.MeshBasicMaterial({
+            color: PALETTE.sky,
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          })
+        );
+        diskMesh.rotation.x = -Math.PI / 2;
+        diskMesh.position.y = 0.005;
+        this.dynamicGroup.add(diskMesh);
+      }
+
       // 1. Structural 3D Cylinder Mesh & Vertical Generator Ribs
       const H_cyl = R * pitch * TAU;
       const yTop = H_cyl / 2;
@@ -1908,10 +1953,16 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && Math.abs(m.tan) < 3.2) {
           const tanTri = new THREE.BufferGeometry().setFromPoints([O, T_base, T_tip]);
           tanTri.setIndex([0, 1, 2]);
+          const tanColors = [
+            0.659, 0.333, 0.969, // Violet at Origin O (sec θ ray)
+            0.008, 0.518, 0.780, // Sky at T_base (r=1 contact base)
+            0.957, 0.247, 0.369, // Rose at T_tip (tan θ apex)
+          ];
+          tanTri.setAttribute('color', new THREE.Float32BufferAttribute(tanColors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
               tanTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+              new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.24, side: THREE.DoubleSide })
             )
           );
         }
@@ -1965,10 +2016,16 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && Math.abs(m.cot) < 3.2) {
           const cotTri = new THREE.BufferGeometry().setFromPoints([O, C_base, C_tip]);
           cotTri.setIndex([0, 1, 2]);
+          const cotColors = [
+            0.851, 0.275, 0.937, // Fuchsia at Origin O (csc θ ray)
+            0.078, 0.722, 0.651, // Teal at C_base (r=1 contact base)
+            0.976, 0.451, 0.086, // Orange at C_tip (cot θ apex)
+          ];
+          cotTri.setAttribute('color', new THREE.Float32BufferAttribute(cotColors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
               cotTri,
-              new THREE.MeshBasicMaterial({ color: PALETTE.fuchsia, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+              new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false })
             )
           );
         }
@@ -2021,10 +2078,16 @@ export class TrigScene3DView extends BaseScene3DView {
           new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
         ]);
         triGeom.setIndex([0, 1, 2]);
+        const triColors = [
+          0.388, 0.400, 0.945, // Indigo at Origin O (r=1 root)
+          0.984, 0.749, 0.141, // Amber at projX (cos θ)
+          0.063, 0.725, 0.506, // Emerald at P_eq (sin θ)
+        ];
+        triGeom.setAttribute('color', new THREE.Float32BufferAttribute(triColors, 3));
         this.dynamicGroup.add(
           new THREE.Mesh(
             triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.indigo, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+            new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
           )
         );
       }
