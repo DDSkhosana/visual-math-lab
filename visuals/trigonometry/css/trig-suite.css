@@ -23,8 +23,16 @@
   .perspective-badge {
     display: none !important;
   }
-  #canvas-3d-container .view-title {
-    max-width: calc(100% - 19.5rem) !important;
+  .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
+  #canvas-3d-container .view-title,
+  .view-title {
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
   }
 }
 
@@ -38,7 +46,25 @@
     padding: 0.18rem 0.45rem;
     font-size: 0.68rem;
   }
-  #canvas-3d-container .view-title {
+  #canvas-3d-container .view-title,
+  .view-title {
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
+  }
+}
+
+@media (max-width: 56rem) {
+  .perspective-badge {
+    display: none !important;
+  }
+  .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
+  #canvas-3d-container .view-title,
+  .view-title {
     top: 0.55rem !important;
     left: 0.6rem !important;
     max-width: calc(100% - 7rem) !important;
@@ -58,7 +84,8 @@
     padding: 0.18rem 0.45rem;
     font-size: 0.68rem;
   }
-  #canvas-3d-container .view-title {
+  #canvas-3d-container .view-title,
+  .view-title {
     top: 0.55rem !important;
     left: 0.6rem !important;
     max-width: calc(100% - 7rem) !important;
@@ -70,7 +97,21 @@
   left: 8.2rem !important;
 }
 
+@container canvas3d (max-width: 56rem) {
+  [dir="rtl"] .dimension-mode-bar {
+    right: 0.6rem !important;
+    left: auto !important;
+  }
+}
+
 @container canvas3d (max-width: 38rem) {
+  [dir="rtl"] .dimension-mode-bar {
+    right: 0.6rem !important;
+    left: auto !important;
+  }
+}
+
+@media (max-width: 56rem) {
   [dir="rtl"] .dimension-mode-bar {
     right: 0.6rem !important;
     left: auto !important;

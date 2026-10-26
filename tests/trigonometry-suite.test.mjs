@@ -480,13 +480,11 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(asHtml.includes('<span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">'));
         assert.ok(asHtml.includes('<span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">'));
 
-        // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations with mathematical gradient shading
-        assert.ok(src.includes("Upper Right Triangle △PSQ (Amber)"));
-        assert.ok(src.includes("const gradPSQ = ctx.createLinearGradient"));
+        // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations with crisp solid translucent tint shading
+        assert.ok(src.includes("Upper Right Triangle △PSQ"));
         assert.ok(src.includes("rgba(251, 191, 36"));
         assert.ok(src.includes("drawRightAngle(ctx, S, P, Q, 9, PALETTE.amber)"));
         assert.ok(src.includes("Difference Right Triangle Shading (△OQD)"));
-        assert.ok(src.includes("const gradOQD = ctx.createLinearGradient"));
         assert.ok(src.includes("rgba(244, 63, 94"));
         assert.ok(src.includes("drawRightAngle(ctx, Q, O, Pdiff, 11, PALETTE.rose)"));
         assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([P, S, Q])"));
@@ -523,15 +521,15 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle3, C_base"));
         assert.ok(src.includes("key: 'helix-y'"));
 
-        // Shading Standards: Multi-stop gradients in 2D and vertexColors in 3D
-        assert.ok(src.includes("gradUnitDisk = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)"), '2D Unit Circle must use radial gradient shading');
-        assert.ok(src.includes("gradPythag = ctx.createLinearGradient(O.x, O.y, P.x, P.y)"), '2D Pythagorean triangle must use decomposed linear gradient');
-        assert.ok(src.includes("gradTanSec = ctx.createLinearGradient(O.x, O.y, tanTip.x, tanTip.y)"), '2D Tan-Sec triangle must use decomposed linear gradient');
-        assert.ok(src.includes("gradCotCsc = ctx.createLinearGradient(O.x, O.y, cotTip.x, cotTip.y)"), '2D Cot-Csc triangle must use decomposed linear gradient');
+        // Shading Standards: Crisp High-Contrast Solid Translucent Shading in 2D and 3D
+        assert.ok(src.includes("rgba(56, 189, 248, 0.05)"), '2D Unit Circle disk must use subtle sky tint');
+        assert.ok(src.includes("Primary Pythagorean Right Triangle: cos²θ + sin²θ = 1 (Crisp Indigo)"), '2D Pythagorean triangle must use crisp Indigo tint');
+        assert.ok(src.includes("Discrete Secant-Tangent Right Triangle: 1 + tan²θ = sec²θ (Crisp Rose)"), '2D Tan-Sec triangle must use crisp Rose tint');
+        assert.ok(src.includes("Discrete Cotangent-Cosecant Right Triangle: 1 + cot²θ = csc²θ (Crisp Fuchsia)"), '2D Cot-Csc triangle must use crisp Fuchsia tint');
         assert.ok(src.includes("new THREE.CircleGeometry(R, 64)"), '3D scene must include equatorial unit circle disk');
-        assert.ok(src.includes("triColors = ["), '3D Pythagorean right triangle must declare vertexColors');
-        assert.ok(src.includes("tanColors = ["), '3D Tan-Sec right triangle must declare vertexColors');
-        assert.ok(src.includes("cotColors = ["), '3D Cot-Csc right triangle must declare vertexColors');
+        assert.ok(src.includes("color: PALETTE.indigo, transparent: true, opacity: 0.18"), '3D Pythagorean right triangle must declare solid Indigo material');
+        assert.ok(src.includes("color: PALETTE.rose, transparent: true, opacity: 0.18"), '3D Tan-Sec right triangle must declare solid Rose material');
+        assert.ok(src.includes("color: PALETTE.fuchsia, transparent: true, opacity: 0.18"), '3D Cot-Csc right triangle must declare solid Fuchsia material');
 
         // HTML 2D & 3D Telemetry coherence for all 6 trig functions
         const uchHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/unit-circle-helix/index.html'), 'utf-8');

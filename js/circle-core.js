@@ -2312,6 +2312,29 @@ export function bindStandardToggles(store, ...args) {
   svgButtons.forEach((btn) => {
     btn.addEventListener('click', () => viewTarget?.exportSVG?.());
   });
+
+  // Universal Two-Finger Touch Gestures & Scroll Wheel Wiring
+  const canvas2dEl = viewTarget?.canvas || (typeof document !== 'undefined' ? document.getElementById('canvas2d') : null);
+  if (canvas2dEl && !canvas2dEl._touchWheelGesturesAttached) {
+    canvas2dEl._touchWheelGesturesAttached = true;
+    const vId = opts.visualId || opts.exportPrefix || '';
+    if (vId === 'thales-theorem') {
+      attachCanvasTouchAndWheelGestures(canvas2dEl, store, {
+        getRadius: (st) => st.zoom || 18,
+        setRadius: (z) => ({ zoom: z }),
+        minRadius: 8,
+        maxRadius: 40,
+        radiusStep: 0.5,
+      });
+    } else {
+      attachCanvasTouchAndWheelGestures(canvas2dEl, store, {
+        getRadius: (st) => st.radius || 180,
+        setRadius: (r) => ({ radius: r }),
+        minRadius: 80,
+        maxRadius: 280,
+      });
+    }
+  }
 }
 
 /**
@@ -2831,6 +2854,149 @@ export class PlaybackController {
       this.lastTime = null;
     }
   }
+}
+
+/**
+ * Attaches unified two-finger touch gestures (pinch-to-zoom radius + two-finger pan)
+ * and rich scroll wheel functionality (mouse wheel zoom, trackpad pinch ctrlKey zoom,
+ * and trackpad horizontal/shift two-finger pan) to any 2D canvas.
+ *
+ * Automatically coordinates with active single-finger dragging by canceling single-finger
+ * vertex drags whenever two touch points are detected.
+ */
+export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
+  const {
+    minRadius = 100,
+    maxRadius = 260,
+    radiusStep = 1,
+    getRadius = (st) => st.radius || 180,
+    setRadius = (r, st) => ({ radius: r }),
+    onGestureStart = null,
+    onGestureEnd = null,
+  } = options;
+
+  const pointers = new Map();
+  let prevDist = 0;
+  let prevMid = { x: 0, y: 0 };
+  let isGesturing = false;
+
+  const getDistanceAndMidpoint = (p1, p2) => {
+    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    return { dist, mid };
+  };
+
+  // 1. Wheel & Trackpad Listener (capture: true, passive: false)
+  canvas.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      const st = store.get();
+      const curR = getRadius(st);
+      const curPan = st.pan || { x: 0, y: 0 };
+
+      // Trackpad Pinch-to-Zoom (emitted as e.ctrlKey === true)
+      if (e.ctrlKey) {
+        const factor = Math.exp(-e.deltaY * 0.008);
+        const nextR = clamp(Math.round(curR * factor / radiusStep) * radiusStep, minRadius, maxRadius);
+        store.set(setRadius(nextR, st));
+        return;
+      }
+
+      // Trackpad Two-Finger Pan or Shift+Wheel Pan
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        store.set({
+          pan: {
+            x: curPan.x - e.deltaX,
+            y: curPan.y - e.deltaY,
+          },
+        });
+        return;
+      }
+
+      // Standard Mouse Wheel Zoom
+      const factor = e.deltaY > 0 ? 0.95 : 1.05;
+      const nextR = clamp(Math.round(curR * factor / radiusStep) * radiusStep, minRadius, maxRadius);
+      store.set(setRadius(nextR, st));
+    },
+    { capture: true, passive: false }
+  );
+
+  // 2. Pointer Listeners for Two-Finger Touch Gestures (Pinch Zoom & Two-Finger Pan)
+  canvas.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (e.pointerType !== 'touch') return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2) {
+        isGesturing = true;
+        const pts = Array.from(pointers.values());
+        const { dist, mid } = getDistanceAndMidpoint(pts[0], pts[1]);
+        prevDist = dist;
+        prevMid = mid;
+        if (typeof onGestureStart === 'function') onGestureStart();
+      }
+    },
+    { capture: true }
+  );
+
+  canvas.addEventListener(
+    'pointermove',
+    (e) => {
+      if (e.pointerType !== 'touch' || !pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2) {
+        e.preventDefault();
+        const pts = Array.from(pointers.values());
+        const { dist, mid } = getDistanceAndMidpoint(pts[0], pts[1]);
+        const st = store.get();
+
+        // Two-Finger Pan
+        const dx = mid.x - prevMid.x;
+        const dy = mid.y - prevMid.y;
+        const curPan = st.pan || { x: 0, y: 0 };
+        const nextPan = { x: curPan.x + dx, y: curPan.y + dy };
+
+        // Pinch Zoom
+        let radiusUpdate = {};
+        if (prevDist > 0 && dist > 0) {
+          const ratio = dist / prevDist;
+          const curR = getRadius(st);
+          const nextR = clamp(Math.round(curR * ratio / radiusStep) * radiusStep, minRadius, maxRadius);
+          radiusUpdate = setRadius(nextR, st);
+        }
+
+        prevDist = dist;
+        prevMid = mid;
+        store.set({ ...radiusUpdate, pan: nextPan });
+      }
+    },
+    { capture: true }
+  );
+
+  const onPointerUp = (e) => {
+    if (pointers.has(e.pointerId)) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2 && isGesturing) {
+        isGesturing = false;
+        if (typeof onGestureEnd === 'function') onGestureEnd();
+      }
+    }
+  };
+
+  canvas.addEventListener('pointerup', onPointerUp, { capture: true });
+  canvas.addEventListener('pointercancel', onPointerUp, { capture: true });
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pointerup', onPointerUp, { capture: true });
+    window.addEventListener('pointercancel', onPointerUp, { capture: true });
+  }
+
+  return {
+    isGesturing: () => isGesturing,
+    getPointersCount: () => pointers.size,
+  };
 }
 
 export {

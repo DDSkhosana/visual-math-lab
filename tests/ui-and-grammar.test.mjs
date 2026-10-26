@@ -670,5 +670,14 @@ test("Container Queries & Non-Overlapping Viewport Layout: canvas3d container qu
       css.includes("top: 2.15rem !important;"),
       `${name} must place .dimension-mode-bar on row 2 on narrow viewports to avoid header collisions`
     );
+    assert.ok(
+      css.includes("max-width: calc(100% - 7rem) !important;"),
+      `${name} must allocate full row width to .view-title when dimension-mode-bar is on row 2`
+    );
   }
+
+  // 3. Touch gestures & scroll wheel are universal across all visualizers
+  const circleCoreJs = fs.readFileSync(path.join(rootDir, "js", "circle-core.js"), "utf8");
+  assert.ok(circleCoreJs.includes("export function attachCanvasTouchAndWheelGestures"), "circle-core.js must export attachCanvasTouchAndWheelGestures");
+  assert.ok(circleCoreJs.includes("attachCanvasTouchAndWheelGestures(canvas2dEl, store"), "bindStandardToggles must wire attachCanvasTouchAndWheelGestures universally");
 });

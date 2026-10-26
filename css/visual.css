@@ -2620,6 +2620,11 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   .perspective-badge {
     display: none !important;
   }
+  .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
 }
 
 @container canvas3d (max-width: 38rem) {
@@ -2635,7 +2640,23 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   }
 }
 
+@media (max-width: 56rem) {
+  .perspective-badge {
+    display: none !important;
+  }
+
+  .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
+}
+
 @media (max-width: 48rem) {
+  .perspective-badge {
+    display: none !important;
+  }
+
   .camera-presets-bar {
     top: 0.5rem;
     right: 0.5rem;
@@ -2714,7 +2735,21 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   left: 8.5rem !important;
 }
 
+@container canvas3d (max-width: 56rem) {
+  [dir="rtl"] .dimension-mode-bar {
+    right: 0.6rem !important;
+    left: auto !important;
+  }
+}
+
 @container canvas3d (max-width: 38rem) {
+  [dir="rtl"] .dimension-mode-bar {
+    right: 0.6rem !important;
+    left: auto !important;
+  }
+}
+
+@media (max-width: 56rem) {
   [dir="rtl"] .dimension-mode-bar {
     right: 0.6rem !important;
     left: auto !important;
@@ -2733,7 +2768,8 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 
-#canvas-3d-container .view-title {
+#canvas-3d-container .view-title,
+.view-title {
   max-width: calc(100% - 19.5rem) !important;
   white-space: nowrap !important;
   overflow: hidden !important;
@@ -2741,13 +2777,8 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 @container canvas3d (max-width: 56rem) {
-  #canvas-3d-container .view-title {
-    max-width: calc(100% - 19.5rem) !important;
-  }
-}
-
-@container canvas3d (max-width: 38rem) {
-  #canvas-3d-container .view-title {
+  #canvas-3d-container .view-title,
+  .view-title {
     top: 0.55rem !important;
     left: 0.6rem !important;
     max-width: calc(100% - 7rem) !important;
@@ -2757,8 +2788,36 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   }
 }
 
+@container canvas3d (max-width: 38rem) {
+  #canvas-3d-container .view-title,
+  .view-title {
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+@media (max-width: 56rem) {
+  #canvas-3d-container .view-title,
+  .view-title {
+    top: 0.55rem !important;
+    left: 0.6rem !important;
+    max-width: calc(100% - 7rem) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .perspective-badge {
+    display: none !important;
+  }
+}
+
 @media (max-width: 48rem) {
-  #canvas-3d-container .view-title {
+  #canvas-3d-container .view-title,
+  .view-title {
     top: 0.55rem !important;
     left: 0.6rem !important;
     max-width: calc(100% - 7rem) !important;
