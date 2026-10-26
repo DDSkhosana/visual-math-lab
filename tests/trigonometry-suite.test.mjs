@@ -480,12 +480,14 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(asHtml.includes('<span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">'));
         assert.ok(asHtml.includes('<span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">'));
 
-        // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations
+        // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations with mathematical gradient shading
         assert.ok(src.includes("Upper Right Triangle △PSQ (Amber)"));
-        assert.ok(src.includes("rgba(251, 191, 36, 0.14)"));
+        assert.ok(src.includes("const gradPSQ = ctx.createLinearGradient"));
+        assert.ok(src.includes("rgba(251, 191, 36"));
         assert.ok(src.includes("drawRightAngle(ctx, S, P, Q, 9, PALETTE.amber)"));
         assert.ok(src.includes("Difference Right Triangle Shading (△OQD)"));
-        assert.ok(src.includes("rgba(244, 63, 94, 0.14)"));
+        assert.ok(src.includes("const gradOQD = ctx.createLinearGradient"));
+        assert.ok(src.includes("rgba(244, 63, 94"));
         assert.ok(src.includes("drawRightAngle(ctx, Q, O, Pdiff, 11, PALETTE.rose)"));
         assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([P, S, Q])"));
         assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([O, Q, Pdiff])"));

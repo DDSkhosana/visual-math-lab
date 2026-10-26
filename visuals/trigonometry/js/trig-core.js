@@ -1299,8 +1299,12 @@ export class TrigCanvas2DView {
 
     // Stacked Right Triangles Shading (△OMQ, △OQP, and △PSQ)
     if (state.showStackedTriangles !== false && showArea) {
-      // △OMQ: Pure Sky Blue tint (Base OM = cos α cos β, Height MQ = sin α cos β)
-      ctx.fillStyle = 'rgba(2, 132, 199, 0.16)';
+      // △OMQ: Decomposed gradient (Sky at O -> Amber at M [cos α cos β] -> Violet at Q [cos β])
+      const gradOMQ = ctx.createLinearGradient(O.x, O.y, Q.x, Q.y);
+      gradOMQ.addColorStop(0, 'rgba(2, 132, 199, 0.22)');   // Sky at O
+      gradOMQ.addColorStop(0.5, 'rgba(251, 191, 36, 0.20)'); // Amber at M (cos α cos β)
+      gradOMQ.addColorStop(1, 'rgba(168, 85, 247, 0.20)');  // Violet at Q (cos β)
+      ctx.fillStyle = gradOMQ;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(M.x, M.y);
@@ -1308,8 +1312,12 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      // △OQP: Pure Violet tint (Base OQ = cos β, Perpendicular leg QP = sin β)
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
+      // △OQP: Decomposed gradient (Sky at O -> Violet at Q [sin β leg] -> Emerald at P [vector α+β])
+      const gradOQP = ctx.createLinearGradient(O.x, O.y, P.x, P.y);
+      gradOQP.addColorStop(0, 'rgba(2, 132, 199, 0.20)');   // Sky at O
+      gradOQP.addColorStop(0.5, 'rgba(168, 85, 247, 0.20)'); // Violet at Q (sin β leg)
+      gradOQP.addColorStop(1, 'rgba(16, 185, 129, 0.24)');  // Emerald at P (vector α+β)
+      ctx.fillStyle = gradOQP;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(Q.x, Q.y);
@@ -1317,8 +1325,12 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      // Upper Right Triangle △PSQ (Amber)
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+      // Upper Right Triangle △PSQ (Amber): Decomposed gradient (Violet at Q -> Amber at S [sin α sin β] -> Emerald at P [cos α sin β])
+      const gradPSQ = ctx.createLinearGradient(Q.x, Q.y, P.x, P.y);
+      gradPSQ.addColorStop(0, 'rgba(168, 85, 247, 0.20)');  // Violet at Q
+      gradPSQ.addColorStop(0.5, 'rgba(251, 191, 36, 0.20)'); // Amber at S (sin α sin β)
+      gradPSQ.addColorStop(1, 'rgba(16, 185, 129, 0.24)');  // Emerald at P (cos α sin β)
+      ctx.fillStyle = gradPSQ;
       ctx.beginPath();
       ctx.moveTo(P.x, P.y);
       ctx.lineTo(S.x, S.y);
@@ -1327,9 +1339,13 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Difference Right Triangle Shading (△OQD)
+    // Difference Right Triangle Shading (△OQD): Decomposed gradient (Sky at O -> Violet at Q [cos β] -> Rose at D [α−β])
     if (state.showDifferenceRay !== false && showArea) {
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.14)';
+      const gradOQD = ctx.createLinearGradient(O.x, O.y, Pdiff.x, Pdiff.y);
+      gradOQD.addColorStop(0, 'rgba(2, 132, 199, 0.20)');   // Sky at O
+      gradOQD.addColorStop(0.5, 'rgba(168, 85, 247, 0.18)'); // Violet at Q (cos β)
+      gradOQD.addColorStop(1, 'rgba(244, 63, 94, 0.24)');   // Rose at D (α−β)
+      ctx.fillStyle = gradOQD;
       ctx.beginPath();
       ctx.moveTo(O.x, O.y);
       ctx.lineTo(Q.x, Q.y);
@@ -2814,25 +2830,49 @@ export class TrigScene3DView extends BaseScene3DView {
         if (showArea && state.showStackedTriangles !== false) {
           const g1 = new THREE.BufferGeometry().setFromPoints([O, M, Q]);
           g1.setIndex([0, 1, 2]);
+          const g1Colors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.984, 0.749, 0.141, // Amber at M (cos α cos β)
+            0.659, 0.333, 0.969, // Violet at Q (cos β)
+          ];
+          g1.setAttribute('color', new THREE.Float32BufferAttribute(g1Colors, 3));
 
           const g2 = new THREE.BufferGeometry().setFromPoints([O, Q, P]);
           g2.setIndex([0, 1, 2]);
+          const g2Colors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.659, 0.333, 0.969, // Violet at Q
+            0.063, 0.725, 0.506, // Emerald at P (sin(α+β))
+          ];
+          g2.setAttribute('color', new THREE.Float32BufferAttribute(g2Colors, 3));
 
           const g3 = new THREE.BufferGeometry().setFromPoints([P, S, Q]);
           g3.setIndex([0, 1, 2]);
+          const g3Colors = [
+            0.063, 0.725, 0.506, // Emerald at P
+            0.984, 0.749, 0.141, // Amber at S
+            0.659, 0.333, 0.969, // Violet at Q
+          ];
+          g3.setAttribute('color', new THREE.Float32BufferAttribute(g3Colors, 3));
 
           this.dynamicGroup.add(
-            new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
-            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
-            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.18, side: THREE.DoubleSide }))
+            new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })),
+            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide })),
+            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.20, side: THREE.DoubleSide }))
           );
         }
 
         if (showArea && state.showDifferenceRay !== false) {
           const gDiff = new THREE.BufferGeometry().setFromPoints([O, Q, Pdiff]);
           gDiff.setIndex([0, 1, 2]);
+          const gDiffColors = [
+            0.008, 0.518, 0.780, // Sky at O
+            0.659, 0.333, 0.969, // Violet at Q
+            0.957, 0.247, 0.369, // Rose at Pdiff
+          ];
+          gDiff.setAttribute('color', new THREE.Float32BufferAttribute(gDiffColors, 3));
           this.dynamicGroup.add(
-            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.18, side: THREE.DoubleSide }))
+            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22, side: THREE.DoubleSide }))
           );
         }
 
