@@ -449,6 +449,20 @@ export class TrigCanvas2DView {
         } else if (adh.id === 'A') {
           drawTextBadge(ctx, `A: b = ${state.sideB}`, activeH.x, activeH.y - 28, PALETTE.sky);
         }
+      } else if (this.visualId === 'law-of-sines') {
+        const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
+        if (adh.id === 'A') {
+          drawTextBadge(ctx, `A: ∠A = ${m.interiorAngles.degA.toFixed(1)}°, a = ${m.sides.a.toFixed(2)}`, activeH.x, activeH.y - 28, PALETTE.red);
+        } else if (adh.id === 'B') {
+          drawTextBadge(ctx, `B: ∠B = ${m.interiorAngles.degB.toFixed(1)}°, b = ${m.sides.b.toFixed(2)}`, activeH.x, activeH.y - 28, PALETTE.green);
+        } else if (adh.id === 'C') {
+          drawTextBadge(ctx, `C: ∠C = ${m.interiorAngles.degC.toFixed(1)}°, c = ${m.sides.c.toFixed(2)}`, activeH.x, activeH.y - 28, PALETTE.violet);
+        } else if (adh.id === 'antipodeA') {
+          drawTextBadge(ctx, `A': 2R = ${m.diameter2R.toFixed(1)}`, activeH.x, activeH.y - 28, PALETTE.amber);
+        } else {
+          const curAngDeg = Math.round(((toDegrees(state[adh.field] ?? 0) % 360) + 360) % 360);
+          drawTextBadge(ctx, `${adh.label || adh.id}: ${curAngDeg}°`, activeH.x, activeH.y - 28, adh.color || PALETTE.amber);
+        }
       } else if (this.visualId === 'angle-sum-identities') {
         if (adh.id === 'P') {
           const pDeg = Math.round(((toDegrees((state.angleAlpha || 0) + (state.angleBeta || 0)) % 360) + 360) % 360);
@@ -460,6 +474,9 @@ export class TrigCanvas2DView {
           const dDeg = Math.round(((toDegrees((state.angleAlpha || 0) - (state.angleBeta || 0)) % 360) + 360) % 360);
           drawTextBadge(ctx, `D: α−β = ${dDeg}°`, activeH.x, activeH.y - 28, PALETTE.rose);
         }
+      } else if (this.visualId === 'unit-circle-helix') {
+        const curAngDeg = Math.round(((toDegrees(state.angleTheta ?? 0) % 360) + 360) % 360);
+        drawTextBadge(ctx, `P: θ = ${curAngDeg}°`, activeH.x, activeH.y - 28, PALETTE.violet);
       } else {
         const curAngDeg = Math.round(((toDegrees(state[adh.field] ?? 0) % 360) + 360) % 360);
         drawTextBadge(ctx, `${adh.label || adh.id}: ${curAngDeg}°`, activeH.x, activeH.y - 28, adh.color || PALETTE.amber);
@@ -467,6 +484,11 @@ export class TrigCanvas2DView {
     } else if (this.activeDrag && this.activeDrag.type === 'radius') {
       if (this.visualId === 'law-of-cosines') {
         drawTextBadge(ctx, `a = ${state.sideA}`, circCx + circR, circCy - 14, PALETTE.sky);
+      } else if (this.visualId === 'law-of-sines') {
+        const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
+        drawTextBadge(ctx, `2R = ${m.diameter2R.toFixed(1)} (R = ${(m.diameter2R / 2).toFixed(1)})`, circCx + circR, circCy - 14, PALETTE.sky);
+      } else if (this.visualId === 'angle-sum-identities') {
+        drawTextBadge(ctx, `Unit Circle (R = 1.0)`, circCx + circR, circCy - 14, PALETTE.sky);
       } else {
         drawTextBadge(ctx, `r = ${Math.round(circR)}px`, circCx + circR, circCy - 14, PALETTE.sky);
       }

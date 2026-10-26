@@ -347,6 +347,13 @@ describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle T
         assert.ok(src.includes("store.set({ angleB: normalizeAngle(ang + Math.PI) })"), 'Dragging antipode A rotates vertex B');
         assert.ok(src.includes('this.hoverCircumference'), 'Canvas must support circumference hover indicator');
         assert.ok(src.includes('canvas.addEventListener(\'keydown\''), 'Canvas must support keyboard arrow navigation');
+        assert.ok(src.includes("A: ∠A = ${m.interiorAngles.degA.toFixed(1)}°, a = ${m.sides.a.toFixed(2)}"), 'Law of Sines active drag badge for A displays interior angle and opposite side');
+        assert.ok(src.includes("A': 2R = ${m.diameter2R.toFixed(1)}"), 'Law of Sines active drag badge for antipode A displays 2R diameter');
+        assert.ok(src.includes("2R = ${m.diameter2R.toFixed(1)} (R = ${(m.diameter2R / 2).toFixed(1)})"), 'Law of Sines radius drag badge displays circumdiameter 2R');
+
+        // Angle Sum 2D interaction affordances
+        assert.ok(src.includes("P: α+β = ${pDeg}°"), 'Angle Sum active drag badge for P displays compound angle α+β');
+        assert.ok(src.includes("D: α−β = ${dDeg}°"), 'Angle Sum active drag badge for D displays compound angle α−β');
 
         // Law of Cosines 2D interaction affordances
         assert.ok(src.includes("originY = cy + m.projection.hAlt * scale * 0.35"), 'Law of Cosines getInteractiveHandles2D must align originY with altitude projection offset');
