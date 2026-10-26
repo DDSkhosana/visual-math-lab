@@ -650,6 +650,7 @@ export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = M
     thetaA,
     thetaB,
     thetaC,
+    cosC_arc,
     angleC: C,
     angleCDeg: toDegrees(C),
     sphericalAngles: {
