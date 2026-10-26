@@ -76,6 +76,8 @@ import {
   computeSpatialAngleSumEuler,
 } from './trig-math.js';
 
+import { HarmonicSonifier } from './harmonic-sonifier.js';
+
 /* ============================================================================
    1. INITIAL STATE FACTORY & GEOMETRY HELPERS
    ============================================================================ */
@@ -3638,6 +3640,15 @@ export function mountTrigVisual({ visualId }) {
   const playBtn = document.getElementById('btn-playback');
   new PlaybackController(store, playBtn, { field: playFieldMap[visualId] || 'angleTheta', speed: 0.65 });
 
+  // Harmonic Audio Sonification (Unit Circle Helix)
+  let sonifier = null;
+  if (visualId === 'unit-circle-helix') {
+    sonifier = new HarmonicSonifier();
+    if (typeof document !== 'undefined') {
+      sonifier.attachControls(document);
+    }
+  }
+
   // Bind visual-specific sliders, checkboxes, and full 2D Canvas interaction
   bindVisualSpecificControls(store, visualId, view2d);
 
@@ -3647,12 +3658,15 @@ export function mountTrigVisual({ visualId }) {
     scene3d.render(state);
     derivations.render(state);
     updateTelemetryAndSlidersDOM(state, visualId);
+    if (sonifier) {
+      sonifier.update(state);
+    }
   };
 
   store.subscribe(update);
   update(store.get());
 
-  return { store, view2d, scene3d };
+  return { store, view2d, scene3d, sonifier };
 }
 
 function bindVisualSpecificControls(store, visualId, view2d) {

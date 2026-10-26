@@ -687,4 +687,44 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("setText('val-3d-cos-ratio', m.cosC.toFixed(4))"), '3D telemetry must set val-3d-cos-ratio');
         assert.ok(src.includes("cos C = (a²+b²−c²)/(2ab)"), 'Derivations step 1 must align with Cosine Ratio formula');
     });
+
+    test('Unit Circle Harmonic Audio Sonification: Web Audio API mathematical mapping and DOM wiring', async () => {
+        const { thetaToFrequency, freqToNoteName, HarmonicSonifier } = await import('../visuals/trigonometry/js/harmonic-sonifier.js');
+
+        // 1. Frequency calculation: f(θ) = f0 * 2^(θ/2π)
+        const baseFreq = 261.625565; // C4 Middle C
+        assert.ok(Math.abs(thetaToFrequency(0, baseFreq) - 261.625565) < 1e-4, 'At 0 rad, frequency must be C4 (261.63 Hz)');
+        assert.ok(Math.abs(thetaToFrequency(Math.PI, baseFreq) - 369.9944) < 1e-3, 'At π rad, frequency must be tritone F#4 (~370.00 Hz)');
+        assert.ok(Math.abs(thetaToFrequency(1.5 * Math.PI, baseFreq) - 440.0) < 1e-3, 'At 3π/2 rad, frequency must be concert A4 (440.0 Hz)');
+        assert.ok(Math.abs(thetaToFrequency(2 * Math.PI, baseFreq) - 261.625565) < 1e-4, 'At 2π rad, frequency wraps to octave C4');
+
+        // 2. Note name mapping
+        assert.equal(freqToNoteName(261.63), 'C4');
+        assert.equal(freqToNoteName(440.0), 'A4');
+        assert.equal(freqToNoteName(523.25), 'C5');
+
+        // 3. Sonifier instance lifecycle (headless safe)
+        const sonifier = new HarmonicSonifier({ baseFreq });
+        assert.equal(sonifier.enabled, false, 'Audio must be muted/disabled by default (autoplay policy)');
+        sonifier.update({ angleTheta: Math.PI / 2 });
+        assert.ok(sonifier.currentFreq > 310 && sonifier.currentFreq < 312, 'Calculates frequency at 90 degrees (~311.1 Hz)');
+        assert.equal(sonifier.currentNote, 'D#4');
+
+        sonifier.setVolume(0.75);
+        assert.equal(sonifier.volume, 0.75);
+
+        // 4. HTML elements in unit-circle-helix/index.html
+        const uchHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/unit-circle-helix/index.html'), 'utf-8');
+        assert.ok(uchHtml.includes('id="btn-toggle-sound"'), 'Toolbar must include #btn-toggle-sound');
+        assert.ok(uchHtml.includes('id="sound-status-pill"'), 'Toolbar must include #sound-status-pill');
+        assert.ok(uchHtml.includes('id="val-audio-freq"'), 'Telemetry must display live #val-audio-freq');
+        assert.ok(uchHtml.includes('id="section-audio-sonification"'), 'Controls panel must have collapsible #section-audio-sonification');
+        assert.ok(uchHtml.includes('id="check-audio-enable"'), 'Controls must include #check-audio-enable');
+        assert.ok(uchHtml.includes('id="slider-audio-volume"'), 'Controls must include volume slider');
+
+        // 5. trig-core.js wiring
+        assert.ok(src.includes("import { HarmonicSonifier } from './harmonic-sonifier.js'"), 'trig-core.js must import HarmonicSonifier');
+        assert.ok(src.includes("sonifier = new HarmonicSonifier()"), 'trig-core.js must instantiate HarmonicSonifier for unit-circle-helix');
+        assert.ok(src.includes("sonifier.update(state)"), 'trig-core.js must pipe state updates to sonifier');
+    });
 });

@@ -2414,6 +2414,35 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   transform: scale(0.96);
 }
 
+.btn-toolbar--sound {
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 28px;
+  color: #94a3b8;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.btn-toolbar--sound:hover {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+}
+.btn-toolbar--sound.active {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+.btn-toolbar--sound #sound-status-pill.is-on {
+  color: #22c55e;
+  font-weight: 700;
+}
+.btn-toolbar--sound #sound-status-pill.is-off {
+  color: #94a3b8;
+}
+
 
 /* ==========================================================================
    RTL Layout Mirroring for Visualizer Workspace

@@ -88,6 +88,11 @@
         <button type="button" class="btn-toolbar btn-playback-speed" id="btn-playback-speed" title="Adjust playback speed: 0.5x, 1x, 1.5x, 2x (Shortcut: Shift+P)" aria-label="Playback speed multiplier">
           <span id="playback-speed-label">1x</span>
         </button>
+        <button type="button" class="btn-toolbar btn-toolbar--sound" id="btn-toggle-sound" title="Toggle Harmonic Audio Sonification (Shortcut: M)" aria-label="Harmonic Audio Sonification" aria-pressed="false">
+          <svg class="icon-sound-on" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg class="icon-sound-off" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          <span>Sound: <b class="toggle-state-text" id="sound-status-pill">OFF</b></span>
+        </button>
           <span class="toolbar-divider"></span>
           <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen">
             <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
@@ -126,6 +131,7 @@
               <div class="stat-line"><span class="color-fuchsia">csc θ (1/sin):</span><strong class="color-fuchsia" id="tel-csc">1.3456</strong></div>
               <div class="stat-line"><span class="color-teal">cos²θ + sin²θ:</span><strong class="color-teal" id="tel-pythag">1.000000</strong></div>
               <div class="stat-line"><span class="color-lavender">Reflex θ* (360° − θ):</span><strong class="color-lavender" id="tel-reflex">312.0°</strong></div>
+              <div class="stat-line"><span class="color-amber">Harmonic Pitch (f):</span><strong class="color-teal" id="val-audio-freq">261.6 Hz (C4)</strong></div>
               <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-indigo">Origin O (0, 0):</span><strong class="color-indigo" id="tel-o-coords">0.00, 0.00</strong></div>
               <div class="stat-line"><span class="color-violet">Point P (cos θ, sin θ):</span><strong class="color-violet" id="tel-p-coords">0.67, 0.74</strong></div>
               <div class="stat-line"><span class="color-amber">Foot Cx (cos θ, 0):</span><strong class="color-amber" id="tel-cx-coords">0.67, 0.00</strong></div>
@@ -204,6 +210,34 @@
                 <span>Unit System Conversion</span><span class="icon">▶</span>
               </div>
               <div class="collapsible-content" id="content-unit-converter"></div>
+            </div>
+            <div class="collapsible-section collapsed" id="section-audio-sonification">
+              <div class="collapsible-header" id="header-audio-sonification" aria-expanded="false">
+                <span>Harmonic Audio Sonification</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-audio-enable">
+                    <span class="checkmark"></span>
+                    <span class="color-amber font-semibold">Enable Sine Wave Audio</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-audio-chimes" checked>
+                    <span class="checkmark"></span>
+                    <span class="color-emerald">Axis Crossing Chimes (0°, 90°, 180°, 270°)</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-audio-harmonics" checked>
+                    <span class="checkmark"></span>
+                    <span class="color-sky">2nd Harmonic Overtone (2f)</span>
+                  </label>
+                  <div class="slider-container" style="margin-top:4px;">
+                    <label for="slider-audio-volume"><span class="color-teal">Master Volume:</span><span id="label-audio-volume" class="color-teal font-bold">45%</span></label>
+                    <input type="range" id="slider-audio-volume" min="0" max="100" value="45">
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
