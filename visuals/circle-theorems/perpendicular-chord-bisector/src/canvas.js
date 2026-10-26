@@ -44,22 +44,14 @@ export class CanvasView {
       // Minor circular segment cut off by chord AB
       drawSubtendedSegment(ctx, center, g.r, g.A, g.B, 'rgba(56, 189, 248, 0.10)', null, true);
 
-      // Congruence right triangles multi-color decomposed fill (OM apothem: Emerald, OA/OB radii: Sky, AM/MB half-chords: Blue/Orange)
-      const gradOMA = ctx.createLinearGradient(g.cx, g.cy, g.A.x, g.A.y);
-      gradOMA.addColorStop(0, 'rgba(2, 132, 199, 0.18)');   // Sky at Center O
-      gradOMA.addColorStop(0.5, 'rgba(16, 185, 129, 0.20)'); // Emerald along apothem OM
-      gradOMA.addColorStop(1, 'rgba(59, 130, 246, 0.22)');   // Blue along half-chord AM
-      ctx.fillStyle = gradOMA;
+      // Congruence right triangles discrete fill (OMA in Blue, OMB in Orange, meeting at Emerald apothem OM)
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
       ctx.beginPath();
       ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.A.x, g.A.y); ctx.lineTo(g.M.x, g.M.y);
       ctx.closePath();
       ctx.fill();
 
-      const gradOMB = ctx.createLinearGradient(g.cx, g.cy, g.B.x, g.B.y);
-      gradOMB.addColorStop(0, 'rgba(2, 132, 199, 0.18)');   // Sky at Center O
-      gradOMB.addColorStop(0.5, 'rgba(16, 185, 129, 0.20)'); // Emerald along apothem OM
-      gradOMB.addColorStop(1, 'rgba(249, 115, 22, 0.22)');  // Orange along half-chord MB
-      ctx.fillStyle = gradOMB;
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.16)';
       ctx.beginPath();
       ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.B.x, g.B.y); ctx.lineTo(g.M.x, g.M.y);
       ctx.closePath();

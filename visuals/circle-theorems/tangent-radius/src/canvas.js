@@ -147,12 +147,8 @@ export class CanvasView {
     // 4. Secant chord & triangle shading (optional)
     if (state.showSecant) {
       if (showArea) {
-        // Multi-color decomposed gradient (Blue at O -> Emerald at T -> Yellow at Q)
-        const secGrad = ctx.createLinearGradient(g.O.x, g.O.y, g.Q.x, g.Q.y);
-        secGrad.addColorStop(0, 'rgba(59, 130, 246, 0.20)');  // Blue at center O
-        secGrad.addColorStop(0.5, 'rgba(16, 185, 129, 0.20)'); // Emerald along tangent contact T
-        secGrad.addColorStop(1, 'rgba(234, 179, 8, 0.22)');   // Yellow at secant vertex Q
-        ctx.fillStyle = secGrad;
+        // Secant triangle discrete fill: Pure Sky tint
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.O.x, g.O.y);
         ctx.lineTo(g.T.x, g.T.y);

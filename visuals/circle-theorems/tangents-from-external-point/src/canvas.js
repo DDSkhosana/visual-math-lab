@@ -51,23 +51,15 @@ export class CanvasView {
 
     if (showArea || showAngles) {
       if (showArea) {
-        // Triangle 1: OPT1 (Emerald) - Multi-color decomposed gradient (Emerald along radius OT1 -> Teal at T1 -> Rose at P)
-        const gradT1 = ctx.createLinearGradient(g.cx, g.cy, g.P.x, g.P.y);
-        gradT1.addColorStop(0, 'rgba(16, 185, 129, 0.20)');  // Emerald along radius OT1
-        gradT1.addColorStop(0.5, 'rgba(20, 184, 166, 0.18)'); // Teal at right angle T1
-        gradT1.addColorStop(1, 'rgba(244, 63, 94, 0.20)');   // Rose at apex P
-        ctx.fillStyle = gradT1;
+        // Triangle 1: OPT1 (Pure Emerald tint)
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T1.x, g.T1.y); ctx.lineTo(g.P.x, g.P.y);
         ctx.closePath();
         ctx.fill();
 
-        // Triangle 2: OPT2 (Blue) - Multi-color decomposed gradient (Blue along radius OT2 -> Teal at T2 -> Rose at P)
-        const gradT2 = ctx.createLinearGradient(g.cx, g.cy, g.P.x, g.P.y);
-        gradT2.addColorStop(0, 'rgba(59, 130, 246, 0.20)');  // Blue along radius OT2
-        gradT2.addColorStop(0.5, 'rgba(20, 184, 166, 0.18)'); // Teal at right angle T2
-        gradT2.addColorStop(1, 'rgba(244, 63, 94, 0.20)');   // Rose at apex P
-        ctx.fillStyle = gradT2;
+        // Triangle 2: OPT2 (Pure Blue tint)
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.T2.x, g.T2.y); ctx.lineTo(g.P.x, g.P.y);
         ctx.closePath();
