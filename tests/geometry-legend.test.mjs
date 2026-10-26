@@ -92,7 +92,14 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
     'cylindrical-helix-waves',
     'law-of-sines-circumdiameter',
     'law-of-cosines-projection',
-    'angle-sum-difference-rotation'
+    'angle-sum-difference-rotation',
+    // Composite Multi-Color Gradient Features
+    'composite-diameter',
+    'composite-tangent-pair',
+    'composite-stacked-triangles',
+    'composite-bilinear-rect',
+    'composite-helix-walls',
+    'composite-euler-frame'
   ];
 
   for (const id of expectedIds) {
@@ -113,10 +120,13 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
   const trigElements = GEOMETRY_ELEMENTS.filter((item) => item.category === 'trig');
   assert.strictEqual(trigElements.length, 5, 'Must have 5 dedicated trigonometry elements');
 
-  assert.ok(Array.isArray(COLOR_GRAMMAR_TOKENS), 'COLOR_GRAMMAR_TOKENS must be an array');
-  assert.ok(COLOR_GRAMMAR_TOKENS.length >= 13, 'Must have at least 13 colour grammar tokens');
+  const compositeElements = GEOMETRY_ELEMENTS.filter((item) => item.category === 'composite');
+  assert.strictEqual(compositeElements.length, 6, 'Must have 6 dedicated composite gradient elements');
 
-  // Verify that COLOR_GRAMMAR_TOKENS includes trigonometry mappings
+  assert.ok(Array.isArray(COLOR_GRAMMAR_TOKENS), 'COLOR_GRAMMAR_TOKENS must be an array');
+  assert.ok(COLOR_GRAMMAR_TOKENS.length >= 18, 'Must have at least 18 colour grammar tokens');
+
+  // Verify that COLOR_GRAMMAR_TOKENS includes trigonometry and composite mappings
   const amberToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.amber');
   assert.ok(amberToken?.role?.includes('cos θ'), 'Amber token must document Cosine leg (cos θ)');
   assert.ok(amberToken?.role?.includes('Bilinear interaction rectangle'), 'Amber token must document Bilinear interaction rectangle');
@@ -130,6 +140,18 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
   const skyToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.sky');
   assert.ok(skyToken?.role?.includes('sec θ'), 'Sky token must document Secant line (sec θ)');
   assert.ok(skyToken?.role?.includes('helix'), 'Sky token must document Cylindrical helix curve');
+
+  const fuchsiaToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.fuchsia');
+  assert.ok(fuchsiaToken, 'PALETTE.fuchsia must exist');
+
+  const steelToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.steel');
+  assert.ok(steelToken, 'PALETTE.steel must exist');
+
+  const lavenderToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.lavender');
+  assert.ok(lavenderToken, 'PALETTE.lavender must exist');
+
+  const platinumToken = COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.platinum');
+  assert.ok(platinumToken, 'PALETTE.platinum must exist');
 
   assert.strictEqual(typeof openLegendModal, 'function');
   assert.strictEqual(typeof closeLegendModal, 'function');
@@ -161,9 +183,11 @@ test('Geometry Legend: js/geometry-legend.js modal includes Trigonometry tab and
   const legendJsPath = path.join(rootDir, 'js', 'geometry-legend.js');
   const legendJs = fs.readFileSync(legendJsPath, 'utf8');
 
-  // Dedicated Trigonometry tab
+  // Dedicated Trigonometry & Composite tabs
   assert.ok(legendJs.includes('data-filter="trig"'), 'Modal toolbar must include data-filter="trig"');
   assert.ok(legendJs.includes('Trigonometry &amp; Functions'), 'Modal toolbar must include "Trigonometry & Functions" tab label');
+  assert.ok(legendJs.includes('data-filter="composite"'), 'Modal toolbar must include data-filter="composite"');
+  assert.ok(legendJs.includes('Composite &amp; Tensor Elements'), 'Modal toolbar must include "Composite & Tensor Elements" tab label');
 
   // Dynamic header context
   assert.ok(legendJs.includes('eyebrowText'), 'mountLegendModal must dynamically define eyebrowText');

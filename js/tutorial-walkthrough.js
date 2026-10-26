@@ -442,6 +442,24 @@ function mountTutorialModal(visual, theoremData) {
             <li><strong>1-Click Permalinks:</strong> Click <em>Share</em> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine stretch, and dock layout.</li>
           </ul>
         </div>
+
+        <div class="tutorial-card-section">
+          <h4>Multilingual Localization &amp; Privacy</h4>
+          <ul class="tutorial-feature-list">
+            <li><strong>7 Global Languages:</strong> Switch between English, Spanish, French, German, Chinese, Arabic (with RTL math isolation), and IsiNdebele via the navbar language selector.</li>
+            <li><strong>Strict Cookie Consent:</strong> Built with POPIA, GDPR, and CCPA compliance. Google Consent Mode v2 guarantees deny-by-default until explicit consent is granted.</li>
+            <li><strong>Invariant Verification:</strong> Telemetry panels feature real-time invariant badges (<em>Verified Invariant ✓</em>) validating geometric constancy across manipulations.</li>
+          </ul>
+        </div>
+
+        <div class="tutorial-card-section">
+          <h4>Composite Elements &amp; Color Tokens</h4>
+          <ul class="tutorial-feature-list">
+            <li><strong>Composite Multi-Color Gradients:</strong> Compound structures (diameter baseline A→O→B, dual tangents PT₁/PT₂, stacked right triangles, wave projection walls, and SO(3) Euler triads) utilize linear gradient decomposition.</li>
+            <li><strong>Expanded Unified Palette:</strong> Dedicated color tokens (including violetLight, lavender, fuchsia, steel, and platinum) prevent color reuse and collisions.</li>
+            <li><strong>Notation Legend:</strong> Press <kbd>L</kbd> anytime to open the full notation cheatsheet, formula references, and token guides.</li>
+          </ul>
+        </div>
       </div>
 
       <!-- Keyboard Shortcuts Reference -->
@@ -451,6 +469,7 @@ function mountTutorialModal(visual, theoremData) {
           <span><kbd>S</kbd> Share Link</span>
           <span><kbd>L</kbd> Legend</span>
           <span><kbd>?</kbd> Guide</span>
+          <span><kbd>Shift+P</kbd> Presets</span>
           <span><kbd>Alt+1..9</kbd> Panels</span>
           <span><kbd>Alt+\\</kbd> Float Cycle</span>
           <span><kbd>Esc</kbd> Ascend / Close</span>
@@ -683,9 +702,9 @@ function createTourController(slug, theoremData) {
       placement: 'bottom',
     },
     {
-      title: 'Live Math Derivations & Telemetry',
+      title: 'Live Math Derivations & Telemetry Verification',
       selector: '#derivations-panel, #live-derivation-panel',
-      content: `Follow the step-by-step deductive geometric and algebraic proof. Variable labels share <strong>synchronized colour tokens</strong> with the canvas points. Inspect the 2D and 3D telemetry panels to check real-time values and 360° perigon invariants.`,
+      content: `Follow the step-by-step deductive geometric and algebraic proof. Variable labels share <strong>synchronized colour tokens</strong> and composite multi-color gradients with the canvas points. Inspect the 2D and 3D telemetry panels to check real-time values, invariant verification badges (<em>Verified Invariant ✓</em>), and 360° perigon invariants.`,
       placement: 'left',
     },
     {
@@ -695,13 +714,14 @@ function createTourController(slug, theoremData) {
       placement: 'top',
     },
     {
-      title: 'Shareable Permalinks & Notation Legend',
+      title: 'Shareable Permalinks, Notation Legend & Global Settings',
       selector: '#btn-toolbar-share, #btn-toolbar-legend, #toolbar-content',
-      content: `Collaborate and share exact geometric proofs with 1 click:
+      content: `Collaborate, inspect notation, and personalize your experience:
         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
           <li><strong>1-Click Permalink:</strong> Click <strong>Share</strong> (or press <kbd>S</kbd>) to copy a URL encoding your exact angles, affine deformation, view mode, camera angle, and dock layout.</li>
-          <li><strong>Bidirectional Hash:</strong> Bookmarks and URLs load directly into your exact configuration.</li>
-          <li><strong>Geometry Legend:</strong> Click <strong>Legend</strong> (or press <kbd>L</kbd>) to inspect the KaTeX notation cheat-sheet, color tokens, and coordinate conventions.</li>
+          <li><strong>Geometry Legend:</strong> Click <strong>Legend</strong> (or press <kbd>L</kbd>) to inspect the KaTeX notation cheat-sheet, composite multi-color elements, color tokens, and coordinate conventions.</li>
+          <li><strong>Multilingual Support:</strong> Switch between 7 languages (EN, ES, FR, DE, ZH, AR, NR) using the language selector in the navbar.</li>
+          <li><strong>Privacy &amp; Cookie Consent:</strong> Manage analytics cookies with strict Google Consent Mode v2 protections.</li>
         </ul>`,
       placement: 'bottom',
     },

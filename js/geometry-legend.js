@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 /**
  * @file geometry-legend.js
  * @description Collapsible pop-out Legend Modal & Cheatsheet for Circle Geometry Notation.
@@ -525,22 +526,168 @@ export const GEOMETRY_ELEMENTS = [
       </svg>
     `
   }
+,
+  // 5. Composite Elements & Multi-Color Gradients
+  {
+    id: 'composite-diameter',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'Decomposed Diameter Segment (A → O → B)',
+    symbol: 'AB = AO + OB',
+    formula: 'A(\\text{Red}) \\to O(\\text{Indigo}) \\to B(\\text{Orange})',
+    definition: 'Compound baseline diameter connecting distinct topological anchors. Rather than assigning a single duplicate token, the segment is visually decomposed into a linear gradient uniting the respective endpoint anchor tokens.',
+    colorToken: 'Multi-Color Gradient: Red (#ef4444) → Indigo (#6366f1) → Orange (#f97316)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <defs>
+          <linearGradient id="leg-grad-diam" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ef4444"/>
+            <stop offset="50%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#f97316"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="1.5"/>
+        <line x1="12" y1="50" x2="88" y2="50" stroke="url(#leg-grad-diam)" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="12" cy="50" r="3" fill="#ef4444"/>
+        <circle cx="50" cy="50" r="3" fill="#6366f1"/>
+        <circle cx="88" cy="50" r="3" fill="#f97316"/>
+        <text x="6" y="53" fill="#ef4444" font-size="8" font-weight="bold">A</text>
+        <text x="47" y="44" fill="#6366f1" font-size="8" font-weight="bold">O</text>
+        <text x="91" y="53" fill="#f97316" font-size="8" font-weight="bold">B</text>
+      </svg>
+    `
+  },
+  {
+    id: 'composite-tangent-pair',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'Dual Tangents & Cyclic Kite (PT₁ / PT₂)',
+    symbol: 'PT_1, PT_2',
+    formula: '|PT_1| = |PT_2| = \\sqrt{d^2 - r^2}',
+    definition: 'Two tangents drawn to a circle from a common external point P to contact points T₁ and T₂. Each tangent carries independent color tokens while forming a congruent cyclic kite with the radial vectors.',
+    colorToken: 'External Point P: Rose (#f43f5e) | Contact T₁: Red (#ef4444) | Contact T₂: Amber (#fbbf24)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <circle cx="42" cy="50" r="28" fill="none" stroke="#475569" stroke-width="1.5"/>
+        <line x1="90" y1="50" x2="42" y2="22" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="90" y1="50" x2="42" y2="78" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="42" y1="50" x2="42" y2="22" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="2,2"/>
+        <line x1="42" y1="50" x2="42" y2="78" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="2,2"/>
+        <circle cx="90" cy="50" r="3" fill="#f43f5e"/>
+        <circle cx="42" cy="22" r="3" fill="#ef4444"/>
+        <circle cx="42" cy="78" r="3" fill="#fbbf24"/>
+        <circle cx="42" cy="50" r="2.5" fill="#6366f1"/>
+        <text x="92" y="53" fill="#f43f5e" font-size="7.5" font-weight="bold">P</text>
+        <text x="36" y="19" fill="#ef4444" font-size="7.5" font-weight="bold">T₁</text>
+        <text x="36" y="86" fill="#fbbf24" font-size="7.5" font-weight="bold">T₂</text>
+      </svg>
+    `
+  },
+  {
+    id: 'composite-stacked-triangles',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'Stacked Compound Angle Triangles (△OMQ, △OQP, △PSQ)',
+    symbol: 'R(α + β) = R(α) ∘ R(β)',
+    formula: '\\sin(\\alpha + \\beta) = \\sin\\alpha\\cos\\beta + \\cos\\alpha\\sin\\beta',
+    definition: 'Stack of orthogonal right triangles generating addition and subtraction identities. Multi-color gradient bounding edges differentiate the stacked projections of cosine and sine.',
+    colorToken: '△OMQ: Sky/Emerald | △OQP: Indigo/Amber | △PSQ: Amber/Rose/Teal',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <polygon points="20,80 80,80 80,45" fill="rgba(2, 132, 199, 0.15)" stroke="#0284c7" stroke-width="1.8"/>
+        <polygon points="20,80 80,45 60,15" fill="rgba(99, 102, 241, 0.15)" stroke="#6366f1" stroke-width="1.8"/>
+        <polygon points="60,15 80,45 80,15" fill="rgba(251, 191, 36, 0.15)" stroke="#fbbf24" stroke-width="1.8"/>
+        <circle cx="20" cy="80" r="2.5" fill="#6366f1"/>
+        <circle cx="60" cy="15" r="3" fill="#fbbf24"/>
+        <circle cx="80" cy="45" r="3" fill="#0284c7"/>
+        <text x="14" y="86" fill="#6366f1" font-size="7.5" font-weight="bold">O</text>
+        <text x="56" y="11" fill="#fbbf24" font-size="7.5" font-weight="bold">P</text>
+        <text x="83" y="47" fill="#0284c7" font-size="7.5" font-weight="bold">Q</text>
+      </svg>
+    `
+  },
+  {
+    id: 'composite-bilinear-rect',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'Bilinear Interaction Rectangle (2ab cos C)',
+    symbol: '2ab cos C',
+    formula: 'c^2 = a^2 + b^2 - 2ab \\cos C',
+    definition: 'The generalized Pythagorean correction term represented in 3D ground plane with color-coded edge borders aligning with triangle sides a (Red), b (Orange), and included angle C (Blue).',
+    colorToken: 'Side a: Red (#ef4444) | Side b: Orange (#f97316) | Angle C: Blue (#3b82f6) | Area: Amber (#fbbf24)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <rect x="22" y="32" width="56" height="36" fill="rgba(251, 191, 36, 0.18)" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3,2"/>
+        <line x1="22" y1="32" x2="78" y2="32" stroke="#ef4444" stroke-width="2.5"/>
+        <line x1="22" y1="32" x2="22" y2="68" stroke="#f97316" stroke-width="2.5"/>
+        <text x="44" y="27" fill="#ef4444" font-size="7.5" font-weight="bold">2a</text>
+        <text x="8" y="52" fill="#f97316" font-size="7" font-weight="bold">b cos C</text>
+        <text x="32" y="52" fill="#fbbf24" font-size="7.5" font-weight="bold">2ab cos C</text>
+      </svg>
+    `
+  },
+  {
+    id: 'composite-helix-walls',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'Cylindrical Wave Projection Walls',
+    symbol: 'r(θ) = (R cos θ, y(θ), R sin θ)',
+    formula: '\\sin^2\\theta + \\cos^2\\theta = 1',
+    definition: 'Dual orthogonal harmonic walls bounding the 3D cylindrical space curve: the cosine wave wall in Amber projects onto the XY plane, while the sine wave wall in Emerald projects onto the ZY plane.',
+    colorToken: 'Helix: Sky (#0284c7) | Cos Wall: Amber (#fbbf24) | Sin Wall: Emerald (#10b981)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <ellipse cx="50" cy="72" rx="36" ry="12" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="2,2"/>
+        <line x1="50" y1="72" x2="50" y2="20" stroke="#475569" stroke-width="1.5"/>
+        <path d="M 14,72 C 14,50 86,50 86,28" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+        <rect x="14" y="28" width="72" height="44" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="40" y="16" fill="#0284c7" font-size="7.5" font-weight="bold">Helix Curve</text>
+      </svg>
+    `
+  },
+  {
+    id: 'composite-euler-frame',
+    category: 'composite',
+    categoryName: 'Composite Elements & Gradients',
+    name: 'SO(3) Spatial Euler Rotation Triad',
+    symbol: 'R(α, β, γ) ∈ SO(3)',
+    formula: 'R^T R = I, \\quad \\det(R) = +1',
+    definition: 'An orthonormal spatial coordinate frame decomposing 3D attitude into yaw (α), pitch (β), and roll (γ) rotations with discrete Red/Green/Blue standard directional axis markers.',
+    colorToken: 'X-axis: Red (#ef4444) | Y-axis: Green (#22c55e) | Z-axis: Blue (#3b82f6)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <circle cx="50" cy="50" r="3" fill="#6366f1"/>
+        <line x1="50" y1="50" x2="85" y2="50" stroke="#ef4444" stroke-width="2.5"/>
+        <line x1="50" y1="50" x2="50" y2="15" stroke="#22c55e" stroke-width="2.5"/>
+        <line x1="50" y1="50" x2="28" y2="72" stroke="#3b82f6" stroke-width="2.5"/>
+        <text x="88" y="53" fill="#ef4444" font-size="8" font-weight="bold">X (α)</text>
+        <text x="47" y="11" fill="#22c55e" font-size="8" font-weight="bold">Y (β)</text>
+        <text x="18" y="80" fill="#3b82f6" font-size="8" font-weight="bold">Z (γ)</text>
+      </svg>
+    `
+  }
 ];
 
 export const COLOR_GRAMMAR_TOKENS = [
-  { token: 'PALETTE.red', hex: '#ef4444', role: 'Diameter endpoint A, Tangent contact point T, Triangle vertex A / side a' },
-  { token: 'PALETTE.orange', hex: '#f97316', role: 'Diameter endpoint B, Side t length, Angle β, Triangle vertex B / side b' },
-  { token: 'PALETTE.blue', hex: '#3b82f6', role: 'Chord side s, Radial line OT, Triangle vertex C / side c' },
+  { token: 'PALETTE.red', hex: '#ef4444', role: 'Diameter endpoint A, Tangent contact point T, Triangle vertex A / side a, Euler X-axis' },
+  { token: 'PALETTE.orange', hex: '#f97316', role: 'Diameter endpoint B, Side t length, Angle β, Triangle vertex B / side b, Cotangent leg' },
+  { token: 'PALETTE.blue', hex: '#3b82f6', role: 'Chord side s, Radial line OT, Triangle vertex C / side c, Euler Z-axis' },
   { token: 'PALETTE.indigo', hex: '#6366f1', role: 'Circle center O, Radii, Derivation step headers, Coordinate origin' },
   { token: 'PALETTE.violet', hex: '#a855f7', role: 'Inscribed point P, Minor Alternate Segment, Vertex A (Cyclic), Cosecant (csc θ), 3D wave projection' },
+  { token: 'PALETTE.violetLight', hex: '#d8b4fe', role: 'Conjugate reflex arc halo, auxiliary geodesic guidance, ambient fill' },
   { token: 'PALETTE.yellow', hex: '#eab308', role: 'Inscribed angle α/θ, Polar angle θ, Angular coordinate' },
   { token: 'PALETTE.amber', hex: '#fbbf24', role: 'Chord AB, Central angle 2θ, Cosine leg (cos θ), Bilinear interaction rectangle (-2ab cos C), Compound angle α+β' },
   { token: 'PALETTE.teal', hex: '#14b8a6', role: 'Right-angles 90°, Perigon sums 360°, Cotangent (cot θ), Difference ray D(α-β), Invariant Δ' },
+  { token: 'PALETTE.green', hex: '#22c55e', role: 'Subtended angle θ, Inscribed area (½st), Euler Y-axis' },
   { token: 'PALETTE.emerald', hex: '#10b981', role: 'Tangent line direction, Altitude, Bisector normal, Sine leg (sin θ)' },
   { token: 'PALETTE.sky', hex: '#0284c7', role: 'Major Alternate Segment, Circumference & 2R ratio, Secant line (sec θ), Cylindrical helix curve, Angle β' },
   { token: 'PALETTE.lime', hex: '#84cc16', role: 'Reflex sector α*, Angle α at vertex A, Compound angle α' },
   { token: 'PALETTE.rose', hex: '#f43f5e', role: 'Exterior angles, Vertex D (Cyclic), Tangent ratio leg (tan θ), External point P' },
-  { token: 'PALETTE.cyan', hex: '#06b6d4', role: 'Diameter square |d|², Vertex B (Cyclic), Affine conjugate axis v₁' }
+  { token: 'PALETTE.cyan', hex: '#06b6d4', role: 'Diameter square |d|², Vertex B (Cyclic), Affine conjugate axis v₁' },
+  { token: 'PALETTE.fuchsia', hex: '#d946ef', role: 'Angle β base angles, vertex C (Cyclic), Cosecant (csc θ), 3D spherical longitude (φ)' },
+  { token: 'PALETTE.steel', hex: '#6488b0', role: 'Secant line construction, Cartesian reference grids, auxiliary chord extensions' },
+  { token: 'PALETTE.lavender', hex: '#c4b5fd', role: 'Reflex angle sums, radius OP helper in 3D, polar coordinate ground grid' },
+  { token: 'PALETTE.platinum', hex: '#f8fafc', role: 'High-contrast labels, primary derivation headings, coordinate axes values' }
 ];
 
 let legendOverlay = null;
@@ -750,6 +897,7 @@ function mountLegendModal() {
           <button type="button" class="legend-tab" data-filter="regions" role="tab" aria-selected="false">Regions &amp; Arcs</button>
           <button type="button" class="legend-tab" data-filter="angles" role="tab" aria-selected="false">Angles &amp; Theorems</button>
           <button type="button" class="legend-tab" data-filter="trig" role="tab" aria-selected="false">Trigonometry &amp; Functions</button>
+          <button type="button" class="legend-tab" data-filter="composite" role="tab" aria-selected="false">Composite &amp; Tensor Elements</button>
           <button type="button" class="legend-tab" data-filter="grammar" role="tab" aria-selected="false">Colour Grammar</button>
         </div>
         <div class="legend-search-box">

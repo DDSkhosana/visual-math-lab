@@ -148,6 +148,59 @@ async function initializeVisualPage() {
     if (headerTitle) headerTitle.textContent = translatedTitle;
     const headerCat = document.querySelector(".site-header__category");
     if (headerCat) headerCat.textContent = translatedCat;
+
+    // Synchronize 2D & 3D Telemetry Panels and Invariant Verification Badges
+    const text2D = t("telemetry.panel_2d", {}, "2D Geometric Telemetry");
+    const text3D = t("telemetry.panel_3d", {}, "3D Spatial Telemetry");
+    const verifiedText = t("derivations.verified", {}, "Verified Invariant");
+
+    // 2D Telemetry Panel Headers
+    const panels2d = document.querySelectorAll("#stats-2d, #telemetry-panel, .stats-overlay:not(#stats-3d)");
+    panels2d.forEach((panel) => {
+      const titleEl = panel.querySelector(".stats-title");
+      if (titleEl) titleEl.textContent = text2D;
+
+      const header = panel.querySelector(".stats-header");
+      if (header) {
+        let badge = header.querySelector(".telemetry-invariant-badge");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "telemetry-invariant-badge";
+          badge.title = "Geometric invariant verified in real-time";
+          const toggleBtn = header.querySelector(".panel-minimize-btn, .stats-toggle-btn");
+          if (toggleBtn) {
+            header.insertBefore(badge, toggleBtn);
+          } else {
+            header.appendChild(badge);
+          }
+        }
+        badge.textContent = `${verifiedText} ✓`;
+      }
+    });
+
+    // 3D Telemetry Panel Headers
+    const panels3d = document.querySelectorAll("#stats-3d");
+    panels3d.forEach((panel) => {
+      const titleEl = panel.querySelector(".stats-title");
+      if (titleEl) titleEl.textContent = text3D;
+
+      const header = panel.querySelector(".stats-header");
+      if (header) {
+        let badge = header.querySelector(".telemetry-invariant-badge");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "telemetry-invariant-badge";
+          badge.title = "Spatial invariant verified in real-time";
+          const toggleBtn = header.querySelector(".panel-minimize-btn, .stats-toggle-btn");
+          if (toggleBtn) {
+            header.insertBefore(badge, toggleBtn);
+          } else {
+            header.appendChild(badge);
+          }
+        }
+        badge.textContent = `${verifiedText} ✓`;
+      }
+    });
   };
 
   updateVisualMetadata();

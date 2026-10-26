@@ -550,15 +550,16 @@ test('Performance: Multi-origin preconnects and deferred Three.js/OrbitControls 
 
     // Deferred Three.js and OrbitControls assertions
     assert.ok(
-      html.includes('<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'),
+      html.includes('<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'),
       `${relPath} must load Three.js with defer`
     );
     assert.ok(
-      html.includes('<script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>'),
+      html.includes('<script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'),
       `${relPath} must load OrbitControls with defer`
     );
     assert.ok(
-      !html.includes('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'),
+      !html.includes('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">') &&
+      !html.includes('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" '),
       `${relPath} must not have synchronous render-blocking Three.js`
     );
   }

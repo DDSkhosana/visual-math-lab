@@ -389,6 +389,49 @@ html, body {
   color: #38bdf8;
 }
 
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.telemetry-invariant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.45rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.02em;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 9999px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  margin-right: 0.25rem;
+}
+
+.telemetry-invariant-badge::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+}
+
+[dir="rtl"] .telemetry-invariant-badge {
+  margin-left: 0.25rem;
+  margin-right: auto;
+}
+
 .stats-header .panel-minimize-btn,
 .stats-toggle-btn {
   display: inline-flex !important;
