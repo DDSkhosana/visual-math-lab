@@ -73,7 +73,8 @@
     "sine_rule_ratio": "a / sin A = 2R",
     "cosine_law": "c² = a² + b² − 2ab cos C",
     "excess": "Excès Sphérique de Girard (E)",
-    "spherical_area": "Aire Sphérique (R² E)"
+    "spherical_area": "Aire Sphérique (R² E)",
+    "verified": "Vérifié"
   },
   "derivations": {
     "panel_title": "Démonstration et Étapes",

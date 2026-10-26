@@ -389,18 +389,49 @@ html, body {
   color: #38bdf8;
 }
 
+/* Telemetry Stats Overlay Container & Sizing */
+.stats-overlay {
+  width: max-content !important;
+  min-width: min(240px, calc(100% - 2rem)) !important;
+  max-width: min(26rem, calc(100% - 2rem)) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.stats-overlay.collapsed {
+  min-width: min(220px, calc(100% - 2rem)) !important;
+  width: max-content !important;
+}
+
 .stats-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.45rem !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.stats-title {
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 0 1 auto !important;
 }
 
 .telemetry-invariant-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.45rem;
+  padding: 0.125rem 0.4rem;
   font-size: 0.625rem;
   font-weight: 600;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -414,7 +445,11 @@ html, body {
   pointer-events: none;
   transition: all 0.2s ease;
   margin-left: auto;
-  margin-right: 0.25rem;
+  margin-right: 0.2rem;
+  flex-shrink: 0;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .telemetry-invariant-badge::before {
@@ -425,10 +460,11 @@ html, body {
   border-radius: 50%;
   background: #34d399;
   box-shadow: 0 0 6px #34d399;
+  flex-shrink: 0;
 }
 
 [dir="rtl"] .telemetry-invariant-badge {
-  margin-left: 0.25rem;
+  margin-left: 0.2rem;
   margin-right: auto;
 }
 

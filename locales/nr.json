@@ -73,7 +73,8 @@
     "sine_rule_ratio": "a / sin A = 2R",
     "cosine_law": "c² = a² + b² − 2ab cos C",
     "excess": "I-Spherical Excess ka-Girard (E)",
-    "spherical_area": "Indawo ye-Sfera (R² E)"
+    "spherical_area": "Indawo ye-Sfera (R² E)",
+    "verified": "Kufakazelwe"
   },
   "derivations": {
     "panel_title": "Ubufakazi Nokusungulwa Kwesinyathelo Ngesinyathelo",

@@ -46,6 +46,11 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 0 1 auto;
 }
 
 .stats-toggle-btn {

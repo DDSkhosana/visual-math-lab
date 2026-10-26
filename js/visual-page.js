@@ -152,7 +152,7 @@ async function initializeVisualPage() {
     // Synchronize 2D & 3D Telemetry Panels and Invariant Verification Badges
     const text2D = t("telemetry.panel_2d", {}, "2D Geometric Telemetry");
     const text3D = t("telemetry.panel_3d", {}, "3D Spatial Telemetry");
-    const verifiedText = t("derivations.verified", {}, "Verified Invariant");
+    const verifiedText = t("telemetry.verified", {}, t("derivations.verified", {}, "Verified Invariant"));
 
     // 2D Telemetry Panel Headers
     const panels2d = document.querySelectorAll("#stats-2d, #telemetry-panel, .stats-overlay:not(#stats-3d)");

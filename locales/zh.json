@@ -73,7 +73,8 @@
     "sine_rule_ratio": "a / sin A = 2R",
     "cosine_law": "c² = a² + b² − 2ab cos C",
     "excess": "吉拉德球面角盈 (E)",
-    "spherical_area": "球面面积 (R² E)"
+    "spherical_area": "球面面积 (R² E)",
+    "verified": "已验证"
   },
   "derivations": {
     "panel_title": "分步严格数学证明",

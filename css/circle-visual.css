@@ -896,6 +896,11 @@ input[type=range] {
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .stats-body {
