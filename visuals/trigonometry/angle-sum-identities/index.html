@@ -126,7 +126,7 @@
               <div class="stat-line"><span class="color-emerald">Compound α + β:</span><strong class="color-emerald" id="tel-sum-ang">55.0°</strong></div>
               <div class="stat-line"><span class="color-amber">cos(α + β):</span><strong class="color-amber" id="tel-cos-sum">0.5736</strong></div>
               <div class="stat-line"><span class="color-emerald">sin(α + β):</span><strong class="color-emerald" id="tel-sin-sum">0.8192</strong></div>
-              <div class="stat-line"><span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">0.9962</strong></div>
+              <div class="stat-line"><span class="color-orange">cos(α − β):</span><strong class="color-orange" id="tel-cos-diff">0.9962</strong></div>
               <div class="stat-line"><span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">0.0872</strong></div>
               <div class="stat-line"><span class="color-rose">Separation ∠POD (2β):</span><strong class="color-rose" id="tel-separation">50.0°</strong></div>
               <div class="stat-line"><span class="color-violet">Chord Length |PD|:</span><strong class="color-violet" id="tel-chord-pd">0.8452</strong></div>
@@ -163,6 +163,8 @@
               <div class="stat-line"><span class="color-indigo">3D Radius R:</span><span class="color-indigo" id="val-3d-r">10.00</span></div>
               <div class="stat-line"><span class="color-amber">Matrix R₀₀ = cos(α+β):</span><strong class="color-amber" id="val-3d-r00">0.5736</strong></div>
               <div class="stat-line"><span class="color-emerald">Matrix R₁₀ = sin(α+β):</span><strong class="color-emerald" id="val-3d-r10">0.8192</strong></div>
+              <div class="stat-line"><span class="color-orange">cos(α − β):</span><strong class="color-orange" id="val-3d-cos-diff">0.9962</strong></div>
+              <div class="stat-line"><span class="color-rose">sin(α − β):</span><strong class="color-rose" id="val-3d-sin-diff">0.0872</strong></div>
               <div class="stat-line"><span class="color-teal">Determinant det(R):</span><strong class="color-teal" id="val-3d-det">1.000000</strong></div>
               <div class="stat-line" id="row-3d-gamma"><span class="color-amber">Euler Tilt γ:</span><strong class="color-amber" id="val-3d-gamma">0.0°</strong></div>
               <div class="stat-line" id="row-3d-trace"><span class="color-teal">Matrix Trace Tr(R):</span><strong class="color-teal" id="val-3d-trace">2.147</strong></div>
@@ -262,14 +264,14 @@
               <div class="collapsible-header" aria-expanded="false"><span>2D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span><span class="color-violet">Point Markers</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">A(α)</span>, <span class="color-emerald">P(α+β)</span>, <span class="color-rose">D(α−β)</span>, <span class="color-amber">Q</span>)</label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span><span class="color-amber">Projection Segments</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">A(α)</span>, <span class="color-emerald">P(α+β)</span>, <span class="color-rose">D(α−β)</span>, <span class="color-orange">N_D</span>, <span class="color-amber">Q</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span>Projection Segments (<span class="color-amber">cos(α+β)</span>, <span class="color-orange">cos(α−β)</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span>Angle (<span class="color-sky">α</span> &amp; <span class="color-violet">β</span>) Wedges</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-sky">Stacked Triangles Area Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angle (360° − (α+β))</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-stacked-tri" checked><span class="checkmark"></span><span class="color-violet">Stacked Right Triangles (△OMQ, △OQP, △PSQ)</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="toggle-diff-ray" checked><span class="checkmark"></span><span class="color-rose">Difference Ray D(α − β) &amp; △OQD</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-diff-ray" checked><span class="checkmark"></span><span class="color-rose">Difference Ray D(α − β) &amp; △OQD</span> (<span class="color-orange">cos(α − β)</span>)</label>
               </div>
             </div>
             <div class="collapsible-section collapsed">
@@ -316,7 +318,7 @@
                   <button type="button" class="btn" id="btn-mode-spatial">Spatial SO(3)</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
-                  Planar abelian SO(2) embedding on Z = 0 plane: R(α+β) = R(α)∘R(β).
+                  Planar abelian SO(2) embedding on equatorial Y = 0 plane: R(α+β) = R(α)∘R(β).
                 </p>
               </div>
             </div>
@@ -332,7 +334,7 @@
             <div class="collapsible-section collapsed">
               <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">A(α)</span>, <span class="color-emerald">P(α+β)</span>, <span class="color-rose">D(α−β)</span>, <span class="color-amber">Q</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">A(α)</span>, <span class="color-emerald">P(α+β)</span>, <span class="color-rose">D(α−β)</span>, <span class="color-orange">N_D</span>, <span class="color-amber">Q</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>3D Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span>3D Angle Badges (<span class="color-sky">α</span>, <span class="color-violet">β</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-sky">3D Stacked Triangles Mesh</span></label>

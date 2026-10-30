@@ -116,6 +116,45 @@ export function setFavicon(iconUrl) {
   link.href = iconUrl;
 }
 
+/**
+ * Keeps the 3D view title clear of the floating Planar/Spatial dimension pill.
+ * The pill's width depends on its (translatable) labels, so we measure it and
+ * publish the exact horizontal space it occupies as `--dimension-bar-clearance`
+ * on the 3D container. CSS uses this to cap the title width (with ellipsis);
+ * static rem fallbacks in the stylesheets cover the pre-measure first paint.
+ */
+function initDimensionBarClearance() {
+  const container = document.getElementById("canvas-3d-container");
+  const bar = container?.querySelector(":scope > .dimension-mode-bar");
+  if (!container || !bar || typeof ResizeObserver === "undefined") return;
+
+  const update = () => {
+    const c = container.getBoundingClientRect();
+    const b = bar.getBoundingClientRect();
+    if (!c.width || !b.width) return;
+    const title = container.querySelector(":scope > .view-title");
+    const t = title?.getBoundingClientRect();
+    // Only measure when the pill shares the title's row (wide layout). When it is
+    // stacked onto row 2 the CSS uses its own narrow-layout title width instead.
+    if (t && t.height && b.top >= t.bottom) return;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const rtl = getComputedStyle(container).direction === "rtl";
+    const reserved = rtl ? b.right - c.left : c.right - b.left;
+    const titleInset = t ? (rtl ? c.right - t.right : t.left - c.left) : rem;
+    const gap = 0.75 * rem;
+    container.style.setProperty(
+      "--dimension-bar-clearance",
+      `${((reserved + titleInset + gap) / rem).toFixed(3)}rem`
+    );
+  };
+
+  const ro = new ResizeObserver(() => requestAnimationFrame(update));
+  ro.observe(container);
+  ro.observe(bar);
+  window.addEventListener("vml:locale-changed", () => requestAnimationFrame(update));
+  update();
+}
+
 async function initializeVisualPage() {
   const visual = await getVisual(currentSlug());
   if (!visual) {
@@ -449,6 +488,7 @@ async function initializeVisualPage() {
 
 initializeAnalytics();
 mountSharedChrome();
+initDimensionBarClearance();
 initializeVisualPage().catch((error) => {
   document.querySelector("[data-visual-error]").hidden = false;
   console.error(error);

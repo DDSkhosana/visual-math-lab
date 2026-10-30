@@ -13,14 +13,16 @@ function createGrid(THREE, scene, configure) {
 function createAxis(THREE, direction, color, length) {
   const group = new THREE.Group();
   const origin = new THREE.Vector3();
+  const negDir = direction.clone().negate();
   group.add(new THREE.ArrowHelper(direction, origin, length, color, 0.5, 0.3));
-  const negative = direction.clone().negate().multiplyScalar(length);
-  const dashed = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([origin, negative]),
-    new THREE.LineDashedMaterial({ color, dashSize: 0.2, gapSize: 0.2 }),
+  group.add(new THREE.ArrowHelper(negDir, origin, length, color, 0.5, 0.3));
+  const positive = direction.clone().multiplyScalar(length);
+  const negative = negDir.clone().multiplyScalar(length);
+  const fullLine = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([negative, positive]),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.75 }),
   );
-  dashed.computeLineDistances();
-  group.add(dashed);
+  group.add(fullLine);
   return group;
 }
 

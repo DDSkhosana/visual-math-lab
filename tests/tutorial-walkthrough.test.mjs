@@ -68,6 +68,10 @@ test('Walkthrough & Tips: tutorial-walkthrough.js supports all 12 visuals with t
     );
   }
 
+  // Cyclic quadrilateral tips must cover diagonals AC/BD, synced 2D/3D toggles, and Ptolemy's Theorem
+  assert.ok(modCode.includes('Diagonals AC (Lavender) and BD (Sky)'), 'Cyclic quadrilateral tips must describe diagonals AC and BD with colour tokens');
+  assert.ok(modCode.includes("Ptolemy\\'s Theorem: |AC|·|BD| = |AB|·|CD| + |BC|·|DA|"), "Cyclic quadrilateral tips must state Ptolemy's Theorem");
+
   // Verify exports
   const tutorialMod = await import('../js/tutorial-walkthrough.js');
   assert.strictEqual(typeof tutorialMod.isTipsEnabled, 'function');

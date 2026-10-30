@@ -375,15 +375,34 @@ export class TrigCanvas2DView {
     // angle-sum-identities
     const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, 1.0);
     const handles = [
-      { id: 'P', x: cx + m.points2D.P.x * r, y: cy - m.points2D.P.y * r, field: 'angleBeta' },
-      { id: 'A', x: cx + m.points2D.A_ray.x * r, y: cy - m.points2D.A_ray.y * r, field: 'angleAlpha' },
+      {
+        id: 'P',
+        label: 'P(α+β)',
+        color: PALETTE.emerald,
+        x: cx + m.points2D.P.x * r,
+        y: cy - m.points2D.P.y * r,
+        field: 'angleBeta',
+        polarAngle: normalizeAngle((state.angleAlpha || 0) + (state.angleBeta || 0)),
+      },
+      {
+        id: 'A',
+        label: 'A(α)',
+        color: PALETTE.sky,
+        x: cx + m.points2D.A_ray.x * r,
+        y: cy - m.points2D.A_ray.y * r,
+        field: 'angleAlpha',
+        polarAngle: normalizeAngle(state.angleAlpha || 0),
+      },
     ];
     if (state.showDifferenceRay !== false) {
       handles.push({
         id: 'D',
+        label: 'D(α−β)',
+        color: PALETTE.rose,
         x: cx + m.points2D.P_diff.x * r,
         y: cy - m.points2D.P_diff.y * r,
         field: 'diffBeta',
+        polarAngle: normalizeAngle((state.angleAlpha || 0) - (state.angleBeta || 0)),
       });
     }
     return {
@@ -433,6 +452,20 @@ export class TrigCanvas2DView {
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
       ctx.arc(circCx, circCy, circR, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 1b. Hover / Active Handle Ring Affordance (gives clear visual feedback on vector tips & vertices)
+    const activeOrHoverH = (this.activeDrag && this.activeDrag.type === 'handle' && this.activeDrag.handle)
+      ? (info.handles.find((h) => h.id === this.activeDrag.handle.id) || this.activeDrag.handle)
+      : this.hoverHandle;
+    if (activeOrHoverH && Number.isFinite(activeOrHoverH.x) && Number.isFinite(activeOrHoverH.y)) {
+      ctx.save();
+      ctx.strokeStyle = activeOrHoverH.color || PALETTE.sky;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(activeOrHoverH.x, activeOrHoverH.y, 9, 0, TAU);
       ctx.stroke();
       ctx.restore();
     }
@@ -1024,9 +1057,13 @@ export class TrigCanvas2DView {
     ctx.stroke();
     ctx.restore();
 
-    // Sub-triangle Area Shading (△CDB and △ADB)
+    // Sub-triangle Area Shading (△CDB and △ADB) with constitutive vertex/side gradients
     if (showArea) {
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.13)';
+      const gradCDB = ctx.createLinearGradient(C.x, C.y, B.x, B.y);
+      gradCDB.addColorStop(0, 'rgba(244, 63, 94, 0.18)'); // Rose at ∠C
+      gradCDB.addColorStop(0.55, 'rgba(2, 132, 199, 0.16)'); // Sky along side a
+      gradCDB.addColorStop(1, 'rgba(251, 191, 36, 0.16)'); // Amber at projection altitude
+      ctx.fillStyle = gradCDB;
       ctx.beginPath();
       ctx.moveTo(C.x, C.y);
       ctx.lineTo(D.x, D.y);
@@ -1034,7 +1071,11 @@ export class TrigCanvas2DView {
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
+      const gradADB = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+      gradADB.addColorStop(0, 'rgba(16, 185, 129, 0.18)'); // Emerald at baseline b
+      gradADB.addColorStop(0.5, 'rgba(20, 184, 166, 0.16)'); // Teal in interior
+      gradADB.addColorStop(1, 'rgba(244, 63, 94, 0.20)'); // Rose along opposite side c
+      ctx.fillStyle = gradADB;
       ctx.beginPath();
       ctx.moveTo(D.x, D.y);
       ctx.lineTo(A.x, A.y);
@@ -1043,48 +1084,137 @@ export class TrigCanvas2DView {
       ctx.fill();
     }
 
-    // Bilinear Interaction Rectangle (2ab cos C) below AC (multi-color tensor decomposition: a=Sky, b=Emerald, cos C=Rose)
+    // Bilinear Interaction Rectangle (2ab cos C) below AC (multi-color tensor decomposition: C/c=Rose, cos C=Violet, a=Sky, b=Emerald)
     if (state.showInteractionRect !== false && showArea) {
       const rectW = m.projection.pProj * scale;
       const rectH = Math.min(68, m.b * scale * 0.3);
       const grad = ctx.createLinearGradient(C.x, C.y + 10, C.x + rectW, C.y + 10 + rectH);
-      grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)'); // Rose at origin vertex C
-      grad.addColorStop(0.5, 'rgba(2, 132, 199, 0.20)'); // Sky along width projection a cos C
-      grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)'); // Emerald along vertical depth b
+      grad.addColorStop(0, 'rgba(244, 63, 94, 0.34)'); // Rose at origin vertex C (∠C & opposite side c)
+      grad.addColorStop(0.35, 'rgba(168, 85, 247, 0.30)'); // Violet for cosine factor cos C
+      grad.addColorStop(0.7, 'rgba(2, 132, 199, 0.30)'); // Sky along width projection a cos C (side a)
+      grad.addColorStop(1, 'rgba(16, 185, 129, 0.34)'); // Emerald along vertical depth b (side b)
       ctx.fillStyle = grad;
       ctx.fillRect(C.x, C.y + 10, rectW, rectH);
 
-      // Perimeter Edge Stroke Decomposition:
-      // Horizontal edges (X-span = |a cos C| from C to D): Stroked in Sky (PALETTE.sky, width 1.8)
-      ctx.lineWidth = 1.8;
+      // Perimeter Edge & Diagonal Stroke Decomposition:
+      // Top horizontal edge (X-span = a cos C from C to D): Stroked in Sky (PALETTE.sky, side a)
+      ctx.lineWidth = 2.0;
       ctx.strokeStyle = PALETTE.sky;
       ctx.beginPath();
-      ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10);
-      ctx.moveTo(C.x, C.y + 10 + rectH); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.moveTo(C.x, C.y + 10);
+      ctx.lineTo(C.x + rectW, C.y + 10);
       ctx.stroke();
 
-      // Vertical edges (Y-span = |b| down from baseline): Stroked in Emerald (PALETTE.emerald, width 1.8)
+      // Bottom horizontal edge: Stroked in Violet (PALETTE.violet, cos C factor)
+      ctx.strokeStyle = PALETTE.violet;
+      ctx.beginPath();
+      ctx.moveTo(C.x, C.y + 10 + rectH);
+      ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.stroke();
+
+      // Vertical edges (Y-span = |b| down from baseline): Stroked in Emerald (PALETTE.emerald, side b)
       ctx.strokeStyle = PALETTE.emerald;
       ctx.beginPath();
-      ctx.moveTo(C.x, C.y + 10); ctx.lineTo(C.x, C.y + 10 + rectH);
-      ctx.moveTo(C.x + rectW, C.y + 10); ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.moveTo(C.x, C.y + 10);
+      ctx.lineTo(C.x, C.y + 10 + rectH);
+      ctx.moveTo(C.x + rectW, C.y + 10);
+      ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
       ctx.stroke();
 
-      // Vertex C anchor point: Accent dot in Rose (PALETTE.rose)
-      ctx.fillStyle = PALETTE.rose;
+      // Diagonal coupling chord from C to opposite corner: Dashed in Rose (PALETTE.rose, angle C & side c)
+      ctx.save();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = PALETTE.rose;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.arc(C.x, C.y + 10, 3.5, 0, TAU);
-      ctx.fill();
+      ctx.moveTo(C.x, C.y + 10);
+      ctx.lineTo(C.x + rectW, C.y + 10 + rectH);
+      ctx.stroke();
+      ctx.restore();
+
+      // Corner anchor dots: Rose at C, Sky at top-right (D), Violet at bottom-right, Emerald at bottom-left
+      const drawCornerDot = (x, y, col) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, TAU);
+        ctx.fill();
+      };
+      drawCornerDot(C.x, C.y + 10, PALETTE.rose);
+      drawCornerDot(C.x + rectW, C.y + 10, PALETTE.sky);
+      drawCornerDot(C.x + rectW, C.y + 10 + rectH, PALETTE.violet);
+      drawCornerDot(C.x, C.y + 10 + rectH, PALETTE.emerald);
 
       if (showLabels) {
+        const rectBadgeX = Math.abs(rectW) >= 115 ? C.x + rectW / 2 : Math.min(C.x, C.x + rectW) - 82;
         drawTextBadge(
           ctx,
           `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
-          C.x + rectW / 2,
+          rectBadgeX,
           C.y + 10 + rectH / 2,
           PALETTE.amber
         );
       }
+    }
+
+    // Graphical Representation of Unit Cosine Factor cos C at Vertex C (PALETTE.violet)
+    const rUnit = Math.max(44, Math.min(64, m.a * scale * 0.42));
+    const Ub = {
+      x: C.x + rUnit * Math.cos(state.angleC),
+      y: C.y - rUnit * Math.sin(state.angleC),
+    };
+    const Uc = { x: Ub.x, y: C.y };
+    if (state.showRatioBadge !== false) {
+      ctx.save();
+      // 1. Dashed Violet Unit Reference Circle centered at Vertex C (radius = 1 unit in normalized space)
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.50)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(C.x, C.y, rUnit, 0, TAU);
+      ctx.stroke();
+
+      // 2. Unit Cosine Right Triangle △C·Uc·Ub shaded in translucent Violet
+      if (showArea) {
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.22)';
+        ctx.beginPath();
+        ctx.moveTo(C.x, C.y);
+        ctx.lineTo(Uc.x, Uc.y);
+        ctx.lineTo(Ub.x, Ub.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 3. Dropped Violet perpendicular from unit direction point Ub(cos C, sin C) to foot Uc(cos C, 0)
+      ctx.strokeStyle = PALETTE.violet;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(Ub.x, Ub.y);
+      ctx.lineTo(Uc.x, Uc.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 4. Right-angle mark at Uc in Violet
+      if (showAngles && Math.abs(Ub.y - Uc.y) > 8 && Math.abs(Uc.x - C.x) > 8) {
+        drawRightAngle(ctx, Uc, Ub, C, 7, PALETTE.violet);
+      }
+
+      // 5. Bold Violet horizontal vector C -> Uc representing cos C directly (offset -3px above baseline)
+      ctx.strokeStyle = PALETTE.violet;
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(C.x, C.y - 3);
+      ctx.lineTo(Uc.x, Uc.y - 3);
+      ctx.moveTo(Uc.x, Uc.y - 7);
+      ctx.lineTo(Uc.x, Uc.y + 1);
+      ctx.stroke();
+
+      // 6. Discrete Violet markers at Ub (unit ray intersection) and Uc (cos C foot)
+      ctx.fillStyle = PALETTE.violet;
+      ctx.beginPath();
+      ctx.arc(Ub.x, Ub.y, 3.5, 0, TAU);
+      ctx.arc(Uc.x, Uc.y - 3, 3.5, 0, TAU);
+      ctx.fill();
+      ctx.restore();
     }
 
     // Idempotent Orthogonal Projection BD and CD
@@ -1105,11 +1235,13 @@ export class TrigCanvas2DView {
         drawRightAngle(ctx, D, B, A, 11, PALETTE.amber);
       }
       if (showPoints) {
-        drawLabelledPoint(ctx, D, PALETTE.amber, showLabels ? 'D' : '', 0, -14, 4);
+        const dOffsetX = Math.abs(D.x - C.x) < 28 ? 14 : 0;
+        drawLabelledPoint(ctx, D, PALETTE.amber, showLabels ? 'D' : '', dOffsetX, -14, 4);
       }
       if (showLabels && showLengths) {
-        drawTextBadge(ctx, `a cos C = ${m.projection.pProj.toFixed(2)}`, (C.x + D.x) / 2, C.y - 14, PALETTE.amber);
-        drawTextBadge(ctx, `h = ${m.projection.hAlt.toFixed(2)}`, D.x + 38, (B.y + D.y) / 2, PALETTE.amber);
+        const altSide = D.x <= (C.x + A.x) * 0.5 ? 46 : -46;
+        drawTextBadge(ctx, `a cos C = ${m.projection.pProj.toFixed(2)}`, (C.x + D.x) / 2, C.y + 22, PALETTE.amber);
+        drawTextBadge(ctx, `h = ${m.projection.hAlt.toFixed(2)}`, D.x + altSide, (B.y + D.y) / 2, PALETTE.amber);
       }
     }
 
@@ -1121,27 +1253,51 @@ export class TrigCanvas2DView {
     const angBC = Math.atan2(C.y - B.y, C.x - B.x);
     const angBA = Math.atan2(A.y - B.y, A.x - B.x);
 
+    // Helper: outward unit normal from triangle centroid so badges sit cleanly outside the triangle
+    const getOutwardEdgeBadge = (P1, P2, dist = 30) => {
+      const mx = (P1.x + P2.x) * 0.5;
+      const my = (P1.y + P2.y) * 0.5;
+      const dx = P2.x - P1.x;
+      const dy = P2.y - P1.y;
+      const len = Math.hypot(dx, dy) || 1;
+      let nx = -dy / len;
+      let ny = dx / len;
+      if (nx * (mx - centroid.x) + ny * (my - centroid.y) < 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+      return { x: mx + nx * dist, y: my + ny * dist };
+    };
+
+    const getOutwardVertexBadge = (V, dist = 38) => {
+      const vx = V.x - centroid.x;
+      const vy = V.y - centroid.y;
+      const len = Math.hypot(vx, vy) || 1;
+      return { x: V.x + (vx / len) * dist, y: V.y + (vy / len) * dist };
+    };
+
     // Colour grammar (same as Law of Sines): each vertex shares the colour of its OPPOSITE side —
     // A ↔ a = BC (sky), B ↔ b = CA (emerald), C ↔ c = AB (rose).
     if (showAngles) {
-      sweepInteriorWedge(ctx, C, angCA, angCB, 32, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
-      sweepInteriorWedge(ctx, A, angAB, angAC, 26, 'rgba(2, 132, 199, 0.22)', PALETTE.sky);
-      sweepInteriorWedge(ctx, B, angBC, angBA, 26, 'rgba(16, 185, 129, 0.22)', PALETTE.emerald);
+      sweepInteriorWedge(ctx, C, angCA, angCB, 28, 'rgba(244, 63, 94, 0.25)', PALETTE.rose);
+      sweepInteriorWedge(ctx, A, angAB, angAC, 24, 'rgba(2, 132, 199, 0.22)', PALETTE.sky);
+      sweepInteriorWedge(ctx, B, angBC, angBA, 24, 'rgba(16, 185, 129, 0.22)', PALETTE.emerald);
       if (showLabels) {
-        const bC = get2DBisectorOffset(C, angCA, angCB, 48);
-        const bA = get2DBisectorOffset(A, angAB, angAC, 44);
-        const bB = get2DBisectorOffset(B, angBC, angBA, 44);
+        // Place angle badges outside each vertex so the triangle interior and unit circle stay unobstructed
+        const bC = { x: C.x - 54, y: C.y - 22 };
+        const bA = { x: A.x + 52, y: A.y - 22 };
+        const bB = getOutwardVertexBadge(B, 38);
         drawTextBadge(ctx, `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, bC.x, bC.y, PALETTE.rose);
         drawTextBadge(ctx, `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, bA.x, bA.y, PALETTE.sky);
-        drawTextBadge(ctx, `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, bB.x, bB.y, PALETTE.emerald);
+        drawTextBadge(ctx, `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, bB.x, Math.min(bB.y, B.y - 28), PALETTE.emerald);
       }
     }
 
     if (showReflex) {
-      drawReflexWedge(ctx, C, angCA, angCB, 40, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
+      drawReflexWedge(ctx, C, angCA, angCB, 38, 'rgba(20, 184, 166, 0.15)', PALETTE.teal);
       if (showLabels) {
-        const rC = get2DBisectorOffset(C, angCA, angCB, 56, true);
-        drawTextBadge(ctx, `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, rC.x, rC.y, PALETTE.teal);
+        const rC = get2DBisectorOffset(C, angCA, angCB, 58, true);
+        drawTextBadge(ctx, `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, rC.x - 24, rC.y, PALETTE.teal);
       }
     }
 
@@ -1166,57 +1322,99 @@ export class TrigCanvas2DView {
     ctx.stroke();
 
     if (showLabels && showLengths) {
-      drawTextBadge(ctx, `a = ${m.a.toFixed(2)}`, (C.x + B.x) / 2 - 24, (C.y + B.y) / 2 - 12, PALETTE.sky);
-      drawTextBadge(ctx, `b = ${m.b.toFixed(2)}`, (C.x + A.x) / 2, C.y + 24, PALETTE.emerald);
-      drawTextBadge(ctx, `c = ${m.c.toFixed(2)}`, (A.x + B.x) / 2 + 26, (A.y + B.y) / 2 - 12, PALETTE.rose);
+      const posA = getOutwardEdgeBadge(C, B, 32);
+      const posC = getOutwardEdgeBadge(A, B, 32);
+      drawTextBadge(ctx, `a = ${m.a.toFixed(2)}`, posA.x, posA.y, PALETTE.sky);
+      drawTextBadge(ctx, `b = ${m.b.toFixed(2)}`, A.x + 48, A.y + 18, PALETTE.emerald);
+      drawTextBadge(ctx, `c = ${m.c.toFixed(2)}`, posC.x, posC.y, PALETTE.rose);
     }
 
     if (showPoints) {
-      drawRadialLabelledPoint(ctx, C, centroid, PALETTE.rose, getPointLabel('C', 0, 0, vis), 20, 5);
-      drawRadialLabelledPoint(ctx, A, centroid, PALETTE.sky, getPointLabel('A', m.b * scale, 0, vis), 20, 5);
+      drawRadialLabelledPoint(ctx, C, centroid, PALETTE.rose, getPointLabel('C', 0, 0, vis), 26, 5);
+      drawRadialLabelledPoint(ctx, A, centroid, PALETTE.sky, getPointLabel('A', m.b * scale, 0, vis), 26, 5);
       drawRadialLabelledPoint(
         ctx,
         B,
         centroid,
         PALETTE.emerald,
         getPointLabel('B', m.vertices2D.B.x * scale, m.vertices2D.B.y * scale, vis),
-        20,
+        26,
         5
       );
+      if (state.showRatioBadge !== false && showLabels) {
+        drawLabelledPoint(ctx, { x: Uc.x, y: Uc.y - 3 }, PALETTE.violet, 'Uc', 0, -14, 3.5);
+      }
     }
 
-    // Dynamic Ratio Evaluation Badge and Proportional Projection Bar along baseline b (locked to PALETTE.amber invariant)
+    // Dynamic Ratio Evaluation Badge (PALETTE.violet) and Proportional Projection Bar along baseline b (PALETTE.amber)
     if (state.showRatioBadge !== false) {
+      const cosColor = PALETTE.violet;
       const barColor = PALETTE.amber;
+      const projFrac = m.b > 0 ? (m.projection.pProj / m.b) : 0;
 
-      // 1. Dynamic Evaluation Ratio Badge near Vertex C / Angle C
+      // 1. Non-obstructing Unit Cosine & Ratio Badges in Violet (placed cleanly outside the triangle)
       if (showLabels) {
-        const ratioBadgeX = Math.max(95, C.x - 72);
-        const ratioBadgeY = Math.max(25, C.y - 36);
+        const topClearY = Math.max(32, Math.min(B.y - 52, C.y - rUnit - 26));
         drawTextBadge(
           ctx,
           `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}`,
-          ratioBadgeX,
-          ratioBadgeY,
-          barColor
+          (C.x + A.x) * 0.5,
+          topClearY,
+          cosColor
         );
       }
 
-      // 2. Normalized Proportional Projection Bar/Gauge along baseline AC (segment CD)
+      // 2. Normalized Proportional Projection Bar/Gauge along baseline AC (segment CD = projFrac * b)
       const hasRect = state.showInteractionRect !== false && showArea;
       const rectH = hasRect ? Math.min(68, m.b * scale * 0.3) : 0;
-      const gaugeY = C.y + (hasRect ? rectH + 24 : 38);
+      const gaugeY = C.y + (hasRect ? rectH + 34 : 46);
       const trackW = A.x - C.x;
-      const barH = 6;
+      const projW = projFrac * trackW; // Strictly proportional to projFrac = (a cos C) / b
+      const fillEndX = C.x + projW;
+      const barH = 8;
 
       ctx.save();
-      // Baseline track (represents full b = AC)
-      ctx.fillStyle = 'rgba(51, 65, 85, 0.45)';
-      ctx.strokeStyle = 'rgba(100, 116, 139, 0.6)';
+
+      // Subtle vertical drop guides linking C (0%), D (projFrac), and A (100% b) to the slider track
+      ctx.setLineDash([2, 3]);
       ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+      ctx.beginPath();
+      ctx.moveTo(C.x, C.y + 4);
+      ctx.lineTo(C.x, gaugeY);
+      ctx.moveTo(A.x, A.y + 4);
+      ctx.lineTo(A.x, gaugeY);
+      ctx.moveTo(fillEndX, D.y + 4);
+      ctx.lineTo(fillEndX, gaugeY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Overflow / Negative Extension Track when |projFrac| extends beyond [0%, 100%] of b
+      if (projW < 0 || projW > trackW) {
+        const extStartX = projW < 0 ? fillEndX : A.x;
+        const extW = projW < 0 ? Math.abs(projW) : projW - trackW;
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.55)';
+        ctx.strokeStyle = projW < 0 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(extStartX, gaugeY - barH / 2, extW, barH, 4);
+        } else {
+          ctx.rect(extStartX, gaugeY - barH / 2, extW, barH);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Primary Baseline Track [0% at C -> 100% at A] (represents full b = AC in Emerald)
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+      ctx.strokeStyle = PALETTE.emerald;
+      ctx.lineWidth = 1.4;
       if (ctx.roundRect) {
         ctx.beginPath();
-        ctx.roundRect(C.x, gaugeY - barH / 2, trackW, barH, 3);
+        ctx.roundRect(C.x, gaugeY - barH / 2, trackW, barH, 4);
         ctx.fill();
         ctx.stroke();
       } else {
@@ -1224,51 +1422,60 @@ export class TrigCanvas2DView {
         ctx.strokeRect(C.x, gaugeY - barH / 2, trackW, barH);
       }
 
-      // Filled proportional segment: from C to D (a cos C)
-      const projW = D.x - C.x;
-      if (Math.abs(projW) > 1) {
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.65)';
+      // Filled Proportional Segment: strictly from C.x (0%) to fillEndX (projFrac * 100%)
+      // Uses linear gradient representing Angle C / Side c (Rose) -> cos C (Violet) -> Projected Side a (Sky)
+      if (Math.abs(projW) > 0.5) {
+        const fillGrad = ctx.createLinearGradient(C.x, gaugeY, fillEndX, gaugeY);
+        fillGrad.addColorStop(0, PALETTE.rose);     // Vertex C / Angle C / Side c
+        fillGrad.addColorStop(0.5, PALETTE.violet); // Cosine Factor cos C
+        fillGrad.addColorStop(1, PALETTE.sky);      // Projected Side a (a cos C)
+        ctx.fillStyle = fillGrad;
+        const rx = projW >= 0 ? C.x : fillEndX;
+        const rw = Math.abs(projW);
         ctx.beginPath();
         if (ctx.roundRect) {
-          if (projW >= 0) {
-            ctx.roundRect(C.x, gaugeY - barH / 2, Math.min(projW, trackW), barH, 3);
-          } else {
-            ctx.roundRect(C.x + projW, gaugeY - barH / 2, Math.abs(projW), barH, 3);
-          }
+          ctx.roundRect(rx, gaugeY - barH / 2 + 1, rw, barH - 2, 3);
         } else {
-          if (projW >= 0) {
-            ctx.fillRect(C.x, gaugeY - barH / 2, Math.min(projW, trackW), barH);
-          } else {
-            ctx.fillRect(C.x + projW, gaugeY - barH / 2, Math.abs(projW), barH);
-          }
+          ctx.rect(rx, gaugeY - barH / 2 + 1, rw, barH - 2);
         }
         ctx.fill();
       }
 
-      // Ticks at C (0), A (b), and D (a cos C)
+      // Reference Ticks at C (0%), Midpoint (50% b), A (100% b), and D (projFrac)
       ctx.strokeStyle = PALETTE.emerald;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(C.x, gaugeY - 6);
-      ctx.lineTo(C.x, gaugeY + 6);
-      ctx.moveTo(A.x, gaugeY - 6);
-      ctx.lineTo(A.x, gaugeY + 6);
+      ctx.moveTo(C.x, gaugeY - 7);
+      ctx.lineTo(C.x, gaugeY + 7);
+      ctx.moveTo(C.x + trackW * 0.5, gaugeY - 4);
+      ctx.lineTo(C.x + trackW * 0.5, gaugeY + 4);
+      ctx.moveTo(A.x, gaugeY - 7);
+      ctx.lineTo(A.x, gaugeY + 7);
       ctx.stroke();
 
+      // Active Slider Thumb & Indicator at D (fillEndX)
       ctx.strokeStyle = barColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.moveTo(D.x, gaugeY - 8);
-      ctx.lineTo(D.x, gaugeY + 8);
+      ctx.moveTo(fillEndX, gaugeY - 9);
+      ctx.lineTo(fillEndX, gaugeY + 9);
+      ctx.stroke();
+
+      ctx.fillStyle = barColor;
+      ctx.beginPath();
+      ctx.arc(fillEndX, gaugeY, 4.5, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
       ctx.stroke();
 
       if (showLabels && showLengths) {
-        const projFrac = m.b > 0 ? (m.projection.pProj / m.b) : 0;
+        const badgeCenterX = (Math.min(C.x, fillEndX) + Math.max(A.x, fillEndX)) / 2;
         drawTextBadge(
           ctx,
           `Proj Ratio (a cos C)/b = ${projFrac.toFixed(3)} (${(projFrac * 100).toFixed(1)}%)`,
-          (C.x + A.x) / 2,
-          gaugeY + 16,
+          badgeCenterX,
+          gaugeY + 20,
           barColor
         );
       }
@@ -1362,6 +1569,19 @@ export class TrigCanvas2DView {
       ctx.lineTo(N.x, N.y);
       ctx.stroke();
 
+      // Horizontal cosine projection ON = cos(α+β) in Amber (offset -2px above X-axis for collinear clarity)
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = PALETTE.amber;
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(O.x, O.y - 2);
+      ctx.lineTo(N.x, N.y - 2);
+      ctx.moveTo(N.x, N.y - 6);
+      ctx.lineTo(N.x, N.y + 1);
+      ctx.stroke();
+      ctx.restore();
+
       // Dropped perpendicular from P to X-axis at N (sin(α+β) altitude - emerald matching 3D)
       ctx.strokeStyle = PALETTE.emerald;
       ctx.beginPath();
@@ -1370,6 +1590,19 @@ export class TrigCanvas2DView {
       ctx.stroke();
 
       if (state.showDifferenceRay !== false) {
+        // Horizontal difference cosine projection ON_D = cos(α−β) in Orange (offset +3.5px below X-axis, distinct from Amber cos(α+β))
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = PALETTE.orange;
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y + 3.5);
+        ctx.lineTo(Ndiff.x, Ndiff.y + 3.5);
+        ctx.moveTo(Ndiff.x, Ndiff.y);
+        ctx.lineTo(Ndiff.x, Ndiff.y + 7.5);
+        ctx.stroke();
+        ctx.restore();
+
         // Dropped perpendicular from Pdiff to X-axis at Ndiff (sin(α−β) altitude - rose matching 3D)
         ctx.strokeStyle = PALETTE.rose;
         ctx.beginPath();
@@ -1457,13 +1690,13 @@ export class TrigCanvas2DView {
         ctx.stroke();
         ctx.restore();
 
-        // Horizontal cosine projection badge along ON_diff (Amber matching cos(α+β))
+        // Horizontal cosine projection badge along ON_diff (Orange distinct from Amber cos(α+β))
         drawTextBadge(
           ctx,
           `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`,
           (O.x + Ndiff.x) / 2,
           O.y + (Pdiff.y > O.y ? -18 : 34),
-          PALETTE.amber
+          PALETTE.orange
         );
         // Vertical sine projection badge along N_diff -> P_diff (Rose matching sin(α−β) altitude)
         drawTextBadge(
@@ -1492,7 +1725,7 @@ export class TrigCanvas2DView {
         drawLabelledPoint(ctx, N, PALETTE.amber, getPointLabel('N', m.points2D.N.x * r, m.points2D.N.y * r, vis), 10, 15, 3.5);
       }
       if (state.showDifferenceRay !== false) {
-        drawLabelledPoint(ctx, Ndiff, PALETTE.amber, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5);
+        drawLabelledPoint(ctx, Ndiff, PALETTE.orange, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5);
       }
     }
   }
@@ -1584,6 +1817,7 @@ export class TrigScene3DView extends BaseScene3DView {
           id: 'P',
           mesh: this.handleP,
           field: 'angleTheta',
+          isVectorRay: true,
         },
         {
           id: 'HelixP',
@@ -1618,39 +1852,101 @@ export class TrigScene3DView extends BaseScene3DView {
         {
           id: 'B',
           mesh: this.handleB,
-          onDrag: (angle, hit, store) => {
+          onDrag: (angle, hit, store, lat) => {
+            const st = store.get();
             let ang = Math.atan2(hit.z, hit.x);
             if (ang < 0) ang += Math.PI * 2;
-            store.set({ angleC: ang });
+            if (st.dimensionMode === 'spatial' && Number.isFinite(lat)) {
+              const R = this.R || 10;
+              const nextA = clamp(Math.round(lat * R * 2) / 2, 2, 12);
+              store.set({ angleC: ang, sideA: nextA });
+            } else {
+              store.set({ angleC: ang });
+            }
+          },
+        },
+        {
+          id: 'A',
+          mesh: this.handleA,
+          onDrag: (_angle, hit, store, lat) => {
+            const st = store.get();
+            const R = this.R || 10;
+            if (st.dimensionMode === 'spatial' && Number.isFinite(lat)) {
+              const nextB = clamp(Math.round(lat * R * 2) / 2, 2, 12);
+              store.set({ sideB: nextB });
+            } else {
+              const m = computeLawOfCosines(st.sideA, st.sideB, st.angleC);
+              const s = R / Math.max(m.a, m.b, m.c, 10);
+              const nextB = clamp(Math.round((Math.max(1, hit.x) / (s || 1)) * 2) / 2, 2, 12);
+              store.set({ sideB: nextB });
+            }
           },
         },
       ];
     } else {
-      // angle-sum-identities: vector apexes have invisible pick targets (no visible globes)
+      // angle-sum-identities: vector apexes have generous invisible pick spheres (no visible globes)
       this.handleB.visible = false;
       this.handleC.visible = false;
-      this.handleA.material.transparent = true;
-      this.handleA.material.opacity = 0.01;
-      this.handleP.material.transparent = true;
-      this.handleP.material.opacity = 0.01;
-      this.handleC.material.transparent = true;
-      this.handleC.material.opacity = 0.01;
+      for (const h of [this.handleA, this.handleP, this.handleB, this.handleC]) {
+        h.material.transparent = true;
+        h.material.opacity = 0.01;
+        h.scale.setScalar(3.2);
+      }
       this.draggableTargets = [
-        { id: 'A', mesh: this.handleA, field: 'angleAlpha' },
+        {
+          id: 'A',
+          mesh: this.handleA,
+          field: 'angleAlpha',
+          isVectorRay: true,
+          onDrag: (angle, hit, store) => {
+            const st = store.get();
+            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
+              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
+              store.set({ angleAlpha: angle, angleGamma: gamma });
+            } else {
+              store.set({ angleAlpha: angle });
+            }
+          },
+        },
         {
           id: 'P',
           mesh: this.handleP,
-          onDrag: (angle, _hit, store) => {
-            const alpha = store.get().angleAlpha || 0;
-            store.set({ angleBeta: normalizeAngle(angle - alpha) });
+          isVectorRay: true,
+          onDrag: (angle, hit, store) => {
+            const st = store.get();
+            const alpha = st.angleAlpha || 0;
+            const nextBeta = normalizeAngle(angle - alpha);
+            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
+              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
+              store.set({ angleBeta: nextBeta, angleGamma: gamma });
+            } else {
+              store.set({ angleBeta: nextBeta });
+            }
           },
         },
         {
           id: 'D',
           mesh: this.handleC,
-          onDrag: (angle, _hit, store) => {
-            const alpha = store.get().angleAlpha || 0;
-            store.set({ angleBeta: normalizeAngle(alpha - angle) });
+          isVectorRay: true,
+          onDrag: (angle, hit, store) => {
+            const st = store.get();
+            const alpha = st.angleAlpha || 0;
+            const nextBeta = normalizeAngle(alpha - angle);
+            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
+              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
+              store.set({ angleBeta: nextBeta, angleGamma: gamma });
+            } else {
+              store.set({ angleBeta: nextBeta });
+            }
+          },
+        },
+        {
+          id: 'e2',
+          mesh: this.handleB,
+          isVectorRay: true,
+          onDrag: (_angle, hit, store) => {
+            const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
+            store.set({ angleGamma: gamma });
           },
         },
       ];
@@ -2501,22 +2797,105 @@ export class TrigScene3DView extends BaseScene3DView {
         const cLen = Math.hypot(cX, cY, cZ) || 1;
         const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
 
+        // Equatorial projection of the 2ab cos C bilinear interaction rectangle in Spherical 3D mode
+        const showSphRect = state.showInteractionRect !== false && showArea;
+        const mFlat = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
+        const sFlat = R / Math.max(mFlat.a, mFlat.b, mFlat.c, 10);
+        const sphDx = mFlat.vertices2D.D.x * sFlat;
+        const sphRectDepth = Math.min(3.4, mFlat.b * sFlat * 0.36);
+        if (showSphRect) {
+          const SR0 = new THREE.Vector3(0, 0.015, 0);
+          const SR1 = new THREE.Vector3(sphDx, 0.015, 0);
+          const SR2 = new THREE.Vector3(sphDx, 0.015, -sphRectDepth);
+          const SR3 = new THREE.Vector3(0, 0.015, -sphRectDepth);
+          const sphRectGeom = new THREE.BufferGeometry().setFromPoints([SR0, SR1, SR2, SR3]);
+          sphRectGeom.setIndex([0, 1, 2, 0, 2, 3]);
+          sphRectGeom.setAttribute(
+            'color',
+            new THREE.Float32BufferAttribute(
+              [
+                0.957, 0.247, 0.369, // Rose (C / c)
+                0.008, 0.518, 0.780, // Sky (a cos C)
+                0.659, 0.333, 0.969, // Violet (cos C)
+                0.063, 0.725, 0.506, // Emerald (b)
+              ],
+              3
+            )
+          );
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              sphRectGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.42,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            )
+          );
+          addSeg(SR0, SR1, PALETTE.sky);
+          addSeg(SR3, SR2, PALETTE.violet);
+          addSeg(SR0, SR3, PALETTE.emerald);
+          addSeg(SR1, SR2, PALETTE.emerald);
+          addSeg(SR0, SR2, PALETTE.rose, true);
+        }
+
+        // Spherical 3D Unit Cosine Construction at Apex C (PALETTE.violet)
+        const rUnitSph = 2.4;
+        const UbSph = C.clone().addScaledVector(tCB, rUnitSph);
+        const UcSph = C.clone().addScaledVector(tCA, rUnitSph * Math.cos(sM.angleC));
+        if (state.showRatioBadge !== false) {
+          addSeg(C, UcSph, PALETTE.violet);
+          addVectorArrow(C, UcSph, PALETTE.violet);
+          addSeg(UbSph, UcSph, PALETTE.violet, true);
+          if (showArea) {
+            const uSphGeom = new THREE.BufferGeometry().setFromPoints([C, UcSph, UbSph]);
+            uSphGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                uSphGeom,
+                new THREE.MeshBasicMaterial({
+                  color: PALETTE.violet,
+                  transparent: true,
+                  opacity: 0.28,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          }
+        }
+
         labels.push(
-          { key: 'O', name: 'O', at: { x: 0, y: -0.6, z: 0 }, coords: O, color: 'color-indigo' },
-          { key: 'C', name: 'C', at: { x: 0, y: R + 0.8, z: 0 }, coords: C, color: 'color-rose' },
-          { key: 'A', name: 'A', at: { x: A.x * 1.15, y: A.y + 0.4, z: A.z * 1.15 }, coords: A, color: 'color-sky' },
-          { key: 'B', name: 'B', at: { x: B.x * 1.15, y: B.y + 0.4, z: B.z * 1.15 }, coords: B, color: 'color-emerald' },
-          { key: 'sph-C', text: `∠C = ${fmtAngle(sM.angleCDeg, angUnit)}`, at: { x: C.x + tCA.x * 1.4, y: C.y + 0.8, z: C.z + tCA.z * 1.4 }, color: 'color-rose', isAngle: true, show: showAngles },
-          { key: 'sph-A', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.05 + tAC.x * 1.2, y: A.y + 0.8, z: A.z * 1.05 + tAC.z * 1.2 }, color: 'color-sky', isAngle: true, show: showAngles },
-          { key: 'sph-B', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.05 + tBC.x * 1.2, y: B.y + 0.8, z: B.z * 1.05 + tBC.z * 1.2 }, color: 'color-emerald', isAngle: true, show: showAngles },
+          { key: 'O', name: 'O', at: { x: 0, y: -0.9, z: 0 }, coords: O, color: 'color-indigo' },
+          { key: 'C', name: 'C', at: { x: -0.8, y: R + 0.9, z: -0.8 }, coords: C, color: 'color-rose' },
+          { key: 'A', name: 'A', at: { x: A.x * 1.18, y: A.y + 0.4, z: A.z * 1.18 }, coords: A, color: 'color-sky' },
+          { key: 'B', name: 'B', at: { x: B.x * 1.18, y: B.y + 0.4, z: B.z * 1.18 }, coords: B, color: 'color-emerald' },
+          { key: 'sph-C', text: `∠C = ${fmtAngle(sM.angleCDeg, angUnit)}`, at: { x: C.x - tCA.x * 1.6, y: C.y + 0.9, z: C.z - tCB.z * 1.6 }, color: 'color-rose', isAngle: true, show: showAngles },
+          { key: 'sph-A', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.24, y: A.y - 0.6, z: A.z * 1.24 }, color: 'color-sky', isAngle: true, show: showAngles },
+          { key: 'sph-B', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.24, y: B.y - 0.6, z: B.z * 1.24 }, color: 'color-emerald', isAngle: true, show: showAngles },
           { key: 'sph-excess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true },
+          ...(showSphRect
+            ? [
+                {
+                  key: 'sph-rect-2abcos',
+                  text: `2ab cos C = ${mFlat.squares.interaction2abCosC.toFixed(1)}`,
+                  at: { x: sphDx / 2, y: -0.5, z: -sphRectDepth - 0.8 },
+                  color: 'color-amber',
+                  isAngle: true,
+                  show: true,
+                },
+              ]
+            : []),
           ...(state.showRatioBadge !== false
             ? [
                 {
                   key: 'sph-ratio-cos',
                   text: `cos C = ${Math.cos(sM.angleC).toFixed(3)}`,
-                  at: { x: C.x, y: R + 1.4, z: 0 },
-                  color: Math.cos(sM.angleC) >= 0 ? 'color-amber' : 'color-rose',
+                  at: { x: UcSph.x, y: R + 1.8, z: UcSph.z },
+                  color: 'color-violet',
                   isAngle: true,
                   show: true,
                 },
@@ -2549,6 +2928,64 @@ export class TrigScene3DView extends BaseScene3DView {
           this.rightAngle2.visible = showAngles;
         }
 
+        // 3D Graphical Representation of Unit Cosine Factor cos C at Vertex C (PALETTE.violet)
+        const rUnit3D = Math.min(3.0, Math.max(1.8, m.a * s * 0.42));
+        const Ub3D = new THREE.Vector3(rUnit3D * Math.cos(state.angleC), 0.03, rUnit3D * Math.sin(state.angleC));
+        const Uc3D = new THREE.Vector3(Ub3D.x, 0.03, 0);
+        if (state.showRatioBadge !== false) {
+          // 1. Dashed Violet 3D Unit Reference Circle on Y = 0 plane at Vertex C
+          const unitCirclePts = [];
+          for (let i = 0; i <= 48; i++) {
+            const ang = (i / 48) * TAU;
+            unitCirclePts.push(new THREE.Vector3(rUnit3D * Math.cos(ang), 0.02, rUnit3D * Math.sin(ang)));
+          }
+          const unitCircleLine = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(unitCirclePts),
+            new THREE.LineDashedMaterial({ color: PALETTE.violet, dashSize: 0.3, gapSize: 0.2, transparent: true, opacity: 0.65 })
+          );
+          unitCircleLine.computeLineDistances();
+          this.dynamicGroup.add(unitCircleLine);
+
+          // 2. Translucent Violet Unit Cosine Right Triangle △C·Uc·Ub
+          if (showArea) {
+            const unitTriGeom = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(0, 0.025, 0),
+              Uc3D,
+              Ub3D,
+            ]);
+            unitTriGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                unitTriGeom,
+                new THREE.MeshBasicMaterial({
+                  color: PALETTE.violet,
+                  transparent: true,
+                  opacity: 0.28,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          }
+
+          // 3. Dropped Violet perpendicular Ub3D -> Uc3D and bold Violet horizontal vector C -> Uc3D (cos C)
+          addSeg(Ub3D, Uc3D, PALETTE.violet, true);
+          addSeg(new THREE.Vector3(0, 0.03, 0), Uc3D, PALETTE.violet);
+          addVectorArrow(new THREE.Vector3(0, 0.03, 0), Uc3D, PALETTE.violet);
+
+          // 4. Discrete Violet 3D markers at Ub3D and Uc3D
+          if (showPoints) {
+            for (const pt of [Ub3D, Uc3D]) {
+              const vMarker = new THREE.Mesh(
+                new THREE.SphereGeometry(0.13, 16, 16),
+                new THREE.MeshBasicMaterial({ color: PALETTE.violet })
+              );
+              vMarker.position.copy(pt);
+              this.dynamicGroup.add(vMarker);
+            }
+          }
+        }
+
         // 3D Angle Wedges at C, A, B (unified color grammar: A ↔ sky, B ↔ emerald, C ↔ rose)
         this.wedge1.material.color.set(PALETTE.rose);
         this.wedge1.arcLine.material.color.set(PALETTE.rose);
@@ -2565,19 +3002,65 @@ export class TrigScene3DView extends BaseScene3DView {
         this.reflexWedge1.visible = showReflex;
 
         if (showArea) {
-          const triGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
-          triGeom.setIndex([0, 1, 2]);
+          // Decomposed right sub-triangles △CDB (Rose/Amber/Sky) & △ADB (Amber/Emerald/Rose)
+          const cdbGeom = new THREE.BufferGeometry().setFromPoints([C, D, B]);
+          cdbGeom.setIndex([0, 1, 2]);
+          cdbGeom.setAttribute(
+            'color',
+            new THREE.Float32BufferAttribute(
+              [
+                0.957, 0.247, 0.369, // C: Rose
+                0.984, 0.749, 0.141, // D: Amber
+                0.008, 0.518, 0.780, // B: Sky (side a)
+              ],
+              3
+            )
+          );
           this.dynamicGroup.add(
             new THREE.Mesh(
-              triGeom,
-              new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
+              cdbGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.24,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            )
+          );
+
+          const adbGeom = new THREE.BufferGeometry().setFromPoints([D, A, B]);
+          adbGeom.setIndex([0, 1, 2]);
+          adbGeom.setAttribute(
+            'color',
+            new THREE.Float32BufferAttribute(
+              [
+                0.984, 0.749, 0.141, // D: Amber
+                0.063, 0.725, 0.506, // A: Emerald (side b)
+                0.957, 0.247, 0.369, // B: Rose (side c)
+              ],
+              3
+            )
+          );
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              adbGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.24,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
             )
           );
         }
 
-        // 3D Bilinear Interaction Rectangle Mesh (2ab cos C) in the XZ ground plane (locked to PALETTE.amber invariant)
+        // 3D Bilinear Interaction Rectangle & Extruded Projection Prism (2ab cos C) in the XZ ground plane
         const showInteractionRect = state.showInteractionRect !== false && showArea;
-        const rectDepth = Math.min(2.8, A.x * 0.28);
+        const rectDepth = Math.min(3.6, Math.max(2.4, A.x * 0.38));
         if (showInteractionRect) {
           const rectColor = PALETTE.amber;
           const R0 = new THREE.Vector3(0, 0.015, 0);
@@ -2588,44 +3071,80 @@ export class TrigScene3DView extends BaseScene3DView {
           const rectGeom = new THREE.BufferGeometry().setFromPoints([R0, R1, R2, R3]);
           rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
 
+          // 4-corner constitutive colors: R0=Rose (C/c), R1=Sky (a cos C), R2=Violet (cos C), R3=Emerald (b)
           const colors = [
             0.957, 0.247, 0.369, // Corner R0 at Vertex C: Rose (#f43f5e)
-            0.055, 0.647, 0.914, // Corner R1 at Projection Foot D (a cos C along X): Sky (#0284c7)
-            0.063, 0.725, 0.506, // Corner R2 at depth -rectDepth along Z: Emerald (#10b981)
-            0.063, 0.725, 0.506, // Corner R3 at depth -rectDepth along Z: Emerald (#10b981)
+            0.008, 0.518, 0.780, // Corner R1 at Projection Foot D (a cos C): Sky (#0284c7)
+            0.659, 0.333, 0.969, // Corner R2 at (D.x, -rectDepth): Violet (#a855f7, cos C)
+            0.063, 0.725, 0.506, // Corner R3 at (0, -rectDepth): Emerald (#10b981, side b)
           ];
           rectGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
+          const topMesh = new THREE.Mesh(
+            rectGeom,
+            new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.5,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          );
+          topMesh.renderOrder = 2;
+          this.dynamicGroup.add(topMesh);
+
+          // 3D Extruded Prism Base & Vertical Walls (depth = -0.45 along Y) so prism is unmistakably visible from any 3D angle
+          const prismY = -0.45;
+          const B0 = new THREE.Vector3(0, prismY, 0);
+          const B1 = new THREE.Vector3(D.x, prismY, 0);
+          const B2 = new THREE.Vector3(D.x, prismY, -rectDepth);
+          const B3 = new THREE.Vector3(0, prismY, -rectDepth);
+
+          const botGeom = new THREE.BufferGeometry().setFromPoints([B0, B1, B2, B3]);
+          botGeom.setIndex([0, 1, 2, 0, 2, 3]);
+          botGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
           this.dynamicGroup.add(
             new THREE.Mesh(
-              rectGeom,
+              botGeom,
               new THREE.MeshBasicMaterial({
-                color: rectColor,
+                color: 0xffffff,
                 vertexColors: true,
                 transparent: true,
                 opacity: 0.28,
                 side: THREE.DoubleSide,
+                depthWrite: false,
               })
             )
           );
 
-          // Dashed rectangular wireframe perimeter decomposed by tensor components
-          addSeg(R0, R1, PALETTE.sky, true);
-          addSeg(R3, R2, PALETTE.sky, true);
-          addSeg(R0, R3, PALETTE.emerald, true);
-          addSeg(R1, R2, PALETTE.emerald, true);
+          // Solid & dashed rectangular wireframe perimeter + vertical prism ribs + diagonal Rose chord
+          addSeg(R0, R1, PALETTE.sky);
+          addSeg(R3, R2, PALETTE.violet);
+          addSeg(R0, R3, PALETTE.emerald);
+          addSeg(R1, R2, PALETTE.emerald);
+          addSeg(R0, R2, PALETTE.rose, true);
+          addSeg(B0, B1, PALETTE.sky, true);
+          addSeg(B3, B2, PALETTE.violet, true);
+          addSeg(B0, B3, PALETTE.emerald, true);
+          addSeg(B1, B2, PALETTE.emerald, true);
+          addSeg(R0, B0, PALETTE.rose);
+          addSeg(R1, B1, PALETTE.sky);
+          addSeg(R2, B2, PALETTE.violet);
+          addSeg(R3, B3, PALETTE.emerald);
         }
 
-        const bisA = get3DAngleBisector(A, C, B, 3.0, THREE);
-        const bisB = get3DAngleBisector(B, C, A, 3.0, THREE);
-        const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
-        const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
+        const bisA = { x: A.x + 2.4, y: 0.8, z: 1.0 };
+        const bisB = { x: B.x, y: 1.3, z: B.z + 2.4 };
+        const bisC = { x: -2.6, y: 0.8, z: 1.0 };
+        const refC = get3DReflexBisector(C, A, B, 4.2, THREE);
 
         labels.push(
-          { key: 'C', name: 'C', at: { x: -0.9, y: 0.5, z: -0.9 }, coords: C, color: 'color-rose' },
-          { key: 'A', name: 'A', at: { x: A.x + 0.9, y: 0.5, z: 0 }, coords: A, color: 'color-sky' },
-          { key: 'B', name: 'B', at: { x: B.x, y: 0.6, z: B.z + 0.9 }, coords: B, color: 'color-emerald' },
-          { key: 'D', name: 'D', at: { x: D.x, y: 0.4, z: -0.9 }, coords: D, color: 'color-amber', show: state.showProjection !== false },
+          { key: 'C', name: 'C', at: { x: -1.3, y: 0.5, z: -0.9 }, coords: C, color: 'color-rose' },
+          { key: 'A', name: 'A', at: { x: A.x + 1.3, y: 0.5, z: 0 }, coords: A, color: 'color-sky' },
+          { key: 'B', name: 'B', at: { x: B.x, y: 0.7, z: B.z + 1.3 }, coords: B, color: 'color-emerald' },
+          { key: 'D', name: 'D', at: { x: D.x, y: 0.5, z: 0.9 }, coords: D, color: 'color-amber', show: state.showProjection !== false },
+          { key: 'Uc', name: 'Uc', at: { x: Uc3D.x, y: 0.5, z: -0.8 }, coords: Uc3D, color: 'color-violet', show: state.showRatioBadge !== false },
           { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
           { key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
@@ -2633,7 +3152,7 @@ export class TrigScene3DView extends BaseScene3DView {
           {
             key: 'rect-2abcos',
             text: `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
-            at: { x: D.x / 2, y: 0.35, z: -rectDepth / 2 },
+            at: { x: D.x / 2, y: -0.65, z: -rectDepth - 0.9 },
             color: 'color-amber',
             isAngle: true,
             show: showInteractionRect,
@@ -2643,8 +3162,8 @@ export class TrigScene3DView extends BaseScene3DView {
                 {
                   key: 'ratio-cos',
                   text: `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}`,
-                  at: { x: D.x / 2, y: 1.1, z: 0.6 },
-                  color: 'color-amber',
+                  at: { x: Uc3D.x, y: 1.6, z: -1.4 },
+                  color: 'color-violet',
                   isAngle: true,
                   show: true,
                 },
@@ -2666,8 +3185,17 @@ export class TrigScene3DView extends BaseScene3DView {
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
         this.handleP.position.copy(e1);
+        this.handleB.position.copy(e2);
         this.handleA.visible = true;
         this.handleP.visible = true;
+        this.handleB.visible = true;
+
+        // Spatial cosine projections onto X-axis: N = R cos(α+β) (Amber) and N_D = R cos(α−β) (Orange)
+        const cosSum = Math.cos(state.angleAlpha + state.angleBeta);
+        const sinSum = Math.sin(state.angleAlpha + state.angleBeta);
+        const N_spatial = new THREE.Vector3(R * cosSum, 0, 0);
+        addSeg(O, N_spatial, PALETTE.amber);
+        addSeg(e1, N_spatial, PALETTE.emerald, true);
 
         // Spatial difference vector D(α-β) under the Euler rotation frame
         const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
@@ -2675,6 +3203,7 @@ export class TrigScene3DView extends BaseScene3DView {
         const cosGamma = Math.cos(state.angleGamma || 0);
         const sinGamma = Math.sin(state.angleGamma || 0);
         const D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
+        const Ndiff_spatial = new THREE.Vector3(R * cosDiff, 0, 0);
 
         if (state.showDifferenceRay !== false) {
           this.handleC.position.copy(D_spatial);
@@ -2682,6 +3211,10 @@ export class TrigScene3DView extends BaseScene3DView {
           addVectorArrow(O, D_spatial, PALETTE.rose);
           // Spatial chord PD rigidly invariant at |PD| = 2R sin β under SO(3)
           addSeg(e1, D_spatial, PALETTE.rose, true);
+          // Spatial dropped perpendicular to X-axis at N_D and Orange cosine segment ON_D = cos(α−β)
+          addSeg(D_spatial, Ndiff_spatial, PALETTE.rose, true);
+          addSeg(O, Ndiff_spatial, PALETTE.orange);
+          addSeg(new THREE.Vector3(0, 0.03, 0.14), new THREE.Vector3(R * cosDiff, 0.03, 0.14), PALETTE.orange);
         } else {
           this.handleC.visible = false;
         }
@@ -2762,8 +3295,14 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'e1', name: 'e₁: P(α+β)', at: { x: e1.x * 1.15, y: e1.y + 0.4, z: e1.z * 1.15 }, coords: e1, color: 'color-emerald' },
           { key: 'e2', name: 'e₂(γ)', at: { x: e2.x * 1.12, y: e2.y + 0.4, z: e2.z * 1.12 }, coords: e2, color: 'color-amber' },
           { key: 'e3', name: 'e₃: n(Euler)', at: { x: e3.x * 1.12, y: e3.y + 0.6, z: e3.z * 1.12 }, coords: e3, color: 'color-indigo' },
+          { key: 'N', name: 'N', at: { x: N_spatial.x, y: 0.4, z: -0.35 }, coords: N_spatial, color: 'color-amber', show: true },
+          { key: 'cos-sum-len', text: `cos(α+β) = ${cosSum.toFixed(3)}`, at: { x: N_spatial.x / 2, y: 0.45, z: -0.85 }, color: 'color-amber', isAngle: true, show: showLengths && showAngles },
           ...(state.showDifferenceRay !== false
-            ? [{ key: 'Pdiff', name: 'D(α−β)', at: { x: D_spatial.x * 1.15, y: D_spatial.y + 0.4, z: D_spatial.z * 1.15 }, coords: D_spatial, color: 'color-rose' }]
+            ? [
+                { key: 'Pdiff', name: 'D(α−β)', at: { x: D_spatial.x * 1.15, y: D_spatial.y + 0.4, z: D_spatial.z * 1.15 }, coords: D_spatial, color: 'color-rose' },
+                { key: 'Ndiff', name: 'N_D', at: { x: Ndiff_spatial.x, y: 0.4, z: 0.45 }, coords: Ndiff_spatial, color: 'color-orange', show: true },
+                { key: 'cos-diff-len', text: `cos(α−β) = ${cosDiff.toFixed(3)}`, at: { x: Ndiff_spatial.x / 2, y: 0.45, z: 0.95 }, color: 'color-orange', isAngle: true, show: showLengths && showAngles },
+              ]
             : []),
           { key: 'angAlpha', text: `α = ${fmtAngle(eM.alphaDeg, angUnit)}`, at: { x: Aray.x * 0.5 + 0.8, y: 0.4, z: Aray.z * 0.5 }, color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'angBeta', text: `β = ${fmtAngle(eM.betaDeg, angUnit)}`, at: { x: (Aray.x + e1.x) * 0.4, y: 0.4, z: (Aray.z + e1.z) * 0.4 }, color: 'color-violet', isAngle: true, show: showAngles },
@@ -2785,7 +3324,10 @@ export class TrigScene3DView extends BaseScene3DView {
 
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
+        this.handleA.visible = true;
         this.handleP.position.copy(P);
+        this.handleP.visible = true;
+        this.handleB.visible = false;
         this.handleC.position.copy(Pdiff);
         this.handleC.visible = state.showDifferenceRay !== false;
 
@@ -2798,8 +3340,17 @@ export class TrigScene3DView extends BaseScene3DView {
           addSeg(P, Pdiff, PALETTE.rose, true);
           // Dropped perpendicular from Pdiff to X-axis at Ndiff (sin(α−β) altitude in Rose)
           addSeg(Pdiff, Ndiff, PALETTE.rose, true);
-          // Horizontal projection from origin to Ndiff (cos(α−β) in Amber)
-          addSeg(O, Ndiff, PALETTE.amber);
+          // Horizontal projection from origin to Ndiff (cos(α−β) in Orange, distinct from Amber cos(α+β))
+          addSeg(O, Ndiff, PALETTE.orange);
+          addSeg(new THREE.Vector3(0, 0.03, 0.14), new THREE.Vector3(Ndiff.x, 0.03, 0.14), PALETTE.orange);
+          if (showPoints) {
+            const ndMarker = new THREE.Mesh(
+              new THREE.SphereGeometry(0.14, 16, 16),
+              new THREE.MeshBasicMaterial({ color: PALETTE.orange })
+            );
+            ndMarker.position.set(Ndiff.x, 0.03, 0.14);
+            this.dynamicGroup.add(ndMarker);
+          }
           // Right angle at Ndiff
           setRightAngle3DVertices(this.rightAngle4, Ndiff, O, Pdiff, 0.75, THREE);
           this.rightAngle4.visible = showAngles && Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05;
@@ -2809,6 +3360,17 @@ export class TrigScene3DView extends BaseScene3DView {
           addSeg(O, Q, PALETTE.amber);
           addSeg(Q, P, PALETTE.violet);
           addSeg(O, N, PALETTE.amber); // Horizontal projection from origin to N (cos(α+β))
+          addSeg(new THREE.Vector3(0, 0.03, -0.1), new THREE.Vector3(N.x, 0.03, -0.1), PALETTE.amber);
+          if (showPoints) {
+            for (const pt of [N, M, Q]) {
+              const mMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.13, 16, 16),
+                new THREE.MeshBasicMaterial({ color: PALETTE.amber })
+              );
+              mMesh.position.copy(pt);
+              this.dynamicGroup.add(mMesh);
+            }
+          }
           // Perforated decomposition perimeter box (Q-M-N-S-P)
           addSeg(Q, M, PALETTE.amber, true);
           addSeg(P, N, PALETTE.emerald, true); // Dropped perpendicular from P to X-axis (sin(α+β))
@@ -2873,8 +3435,8 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'P', name: 'P(α+β)', at: { x: P.x * 1.15, y: 0.4, z: P.z * 1.15 }, coords: P, color: 'color-emerald' },
           ...(state.showDifferenceRay !== false ? [
             { key: 'Pdiff', name: 'D(α−β)', at: { x: Pdiff.x * 1.15, y: 0.4, z: Pdiff.z * 1.15 }, coords: Pdiff, color: 'color-rose' },
-            { key: 'Ndiff', name: 'N_D', at: { x: Ndiff.x, y: 0.4, z: Ndiff.z }, coords: Ndiff, color: 'color-amber', show: true },
-            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Ndiff.x / 2, y: 0.45, z: 0.8 * (Pdiff.z >= 0 ? 1 : -1) }, color: 'color-amber', isAngle: true, show: showLengths && showAngles },
+            { key: 'Ndiff', name: 'N_D', at: { x: Ndiff.x, y: 0.4, z: Ndiff.z }, coords: Ndiff, color: 'color-orange', show: true },
+            { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Ndiff.x / 2, y: 0.45, z: 0.8 * (Pdiff.z >= 0 ? 1 : -1) }, color: 'color-orange', isAngle: true, show: showLengths && showAngles },
             { key: 'sin-diff-len', text: `sin(α−β) = ${m.trig.sinDiff.toFixed(3)}`, at: { x: Ndiff.x + 1.2 * (Ndiff.x >= 0 ? -1 : 1), y: 0.45, z: Pdiff.z / 2 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
             { key: 'chord-pd-len', text: `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`, at: { x: (P.x + Pdiff.x) * 0.5 + 0.8, y: 0.55, z: (P.z + Pdiff.z) * 0.5 }, color: 'color-violet', isAngle: true, show: showLengths && showAngles }
           ] : []),
@@ -3083,9 +3645,9 @@ export class TrigDerivationsView {
           ${cardTemplate(
             'loc-step-2',
             'Step 2',
-            `Spherical Law of Cosines (${tag('rose', 'cos(c/R)')} = ${tag('sky', 'cos(a/R)')}${tag('emerald', 'cos(b/R)')} + ${tag('amber', 'sin(a/R)sin(b/R)cos C')})`,
+            `Spherical Law of Cosines (${tag('rose', 'cos(c/R)')} = ${tag('sky', 'cos(a/R)')}${tag('emerald', 'cos(b/R)')} + ${tag('sky', 'sin(a/R)')}${tag('emerald', 'sin(b/R)')}${tag('violet', 'cos C')})`,
             `From dot product of unit radial vectors ${tag('sky', 'uA')} and ${tag('emerald', 'uB')} with apex ${tag('rose', 'C')} at North Pole:<br>` +
-            `${tag('rose', 'cos(c/R)')} = ${tag('sky', 'cos(a/R)')}${tag('emerald', 'cos(b/R)')} + ${tag('sky', 'sin(a/R)')}${tag('emerald', 'sin(b/R)')}${tag('amber', 'cos C')}`,
+            `${tag('rose', 'cos(c/R)')} = ${tag('sky', 'cos(a/R)')}${tag('emerald', 'cos(b/R)')} + ${tag('sky', 'sin(a/R)')}${tag('emerald', 'sin(b/R)')}${tag('violet', 'cos C')}`,
             true
           )}
           ${cardTemplate(
@@ -3093,7 +3655,7 @@ export class TrigDerivationsView {
             'Step 3',
             `Curvature Contraction & Euclidean Taylor Limit (${tag('teal', 'R → ∞')})`,
             `Expanding Taylor series ${tag('teal', 'cos(x) ≈ 1 − x²/2')}, ${tag('teal', 'sin(x) ≈ x')}:<br>` +
-            `1 − c²/(2R²) ≈ (1 − a²/(2R²))(1 − b²/(2R²)) + (ab/R²) cos C ⟹ ${tag('rose', 'c² = a² + b² − 2ab cos C')}`,
+            `1 − c²/(2R²) ≈ (1 − a²/(2R²))(1 − b²/(2R²)) + (ab/R²) ${tag('violet', 'cos C')} ⟹ ${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('violet', 'cos C')}`,
             true
           )}
           ${cardTemplate(
@@ -3109,31 +3671,32 @@ export class TrigDerivationsView {
           ${cardTemplate(
             'loc-step-1',
             'Step 1',
-            `Idempotent Orthogonal Decomposition (${tag('amber', 'P∥ + P⊥ = I')}) & Cosine Ratio (${tag('amber', 'cos C = (a²+b²−c²)/(2ab)')})`,
+            `Idempotent Orthogonal Decomposition (${tag('amber', 'P∥ + P⊥ = I')}) & Cosine Ratio (${tag('violet', 'cos C = (a²+b²−c²)/(2ab)')})`,
             `Projecting ${tag('sky', 'B')} onto ${tag('emerald', 'CA')} decomposes side ${tag('sky', 'a')} at foot ${tag('amber', 'D')}:<br>` +
-            `Parallel leg ${tag('amber', 'CD = a cos C')}, perpendicular altitude ${tag('amber', 'h = BD = a sin C')}, ratio ${tag('amber', 'cos C = (a² + b² − c²)/(2ab)')}`
+            `Parallel leg ${tag('amber', 'CD = a cos C')}, perpendicular altitude ${tag('amber', 'h = BD = a sin C')}, ratio ${tag('violet', 'cos C = (a² + b² − c²)/(2ab)')}`,
+            true
           )}
           ${cardTemplate(
             'loc-step-2',
             'Step 2',
-            `Right-Triangle Expansion in ${tag('teal', '△ADB')} (${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('rose', 'cos C')})`,
+            `Right-Triangle Expansion in ${tag('teal', '△ADB')} (${tag('rose', 'c²')} = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('violet', 'cos C')})`,
             `Applying Pythagoras to ${tag('teal', '△ADB')}:<br>` +
-            `${tag('rose', 'c²')} = (${tag('amber', 'a sin C')})² + (${tag('emerald', 'b')} − ${tag('amber', 'a cos C')})² = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('rose', 'cos C')}`,
+            `${tag('rose', 'c²')} = (${tag('amber', 'a sin C')})² + (${tag('emerald', 'b')} − ${tag('amber', 'a cos C')})² = ${tag('sky', 'a²')} + ${tag('emerald', 'b²')} − ${tag('amber', '2')}·${tag('sky', 'a')}·${tag('emerald', 'b')}·${tag('violet', 'cos C')}`,
             true
           )}
           ${cardTemplate(
             'loc-step-3',
             'Step 3',
-            `4-Corner Mixed Partial Quotient (${tag('teal', '∂²(c²)/(∂a∂b)')} = ${tag('amber', '−2 cos C')})`,
+            `4-Corner Mixed Partial Quotient (${tag('teal', '∂²(c²)/(∂a∂b)')} = ${tag('amber', '−2')}·${tag('violet', 'cos C')})`,
             `Evaluating the 4-corner rectangle quotient ${tag('teal', '[f(a,b) − f(a,0) − f(0,b) + f(0,0)] / (ab)')}:<br>` +
-            `Isolates the exact bilinear interaction coefficient ${tag('amber', '−2 cos C')}`,
+            `Isolates the exact bilinear interaction coefficient ${tag('amber', '−2')}·${tag('violet', 'cos C')}`,
             true
           )}
           ${cardTemplate(
             'loc-step-4',
             'Step 4',
             `Regime Classification & Reflex Conjugate (${tag('teal', '∠C* = 360° − ∠C')})`,
-            `Sign of ${tag('amber', 'cos C')} classifies ${tag('teal', 'ACUTE (>0)')}, ${tag('teal', 'RIGHT (=0)')}, or ${tag('rose', 'OBTUSE (<0)')}.`,
+            `Sign of ${tag('violet', 'cos C')} classifies ${tag('teal', 'ACUTE (>0)')}, ${tag('teal', 'RIGHT (=0)')}, or ${tag('rose', 'OBTUSE (<0)')}.`,
             true
           )}
         `;
@@ -3159,9 +3722,9 @@ export class TrigDerivationsView {
           ${cardTemplate(
             'asi-step-3',
             'Step 3',
-            `Planar SO(2) Principal Subgroup Embedding (${tag('amber', 'γ = 0 ⟹ SO(2)')})`,
+            `Planar SO(2) Principal Subgroup Embedding (${tag('amber', 'cos(α+β)')}, ${tag('orange', 'cos(α−β)')})`,
             `When Euler tilt ${tag('amber', 'γ = 0')}, rotation R preserves the equatorial plane Y = 0:<br>` +
-            `Recovers the standard planar 2D addition matrix ${tag('emerald', 'R(α+β) = R(α)R(β)')}`,
+            `Recovers ${tag('emerald', 'R(α+β) = R(α)R(β)')} with X-axis feet ${tag('amber', 'N = cos(α+β)')} and ${tag('orange', 'N_D = cos(α−β)')}`,
             true
           )}
           ${cardTemplate(
@@ -3212,7 +3775,7 @@ export class TrigDerivationsView {
             'Step 4',
             `Inverse Rotation & Difference Identities (${tag('rose', 'α − β')})`,
             `Difference ray ${tag('rose', 'D(α − β)')} reflects across ray ${tag('sky', 'OA')} forming congruent triangle ${tag('rose', '△OQD')}:<br>` +
-            `${tag('amber', 'cos(α − β)')} = (${tag('sky', 'cos α')} · ${tag('violet', 'cos β')}) + (${tag('sky', 'sin α')} · ${tag('violet', 'sin β')}) &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = (${tag('sky', 'sin α')} · ${tag('violet', 'cos β')}) − (${tag('sky', 'cos α')} · ${tag('violet', 'sin β')})`,
+            `${tag('orange', 'cos(α − β)')} = (${tag('sky', 'cos α')} · ${tag('violet', 'cos β')}) + (${tag('sky', 'sin α')} · ${tag('violet', 'sin β')}) &nbsp;|&nbsp; ${tag('rose', 'sin(α − β)')} = (${tag('sky', 'sin α')} · ${tag('violet', 'cos β')}) − (${tag('sky', 'cos α')} · ${tag('violet', 'sin β')})`,
             true
           )}
           ${cardTemplate(
@@ -3350,11 +3913,11 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#loc-step-2 [data-sub]',
-          `↳ ${tag('sky', `cos(a/R) = ${Math.cos(sM.thetaA).toFixed(4)}`)}, ${tag('emerald', `cos(b/R) = ${Math.cos(sM.thetaB).toFixed(4)}`)}, ${tag('amber', `cos C = ${Math.cos(sM.angleC).toFixed(4)}`)}`
+          `↳ ${tag('sky', `cos(a/R) = ${Math.cos(sM.thetaA).toFixed(4)}`)}, ${tag('emerald', `cos(b/R) = ${Math.cos(sM.thetaB).toFixed(4)}`)}, ${tag('violet', `cos C = ${Math.cos(sM.angleC).toFixed(4)}`)}`
         );
         setSlot(
           '#loc-step-2 [data-eval]',
-          `<span>${tag('rose', `cos(c/R) = ${sM.cosC_arc.toFixed(4)}`)} ≝ ${tag('teal', `cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C`)}</span><span class="derivation-check">✓ Spherical Cosine Law</span>`
+          `<span>${tag('rose', `cos(c/R) = ${sM.cosC_arc.toFixed(4)}`)} ≝ ${tag('sky', 'cos(a/R)')}${tag('emerald', 'cos(b/R)')} + ${tag('sky', 'sin(a/R)')}${tag('emerald', 'sin(b/R)')}${tag('violet', 'cos C')}</span><span class="derivation-check">✓ Spherical Cosine Law</span>`
         );
         setSlot(
           '#loc-step-3 [data-sub]',
@@ -3376,11 +3939,15 @@ export class TrigDerivationsView {
         const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
         setSlot(
           '#loc-step-1 [data-sub]',
-          `↳ ${tag('amber', `CD = a cos C = ${m.projection.pProj.toFixed(3)}`)}, ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(3)}`)} | ${tag('amber', `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(4)}`)}`
+          `↳ ${tag('amber', `CD = a cos C = ${m.projection.pProj.toFixed(3)}`)}, ${tag('amber', `h = a sin C = ${m.projection.hAlt.toFixed(3)}`)} | ${tag('violet', `cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(4)}`)}`
+        );
+        setSlot(
+          '#loc-step-1 [data-eval]',
+          `<span>${tag('violet', `cos C = (a² + b² − c²) / (2ab) = ${m.cosC.toFixed(4)}`)}</span><span class="derivation-check">✓ Cosine Ratio</span>`
         );
         setSlot(
           '#loc-step-2 [data-sub]',
-          `↳ ${tag('sky', `a² = ${m.squares.a2.toFixed(2)}`)}, ${tag('emerald', `b² = ${m.squares.b2.toFixed(2)}`)}, ${tag('amber', '2')}·${tag('sky', `a(${m.a.toFixed(1)})`)}·${tag('emerald', `b(${m.b.toFixed(1)})`)}·${tag('rose', `cos C(${m.cosC.toFixed(3)})`)} = ${tag('amber', m.squares.interaction2abCosC.toFixed(2))}`
+          `↳ ${tag('sky', `a² = ${m.squares.a2.toFixed(2)}`)}, ${tag('emerald', `b² = ${m.squares.b2.toFixed(2)}`)}, ${tag('amber', '2')}·${tag('sky', `a(${m.a.toFixed(1)})`)}·${tag('emerald', `b(${m.b.toFixed(1)})`)}·${tag('violet', `cos C(${m.cosC.toFixed(3)})`)} = ${tag('amber', m.squares.interaction2abCosC.toFixed(2))}`
         );
         setSlot(
           '#loc-step-2 [data-eval]',
@@ -3388,15 +3955,15 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#loc-step-3 [data-sub]',
-          `↳ 4-Corner Quotient = ${tag('amber', m.mixedPartialCoeff.toFixed(4))} | ${tag('amber', `−2 cos(${fmtAngle(m.angleCDeg, angUnit)}) = ${(-2 * m.cosC).toFixed(4)}`)}`
+          `↳ 4-Corner Quotient = ${tag('amber', m.mixedPartialCoeff.toFixed(4))} | ${tag('amber', '−2')}·${tag('violet', `cos(${fmtAngle(m.angleCDeg, angUnit)}) = ${m.cosC.toFixed(4)}`)} = ${tag('amber', (-2 * m.cosC).toFixed(4))}`
         );
         setSlot(
           '#loc-step-3 [data-eval]',
-          `<span>${tag('amber', `∂²(c²)/(∂a∂b) = −2 cos C = ${m.mixedPartialCoeff.toFixed(4)}`)}</span><span class="derivation-check">✓ Exact Bilinear</span>`
+          `<span>${tag('teal', '∂²(c²)/(∂a∂b)')} = ${tag('amber', '−2')}·${tag('violet', 'cos C')} = ${tag('amber', m.mixedPartialCoeff.toFixed(4))}</span><span class="derivation-check">✓ Exact Bilinear</span>`
         );
         setSlot(
           '#loc-step-4 [data-sub]',
-          `↳ At ${tag('rose', `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`)}, Reflex ${tag('teal', `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`)}`
+          `↳ At ${tag('rose', `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`)} (${tag('violet', `cos C = ${m.cosC.toFixed(4)}`)}), Reflex ${tag('teal', `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`)}`
         );
         setSlot(
           '#loc-step-4 [data-eval]',
@@ -3424,7 +3991,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-3 [data-eval]',
-          `<span>${tag('amber', `R₀₀ = ${eM.R_matrix[0][0].toFixed(4)} = cos(α+β)`)} | ${tag('emerald', `R₁₀ = ${eM.R_matrix[1][0].toFixed(4)} = sin(α+β)`)}</span><span class="derivation-check">✓ SO(2) Reduction</span>`
+          `<span>${tag('amber', `R₀₀ = ${eM.R_matrix[0][0].toFixed(4)} = cos(α+β)`)} | ${tag('emerald', `R₁₀ = ${eM.R_matrix[1][0].toFixed(4)} = sin(α+β)`)} | ${tag('orange', `cos(α−β) = ${Math.cos((state.angleAlpha || 0) - (state.angleBeta || 0)).toFixed(4)}`)}</span><span class="derivation-check">✓ SO(2) Reduction</span>`
         );
         setSlot(
           '#asi-step-4 [data-sub]',
@@ -3470,11 +4037,11 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-4 [data-sub]',
-          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('amber', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
+          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('orange', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
         );
         setSlot(
           '#asi-step-4 [data-eval]',
-          `<span>${tag('amber', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} | ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}</span><span class="derivation-check">✓ Difference Identity</span>`
+          `<span>${tag('orange', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)} | ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}</span><span class="derivation-check">✓ Difference Identity</span>`
         );
         const det2D = m.matrices.R_comp[0] * m.matrices.R_comp[3] - m.matrices.R_comp[1] * m.matrices.R_comp[2];
         const r00r11 = (m.matrices.R_comp[0] * m.matrices.R_comp[3]).toFixed(4);
@@ -3874,14 +4441,45 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       }
     }
 
+    // Direct radial ray / vector spoke click-and-drag fallback for angle-sum-identities
+    if (!hitHandle && visualId === 'angle-sum-identities') {
+      const dx = x - circCx;
+      const dy = circCy - y;
+      const distFromCenter = Math.hypot(dx, dy);
+      if (distFromCenter >= 16 && distFromCenter <= circR + 28) {
+        const clickAng = pointerToAngle(dx, dy);
+        let closestH = null;
+        let minDiff = 0.38; // ~22 degrees angular capture along rays OA, OP, OD
+        for (const h of info.handles) {
+          const hAng = h.polarAngle ?? pointerToAngle(h.x - circCx, circCy - h.y);
+          let diff = Math.abs(normalizeAngle(clickAng - hAng));
+          if (diff > Math.PI) diff = 2 * Math.PI - diff;
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestH = h;
+          }
+        }
+        if (closestH) {
+          hitHandle = closestH;
+          if (closestH.field === 'angleBeta') {
+            store.set({ angleBeta: normalizeAngle(clickAng - (st.angleAlpha || 0)) });
+          } else if (closestH.field === 'diffBeta') {
+            store.set({ angleBeta: normalizeAngle((st.angleAlpha || 0) - clickAng) });
+          } else if (closestH.field) {
+            store.set({ [closestH.field]: clickAng });
+          }
+        }
+      }
+    }
+
     if (hitHandle) {
       activeDrag = { type: 'handle', handle: hitHandle };
       view2d.activeDrag = activeDrag;
-      if (hitHandle.id && ['A', 'B', 'C'].includes(hitHandle.id)) {
+      if (hitHandle.id && ['A', 'B', 'C', 'P', 'D'].includes(hitHandle.id)) {
         view2d.selectedVertexId = hitHandle.id;
       }
       canvas.style.cursor = 'grabbing';
-      view2d.render(st);
+      view2d.render(store.get());
     } else if (spokeHit) {
       // already set
     } else if (isNearCircumference(x, y, circCx, circCy, circR, 14)) {
@@ -3914,7 +4512,25 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     const circR = info.circleR ?? info.r;
 
     if (!activeDrag) {
-      const hoverH = findHoveredHandle(x, y, info.handles, 32);
+      let hoverH = findHoveredHandle(x, y, info.handles, 32);
+      if (!hoverH && visualId === 'angle-sum-identities') {
+        const dx = x - circCx;
+        const dy = circCy - y;
+        const distFromCenter = Math.hypot(dx, dy);
+        if (distFromCenter >= 18 && distFromCenter <= circR + 24) {
+          const ptrAng = pointerToAngle(dx, dy);
+          let minDiff = 0.24;
+          for (const h of info.handles) {
+            const hAng = h.polarAngle ?? pointerToAngle(h.x - circCx, circCy - h.y);
+            let diff = Math.abs(normalizeAngle(ptrAng - hAng));
+            if (diff > Math.PI) diff = 2 * Math.PI - diff;
+            if (diff < minDiff) {
+              minDiff = diff;
+              hoverH = h;
+            }
+          }
+        }
+      }
       const hoverCirc = !hoverH && isNearCircumference(x, y, circCx, circCy, circR, 14);
       const changed = view2d.hoverHandle !== hoverH || view2d.hoverCircumference !== hoverCirc;
       view2d.hoverHandle = hoverH;
@@ -4011,9 +4627,16 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   canvas.addEventListener('keydown', (e) => {
     const st = store.get();
     let handled = false;
-    const currentHandleId = view2d.selectedVertexId || 'C';
-    const fieldMap = { A: 'angleA', B: 'angleB', C: 'angleC' };
-    const field = fieldMap[currentHandleId] || (visualId === 'law-of-sines' ? 'angleC' : 'angleTheta');
+    const defaultId = visualId === 'angle-sum-identities' ? 'P' : 'C';
+    const currentHandleId = view2d.selectedVertexId || defaultId;
+    const fieldMap = visualId === 'angle-sum-identities'
+      ? { A: 'angleAlpha', B: 'angleBeta', P: 'angleBeta', D: 'angleBeta', C: 'angleBeta' }
+      : { A: 'angleA', B: 'angleB', C: 'angleC' };
+    const field = fieldMap[currentHandleId] || (
+      visualId === 'law-of-sines' ? 'angleC'
+      : visualId === 'angle-sum-identities' ? 'angleBeta'
+      : 'angleTheta'
+    );
     const step = e.shiftKey ? toRadians(5) : toRadians(1);
 
     if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
@@ -4033,14 +4656,16 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'A') || null;
       view2d.render(store.get());
       handled = true;
-    } else if (e.key.toLowerCase() === 'b') {
-      view2d.selectedVertexId = 'B';
-      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'B') || null;
+    } else if (e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 'p') {
+      const targetId = visualId === 'angle-sum-identities' ? 'P' : 'B';
+      view2d.selectedVertexId = targetId;
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === targetId) || null;
       view2d.render(store.get());
       handled = true;
-    } else if (e.key.toLowerCase() === 'c') {
-      view2d.selectedVertexId = 'C';
-      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'C') || null;
+    } else if (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'd') {
+      const targetId = visualId === 'angle-sum-identities' ? 'D' : 'C';
+      view2d.selectedVertexId = targetId;
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === targetId) || null;
       view2d.render(store.get());
       handled = true;
     } else if (e.key === 'Home') {
@@ -4457,6 +5082,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
 
       setText('val-3d-r00', eM.R_matrix[0][0].toFixed(4));
       setText('val-3d-r10', eM.R_matrix[1][0].toFixed(4));
+      setText('val-3d-cos-diff', m.trig.cosDiff.toFixed(4));
+      setText('val-3d-sin-diff', m.trig.sinDiff.toFixed(4));
       setText('val-3d-det', eM.lieAlgebra.detR.toFixed(6));
       setText('val-3d-gamma', `${eM.gammaDeg.toFixed(1)}°`);
       setText('val-3d-trace', eM.lieAlgebra.trace.toFixed(4));
@@ -4468,6 +5095,8 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
 
       setText('val-3d-r00', m.matrices.R_comp[0].toFixed(4));
       setText('val-3d-r10', m.matrices.R_comp[2].toFixed(4));
+      setText('val-3d-cos-diff', m.trig.cosDiff.toFixed(4));
+      setText('val-3d-sin-diff', m.trig.sinDiff.toFixed(4));
       setText('val-3d-det', (m.matrices.R_comp[0] * m.matrices.R_comp[3] - m.matrices.R_comp[1] * m.matrices.R_comp[2]).toFixed(6));
       setText('val-3d-gamma', '0.0° (Planar)');
       setText('val-3d-trace', (1 + 2 * m.trig.cosSum).toFixed(4));

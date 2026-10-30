@@ -4,11 +4,21 @@ const fix = (n, d = 1) => n.toFixed(d);
 
 /** Declarative label table: where it sits, what it says, when it shows. */
 function describeLabels(state) {
-  const { radius: r, vis3d, show3dArea, show3dAngles } = state;
+  const { radius: r, vis3d } = state;
+  const show3dArea = Boolean(state.show3dArea ?? true) && (vis3d?.area !== false) && (state.showArea !== false);
+  const show3dAngles = Boolean(state.show3dAngles ?? true) && (vis3d?.angles !== false) && (state.showAngles !== false);
+  const showReflex = Boolean(vis3d?.reflex || state.showReflex);
+  const isSpatial = state.dimensionMode === 'spatial';
   const rot = state.baselineRotation || 0;
   const cosR = Math.cos(rot);
   const sinR = Math.sin(rot);
-  const rawP = sphereStats(r, state.lat3D, state.lon3D).p;
+  const rawP = isSpatial
+    ? sphereStats(r, state.lat3D, state.lon3D).p
+    : {
+        x: r * Math.cos(state.angle2D ?? Math.PI / 4),
+        y: r * Math.sin(state.angle2D ?? Math.PI / 4),
+        z: 0,
+      };
   const p = {
     x: rawP.x * cosR - rawP.y * sinR,
     y: rawP.x * sinR + rawP.y * cosR,
@@ -48,7 +58,7 @@ function describeLabels(state) {
     z: p.z + (bisector.z / bisectorLen) * 1.5,
   };
 
-  const solidStats = sphereStats(r, state.lat3D, state.lon3D);
+  const solidStats = sphereStats(r, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D);
   const alphaDeg = solidStats.alphaDeg;
   const betaDeg = solidStats.betaDeg;
 
@@ -84,19 +94,22 @@ function describeLabels(state) {
     { key: 's', at: { x: (p.x + ax) / 2, y: (p.y + ay) / 2 + 0.4, z: p.z / 2 }, text: 's', show: labelsAndArea, color: 'color-blue' },
     { key: 't', at: { x: (p.x + bx) / 2, y: (p.y + by) / 2 + 0.4, z: p.z / 2 }, text: 't', show: labelsAndArea, color: 'color-orange' },
     { key: 'theta', at: thetaMid, text: `θ (colat.) = ${Math.round(toDegrees(Math.acos(Math.max(-1, Math.min(1, p.y / r)))))}°`, show: Boolean(vis3d.labels && show3dAngles), color: 'color-yellow' },
-    { key: 'phi', at: phiMid, text: `φ (lon.) = ${Math.round(toDegrees(Math.atan2(p.x, p.z)))}°`, show: Boolean(vis3d.labels && show3dAngles), color: 'color-fuchsia' },
+    { key: 'phi', at: phiMid, text: `φ (lon.) = ${Math.round(toDegrees(Math.atan2(p.x, p.z)))}°`, show: Boolean(vis3d.labels && show3dAngles && isSpatial), color: 'color-fuchsia' },
     { key: 'alpha', at: alphaMid, text: `α = ${alphaDeg.toFixed(1)}°`, show: Boolean(vis3d.labels && show3dAngles && toPALen > 1.5), color: 'color-lime' },
     { key: 'beta', at: betaMid, text: `β = ${betaDeg.toFixed(1)}°`, show: Boolean(vis3d.labels && show3dAngles && toPBLen > 1.5), color: 'color-orange' },
     { key: 'right', at: rightAt, text: '90.0° (3D Invariant)', show: Boolean(vis3d.labels && show3dAngles), color: 'color-teal' },
-    { key: 'alphaReflex', at: { x: ax - (alphaDir.x / alphaDirLen) * (r * 0.3), y: ay - (alphaDir.y / alphaDirLen) * (r * 0.3), z: -(alphaDir.z / alphaDirLen) * (r * 0.3) }, text: `α* = ${(360 - alphaDeg).toFixed(1)}°`, show: Boolean(vis3d.labels && vis3d.reflex && toPALen > 1.5), color: 'color-lime' },
-    { key: 'betaReflex', at: { x: bx - (betaDir.x / betaDirLen) * (r * 0.3), y: by - (betaDir.y / betaDirLen) * (r * 0.3), z: -(betaDir.z / betaDirLen) * (r * 0.3) }, text: `β* = ${(360 - betaDeg).toFixed(1)}°`, show: Boolean(vis3d.labels && vis3d.reflex && toPBLen > 1.5), color: 'color-orange' },
-    { key: 'rightReflex', at: { x: p.x - (bisector.x / bisectorLen) * 1.5, y: p.y - (bisector.y / bisectorLen) * 1.5, z: p.z - (bisector.z / bisectorLen) * 1.5 }, text: '270.0° (P*)', show: Boolean(vis3d.labels && vis3d.reflex), color: 'color-teal' },
+    { key: 'alphaReflex', at: { x: ax - (alphaDir.x / alphaDirLen) * (r * 0.3), y: ay - (alphaDir.y / alphaDirLen) * (r * 0.3), z: -(alphaDir.z / alphaDirLen) * (r * 0.3) }, text: `α* = ${(360 - alphaDeg).toFixed(1)}°`, show: Boolean(vis3d.labels && showReflex && toPALen > 1.5), color: 'color-lime' },
+    { key: 'betaReflex', at: { x: bx - (betaDir.x / betaDirLen) * (r * 0.3), y: by - (betaDir.y / betaDirLen) * (r * 0.3), z: -(betaDir.z / betaDirLen) * (r * 0.3) }, text: `β* = ${(360 - betaDeg).toFixed(1)}°`, show: Boolean(vis3d.labels && showReflex && toPBLen > 1.5), color: 'color-orange' },
+    { key: 'rightReflex', at: { x: p.x - (bisector.x / bisectorLen) * 1.5, y: p.y - (bisector.y / bisectorLen) * 1.5, z: p.z - (bisector.z / bisectorLen) * 1.5 }, text: '270.0° (P*)', show: Boolean(vis3d.labels && showReflex), color: 'color-teal' },
     { key: 'alt3d', at: { x: (p.x + foot.x) / 2, y: (p.y + foot.y) / 2 + 0.3, z: p.z / 2 }, text: `h = ${hLen.toFixed(1)}`, show: labelsAndArea && hLen > 0.5, color: 'color-emerald' },
     { key: 'radius', at: { x: p.x * 0.6, y: p.y * 0.6 + 0.8, z: p.z * 0.6 }, text: 'r', show: vis3d.labels, color: 'color-indigo' },
     { key: 'diam', at: { x: 0, y: -2.0, z: 2.2 }, text: `|d| = ${(2 * r).toFixed(1)}`, show: vis3d.labels, color: 'color-red' },
-    { key: 'axis-x', at: { x: 15.8, y: 0, z: 0 }, text: '+X', show: vis3d.labels, color: 'color-amber' },
-    { key: 'axis-y', at: { x: 0, y: 15.8, z: 0 }, text: '+Y', show: vis3d.labels, color: 'color-emerald' },
-    { key: 'axis-z', at: { x: 0, y: 0, z: 15.8 }, text: '+Z', show: vis3d.labels, color: 'color-steel' },
+    { key: 'axis-x', at: { x: 15.8, y: 0, z: 0 }, text: '+X', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-amber' },
+    { key: 'axis-x-neg', at: { x: -15.8, y: 0, z: 0 }, text: '-X', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-amber' },
+    { key: 'axis-y', at: { x: 0, y: 15.8, z: 0 }, text: '+Y', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-emerald' },
+    { key: 'axis-y-neg', at: { x: 0, y: -15.8, z: 0 }, text: '-Y', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-emerald' },
+    { key: 'axis-z', at: { x: 0, y: 0, z: 15.8 }, text: '+Z', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-steel' },
+    { key: 'axis-z-neg', at: { x: 0, y: 0, z: -15.8 }, text: '-Z', show: Boolean(vis3d.labels && vis3d.axes !== false), color: 'color-steel' },
   ];
 }
 

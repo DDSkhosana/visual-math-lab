@@ -33,10 +33,10 @@ export class StatsView {
     const angUnit = state.angleUnit || 'deg';
     const flat = thalesStats2D(state.radius, state.angle2D, state);
     const isSpatial = state.dimensionMode === 'spatial';
-    const solid = sphereStats(state.radius, state.lat3D, state.lon3D, state.dimensionMode);
+    const solid = sphereStats(state.radius, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D);
     const theta2dDeg = ((state.angle2D * 180 / Math.PI % 360) + 360) % 360;
-    const theta3dDeg = state.lat3D * 180 / Math.PI;
-    const phi3dDeg = state.lon3D * 180 / Math.PI;
+    const theta3dDeg = Math.acos(Math.max(-1, Math.min(1, solid.p.y / (state.radius || 1)))) * 180 / Math.PI;
+    const phi3dDeg = Math.atan2(solid.p.x, solid.p.z) * 180 / Math.PI;
 
     // Toggle affine telemetry rows
     const affineRows = this.root.querySelectorAll ? this.root.querySelectorAll('.affine-telemetry-row') : [];

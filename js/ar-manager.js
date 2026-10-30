@@ -336,6 +336,18 @@ export class ARManager {
       let baseOffsetY = 0;
 
       reticle.addEventListener?.('pointerdown', (e) => {
+        if (e?.isTrusted && reticle.getBoundingClientRect) {
+          const rect = reticle.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const normDist = Math.hypot((e.clientX - cx) / (rect.width / 2), (e.clientY - cy) / (rect.height / 2));
+            // Allow interior clicks inside the reticle to pass through to the 3D canvas for vertex/orbit interaction
+            if (normDist < 0.72) {
+              return;
+            }
+          }
+        }
         e?.stopPropagation?.();
         draggingReticle = true;
         startX = e.clientX || 0;

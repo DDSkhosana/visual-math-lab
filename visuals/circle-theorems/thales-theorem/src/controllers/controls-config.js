@@ -49,6 +49,7 @@ export const TOGGLES = {
   'vis-2d-reflex': ['vis2d', 'reflex'],
   'vis-2d-grid-x': ['vis2d', 'gridX'],
   'vis-2d-grid-y': ['vis2d', 'gridY'],
+  'vis-2d-axes': ['vis2d', 'axes'],
   'vis-3d-labels': ['vis3d', 'labels'],
   'vis-3d-coords': ['vis3d', 'coords'],
   'vis-3d-volume': ['vis3d', 'volume'],

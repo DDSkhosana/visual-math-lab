@@ -268,17 +268,48 @@ export const GEOMETRY_ELEMENTS = [
     name: 'Cyclic Quadrilateral',
     symbol: 'ABCD on circle',
     formula: '\\angle A + \\angle C = 180^\\circ, \\quad \\angle B + \\angle D = 180^\\circ',
-    definition: 'A quadrilateral whose four vertices all lie on a single common circle. Opposite interior angles are strictly supplementary (sum to 180°).',
-    colorToken: 'A: Violet, B: Cyan, C: Amber, D: Rose',
+    definition: 'A quadrilateral whose four vertices all lie on a single common circle. Opposite interior angles are strictly supplementary (sum to 180°). Diagonals AC and BD join opposite vertices and meet inside the circle.',
+    colorToken: 'A: Violet, B: Cyan, C: Amber, D: Rose | Diagonal AC: Lavender, Diagonal BD: Sky',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
         <polygon points="50,12 85,38 68,84 20,70" fill="rgba(99, 102, 241, 0.12)" stroke="#cbd5e1" stroke-width="2"/>
+        <line x1="50" y1="12" x2="68" y2="84" stroke="#c4b5fd" stroke-width="1.6" stroke-dasharray="4,3"/>
+        <line x1="85" y1="38" x2="20" y2="70" stroke="#0284c7" stroke-width="1.6" stroke-dasharray="4,3"/>
         <circle cx="50" cy="12" r="3" fill="#a855f7"/>
         <circle cx="85" cy="38" r="3" fill="#06b6d4"/>
         <circle cx="68" cy="84" r="3" fill="#fbbf24"/>
         <circle cx="20" cy="70" r="3" fill="#f43f5e"/>
-        <text x="36" y="52" fill="#cbd5e1" font-size="8" font-weight="bold">Opp = 180°</text>
+        <text x="46" y="9" fill="#a855f7" font-size="8" font-weight="bold">A</text>
+        <text x="88" y="38" fill="#06b6d4" font-size="8" font-weight="bold">B</text>
+        <text x="70" y="94" fill="#fbbf24" font-size="8" font-weight="bold">C</text>
+        <text x="11" y="74" fill="#f43f5e" font-size="8" font-weight="bold">D</text>
+        <text x="30" y="40" fill="#cbd5e1" font-size="7.5" font-weight="bold">Opp = 180°</text>
+      </svg>
+    `
+  },
+  {
+    id: 'cyclic-diagonals-ptolemy',
+    category: 'angles',
+    categoryName: 'Angles & Theorems',
+    name: "Cyclic Diagonals & Ptolemy's Theorem",
+    symbol: 'AC, BD',
+    formula: '|AC| \\cdot |BD| = |AB| \\cdot |CD| + |BC| \\cdot |DA|',
+    definition: 'In a cyclic quadrilateral, the product of the two diagonals equals the sum of the products of the two pairs of opposite sides. The diagonals intersect at an interior point of the circle.',
+    colorToken: 'Diagonal AC: PALETTE.lavender (#c4b5fd) | Diagonal BD: PALETTE.sky (#0284c7) | Intersection: PALETTE.teal (#14b8a6)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="1.5"/>
+        <polygon points="50,12 85,38 68,84 20,70" fill="none" stroke="#6366f1" stroke-width="1.5"/>
+        <line x1="50" y1="12" x2="68" y2="84" stroke="#c4b5fd" stroke-width="2.5" stroke-dasharray="5,3"/>
+        <line x1="85" y1="38" x2="20" y2="70" stroke="#0284c7" stroke-width="2.5" stroke-dasharray="5,3"/>
+        <circle cx="59.6" cy="50.5" r="3" fill="#14b8a6"/>
+        <circle cx="50" cy="12" r="2.5" fill="#a855f7"/>
+        <circle cx="85" cy="38" r="2.5" fill="#06b6d4"/>
+        <circle cx="68" cy="84" r="2.5" fill="#fbbf24"/>
+        <circle cx="20" cy="70" r="2.5" fill="#f43f5e"/>
+        <text x="67" y="66" fill="#c4b5fd" font-size="8" font-weight="bold">AC</text>
+        <text x="26" y="56" fill="#0284c7" font-size="8" font-weight="bold">BD</text>
       </svg>
     `
   },
@@ -482,7 +513,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'c² = a² + b² - 2ab cos C',
     formula: 'c^2 = a^2 + b^2 - 2ab\\cos C, \\quad P_\\parallel + P_\\perp = I',
     definition: 'Generalized Pythagorean theorem using idempotent orthogonal projection: c² = a² + b² - 2ab cos C. The correction term -2ab cos C represents the signed area of the bilinear interaction rectangle below base b.',
-    colorToken: 'A: Red | B: Orange | C: Blue | Bilinear Rect: Amber (#fbbf24)',
+    colorToken: 'A: Sky (#0284c7) | B: Emerald (#10b981) | C: Rose (#f43f5e) | cos C: Violet (#a855f7) | Bilinear Rect: Amber (#fbbf24)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <line x1="16" y1="52" x2="84" y2="52" stroke="#3b82f6" stroke-width="2.5"/>
@@ -507,8 +538,8 @@ export const GEOMETRY_ELEMENTS = [
     name: 'Angle Sum, Difference & Rotation Group SO(2)/SO(3)',
     symbol: 'cos(α ± β), sin(α ± β)',
     formula: '\\cos(\\alpha \\pm \\beta) = \\cos\\alpha\\cos\\beta \\mp \\sin\\alpha\\sin\\beta',
-    definition: 'Compound angle identities proven via stacked orthogonal right triangles (△OMQ, △OQP, △PSQ) and Lie group matrix composition in SO(2). Difference ray D(α-β) with vertical altitude sin(α-β) verifies subtraction.',
-    colorToken: 'Angle α: Lime (#84cc16) | Angle β: Sky (#0284c7) | Sum α+β: Amber (#fbbf24) | Diff α-β: Teal (#14b8a6)',
+    definition: 'Compound angle identities proven via stacked orthogonal right triangles (△OMQ, △OQP, △PSQ) and Lie group matrix composition in SO(2). Difference ray D(α-β) with horizontal foot N_D = cos(α-β) and vertical altitude sin(α-β) verifies subtraction.',
+    colorToken: 'α: Sky (#0284c7) | β: Violet (#a855f7) | cos(α+β): Amber (#fbbf24) | sin(α+β): Emerald (#10b981) | cos(α−β): Orange (#f97316) | sin(α−β): Rose (#f43f5e)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="3,2"/>
@@ -676,17 +707,17 @@ export const COLOR_GRAMMAR_TOKENS = [
   { token: 'PALETTE.violet', hex: '#a855f7', role: 'Inscribed point P, Minor Alternate Segment, Vertex A (Cyclic), Cosecant (csc θ), 3D wave projection' },
   { token: 'PALETTE.violetLight', hex: '#d8b4fe', role: 'Conjugate reflex arc halo, auxiliary geodesic guidance, ambient fill' },
   { token: 'PALETTE.yellow', hex: '#eab308', role: 'Inscribed angle α/θ, Polar angle θ, Angular coordinate' },
-  { token: 'PALETTE.amber', hex: '#fbbf24', role: 'Chord AB, Central angle 2θ, Cosine leg (cos θ), Bilinear interaction rectangle (-2ab cos C), Compound angle α+β' },
-  { token: 'PALETTE.teal', hex: '#14b8a6', role: 'Right-angles 90°, Perigon sums 360°, Cotangent (cot θ), Difference ray D(α-β), Invariant Δ' },
+  { token: 'PALETTE.amber', hex: '#fbbf24', role: 'Chord AB, Central angle 2θ, Vertex C (Cyclic), Cosine leg (cos θ), Bilinear interaction rectangle (-2ab cos C), Compound angle α+β' },
+  { token: 'PALETTE.teal', hex: '#14b8a6', role: 'Right-angles 90°, Perigon sums 360°, Cyclic diagonal intersection & Ptolemy invariant, Cotangent (cot θ), Difference ray D(α-β), Invariant Δ' },
   { token: 'PALETTE.green', hex: '#22c55e', role: 'Subtended angle θ, Inscribed area (½st), Euler Y-axis' },
   { token: 'PALETTE.emerald', hex: '#10b981', role: 'Tangent line direction, Altitude, Bisector normal, Sine leg (sin θ)' },
-  { token: 'PALETTE.sky', hex: '#0284c7', role: 'Major Alternate Segment, Circumference & 2R ratio, Secant line (sec θ), Cylindrical helix curve, Angle β' },
+  { token: 'PALETTE.sky', hex: '#0284c7', role: 'Major Alternate Segment, Circumference & 2R ratio, Cyclic diagonal BD & sum ∠B + ∠D, Secant line (sec θ), Cylindrical helix curve, Angle β' },
   { token: 'PALETTE.lime', hex: '#84cc16', role: 'Reflex sector α*, Angle α at vertex A, Compound angle α' },
   { token: 'PALETTE.rose', hex: '#f43f5e', role: 'Exterior angles, Vertex D (Cyclic), Tangent ratio leg (tan θ), External point P' },
   { token: 'PALETTE.cyan', hex: '#06b6d4', role: 'Diameter square |d|², Vertex B (Cyclic), Affine conjugate axis v₁' },
-  { token: 'PALETTE.fuchsia', hex: '#d946ef', role: 'Angle β base angles, vertex C (Cyclic), Cosecant (csc θ), 3D spherical longitude (φ)' },
+  { token: 'PALETTE.fuchsia', hex: '#d946ef', role: 'Angle β base angles, Cosecant (csc θ), 3D spherical longitude (φ)' },
   { token: 'PALETTE.steel', hex: '#6488b0', role: 'Secant line construction, Cartesian reference grids, auxiliary chord extensions' },
-  { token: 'PALETTE.lavender', hex: '#c4b5fd', role: 'Reflex angle sums, radius OP helper in 3D, polar coordinate ground grid' },
+  { token: 'PALETTE.lavender', hex: '#c4b5fd', role: 'Reflex angle sums, Cyclic diagonal AC & sum ∠A + ∠C, radius OP helper in 3D, polar coordinate ground grid' },
   { token: 'PALETTE.platinum', hex: '#f8fafc', role: 'High-contrast labels, primary derivation headings, coordinate axes values' }
 ];
 

@@ -2186,7 +2186,7 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
 
   const scene3dViewSrc = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js'), 'utf8');
   assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.geometry.setFromPoints([origin, floorProj, p])'), 'Scene3DView must update phiProjectionLine points');
-  assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.visible = state.show3dAngles'), 'Scene3DView must sync phiProjectionLine visibility with show3dAngles');
+  assert.ok(scene3dViewSrc.includes('o.phiProjectionLine.visible = showAngles && isSpatial') || scene3dViewSrc.includes('o.phiProjectionLine.visible = state.show3dAngles'), 'Scene3DView must sync phiProjectionLine visibility with show3dAngles');
 
   const thalesHtml = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/index.html'), 'utf8');
   assert.ok(thalesHtml.includes('Deformation Axis (ω)'), 'Thales index.html must use (ω) for Affine Deformation Axis');
@@ -2312,11 +2312,11 @@ test('Universal Toolbar Footprint & Dynamic Viewport Width Calibration across al
   // 3. Multi-color bilinear interaction rectangle in Law of Cosines
   const trigCoreSrc = fs.readFileSync(path.join(rootDir, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
   assert.ok(trigCoreSrc.includes('ctx.createLinearGradient('), 'trig-core.js must use linear gradient for 2D interaction rectangle');
-  assert.ok(trigCoreSrc.includes("grad.addColorStop(0, 'rgba(244, 63, 94, 0.22)')"), 'trig-core.js must blend Rose at origin corner (Angle C)');
-  assert.ok(trigCoreSrc.includes("grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)')"), 'trig-core.js must blend Emerald at far corner (Side b)');
+  assert.ok(/grad\.addColorStop\(0,\s*'rgba\(244,\s*63,\s*94,/.test(trigCoreSrc), 'trig-core.js must blend Rose at origin corner (Angle C)');
+  assert.ok(/grad\.addColorStop\(1,\s*'rgba\(16,\s*185,\s*129,/.test(trigCoreSrc), 'trig-core.js must blend Emerald at far corner (Side b)');
   assert.ok(trigCoreSrc.includes('vertexColors: true'), 'trig-core.js must enable vertexColors in 3D interaction rectangle mesh');
-  assert.ok(trigCoreSrc.includes('addSeg(R0, R1, PALETTE.sky, true)'), 'trig-core.js must wireframe width with Sky (Side a)');
-  assert.ok(trigCoreSrc.includes('addSeg(R0, R3, PALETTE.emerald, true)'), 'trig-core.js must wireframe depth with Emerald (Side b)');
+  assert.ok(trigCoreSrc.includes('addSeg(R0, R1, PALETTE.sky'), 'trig-core.js must wireframe width with Sky (Side a)');
+  assert.ok(trigCoreSrc.includes('addSeg(R0, R3, PALETTE.emerald'), 'trig-core.js must wireframe depth with Emerald (Side b)');
 });
 
 

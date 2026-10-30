@@ -11,6 +11,7 @@ export class Scene3DInteraction {
     this.scene = scene;
     this.dragging = false;
     this.activeTarget = null;
+    this.activePointers = new Map();
     const element = scene.domElement;
     if (!element) return;
 
@@ -21,7 +22,7 @@ export class Scene3DInteraction {
 
     // 3D Mouse Wheel Resizing (synchronized with 2D Canvas and controls slider)
     element.addEventListener('wheel', (e) => {
-      if (e.shiftKey) return; // Shift + wheel retains camera dolly zoom
+      if (e.shiftKey || e.ctrlKey || e.metaKey) return; // Shift/Ctrl/trackpad-pinch retains camera dolly zoom
       e.preventDefault();
       e.stopPropagation();
       const currentRadius = this.store.get().radius;
@@ -32,6 +33,24 @@ export class Scene3DInteraction {
   }
 
   #down(event) {
+    this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (this.activePointers.size >= 2) {
+      if (this.dragging) {
+        this.dragging = false;
+        this.activeTarget = null;
+        this.scene.setOrbitEnabled(true);
+        if (this.scene.domElement) this.scene.domElement.style.cursor = '';
+      }
+      if (this.scene.controls?.pointers) {
+        for (const [pid, pt] of this.activePointers.entries()) {
+          this.scene.controls.pointers.set(pid, pt);
+        }
+      }
+      return;
+    }
+    if (event.button && event.button !== 0) return;
+    if (event.altKey || event.shiftKey) return;
+
     this.scene.pointerToRay(event);
     if (this.scene.hitsPointP()) {
       this.activeTarget = 'P';
@@ -39,7 +58,7 @@ export class Scene3DInteraction {
       this.activeTarget = 'A';
     } else if (this.scene.hitsPointB()) {
       this.activeTarget = 'B';
-    } else if (this.scene.hitsCircumference?.(this.store.get().radius)) {
+    } else if (event.pointerType !== 'touch' && this.scene.hitsCircumference?.(this.store.get().radius, event)) {
       this.activeTarget = 'radius';
     } else {
       return;
@@ -57,11 +76,22 @@ export class Scene3DInteraction {
   }
 
   #move(event) {
+    if (this.activePointers.has(event.pointerId)) {
+      this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+    if (this.activePointers.size >= 2) {
+      if (this.dragging) {
+        this.dragging = false;
+        this.activeTarget = null;
+        this.scene.setOrbitEnabled(true);
+      }
+      return;
+    }
     this.scene.pointerToRay(event);
     const hoverP = this.scene.hitsPointP();
     const hoverA = this.scene.hitsPointA();
     const hoverB = this.scene.hitsPointB();
-    const hoverCirc = !hoverP && !hoverA && !hoverB && Boolean(this.scene.hitsCircumference?.(this.store.get().radius));
+    const hoverCirc = !hoverP && !hoverA && !hoverB && event.pointerType !== 'touch' && Boolean(this.scene.hitsCircumference?.(this.store.get().radius, event));
     this.store.set({
       hoverP3D: this.dragging ? (this.activeTarget === 'P') : hoverP,
       hoverA3D: this.dragging ? (this.activeTarget === 'A') : hoverA,
@@ -70,7 +100,7 @@ export class Scene3DInteraction {
 
     if (!this.dragging) {
       if (this.scene.domElement) {
-        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB) ? 'pointer' : (hoverCirc ? 'ew-resize' : '');
+        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB) ? 'pointer' : (hoverCirc ? 'ew-resize' : (event.altKey ? 'alias' : 'grab'));
       }
       return;
     }
@@ -85,13 +115,26 @@ export class Scene3DInteraction {
         this.store.set(setRadius(newRadius));
       }
     } else if (this.activeTarget === 'P') {
-      const hit = this.scene.pickSphere(this.store.get().baselineRotation || 0);
-      if (hit) {
-        const sph = cartesianToSpherical(hit, this.store.get().radius);
-        if (this.store.get().dimensionMode === "planar") {
-          sph.lat = Math.PI / 2;
+      const st = this.store.get();
+      if (st.dimensionMode !== 'spatial') {
+        const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(st.baselineRotation || 0);
+        if (hit) {
+          const rot = st.baselineRotation || 0;
+          const rawAngle = Math.atan2(hit.y, hit.x) - rot;
+          const TAU = Math.PI * 2;
+          const angle2D = ((rawAngle % TAU) + TAU) % TAU;
+          this.store.set({
+            angle2D,
+            lat3D: clamp(Math.acos(clamp(Math.sin(angle2D), -1, 1)), 0.05, Math.PI - 0.05),
+            lon3D: Math.cos(angle2D) >= 0 ? Math.PI / 2 : -Math.PI / 2,
+          });
         }
-        this.store.set(setSpherePoint(sph, this.store.get()));
+      } else {
+        const hit = this.scene.pickSphere(st.baselineRotation || 0);
+        if (hit) {
+          const sph = cartesianToSpherical(hit, st.radius);
+          this.store.set(setSpherePoint(sph, st));
+        }
       }
     } else if (this.activeTarget === 'A' || this.activeTarget === 'B') {
       const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(0);
@@ -107,6 +150,9 @@ export class Scene3DInteraction {
   }
 
   #end(event) {
+    if (event && event.pointerId !== undefined) {
+      this.activePointers.delete(event.pointerId);
+    }
     if (!this.dragging) return;
     this.dragging = false;
     this.activeTarget = null;

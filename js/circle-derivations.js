@@ -401,6 +401,16 @@ export class CyclicQuadDerivations {
         `• <b>Exterior Angle Invariant:</b> ${tag('violet', 'Ext ∠C')} = ${tag('violet', '∠A')} (The exterior angle of a cyclic quadrilateral equals the opposite interior angle)`,
         true
       )}
+      ${cardTemplate(
+        'cq-step-7',
+        'Step 7',
+        `Diagonals (${tag('lavender', 'AC')}, ${tag('sky', 'BD')}) & Ptolemy's Theorem`,
+        `Diagonals ${tag('lavender', 'AC')} and ${tag('sky', 'BD')} connect opposite concyclic vertices and satisfy <b>Ptolemy's Theorem</b>:<br>` +
+        `• Product of diagonals: ${tag('lavender', '|AC|')} · ${tag('sky', '|BD|')}<br>` +
+        `• Sum of opposite side products: |${tag('violet', 'A')}${tag('cyan', 'B')}| · |${tag('amber', 'C')}${tag('rose', 'D')}| + |${tag('cyan', 'B')}${tag('amber', 'C')}| · |${tag('rose', 'D')}${tag('violet', 'A')}|<br>` +
+        `• <b>Ptolemy's Invariant:</b> ${tag('lavender', '|AC|')} · ${tag('sky', '|BD|')} = |${tag('violet', 'A')}${tag('cyan', 'B')}|·|${tag('amber', 'C')}${tag('rose', 'D')}| + |${tag('cyan', 'B')}${tag('amber', 'C')}|·|${tag('rose', 'D')}${tag('violet', 'A')}|`,
+        true
+      )}
     `;
 
     this.slots = {
@@ -414,6 +424,8 @@ export class CyclicQuadDerivations {
       s5e: this.container.querySelector('#cq-step-5 [data-eval]'),
       s6: this.container.querySelector('#cq-step-6 [data-sub]'),
       s6e: this.container.querySelector('#cq-step-6 [data-eval]'),
+      s7: this.container.querySelector('#cq-step-7 [data-sub]'),
+      s7e: this.container.querySelector('#cq-step-7 [data-eval]'),
     };
     this.initialized = true;
   }
@@ -501,6 +513,25 @@ export class CyclicQuadDerivations {
       const isEq = Math.abs(extC - angleA) < 0.05;
       this.slots.s6e.innerHTML =
         `<span>${tag('violet', `Ext ∠C = ${fmtAngle(extC, angUnit)}`)} ≡ ${tag('violet', `∠A = ${fmtAngle(angleA, angUnit)}`)}</span><span class="derivation-check">${isEq ? '✓ Exterior Invariant' : '✓ Verified'}</span>`;
+    }
+    const lenAC = g.lenAC ?? (g.A && g.C ? Math.hypot(g.C.x - g.A.x, g.C.y - g.A.y) : 0);
+    const lenBD = g.lenBD ?? (g.B && g.D ? Math.hypot(g.D.x - g.B.x, g.D.y - g.B.y) : 0);
+    const lenAB = g.lenAB ?? (g.A && g.B ? Math.hypot(g.B.x - g.A.x, g.B.y - g.A.y) : 0);
+    const lenBC = g.lenBC ?? (g.B && g.C ? Math.hypot(g.C.x - g.B.x, g.C.y - g.B.y) : 0);
+    const lenCD = g.lenCD ?? (g.C && g.D ? Math.hypot(g.D.x - g.C.x, g.D.y - g.C.y) : 0);
+    const lenDA = g.lenDA ?? (g.D && g.A ? Math.hypot(g.A.x - g.D.x, g.A.y - g.D.y) : 0);
+    const ptolemyLHS = g.ptolemyLHS ?? (lenAC * lenBD);
+    const ptolemyRHS = g.ptolemyRHS ?? (lenAB * lenCD + lenBC * lenDA);
+    if (this.slots.s7) {
+      this.slots.s7.innerHTML =
+        `↳ Diagonals: ${tag('lavender', `|AC| = ${fmtLength(lenAC, lenUnit, state.radius, 1)}`)}, ${tag('sky', `|BD| = ${fmtLength(lenBD, lenUnit, state.radius, 1)}`)}<br>` +
+        `↳ Sides: |AB| = ${fmtLength(lenAB, lenUnit, state.radius, 1)}, |BC| = ${fmtLength(lenBC, lenUnit, state.radius, 1)}, |CD| = ${fmtLength(lenCD, lenUnit, state.radius, 1)}, |DA| = ${fmtLength(lenDA, lenUnit, state.radius, 1)}<br>` +
+        `↳ Ptolemy: ${tag('lavender', '|AC|')}·${tag('sky', '|BD|')} = ${tag('teal', fmtArea(ptolemyLHS, lenUnit, state.radius, 1))} | |AB|·|CD| + |BC|·|DA| = ${tag('teal', fmtArea(ptolemyRHS, lenUnit, state.radius, 1))}`;
+    }
+    if (this.slots.s7e) {
+      const isPtol = Math.abs(ptolemyLHS - ptolemyRHS) < 1.0;
+      this.slots.s7e.innerHTML =
+        `<span>${tag('lavender', '|AC|')}·${tag('sky', '|BD|')} = ${tag('teal', fmtArea(ptolemyLHS, lenUnit, state.radius, 1))}</span><span class="derivation-check">${isPtol ? "✓ Ptolemy's Invariant" : '✓ Evaluated'}</span>`;
     }
   }
 }

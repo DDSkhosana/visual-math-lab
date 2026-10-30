@@ -82,6 +82,7 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
     'central-angle',
     'reflex-perigon',
     'cyclic-quad',
+    'cyclic-diagonals-ptolemy',
     // Missing Circle Theorem Features
     'thales-semicircle',
     'tangents-external-point',
@@ -115,6 +116,16 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
     const rendered = renderLatex(el.formula);
     assert.ok(rendered && rendered.length > 0, `${id}: rendered formula must be non-empty`);
   }
+
+  // Cyclic quadrilateral diagonals: legend card and colour tokens match 2D/3D (AC = lavender, BD = sky)
+  const cyclicQuad = GEOMETRY_ELEMENTS.find((item) => item.id === 'cyclic-quad');
+  assert.ok(cyclicQuad.svg.includes('stroke="#c4b5fd"') && cyclicQuad.svg.includes('stroke="#0284c7"'), 'Cyclic quad legend SVG must draw diagonals AC (lavender) and BD (sky)');
+  const ptolemy = GEOMETRY_ELEMENTS.find((item) => item.id === 'cyclic-diagonals-ptolemy');
+  assert.ok(ptolemy.formula.includes('|AC|') && ptolemy.formula.includes('|BD|'), 'Ptolemy legend formula must reference both diagonals');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.lavender').role.includes('diagonal AC'), 'Lavender token must document cyclic diagonal AC');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.sky').role.includes('diagonal BD'), 'Sky token must document cyclic diagonal BD');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.amber').role.includes('Vertex C (Cyclic)'), 'Amber token must document cyclic vertex C');
+  assert.ok(!COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.fuchsia').role.includes('(Cyclic)'), 'Fuchsia must not be documented as a cyclic vertex colour');
 
   // Verify categories distribution
   const trigElements = GEOMETRY_ELEMENTS.filter((item) => item.category === 'trig');

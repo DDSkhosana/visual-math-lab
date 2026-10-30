@@ -182,9 +182,11 @@ export function thalesStats2D(radius, angle, options = {}) {
   };
 }
 
-export function sphereStats(radius, lat, lon, dimensionMode = 'planar') {
+export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D = null) {
   const isSpatial = dimensionMode === 'spatial';
-  const p = sphericalToCartesian(radius, lat, lon);
+  const p = (!isSpatial && typeof angle2D === 'number')
+    ? { x: radius * Math.cos(angle2D), y: radius * Math.sin(angle2D), z: 0 }
+    : sphericalToCartesian(radius, lat, lon);
   const s = Math.hypot(p.x + radius, p.y, p.z);
   const t = Math.hypot(p.x - radius, p.y, p.z);
   const d = 2 * radius;

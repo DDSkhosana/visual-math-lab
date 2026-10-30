@@ -5,7 +5,7 @@ import { ArcballTrackballControls } from '../../../../../js/circle-3d.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
-  static stateKeys = ['dimensionMode', 'radius', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'show3dAngles', 'hoverP3D', 'hoverA3D', 'hoverB3D', 'affineMode', 'affineStretch', 'affineAxisAngle'];
+  static stateKeys = ['dimensionMode', 'radius', 'angle2D', 'lat3D', 'lon3D', 'baselineRotation', 'vis3d', 'show3dArea', 'showArea', 'show3dAngles', 'showAngles', 'showReflex', 'hoverP3D', 'hoverA3D', 'hoverB3D', 'affineMode', 'affineStretch', 'affineAxisAngle'];
 
   constructor(THREE, container) {
     this.THREE = THREE;
@@ -79,8 +79,19 @@ export class Scene3DView {
     const cosR = Math.cos(rot);
     const sinR = Math.sin(rot);
     const isSpatial = state.dimensionMode === 'spatial';
-    const effLat = isSpatial ? (state.lat3D ?? Math.PI / 4) : Math.PI / 2;
-    const raw = sphericalToCartesian(r, effLat, state.lon3D);
+    let raw;
+    if (isSpatial) {
+      const lat = state.lat3D ?? Math.PI / 4;
+      const lon = state.lon3D ?? Math.PI / 3;
+      raw = sphericalToCartesian(r, lat, lon);
+    } else {
+      const ang = state.angle2D ?? Math.PI / 4;
+      raw = {
+        x: r * Math.cos(ang),
+        y: r * Math.sin(ang),
+        z: 0,
+      };
+    }
     const x = raw.x * cosR - raw.y * sinR;
     const y = raw.x * sinR + raw.y * cosR;
     const z = raw.z;
@@ -136,13 +147,17 @@ export class Scene3DView {
     o.radiusLine.geometry.setFromPoints([new THREE.Vector3(), o.pointP.position]);
     o.radiusLine.computeLineDistances();
 
+    const showArea = Boolean(state.show3dArea ?? true) && (state.vis3d?.area !== false) && (state.showArea !== false);
+    const showAngles = Boolean(state.show3dAngles ?? true) && (state.vis3d?.angles !== false) && (state.showAngles !== false);
+    const showReflex = Boolean(state.vis3d?.reflex || state.showReflex);
+
     const a = o.pointA.position, b = o.pointB.position, p = o.pointP.position;
     const originPt = new THREE.Vector3(0, 0, 0);
     if (o.areaAOP && o.areaPOB) {
       setPositions(THREE, o.areaAOP.geometry, [originPt.x, originPt.y, originPt.z, a.x, a.y, a.z, p.x, p.y, p.z]);
       setPositions(THREE, o.areaPOB.geometry, [originPt.x, originPt.y, originPt.z, b.x, b.y, b.z, p.x, p.y, p.z]);
-      o.areaAOP.visible = state.show3dArea;
-      o.areaPOB.visible = state.show3dArea;
+      o.areaAOP.visible = showArea;
+      o.areaPOB.visible = showArea;
     }
     setPositions(THREE, o.areaTriangle.geometry, [a.x, a.y, a.z, b.x, b.y, b.z, p.x, p.y, p.z]);
     o.areaTriangle.visible = false;
@@ -152,23 +167,23 @@ export class Scene3DView {
       const foot = new THREE.Vector3(proj * cosR, proj * sinR, 0);
       o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
       o.altitudeLine.computeLineDistances();
-      o.altitudeLine.visible = state.show3dArea;
+      o.altitudeLine.visible = showArea;
     }
 
     const origin = new THREE.Vector3();
     const floorProj = new THREE.Vector3(x * scaleX, 0, z * scaleZ);
     this.updateSector(o.thetaSector, origin, new THREE.Vector3(0, 1, 0), p, r * 0.35);
     this.updateSector(o.phiSector, origin, new THREE.Vector3(0, 0, 1), floorProj, r * 0.45);
-    o.thetaSector.visible = state.show3dAngles;
-    o.phiSector.visible = state.show3dAngles;
+    o.thetaSector.visible = showAngles;
+    o.phiSector.visible = showAngles && isSpatial;
     if (o.phiProjectionLine) {
       o.phiProjectionLine.geometry.setFromPoints([origin, floorProj, p]);
       o.phiProjectionLine.computeLineDistances();
-      o.phiProjectionLine.visible = state.show3dAngles;
+      o.phiProjectionLine.visible = showAngles && isSpatial;
     }
     if (toA.lengthSq() > 1e-4 && toB.lengthSq() > 1e-4) {
       setPositions(THREE, o.rightAngle.geometry, rightAngleVertices(THREE, p, toA.clone().normalize(), toB.clone().normalize(), 0.8));
-      o.rightAngle.visible = state.show3dAngles;
+      o.rightAngle.visible = showAngles;
     } else {
       o.rightAngle.visible = false;
     }
@@ -181,7 +196,7 @@ export class Scene3DView {
     if (o.alphaSector) {
       if (toPFromA.lengthSq() > 1e-4) {
         this.updateSector(o.alphaSector, o.pointA.position, towardBFromA, toPFromA, r * 0.28, false);
-        o.alphaSector.visible = state.show3dAngles;
+        o.alphaSector.visible = showAngles;
       } else {
         o.alphaSector.visible = false;
       }
@@ -190,7 +205,7 @@ export class Scene3DView {
     if (o.alphaReflexSector) {
       if (toPFromA.lengthSq() > 1e-4) {
         this.updateSector(o.alphaReflexSector, o.pointA.position, towardBFromA, toPFromA, r * 0.22, true);
-        o.alphaReflexSector.visible = Boolean(state.vis3d.reflex);
+        o.alphaReflexSector.visible = showReflex;
       } else {
         o.alphaReflexSector.visible = false;
       }
@@ -199,7 +214,7 @@ export class Scene3DView {
     if (o.betaSector) {
       if (toPFromB.lengthSq() > 1e-4) {
         this.updateSector(o.betaSector, o.pointB.position, towardAFromB, toPFromB, r * 0.28, false);
-        o.betaSector.visible = state.show3dAngles;
+        o.betaSector.visible = showAngles;
       } else {
         o.betaSector.visible = false;
       }
@@ -208,7 +223,7 @@ export class Scene3DView {
     if (o.betaReflexSector) {
       if (toPFromB.lengthSq() > 1e-4) {
         this.updateSector(o.betaReflexSector, o.pointB.position, towardAFromB, toPFromB, r * 0.22, true);
-        o.betaReflexSector.visible = Boolean(state.vis3d.reflex);
+        o.betaReflexSector.visible = showReflex;
       } else {
         o.betaReflexSector.visible = false;
       }
@@ -217,7 +232,7 @@ export class Scene3DView {
     if (o.pReflexSector) {
       if (toA.lengthSq() > 1e-4 && toB.lengthSq() > 1e-4) {
         this.updateSector(o.pReflexSector, o.pointP.position, toA, toB, 1.2, true);
-        o.pReflexSector.visible = Boolean(state.vis3d.reflex);
+        o.pReflexSector.visible = showReflex;
       } else {
         o.pReflexSector.visible = false;
       }
@@ -296,13 +311,14 @@ export class Scene3DView {
     return false;
   }
 
-  hitsCircumference(radius = 10) {
+  hitsCircumference(radius = 10, event = null) {
     if (!this.raycaster?.ray) return false;
     const vOrigin = this.raycaster.ray.origin;
     const vDir = this.raycaster.ray.direction;
     const b = vOrigin.dot(vDir);
     const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
-    return Math.abs(distRayToOrigin - radius) < 1.4;
+    const tol = (event && (event.ctrlKey || event.metaKey)) ? 1.4 : 0.24;
+    return Math.abs(distRayToOrigin - radius) < tol;
   }
 
   pickCircumferenceRadius(min = 5, max = 15) {

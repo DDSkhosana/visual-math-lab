@@ -643,9 +643,19 @@ body.header-collapsed .circle-explorer {
 }
 
 .toolbar-content {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.375rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.55) rgba(15, 23, 42, 0.35);
   transition: opacity 0.2s ease;
 }
 
@@ -1561,9 +1571,19 @@ input[type=range] {
 }
 
 .toolbar-content {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.375rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.55) rgba(15, 23, 42, 0.35);
   transition: opacity 0.2s ease;
 }
 
@@ -1846,4 +1866,23 @@ input[type=range] {
 }
 .btn-playback-speed:active {
   transform: scale(0.96);
+}
+
+/* Universal Multi-Touch & Scroll-Touch Support Across All Panels */
+.toolbar-content,
+#toolbar-content,
+.derivation-card-content,
+.dock-breadcrumb-bar,
+.panels-tray-dropdown,
+.tray-dropdown-items {
+  touch-action: pan-x pan-y pinch-zoom !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain;
+}
+
+.toolbar-content .btn,
+.toolbar-content .btn-toolbar,
+.panel-body .btn,
+.panel-body .checkbox-container {
+  touch-action: manipulation;
 }

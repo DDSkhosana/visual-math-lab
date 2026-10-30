@@ -152,34 +152,79 @@ function drawGrid(ctx, state, f) {
 }
 
 function drawAxes(ctx, state, f) {
-  ctx.strokeStyle = 'rgba(100, 116, 139, 0.7)';
-  ctx.lineWidth = 1.5;
+  if (state.vis2d?.axes === false) return;
+
+  let xLabel = '+X', xNegLabel = '-X', xColor = PALETTE.amber;
+  let yLabel = '+Y', yNegLabel = '-Y', yColor = PALETTE.emerald;
+  let watermark = 'XY Elevation Projection (Z=0) | Front View';
+  if (f.plane === 'xz') {
+    xLabel = '+X'; xNegLabel = '-X'; xColor = PALETTE.amber;
+    yLabel = '+Z'; yNegLabel = '-Z'; yColor = PALETTE.steel;
+    watermark = 'XZ Plan Projection (Y=0) | Top View';
+  } else if (f.plane === 'yz') {
+    xLabel = '+Z'; xNegLabel = '-Z'; xColor = PALETTE.steel;
+    yLabel = '+Y'; yNegLabel = '-Y'; yColor = PALETTE.emerald;
+    watermark = 'YZ Profile Projection (X=0) | Side View';
+  } else if (f.plane === 'great-circle') {
+    const isVert = Math.abs(Math.sin(f.baselineRotation || 0)) > 0.5;
+    xLabel = isVert ? '+X (⟂)' : '+X (AB)'; xNegLabel = '-X'; xColor = PALETTE.amber;
+    yLabel = isVert ? '+Y (AB)' : '+Y₂D'; yNegLabel = isVert ? '-Y' : '-Y₂D'; yColor = PALETTE.emerald;
+    watermark = 'Isometric Perspective | Great Circle Section';
+  }
+
+  ctx.save();
+  ctx.lineWidth = 1.6;
+  ctx.globalAlpha = 0.58;
+
+  ctx.strokeStyle = xColor;
   ctx.beginPath();
   line(ctx, { x: 0, y: f.cy }, { x: f.width, y: f.cy });
+  ctx.stroke();
+
+  ctx.strokeStyle = yColor;
+  ctx.beginPath();
   line(ctx, { x: f.cx, y: f.height }, { x: f.cx, y: 0 });
   ctx.stroke();
 
-  if (state.vis2d.points || state.vis2d.coords) {
+  const drawAxisArrow = (tipX, tipY, dx, dy, color) => {
+    const headLen = 9;
+    const headHalfW = 4.5;
+    const px = -dy;
+    const py = dx;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - dx * headLen + px * headHalfW, tipY - dy * headLen + py * headHalfW);
+    ctx.lineTo(tipX - dx * headLen - px * headHalfW, tipY - dy * headLen - py * headHalfW);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  ctx.globalAlpha = 0.85;
+  drawAxisArrow(f.width - 4, f.cy, 1, 0, xColor);
+  drawAxisArrow(4, f.cy, -1, 0, xColor);
+  drawAxisArrow(f.cx, 4, 0, -1, yColor);
+  drawAxisArrow(f.cx, f.height - 4, 0, 1, yColor);
+  ctx.restore();
+
+  if (state.vis2d?.labels !== false && (state.vis2d?.points || state.vis2d?.coords || state.vis2d?.axes !== false)) {
     ctx.font = 'bold 12px monospace';
     withShadow(ctx, () => {
-      let xLabel = '+X', xColor = PALETTE.amber;
-      let yLabel = '+Y', yColor = PALETTE.emerald;
-      if (f.plane === 'xz') {
-        xLabel = '+X'; xColor = PALETTE.amber;
-        yLabel = '+Z'; yColor = PALETTE.steel;
-      } else if (f.plane === 'yz') {
-        xLabel = '+Z'; xColor = PALETTE.steel;
-        yLabel = '+Y'; yColor = PALETTE.emerald;
-      } else if (f.plane === 'great-circle') {
-        const isVert = Math.abs(Math.sin(f.baselineRotation || 0)) > 0.5;
-        xLabel = isVert ? '+X (⟂)' : '+X (AB)'; xColor = PALETTE.amber;
-        yLabel = isVert ? '+Y (AB)' : '+Y₂D'; yColor = PALETTE.emerald;
-      }
       ctx.fillStyle = xColor;
-      ctx.fillText(xLabel, f.width - (xLabel.length > 2 ? 55 : 25), f.cy - 8);
+      ctx.fillText(xLabel, f.width - (xLabel.length > 2 ? 62 : 28), f.cy - 10);
+      ctx.fillText(xNegLabel, 14, f.cy - 10);
       ctx.fillStyle = yColor;
-      ctx.fillText(yLabel, f.cx + 8, 20);
+      ctx.fillText(yLabel, f.cx + 10, 20);
+      ctx.fillText(yNegLabel, f.cx + 10, f.height - 12);
     });
+  }
+
+  if (watermark && (state.vis2d?.coords || f.plane !== 'great-circle')) {
+    ctx.save();
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+    ctx.fillText(watermark, 14, f.height - 14);
+    ctx.restore();
   }
 }
 

@@ -49,11 +49,14 @@ const THEOREM_TIPS = {
   },
   'cyclic-quadrilateral': {
     name: 'Cyclic Quadrilateral Theorem',
-    interactionTip2D: 'Drag vertices A, B, C, D around the circle. Opposite interior angles always sum to exactly 180°.',
+    interactionTip2D: 'Drag vertices A, B, C, D around the circle. Opposite interior angles always sum to exactly 180°, and diagonals AC and BD always satisfy Ptolemy\'s Theorem.',
     theoremSpecifics: [
       'Drag any of the 4 vertices (A, B, C, D) around the circumference in order.',
       'Notice opposite angle pairs always satisfy ∠A + ∠C = 180° and ∠B + ∠D = 180°.',
-      'Toggle exterior angle displays to verify that exterior angles equal the opposite interior angle.'
+      'Toggle exterior angle displays to verify that exterior angles equal the opposite interior angle.',
+      'Diagonals AC (Lavender) and BD (Sky) are shown by default in 2D and 3D and meet at the teal intersection point. Toggle them with "Diagonals (AC, BD)" in either the 2D or 3D Overlays; the two toggles stay in sync.',
+      'Check the Telemetry panels and Derivation Step 7 to verify Ptolemy\'s Theorem: |AC|·|BD| = |AB|·|CD| + |BC|·|DA|.',
+      'In Spatial 3D on S², the diagonals are drawn as great-circle geodesic arcs alongside the straight 3D chords AC and BD.'
     ],
     highlightPoint: 'Vertices A, B, C, D'
   },

@@ -117,7 +117,15 @@ function bootstrap() {
   };
   if (toggleExt) toggleExt.addEventListener('change', (e) => onExtChange(e.target.checked));
   if (toggle3dExt) toggle3dExt.addEventListener('change', (e) => onExtChange(e.target.checked));
-  document.getElementById('toggle-diagonals')?.addEventListener('change', (e) => store.set({ showDiagonals: e.target.checked }));
+  const toggleDiag = document.getElementById('toggle-diagonals');
+  const toggle3dDiag = document.getElementById('toggle-3d-diagonals');
+  const onDiagChange = (checked) => {
+    store.set({ showDiagonals: checked });
+    if (toggleDiag) toggleDiag.checked = checked;
+    if (toggle3dDiag) toggle3dDiag.checked = checked;
+  };
+  if (toggleDiag) toggleDiag.addEventListener('change', (e) => onDiagChange(e.target.checked));
+  if (toggle3dDiag) toggle3dDiag.addEventListener('change', (e) => onDiagChange(e.target.checked));
 
   document.getElementById('btn-export-png')?.addEventListener('click', () => view.exportPNG());
   document.getElementById('btn-export-svg')?.addEventListener('click', () => view.exportSVG());
@@ -299,6 +307,35 @@ function bootstrap() {
     const isExt = state.showExterior !== false;
     if (toggleExt && toggleExt.checked !== isExt) toggleExt.checked = isExt;
     if (toggle3dExt && toggle3dExt.checked !== isExt) toggle3dExt.checked = isExt;
+    const isDiag = state.showDiagonals !== false;
+    if (toggleDiag && toggleDiag.checked !== isDiag) toggleDiag.checked = isDiag;
+    if (toggle3dDiag && toggle3dDiag.checked !== isDiag) toggle3dDiag.checked = isDiag;
+
+    // Diagonal & Ptolemy Telemetry (2D & 3D)
+    const elTelDiagAC = document.getElementById('tel-diag-ac');
+    if (elTelDiagAC && g.lenAC !== undefined) {
+      elTelDiagAC.textContent = UnitSystemConverter.formatLength(g.lenAC, lenUnit, state.radius, 1);
+    }
+    const elTelDiagBD = document.getElementById('tel-diag-bd');
+    if (elTelDiagBD && g.lenBD !== undefined) {
+      elTelDiagBD.textContent = UnitSystemConverter.formatLength(g.lenBD, lenUnit, state.radius, 1);
+    }
+    const elTelPtolemy = document.getElementById('tel-ptolemy');
+    if (elTelPtolemy && g.ptolemyLHS !== undefined && g.ptolemyRHS !== undefined) {
+      const isPtolemyMatch = Math.abs(g.ptolemyLHS - g.ptolemyRHS) < 1.0;
+      elTelPtolemy.textContent = isPtolemyMatch ? 'Verified (|AC|·|BD| = ∑opp)' : 'Crossed Quad';
+    }
+    const scale3D = R3D / (g.r || 180);
+    const el3dDiagAC = document.getElementById('val-3d-diag-ac');
+    if (el3dDiagAC && g.lenAC !== undefined) {
+      const d3AC = g.lenAC * scale3D;
+      el3dDiagAC.textContent = lenUnit === 'px' ? d3AC.toFixed(2) : UnitSystemConverter.formatLength(d3AC, lenUnit, 10, 2);
+    }
+    const el3dDiagBD = document.getElementById('val-3d-diag-bd');
+    if (el3dDiagBD && g.lenBD !== undefined) {
+      const d3BD = g.lenBD * scale3D;
+      el3dDiagBD.textContent = lenUnit === 'px' ? d3BD.toFixed(2) : UnitSystemConverter.formatLength(d3BD, lenUnit, 10, 2);
+    }
 
     // Live math derivations
     derivations.render(state, g);

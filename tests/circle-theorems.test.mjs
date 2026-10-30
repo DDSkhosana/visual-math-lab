@@ -67,10 +67,11 @@ test('Angles in Same Segment: angles subtended at P1 and P2 are identical', () =
   }
 });
 
-test('Cyclic Quadrilateral: opposite angles sum to 180° and total interior sum is 360°', () => {
+test('Cyclic Quadrilateral: opposite angles sum to 180°, total interior sum is 360°, diagonals & Ptolemy theorem hold', () => {
   const width = 800;
   const height = 600;
   const state = CyclicQuad.createInitialState();
+  assert.strictEqual(state.showDiagonals, true, 'Cyclic Quadrilateral must have showDiagonals enabled by default');
 
   // Test several cyclic quad vertex configurations
   const configs = [
@@ -93,6 +94,10 @@ test('Cyclic Quadrilateral: opposite angles sum to 180° and total interior sum 
     close(g.exteriorAngleDeg, g.angleADeg, 1e-4);
     // Linear pair on straight line DCE sums to 180°
     close(g.exteriorAngleDeg + g.angleCDeg, 180, 1e-4);
+    // Diagonals AC and BD and Ptolemy's theorem: |AC|·|BD| = |AB|·|CD| + |BC|·|DA|
+    assert.ok(g.lenAC > 0 && g.lenBD > 0, 'Diagonal lengths |AC| and |BD| must be positive');
+    assert.ok(g.diagIntersection && Number.isFinite(g.diagIntersection.x) && Number.isFinite(g.diagIntersection.y), 'Diagonal intersection point must be computed');
+    close(g.ptolemyLHS, g.ptolemyRHS, 1e-4);
   }
 });
 
@@ -2390,4 +2395,140 @@ test('Dynamic Optimal Viewport Radius: computeOptimalViewportRadius scales dynam
   const thalesMainJs = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/main.js'), 'utf8');
   assert.ok(thalesMainJs.includes('computeOptimalViewportRadius'), 'thales main.js must use computeOptimalViewportRadius');
   assert.ok(thalesMainJs.includes('store.set({ zoom: optR / r3d })'), 'thales main.js must dynamically set zoom = optR / r3d');
+});
+
+test('Omni-Directional 3D Movement, Canvas Spin, Multi-Touch Pinch/Twist/Pan & Universal Panel Touch-Scroll', async () => {
+  const { ArcballTrackballControls } = await import('../js/circle-3d.js');
+  const {
+    createStore,
+    computeSpinAngleUpdates2D,
+    attachCanvasTouchAndWheelGestures,
+    enableUniversalPanelTouch,
+  } = await import('../js/circle-core.js');
+
+  // Minimal THREE mock for ArcballTrackballControls
+  class MockVector3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    clone() { return new MockVector3(this.x, this.y, this.z); }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
+    add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
+    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+    lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+    length() { return Math.hypot(this.x, this.y, this.z); }
+    normalize() {
+      const l = this.length();
+      if (l > 1e-12) { this.x /= l; this.y /= l; this.z /= l; }
+      return this;
+    }
+    setLength(l) { return this.normalize().addScaledVector(this, l - 1); }
+    dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+    crossVectors(a, b) {
+      this.x = a.y * b.z - a.z * b.y;
+      this.y = a.z * b.x - a.x * b.z;
+      this.z = a.x * b.y - a.y * b.x;
+      return this;
+    }
+    applyQuaternion(q) {
+      const x = this.x, y = this.y, z = this.z;
+      const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+      const ix = qw * x + qy * z - qz * y;
+      const iy = qw * y + qz * x - qx * z;
+      const iz = qw * z + qx * y - qy * x;
+      const iw = -qx * x - qy * y - qz * z;
+      this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+      this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+      this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+      return this;
+    }
+  }
+  class MockVector2 {
+    constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+    set(x, y) { this.x = x; this.y = y; return this; }
+  }
+  class MockQuaternion {
+    constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
+    setFromAxisAngle(axis, angle) {
+      const half = angle / 2;
+      const s = Math.sin(half);
+      this.x = axis.x * s;
+      this.y = axis.y * s;
+      this.z = axis.z * s;
+      this.w = Math.cos(half);
+      return this;
+    }
+  }
+  const mockTHREE = { Vector3: MockVector3, Vector2: MockVector2, Quaternion: MockQuaternion };
+  const domListeners = {};
+  const mockDom = {
+    addEventListener: (evt, fn) => { domListeners[evt] = domListeners[evt] || []; domListeners[evt].push(fn); },
+    removeEventListener: () => {},
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 400 }),
+    setPointerCapture: () => {},
+    releasePointerCapture: () => {},
+    hasPointerCapture: () => false,
+  };
+  const mockCamera = {
+    position: new MockVector3(0, 0, 30),
+    up: new MockVector3(0, 1, 0),
+    quaternion: new MockQuaternion(),
+    fov: 45,
+    aspect: 1,
+    lookAt: () => {},
+  };
+
+  const controls = new ArcballTrackballControls(mockTHREE, mockCamera, mockDom);
+
+  // 1. Holroyd continuous spherical-hyperbolic projection: z > 0 both inside and outside virtual sphere rim
+  const insidePt = controls.projectOnVirtualSphere(200, 200, 400, 400);
+  close(insidePt.z, 1.0, 1e-5);
+  const outsideRimPt = controls.projectOnVirtualSphere(395, 395, 400, 400);
+  assert.ok(outsideRimPt.z > 0.05, 'Holroyd hyperbolic sheet must maintain positive z outside rim for omni-directional rotation');
+  close(outsideRimPt.length(), 1.0, 1e-5);
+
+  // 2. 3D Canvas Spin (in-plane roll around camera forward axis)
+  controls.spinCameraRoll(Math.PI / 2);
+  close(mockCamera.up.x, 1.0, 1e-4);
+  close(mockCamera.up.y, 0.0, 1e-4);
+
+  // 3. Simultaneous 2-finger pinch-zoom + 2-finger twist-spin + 2-finger pan in 3D
+  mockCamera.up.set(0, 1, 0);
+  controls.onPointerDown({ pointerId: 1, clientX: 150, clientY: 200, pointerType: 'touch' });
+  controls.onPointerDown({ pointerId: 2, clientX: 250, clientY: 200, pointerType: 'touch' });
+  assert.equal(controls.state, 'pinch');
+
+  // Spread fingers from 100px to 150px, twist by ~45°, and pan midpoint by (+20, +10)
+  controls.onPointerMove({ pointerId: 1, clientX: 120, clientY: 160, pointerType: 'touch' });
+  controls.onPointerMove({ pointerId: 2, clientX: 260, clientY: 260, pointerType: 'touch' });
+  assert.ok(mockCamera.position.length() < 30, 'Two-finger spread must dolly-zoom camera closer');
+  assert.ok(Math.abs(mockCamera.up.x) > 0.05, 'Two-finger twist must spin camera roll');
+  assert.ok(controls.target.length() > 0.01, 'Two-finger midpoint movement must pan 3D target');
+
+  // 4. 2D Canvas Multi-Touch Pinch-Zoom, Two-Finger Pan, and Two-Finger Twist-Spin
+  const store2D = createStore({ radius: 180, angleA: 0.2, angleB: 1.4, angleP: 2.5, pan: { x: 0, y: 0 } });
+  const canvasListeners = {};
+  const mockCanvas2D = {
+    style: {},
+    addEventListener: (evt, fn) => { canvasListeners[evt] = canvasListeners[evt] || []; canvasListeners[evt].push(fn); },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 500 }),
+  };
+  attachCanvasTouchAndWheelGestures(mockCanvas2D, store2D);
+
+  canvasListeners.pointerdown[0]({ pointerId: 10, clientX: 200, clientY: 250, pointerType: 'touch' });
+  canvasListeners.pointerdown[0]({ pointerId: 11, clientX: 300, clientY: 250, pointerType: 'touch' });
+  canvasListeners.pointermove[0]({ pointerId: 11, clientX: 320, clientY: 290, pointerType: 'touch' });
+
+  const updated2D = store2D.get();
+  assert.ok(updated2D.radius > 180, '2D two-finger spread must zoom radius');
+  assert.ok(updated2D.pan.x !== 0 || updated2D.pan.y !== 0, '2D two-finger midpoint movement must pan canvas');
+  assert.ok(Math.abs(updated2D.angleP - 2.5) > 0.01, '2D two-finger twist must spin figure angles');
+
+  // Verify rigid angular spin invariant: angleB - angleA remains invariant under 2D spin
+  const spinPatch = computeSpinAngleUpdates2D({ angleA: 0.5, angleB: 1.7 }, 0.4);
+  close(spinPatch.angleB - spinPatch.angleA, 1.2, 1e-6);
+
+  // 5. Universal Panel Touch-Scroll & Pinch-Zoom
+  assert.equal(typeof enableUniversalPanelTouch, 'function', 'enableUniversalPanelTouch must be exported');
 });

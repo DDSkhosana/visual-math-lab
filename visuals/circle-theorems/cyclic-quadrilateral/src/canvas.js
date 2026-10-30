@@ -53,10 +53,10 @@ export class CanvasView {
       ctx.fill();
     }
 
-    // Diagonals (optional) - AC (Lavender) & BD (Teal) matching supplementary sums
-    if (state.showDiagonals) {
-      ctx.lineWidth = 1.8;
-      ctx.setLineDash([4, 4]);
+    // Diagonals - AC (Lavender) & BD (Sky) matching supplementary sums
+    if (state.showDiagonals !== false) {
+      ctx.lineWidth = 2.0;
+      ctx.setLineDash([6, 4]);
       ctx.strokeStyle = PALETTE.lavender;
       ctx.beginPath();
       ctx.moveTo(g.A.x, g.A.y); ctx.lineTo(g.C.x, g.C.y);
@@ -67,6 +67,13 @@ export class CanvasView {
       ctx.moveTo(g.B.x, g.B.y); ctx.lineTo(g.D.x, g.D.y);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      if (state.vis2d?.points !== false && g.diagIntersection) {
+        ctx.fillStyle = PALETTE.teal;
+        ctx.beginPath();
+        ctx.arc(g.diagIntersection.x, g.diagIntersection.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     // Quadrilateral edges
@@ -140,6 +147,15 @@ export class CanvasView {
     }
 
     const showLabels = state.vis2d?.labels !== false;
+
+    if (state.showDiagonals !== false && showLabels && state.vis2d?.lengths !== false) {
+      const acX = g.A.x * 0.68 + g.C.x * 0.32;
+      const acY = g.A.y * 0.68 + g.C.y * 0.32;
+      const bdX = g.B.x * 0.68 + g.D.x * 0.32;
+      const bdY = g.B.y * 0.68 + g.D.y * 0.32;
+      drawTextBadge(ctx, 'AC', acX, acY - 12, PALETTE.lavender);
+      drawTextBadge(ctx, 'BD', bdX, bdY + 12, PALETTE.sky);
+    }
 
     // Exterior line extending DC through C to E
     if (state.showExterior) {

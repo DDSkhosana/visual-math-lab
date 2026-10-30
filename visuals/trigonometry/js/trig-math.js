@@ -818,32 +818,32 @@ export function computeSpatialAngleSumEuler(alphaRad = Math.PI / 6, betaRad = Ma
   const cosGamma = Math.cos(gamma);
   const sinGamma = Math.sin(gamma);
 
-  // 3x3 Rotation Matrix R = R_z(alpha + beta) * R_x(gamma):
-  // R_z(θ) = [cos θ, -sin θ, 0; sin θ, cos θ, 0; 0, 0, 1]
+  // 3x3 Rotation Matrix R = R_x(gamma) * R_z(alpha + beta):
   // R_x(γ) = [1, 0, 0; 0, cos γ, -sin γ; 0, sin γ, cos γ]
-  // R = [cos(α+β), -sin(α+β)cos γ, sin(α+β)sin γ;
-  //      sin(α+β),  cos(α+β)cos γ, -cos(α+β)sin γ;
-  //      0,         sin γ,          cos γ]
+  // R_z(θ) = [cos θ, -sin θ, 0; sin θ, cos θ, 0; 0, 0, 1]
+  // R = [cos(α+β),          -sin(α+β),          0;
+  //      sin(α+β)cos γ,      cos(α+β)cos γ,    -sin γ;
+  //      sin(α+β)sin γ,      cos(α+β)sin γ,     cos γ]
   const m00 = cosSum;
-  const m01 = -sinSum * cosGamma;
-  const m02 = sinSum * sinGamma;
+  const m01 = -sinSum;
+  const m02 = 0;
 
-  const m10 = sinSum;
+  const m10 = sinSum * cosGamma;
   const m11 = cosSum * cosGamma;
-  const m12 = -cosSum * sinGamma;
+  const m12 = -sinGamma;
 
-  const m20 = 0;
-  const m21 = sinGamma;
+  const m20 = sinSum * sinGamma;
+  const m21 = cosSum * sinGamma;
   const m22 = cosGamma;
 
   // Triad vectors (orthonormal frame basis)
-  const e1 = { x: R * m00, y: R * m10, z: R * m20 }; // P vector on the unit sphere
+  const e1 = { x: R * m00, y: R * m10, z: R * m20 }; // P vector on the inclined great circle
   const e2 = { x: R * m01, y: R * m11, z: R * m21 };
   const e3 = { x: R * m02, y: R * m12, z: R * m22 };
 
-  // Intermediate alpha frame (gamma = 0, beta = 0):
-  const e1_alpha = { x: R * Math.cos(alpha), y: R * Math.sin(alpha), z: 0 };
-  const e2_alpha = { x: -R * Math.sin(alpha), y: R * Math.cos(alpha), z: 0 };
+  // Intermediate alpha frame on the inclined great-circle plane:
+  const e1_alpha = { x: R * Math.cos(alpha), y: R * Math.sin(alpha) * cosGamma, z: R * Math.sin(alpha) * sinGamma };
+  const e2_alpha = { x: -R * Math.sin(alpha), y: R * Math.cos(alpha) * cosGamma, z: R * Math.cos(alpha) * sinGamma };
 
   // Determinant of R (must strictly equal +1 for SO(3)):
   const detR = m00 * (m11 * m22 - m12 * m21) - m01 * (m10 * m22 - m12 * m20) + m02 * (m10 * m21 - m11 * m20);

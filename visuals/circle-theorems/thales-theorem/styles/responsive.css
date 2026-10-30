@@ -210,6 +210,24 @@
     line-height: 1.25;
   }
 
+  /* The title above only reserves room for the camera presets (7rem), so the
+     Planar/Spatial pill must drop to its own row here (this block also covers
+     short landscape screens, which the width-only queries in overlays.css miss). */
+  .thales-explorer .dimension-mode-bar {
+    top: 2.15rem !important;
+    left: 0.6rem !important;
+    right: auto !important;
+  }
+
+  [dir="rtl"] .thales-explorer .dimension-mode-bar {
+    left: auto !important;
+    right: 0.6rem !important;
+  }
+
+  .thales-explorer .perspective-badge {
+    display: none !important;
+  }
+
   .thales-explorer .camera-presets-bar {
     top: 0.5rem;
     right: 0.5rem;

@@ -10,7 +10,7 @@ export function createInitialState() {
     angleC: toRadians(310),
     angleD: toRadians(230),
     showExterior: true,
-    showDiagonals: false,
+    showDiagonals: true,
     showAngles: true,
     showArea: true,
     playing: false,
@@ -55,10 +55,39 @@ export function computeGeometry(state, width, height) {
   const E = { x: C.x + (dcVec.x / dcLen) * 70, y: C.y + (dcVec.y / dcLen) * 70 };
   const exteriorAngleDeg = vertexAngle(C, B, E);
 
+  // Side lengths and diagonal lengths (AC and BD)
+  const lenAB = Math.hypot(B.x - A.x, B.y - A.y);
+  const lenBC = Math.hypot(C.x - B.x, C.y - B.y);
+  const lenCD = Math.hypot(D.x - C.x, D.y - C.y);
+  const lenDA = Math.hypot(A.x - D.x, A.y - D.y);
+  const lenAC = Math.hypot(C.x - A.x, C.y - A.y);
+  const lenBD = Math.hypot(D.x - B.x, D.y - B.y);
+
+  // Diagonal intersection point P (intersection of AC and BD)
+  const acDx = C.x - A.x;
+  const acDy = C.y - A.y;
+  const bdDx = D.x - B.x;
+  const bdDy = D.y - B.y;
+  const denom = acDx * bdDy - acDy * bdDx;
+  let diagIntersection;
+  if (Math.abs(denom) > 1e-6) {
+    const t = ((B.x - A.x) * bdDy - (B.y - A.y) * bdDx) / denom;
+    diagIntersection = { x: A.x + t * acDx, y: A.y + t * acDy };
+  } else {
+    diagIntersection = { x: (A.x + B.x + C.x + D.x) / 4, y: (A.y + B.y + C.y + D.y) / 4 };
+  }
+
+  // Ptolemy's Theorem quantities: |AC|·|BD| = |AB|·|CD| + |BC|·|DA|
+  const ptolemyLHS = lenAC * lenBD;
+  const ptolemyRHS = lenAB * lenCD + lenBC * lenDA;
+
   return {
     cx, cy, r, O, A, B, C, D, E,
     angleADeg, angleBDeg, angleCDeg, angleDDeg,
     sumAC, sumBD, exteriorAngleDeg,
+    lenAB, lenBC, lenCD, lenDA,
+    lenAC, lenBD, diagIntersection,
+    ptolemyLHS, ptolemyRHS,
   };
 }
 
@@ -69,6 +98,10 @@ export function generateSVG(state, width, height) {
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   <!-- Quadrilateral fill -->
   <polygon points="${g.A.x},${g.A.y} ${g.B.x},${g.B.y} ${g.C.x},${g.C.y} ${g.D.x},${g.D.y}" fill="${state.showArea !== false ? 'rgba(99, 102, 241, 0.15)' : 'none'}" stroke="#6366f1" stroke-width="2.5"/>
+  <!-- Diagonals AC & BD -->
+  ${state.showDiagonals !== false ? `<line x1="${g.A.x}" y1="${g.A.y}" x2="${g.C.x}" y2="${g.C.y}" stroke="${PALETTE.lavender}" stroke-width="2" stroke-dasharray="6,4"/>
+  <line x1="${g.B.x}" y1="${g.B.y}" x2="${g.D.x}" y2="${g.D.y}" stroke="${PALETTE.sky}" stroke-width="2" stroke-dasharray="6,4"/>
+  <circle cx="${g.diagIntersection.x}" cy="${g.diagIntersection.y}" r="4" fill="${PALETTE.teal}"/>` : ''}
   ${state.showExterior ? `<line x1="${g.C.x}" y1="${g.C.y}" x2="${g.E.x}" y2="${g.E.y}" stroke="${PALETTE.rose}" stroke-width="2" stroke-dasharray="4,4"/>` : ''}
   <!-- Vertices -->
   <circle cx="${g.A.x}" cy="${g.A.y}" r="6" fill="${PALETTE.violet}"/>

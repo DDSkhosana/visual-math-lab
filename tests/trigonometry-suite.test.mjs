@@ -457,27 +457,29 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("field: 'diffBeta'"));
         assert.ok(src.includes("store.set({ angleBeta: normalizeAngle((st.angleAlpha || 0) - ang) })"));
 
-        // 3. 2D visual representation of sin(α−β) altitude in Rose and cos(α−β) in Amber
+        // 3. 2D visual representation of sin(α−β) altitude in Rose and cos(α−β) in Orange (distinct from cos(α+β) in Amber)
         assert.ok(src.includes("const Ndiff = toScreen(m.points2D.N_diff);"));
         assert.ok(src.includes("ctx.strokeStyle = PALETTE.rose;"));
         assert.ok(src.includes("ctx.moveTo(Pdiff.x, Pdiff.y);"));
         assert.ok(src.includes("ctx.lineTo(Ndiff.x, Ndiff.y);"));
         assert.ok(src.includes("drawRightAngle(ctx, Ndiff, O, Pdiff, 10, PALETTE.rose)"));
         assert.ok(src.includes("sin(α−β) ="));
-        assert.ok(src.includes("drawLabelledPoint(ctx, Ndiff, PALETTE.amber, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5)"));
+        assert.ok(src.includes("drawLabelledPoint(ctx, Ndiff, PALETTE.orange, getPointLabel('N_D', m.points2D.N_diff.x * r, m.points2D.N_diff.y * r, vis), -10, -12, 3.5)"));
 
         // 4. 3D visual representation: handleC pick target, dropped altitude, rightAngle4, badges
-        assert.ok(src.includes("store.set({ angleBeta: normalizeAngle(alpha - angle) });"));
+        assert.ok(src.includes("const nextBeta = normalizeAngle(alpha - angle);"));
+        assert.ok(src.includes("store.set({ angleBeta: nextBeta });"));
         assert.ok(src.includes("addSeg(Pdiff, Ndiff, PALETTE.rose, true)"));
-        assert.ok(src.includes("addSeg(O, Ndiff, PALETTE.amber)"));
+        assert.ok(src.includes("addSeg(O, Ndiff, PALETTE.orange)"));
         assert.ok(src.includes("setRightAngle3DVertices(this.rightAngle4, Ndiff, O, Pdiff"));
         assert.ok(src.includes("key: 'sin-diff-len'"));
         assert.ok(src.includes("key: 'cos-diff-len'"));
         assert.ok(src.includes("key: 'Ndiff', name: 'N_D'"));
 
-        // 5. Telemetry HTML color token harmonization: cos(α-β) in Amber, sin(α-β) in Rose
+        // 5. Telemetry HTML color token harmonization: cos(α-β) in Orange (distinct from cos(α+β) in Amber), sin(α-β) in Rose
         const asHtml = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/angle-sum-identities/index.html'), 'utf-8');
-        assert.ok(asHtml.includes('<span class="color-amber">cos(α − β):</span><strong class="color-amber" id="tel-cos-diff">'));
+        assert.ok(asHtml.includes('<span class="color-amber">cos(α + β):</span><strong class="color-amber" id="tel-cos-sum">'));
+        assert.ok(asHtml.includes('<span class="color-orange">cos(α − β):</span><strong class="color-orange" id="tel-cos-diff">'));
         assert.ok(asHtml.includes('<span class="color-rose">sin(α − β):</span><strong class="color-rose" id="tel-sin-diff">'));
 
         // 6. Axiomatic decomposition triangles △PSQ and △OQD in 2D, 3D, and derivations with crisp solid translucent tint shading
@@ -504,8 +506,10 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}"));
         assert.ok(src.includes("vis-3d-rect"));
 
-        // Colour Grammar Standard: 2ab cos C rectangle & badges are invariant in Amber
-        assert.ok(src.includes("const rectColor = PALETTE.amber;"), '3D interaction rectangle mesh must be strictly Amber');
+        // Colour Grammar Standard: 2ab cos C rectangle & extruded 3D prism with 4-corner constitutive vertex colors
+        assert.ok(src.includes("const rectColor = PALETTE.amber;"), '3D interaction rectangle badge color invariant');
+        assert.ok(src.includes("const prismY = -0.45;"), '3D interaction rectangle must render as a visible extruded prism');
+        assert.ok(src.includes("const showSphRect = state.showInteractionRect !== false && showArea;"), 'Spherical 3D mode must also project 2ab cos C rectangle');
         assert.ok(!src.includes("m.cosC >= 0 ? PALETTE.amber : PALETTE.rose"), 'trig-core.js must not flip Amber to Rose for negative cosine');
     });
 
@@ -674,7 +678,12 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         // CSS stacking & title collision protection
         const trigCss = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/css/trig-suite.css'), 'utf-8');
         assert.ok(trigCss.includes('z-index: 25 !important;'), '.dimension-mode-bar must have z-index: 25 to float above 3D labels');
-        assert.ok(trigCss.includes('max-width: calc(100% - 19.5rem) !important;'), '#canvas-3d-container .view-title must prevent button collision');
+        assert.ok(trigCss.includes('max-width: calc(100% - var(--dimension-bar-clearance, 19.5rem)) !important;'), '#canvas-3d-container .view-title must prevent button collision');
+        // Clearance must cover the pill's full footprint: right offset (8.2rem) + pill width + gap
+        const clearanceMatch = trigCss.match(/#canvas-3d-container:has\(> \.dimension-mode-bar\)\s*\{\s*--dimension-bar-clearance:\s*([\d.]+)rem/);
+        assert.ok(clearanceMatch && parseFloat(clearanceMatch[1]) >= 22, 'dimension pill clearance must reserve at least 22rem so the title cannot run under the pill');
+        const visualPageJs = fs.readFileSync(path.join(ROOT_DIR, 'js/visual-page.js'), 'utf-8');
+        assert.ok(visualPageJs.includes('initDimensionBarClearance();'), 'visual-page.js must measure the pill and publish --dimension-bar-clearance at runtime');
     });
 
     test('Law of Cosines dynamic ratio visual overlay, proportional gauge bar, and telemetry synchronization', () => {
@@ -703,7 +712,15 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("cos C = (a²+b²−c²)/(2ab) = ${m.cosC.toFixed(3)}"), '2D must render dynamic evaluation ratio badge');
         assert.ok(src.includes("Proj Ratio (a cos C)/b = ${projFrac.toFixed(3)}"), '2D must render proportional projection bar/gauge');
         assert.ok(src.includes("key: 'ratio-cos'"), '3D scene must push ratio-cos billboard label');
-        assert.ok(src.includes("const barColor = PALETTE.amber;"), 'Ratio evaluation badge & proportional bar must be strictly Amber');
+        assert.ok(src.includes("const cosColor = PALETTE.violet;"), 'Cosine Ratio evaluation badge (cos C) must use distinct PALETTE.violet token');
+        assert.ok(src.includes("const barColor = PALETTE.amber;"), 'Proportional projection bar must be strictly Amber');
+        assert.ok(src.includes("const projW = projFrac * trackW;"), 'Projection ratio fill slider must be strictly proportional to projFrac without premature clamping');
+        assert.ok(src.includes("fillGrad.addColorStop(0, PALETTE.rose);"), 'Projection ratio fill gradient must include Rose for Angle C / Side c');
+        assert.ok(src.includes("fillGrad.addColorStop(0.5, PALETTE.violet);"), 'Projection ratio fill gradient must include Violet for cos C');
+        assert.ok(locHtml.includes('<span class="color-violet">cos C</span>'), 'HTML formulas must use distinct color-violet token for cos C');
+        assert.ok(locHtml.includes('class="color-violet" id="tel-cos-ratio"'), '2D telemetry tel-cos-ratio must use color-violet');
+        assert.ok(locHtml.includes('class="color-violet" id="val-3d-cos-ratio"'), '3D telemetry val-3d-cos-ratio must use color-violet');
+        assert.ok(src.includes("tag('violet', 'cos C = (a²+b²−c²)/(2ab)')"), 'Derivations step 1 must use distinct violet token for Cosine Ratio formula');
         assert.ok(src.includes("setText('tel-cos-ratio', m.cosC.toFixed(4))"), '2D telemetry must set tel-cos-ratio');
         assert.ok(src.includes("setText('tel-proj-frac'"), '2D telemetry must set tel-proj-frac');
         assert.ok(src.includes("setText('val-3d-cos-ratio', m.cosC.toFixed(4))"), '3D telemetry must set val-3d-cos-ratio');

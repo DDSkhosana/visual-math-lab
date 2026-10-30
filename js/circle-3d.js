@@ -249,13 +249,17 @@ export class ArcballTrackballControls {
     this.minPolarAngle = 0;
     this.maxPolarAngle = Math.PI;
 
-    this.state = 'none'; // 'none' | 'rotate' | 'pan' | 'pinch'
+    this.state = 'none'; // 'none' | 'rotate' | 'pan' | 'pinch' | 'spin'
     this.pointers = new Map();
     this.prevPointer = { x: 0, y: 0 };
     this.prevSpherePoint = new THREE.Vector3();
     this.angularVelocity = { axis: new THREE.Vector3(0, 1, 0), angle: 0 };
+    this.rollVelocity = 0;
+    this.lastMoveTime = 0;
     this.panStart = new THREE.Vector2();
     this.touchPinchDist = 0;
+    this.touchTwistAngle = 0;
+    this.touchMidpoint = { x: 0, y: 0 };
 
     if (!domElement) return;
 
@@ -264,13 +268,19 @@ export class ArcballTrackballControls {
     this._onPointerUp = this.onPointerUp.bind(this);
     this._onPointerCancel = this.onPointerCancel.bind(this);
     this._onWheel = this.onWheel.bind(this);
+    this._onDblClick = this.onDblClick.bind(this);
     this._onContextMenu = (e) => e.preventDefault();
 
     this.domElement.addEventListener('pointerdown', this._onPointerDown);
     this.domElement.addEventListener('pointermove', this._onPointerMove);
     this.domElement.addEventListener('pointerup', this._onPointerUp);
     this.domElement.addEventListener('pointercancel', this._onPointerCancel);
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('pointerup', this._onPointerUp);
+      window.addEventListener('pointercancel', this._onPointerCancel);
+    }
     this.domElement.addEventListener('wheel', this._onWheel, { passive: false });
+    this.domElement.addEventListener('dblclick', this._onDblClick);
     this.domElement.addEventListener('contextmenu', this._onContextMenu);
   }
 
@@ -282,6 +292,7 @@ export class ArcballTrackballControls {
     if (mode === 'arcball' || mode === 'trackball' || mode === 'orbit') {
       this.mode = mode === 'orbit' ? 'orbit' : 'arcball';
       this.angularVelocity.angle = 0;
+      this.rollVelocity = 0;
       if (this.mode === 'orbit') {
         this.camera.up.set(0, 1, 0);
         this.camera.lookAt(this.target);
@@ -297,20 +308,35 @@ export class ArcballTrackballControls {
     const v = (cy - y) / radius;
     const dSq = u * u + v * v;
 
-    if (dSq <= 1.0) {
-      return new this.THREE.Vector3(u, v, Math.sqrt(1.0 - dSq));
+    // Holroyd's C1-continuous spherical-hyperbolic sheet projection:
+    // Smoothly transitions at d^2 = 0.5 so omni-directional 3D rotation works
+    // across the entire viewport without rim creases or axis lock.
+    let z;
+    if (dSq <= 0.5) {
+      z = Math.sqrt(1.0 - dSq);
     } else {
-      const invLen = 1.0 / Math.sqrt(dSq);
-      return new this.THREE.Vector3(u * invLen, v * invLen, 0);
+      z = 0.5 / Math.sqrt(Math.max(1e-8, dSq));
     }
+    return new this.THREE.Vector3(u, v, z).normalize();
   }
 
   rotateCameraByAxisAngle(axis, angle) {
+    if (!axis || Math.abs(angle) < 1e-8) return;
     const q = new this.THREE.Quaternion().setFromAxisAngle(axis, angle);
     const offset = new this.THREE.Vector3().subVectors(this.camera.position, this.target);
     offset.applyQuaternion(q);
     this.camera.position.addVectors(this.target, offset);
-    this.camera.up.applyQuaternion(q);
+    this.camera.up.applyQuaternion(q).normalize();
+    this.camera.lookAt(this.target);
+  }
+
+  spinCameraRoll(deltaRollAngle) {
+    if (Math.abs(deltaRollAngle) < 1e-7) return;
+    const forward = new this.THREE.Vector3().subVectors(this.target, this.camera.position);
+    if (forward.lengthSq() < 1e-8) return;
+    forward.normalize();
+    const q = new this.THREE.Quaternion().setFromAxisAngle(forward, deltaRollAngle);
+    this.camera.up.applyQuaternion(q).normalize();
     this.camera.lookAt(this.target);
   }
 
@@ -319,25 +345,36 @@ export class ArcballTrackballControls {
     const radius = offset.length();
     if (radius < 1e-4) return;
 
-    let phi = Math.acos(Math.max(-1, Math.min(1, offset.y / radius)));
-    let theta = Math.atan2(offset.x, offset.z);
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    const deltaTheta = -2 * Math.PI * (deltaX / w) * this.rotateSpeed;
+    const deltaPhi = -2 * Math.PI * (deltaY / h) * this.rotateSpeed;
 
-    const deltaTheta = -2 * Math.PI * (deltaX / width) * this.rotateSpeed;
-    const deltaPhi = -2 * Math.PI * (deltaY / height) * this.rotateSpeed;
+    // Omni-directional 360° turntable + vertical elevation freedom without pole lock:
+    const upSign = this.camera.up.y >= 0 ? 1 : -1;
+    const worldY = new this.THREE.Vector3(0, 1, 0);
+    const qYaw = new this.THREE.Quaternion().setFromAxisAngle(worldY, deltaTheta * upSign);
+    offset.applyQuaternion(qYaw);
+    this.camera.up.applyQuaternion(qYaw);
 
-    theta += deltaTheta;
-
-    // Eliminate Top-View Lock in orbit mode:
-    const EPS = 0.005;
-    phi = Math.max(EPS, Math.min(Math.PI - EPS, phi + deltaPhi));
-
-    offset.x = radius * Math.sin(phi) * Math.sin(theta);
-    offset.y = radius * Math.cos(phi);
-    offset.z = radius * Math.sin(phi) * Math.cos(theta);
+    const camRight = new this.THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion).normalize();
+    const qPitch = new this.THREE.Quaternion().setFromAxisAngle(camRight, deltaPhi);
+    offset.applyQuaternion(qPitch);
+    this.camera.up.applyQuaternion(qPitch).normalize();
 
     this.camera.position.addVectors(this.target, offset);
-    this.camera.up.set(0, 1, 0);
     this.camera.lookAt(this.target);
+
+    // Record angular velocity for inertial spin in orbit mode too
+    const combinedAxis = new this.THREE.Vector3()
+      .addScaledVector(worldY, deltaTheta * upSign)
+      .addScaledVector(camRight, deltaPhi);
+    const combinedAngle = combinedAxis.length();
+    if (combinedAngle > 1e-6) {
+      this.angularVelocity.axis.copy(combinedAxis.normalize());
+      this.angularVelocity.angle = 0.65 * combinedAngle + 0.35 * this.angularVelocity.angle;
+      this.lastMoveTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    }
   }
 
   dolly(factor) {
@@ -354,13 +391,15 @@ export class ArcballTrackballControls {
     const dist = offset.length();
     const fovRad = (this.camera.fov * Math.PI) / 180;
     const targetHeight = 2 * dist * Math.tan(fovRad / 2);
-    const targetWidth = targetHeight * this.camera.aspect;
+    const targetWidth = targetHeight * (this.camera.aspect || 1);
 
     const camRight = new this.THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
     const camUp = new this.THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
 
-    const panX = - (deltaX / width) * targetWidth * this.panSpeed;
-    const panY = (deltaY / height) * targetHeight * this.panSpeed;
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    const panX = -(deltaX / w) * targetWidth * this.panSpeed;
+    const panY = (deltaY / h) * targetHeight * this.panSpeed;
 
     const panVec = new this.THREE.Vector3()
       .addScaledVector(camRight, panX)
@@ -370,26 +409,52 @@ export class ArcballTrackballControls {
     this.camera.position.add(panVec);
   }
 
+  onDblClick() {
+    if (!this.enabled) return;
+    // Double-clicking the 3D viewport re-centers the camera target to origin and stops spin
+    const offset = new this.THREE.Vector3().subVectors(this.camera.position, this.target);
+    this.target.set(0, 0, 0);
+    this.camera.position.copy(offset);
+    this.camera.lookAt(this.target);
+    this.angularVelocity.angle = 0;
+    this.rollVelocity = 0;
+  }
+
   onPointerDown(event) {
     if (!this.enabled) return;
     this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (this.pointers.size === 1) {
-      if (event.button === 2 || event.shiftKey) {
+      this.angularVelocity.angle = 0;
+      this.rollVelocity = 0;
+      const rect = this.domElement.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+
+      if (event.button === 1 || event.button === 2 || event.shiftKey) {
         this.state = 'pan';
         this.panStart.set(event.clientX, event.clientY);
-      } else if (event.button === 0) {
+      } else if (event.altKey) {
+        this.state = 'spin';
+        this.prevPointer = { x: localX, y: localY };
+      } else if (event.button === 0 || event.pointerType === 'touch' || event.pointerType === 'pen') {
         this.state = 'rotate';
-        const rect = this.domElement.getBoundingClientRect();
-        this.prevPointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-        this.prevSpherePoint = this.projectOnVirtualSphere(this.prevPointer.x, this.prevPointer.y, rect.width, rect.height);
-        this.angularVelocity.angle = 0;
+        this.prevPointer = { x: localX, y: localY };
+        this.prevSpherePoint = this.projectOnVirtualSphere(localX, localY, rect.width, rect.height);
       }
       try { this.domElement.setPointerCapture(event.pointerId); } catch (_) {}
-    } else if (this.pointers.size === 2) {
+    } else if (this.pointers.size >= 2) {
       this.state = 'pinch';
+      this.angularVelocity.angle = 0;
+      this.rollVelocity = 0;
       const pts = Array.from(this.pointers.values());
-      this.touchPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      this.touchPinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      this.touchTwistAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+      this.touchMidpoint = {
+        x: (pts[0].x + pts[1].x) / 2,
+        y: (pts[0].y + pts[1].y) / 2,
+      };
+      try { this.domElement.setPointerCapture(event.pointerId); } catch (_) {}
     }
   }
 
@@ -399,12 +464,35 @@ export class ArcballTrackballControls {
     this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     const rect = this.domElement.getBoundingClientRect();
+    const curX = event.clientX - rect.left;
+    const curY = event.clientY - rect.top;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-    if (this.state === 'rotate' && this.pointers.size === 1) {
-      const curX = event.clientX - rect.left;
-      const curY = event.clientY - rect.top;
-
-      if (this.isArcball) {
+    if (this.state === 'spin' && this.pointers.size === 1) {
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const prevAng = Math.atan2(this.prevPointer.y - cy, this.prevPointer.x - cx);
+      const curAng = Math.atan2(curY - cy, curX - cx);
+      let deltaRoll = curAng - prevAng;
+      if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
+      if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
+      this.spinCameraRoll(deltaRoll * this.rotateSpeed);
+      this.rollVelocity = 0.65 * (deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
+      this.lastMoveTime = now;
+      this.prevPointer = { x: curX, y: curY };
+    } else if (this.state === 'rotate' && this.pointers.size === 1) {
+      if (event.altKey) {
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const prevAng = Math.atan2(this.prevPointer.y - cy, this.prevPointer.x - cx);
+        const curAng = Math.atan2(curY - cy, curX - cx);
+        let deltaRoll = curAng - prevAng;
+        if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
+        if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
+        this.spinCameraRoll(deltaRoll * this.rotateSpeed);
+        this.rollVelocity = 0.65 * (deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
+        this.lastMoveTime = now;
+      } else if (this.isArcball) {
         const curSpherePoint = this.projectOnVirtualSphere(curX, curY, rect.width, rect.height);
         const axisScreen = new this.THREE.Vector3().crossVectors(curSpherePoint, this.prevSpherePoint);
         const dot = Math.max(-1, Math.min(1, this.prevSpherePoint.dot(curSpherePoint)));
@@ -419,8 +507,29 @@ export class ArcballTrackballControls {
           this.rotateCameraByAxisAngle(axisWorld, angle);
 
           this.angularVelocity.axis.copy(axisWorld);
-          this.angularVelocity.angle = angle;
+          this.angularVelocity.angle = 0.65 * angle + 0.35 * this.angularVelocity.angle;
+          this.lastMoveTime = now;
         }
+
+        // Outer-rim tangential spin enhancement: dragging near the outer edge of the 3D viewport
+        // also imparts smooth in-plane roll around the viewing axis so the user can spin the 3D canvas like a wheel.
+        const radius = Math.max(10, 0.85 * Math.min(rect.width, rect.height) / 2);
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const normDist = Math.hypot(curX - cx, curY - cy) / radius;
+        if (normDist > 0.88) {
+          const rimBlend = Math.min(1, (normDist - 0.88) / 0.35);
+          const prevAng = Math.atan2(this.prevPointer.y - cy, this.prevPointer.x - cx);
+          const curAng = Math.atan2(curY - cy, curX - cx);
+          let deltaRoll = curAng - prevAng;
+          if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
+          if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
+          const appliedRoll = deltaRoll * rimBlend * 0.55;
+          this.spinCameraRoll(appliedRoll);
+          this.rollVelocity = 0.65 * appliedRoll + 0.35 * this.rollVelocity;
+          this.lastMoveTime = now;
+        }
+
         this.prevSpherePoint.copy(curSpherePoint);
       } else {
         const deltaX = curX - this.prevPointer.x;
@@ -434,22 +543,60 @@ export class ArcballTrackballControls {
       const deltaY = event.clientY - this.panStart.y;
       this.pan(deltaX, deltaY, rect.width, rect.height);
       this.panStart.set(event.clientX, event.clientY);
-    } else if (this.state === 'pinch' && this.pointers.size === 2) {
+    } else if (this.state === 'pinch' && this.pointers.size >= 2) {
       const pts = Array.from(this.pointers.values());
-      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      if (this.touchPinchDist > 0 && dist > 0) {
+      const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+      const mid = {
+        x: (pts[0].x + pts[1].x) / 2,
+        y: (pts[0].y + pts[1].y) / 2,
+      };
+
+      // 1. Two-finger pinch-to-zoom (camera dolly)
+      if (this.touchPinchDist > 4 && dist > 4) {
         const factor = this.touchPinchDist / dist;
         this.dolly(factor);
         this.touchPinchDist = dist;
+      }
+
+      // 2. Two-finger twist-to-spin (in-plane roll around camera forward axis)
+      if (this.touchTwistAngle !== undefined) {
+        let deltaTwist = angle - this.touchTwistAngle;
+        if (deltaTwist > Math.PI) deltaTwist -= Math.PI * 2;
+        if (deltaTwist < -Math.PI) deltaTwist += Math.PI * 2;
+        if (Math.abs(deltaTwist) < 0.6) {
+          this.spinCameraRoll(deltaTwist);
+          this.rollVelocity = 0.65 * deltaTwist + 0.35 * this.rollVelocity;
+          this.lastMoveTime = now;
+        }
+        this.touchTwistAngle = angle;
+      }
+
+      // 3. Two-finger omni-directional pan
+      if (this.touchMidpoint) {
+        const dMidX = mid.x - this.touchMidpoint.x;
+        const dMidY = mid.y - this.touchMidpoint.y;
+        if (Math.hypot(dMidX, dMidY) > 0.15) {
+          this.pan(dMidX, dMidY, rect.width || 400, rect.height || 400);
+        }
+        this.touchMidpoint = mid;
       }
     }
   }
 
   onPointerUp(event) {
+    if (!this.pointers.has(event.pointerId)) return;
     this.pointers.delete(event.pointerId);
     if (this.domElement?.hasPointerCapture?.(event.pointerId)) {
       try { this.domElement.releasePointerCapture(event.pointerId); } catch (_) {}
     }
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    // If pointer held stationary > 100ms before release, clear flick momentum; otherwise preserve spin!
+    if (now - this.lastMoveTime > 100) {
+      this.angularVelocity.angle = 0;
+      this.rollVelocity = 0;
+    }
+
     if (this.pointers.size === 0) {
       this.state = 'none';
     } else if (this.pointers.size === 1) {
@@ -468,19 +615,29 @@ export class ArcballTrackballControls {
   onWheel(event) {
     if (!this.enabled) return;
     event.preventDefault();
-    const factor = event.deltaY < 0 ? 0.92 : 1.08;
+    // Support both mouse wheel and trackpad pinch-zoom (event.ctrlKey)
+    const step = event.ctrlKey ? Math.min(0.18, Math.max(0.02, Math.abs(event.deltaY) * 0.01)) : 0.08;
+    const factor = event.deltaY < 0 ? (1 - step) : (1 + step);
     this.dolly(factor);
     this.angularVelocity.angle = 0;
+    this.rollVelocity = 0;
   }
 
   update() {
-    if (this.enableDamping && this.state === 'none' && this.angularVelocity.angle > 1e-4) {
-      if (this.isArcball) {
+    if (this.enableDamping && this.state === 'none') {
+      if (this.angularVelocity.angle > 1e-4) {
         this.rotateCameraByAxisAngle(this.angularVelocity.axis, this.angularVelocity.angle);
+        this.angularVelocity.angle *= (1 - this.dampingFactor);
+        if (this.angularVelocity.angle <= 1e-4) {
+          this.angularVelocity.angle = 0;
+        }
       }
-      this.angularVelocity.angle *= (1 - this.dampingFactor);
-      if (this.angularVelocity.angle <= 1e-4) {
-        this.angularVelocity.angle = 0;
+      if (Math.abs(this.rollVelocity) > 1e-4) {
+        this.spinCameraRoll(this.rollVelocity);
+        this.rollVelocity *= (1 - this.dampingFactor);
+        if (Math.abs(this.rollVelocity) <= 1e-4) {
+          this.rollVelocity = 0;
+        }
       }
     }
   }
@@ -488,7 +645,9 @@ export class ArcballTrackballControls {
   reset() {
     this.target.set(0, 0, 0);
     this.angularVelocity.angle = 0;
+    this.rollVelocity = 0;
     this.state = 'none';
+    this.pointers.clear();
   }
 
   dispose() {
@@ -497,7 +656,12 @@ export class ArcballTrackballControls {
     this.domElement.removeEventListener('pointermove', this._onPointerMove);
     this.domElement.removeEventListener('pointerup', this._onPointerUp);
     this.domElement.removeEventListener('pointercancel', this._onPointerCancel);
+    if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+      window.removeEventListener('pointerup', this._onPointerUp);
+      window.removeEventListener('pointercancel', this._onPointerCancel);
+    }
     this.domElement.removeEventListener('wheel', this._onWheel);
+    this.domElement.removeEventListener('dblclick', this._onDblClick);
     this.domElement.removeEventListener('contextmenu', this._onContextMenu);
   }
 }
@@ -779,6 +943,16 @@ export class BaseScene3DView {
       return null;
     };
 
+    const pickEquatorialPlane = (ray, planeY = 0) => {
+      const rayObj = ray.ray || ray;
+      const vOrigin = rayObj.origin;
+      const vDir = rayObj.direction;
+      if (!vOrigin || !vDir || Math.abs(vDir.y) < 1e-4) return null;
+      const t = (planeY - vOrigin.y) / vDir.y;
+      if (t <= 0) return null;
+      return vOrigin.clone().addScaledVector(vDir, t);
+    };
+
     const projectToScreen = (pos) => {
       if (!pos || !this.camera) return null;
       const v = pos.clone().project(this.camera);
@@ -790,8 +964,45 @@ export class BaseScene3DView {
       };
     };
 
+    const distToVectorShaftPx = (ptrX, ptrY, tgt) => {
+      if (!tgt?.isVectorRay || !tgt.mesh?.position) return Infinity;
+      const oPt = projectToScreen(new this.THREE.Vector3(0, 0, 0));
+      const tPt = projectToScreen(tgt.mesh.position);
+      if (!oPt || !tPt) return Infinity;
+      const vx = tPt.x - oPt.x;
+      const vy = tPt.y - oPt.y;
+      const lenSq = vx * vx + vy * vy;
+      if (lenSq < 64) return Infinity;
+      const t = ((ptrX - oPt.x) * vx + (ptrY - oPt.y) * vy) / lenSq;
+      if (t < 0.22 || t > 1.06) return Infinity;
+      const projX = oPt.x + t * vx;
+      const projY = oPt.y + t * vy;
+      return Math.hypot(ptrX - projX, ptrY - projY);
+    };
+
+    const activePointers = new Map();
+
     element.addEventListener('pointerdown', (e) => {
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // Multi-touch (2+ fingers) always yields to ArcballTrackballControls for pinch-zoom, twist-spin, and 2-finger pan
+      if (activePointers.size >= 2) {
+        if (activeTarget) {
+          activeTarget = null;
+          this.controls.enabled = true;
+          element.style.cursor = '';
+        }
+        if (this.controls?.pointers) {
+          for (const [pid, pt] of activePointers.entries()) {
+            this.controls.pointers.set(pid, pt);
+          }
+        }
+        return;
+      }
+
       if (e.button && e.button !== 0) return;
+      if (e.altKey || e.shiftKey) return; // Alt+drag = 3D spin, Shift+drag = 3D pan
+
       const ray = pointerToRay(e);
       const targets = customTargets || this.draggableTargets || [];
       const rect = element.getBoundingClientRect();
@@ -805,9 +1016,10 @@ export class BaseScene3DView {
         const intersects = ray.intersectObject(tgt.mesh);
         const screenPt = projectToScreen(tgt.mesh.position);
         const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
+        const shaftPx = distToVectorShaftPx(ptrX, ptrY, tgt);
 
-        if (intersects.length > 0 || distPx < 28) {
-          const score = intersects.length > 0 ? 0 : distPx;
+        if (intersects.length > 0 || distPx < 34 || shaftPx < 16) {
+          const score = intersects.length > 0 ? 0 : Math.min(distPx, shaftPx + 12);
           if (score < minScore) {
             minScore = score;
             closest = tgt;
@@ -821,14 +1033,18 @@ export class BaseScene3DView {
         element.style.cursor = 'grabbing';
         try { element.setPointerCapture(e.pointerId); } catch (_) {}
         e.stopPropagation();
-      } else {
-        // Direct click-and-drag radius resizing from 3D sphere circumference/silhouette
+      } else if (e.pointerType !== 'touch') {
+        // Direct click-and-drag radius resizing from 3D equatorial wire rim (tight tolerance so 3D rotation is never obstructed)
         const r3d = this.R || 10;
         const rayObj = ray.ray || ray;
         const vOrigin = rayObj.origin;
         const vDir = rayObj.direction;
         const b = vOrigin.dot(vDir);
         const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+        const eqHit = pickEquatorialPlane(ray, 0);
+        const eqDistDiff = eqHit ? Math.abs(Math.hypot(eqHit.x, eqHit.z) - r3d) : Infinity;
+        const rimTol = (e.ctrlKey || e.metaKey) ? 1.4 : 0.24;
+
         let nearAnyTarget = false;
         for (const tgt of targets) {
           if (!tgt.mesh || tgt.mesh.visible === false) continue;
@@ -838,7 +1054,7 @@ export class BaseScene3DView {
             break;
           }
         }
-        if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < 1.4) {
+        if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
           const st = store.get();
           const isTangentExt = Boolean(st.pointDist);
           const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
@@ -861,6 +1077,17 @@ export class BaseScene3DView {
     }, { capture: true });
 
     element.addEventListener('pointermove', (e) => {
+      if (activePointers.has(e.pointerId)) {
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+      if (activePointers.size >= 2) {
+        if (activeTarget) {
+          activeTarget = null;
+          this.controls.enabled = true;
+          element.style.cursor = '';
+        }
+        return;
+      }
       const ray = pointerToRay(e);
       if (activeTarget) {
         if (activeTarget.isRadius) {
@@ -883,7 +1110,13 @@ export class BaseScene3DView {
           return;
         }
 
-        const hit = pickSphere(ray);
+        const isSpatialMode = store.get().dimensionMode === 'spatial';
+        const targetY = activeTarget.mesh?.position?.y || 0;
+        const hit = (!isSpatialMode && Math.abs(targetY) < 0.5)
+          ? (pickEquatorialPlane(ray, 0) || pickSphere(ray))
+          : (!isSpatialMode && Math.abs(targetY) >= 0.5 && !activeTarget.latField)
+            ? (pickEquatorialPlane(ray, targetY) || pickSphere(ray))
+            : pickSphere(ray);
         if (hit) {
           let angle = Math.atan2(hit.z, hit.x);
           if (angle < 0) angle += Math.PI * 2;
@@ -916,28 +1149,35 @@ export class BaseScene3DView {
           const intersects = ray.intersectObject(tgt.mesh);
           const screenPt = projectToScreen(tgt.mesh.position);
           const distPx = screenPt ? Math.hypot(ptrX - screenPt.x, ptrY - screenPt.y) : Infinity;
-          if (intersects.length > 0 || distPx < 28) {
+          const shaftPx = distToVectorShaftPx(ptrX, ptrY, tgt);
+          if (intersects.length > 0 || distPx < 34 || shaftPx < 16) {
             hover = true;
             break;
           }
         }
-        if (!hover) {
+        if (!hover && e.pointerType !== 'touch') {
           const r3d = this.R || 10;
           const rayObj = ray.ray || ray;
           const vOrigin = rayObj.origin;
           const vDir = rayObj.direction;
           const b = vOrigin.dot(vDir);
           const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
-          if (Math.abs(distRayToOrigin - r3d) < 1.4) {
+          const eqHit = pickEquatorialPlane(ray, 0);
+          const eqDistDiff = eqHit ? Math.abs(Math.hypot(eqHit.x, eqHit.z) - r3d) : Infinity;
+          const rimTol = (e.ctrlKey || e.metaKey) ? 1.4 : 0.24;
+          if (Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
             element.style.cursor = 'ew-resize';
             return;
           }
         }
-        element.style.cursor = hover ? 'pointer' : '';
+        element.style.cursor = hover ? 'pointer' : (e.altKey ? 'alias' : 'grab');
       }
     }, { capture: true });
 
     const endDrag = (e) => {
+      if (e && e.pointerId !== undefined) {
+        activePointers.delete(e.pointerId);
+      }
       if (activeTarget) {
         activeTarget = null;
         this.controls.enabled = true;
@@ -954,7 +1194,7 @@ export class BaseScene3DView {
 
     // 3D Mouse Wheel Resizing (synchronized with 2D Canvas and slider)
     element.addEventListener('wheel', (e) => {
-      if (e.shiftKey) return; // Shift + wheel retains camera dolly zoom
+      if (e.shiftKey || e.ctrlKey || e.metaKey) return; // Shift/Ctrl/trackpad-pinch retains camera dolly zoom
       e.preventDefault();
       e.stopPropagation();
       const st = store.get();
@@ -2293,7 +2533,7 @@ export class CyclicQuad3DView extends BaseScene3DView {
     this.markerD.position.copy(D);
 
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
-    const showDiagonals = Boolean(state.showDiagonals);
+    const showDiagonals = state.showDiagonals !== false;
     let excessQuad = 0;
     let quadCenter = null;
 
@@ -2302,8 +2542,6 @@ export class CyclicQuad3DView extends BaseScene3DView {
       this.edgeBC.visible = false;
       this.edgeCD.visible = false;
       this.edgeDA.visible = false;
-      this.diagAC.visible = false;
-      this.diagBD.visible = false;
       this.quadMesh1.visible = false;
       this.quadMesh2.visible = false;
 
@@ -2321,9 +2559,17 @@ export class CyclicQuad3DView extends BaseScene3DView {
         updateGeodesicArc3D(this.geodesicDiagBD, B, D, R);
         this.geodesicDiagAC.visible = true;
         this.geodesicDiagBD.visible = true;
+        this.diagAC.geometry.setFromPoints([A, C]);
+        this.diagAC.computeLineDistances();
+        this.diagBD.geometry.setFromPoints([B, D]);
+        this.diagBD.computeLineDistances();
+        this.diagAC.visible = true;
+        this.diagBD.visible = true;
       } else {
         this.geodesicDiagAC.visible = false;
         this.geodesicDiagBD.visible = false;
+        this.diagAC.visible = false;
+        this.diagBD.visible = false;
       }
 
       updateSphericalTriangleMesh(this.sphQuadMesh1, A, B, C, R);
@@ -2444,14 +2690,14 @@ export class CyclicQuad3DView extends BaseScene3DView {
       { key: 'reflexC', at: get3DReflexBisector(C, B, D, 3.8, THREE), text: `∠C* = ${(360 - degC).toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showReflex && (state.vis3d?.labels !== false) },
       { key: 'reflexD', at: get3DReflexBisector(D, C, A, 3.8, THREE), text: `∠D* = ${(360 - degD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) },
     ];
-    if (state.showDiagonals) {
-      const midAC = new THREE.Vector3().addVectors(A, C).multiplyScalar(0.5);
-      const midBD = new THREE.Vector3().addVectors(B, D).multiplyScalar(0.5);
+    if (showDiagonals) {
+      const posAC = new THREE.Vector3().lerpVectors(A, C, 0.32);
+      const posBD = new THREE.Vector3().lerpVectors(B, D, 0.32);
       const sumACVal = (degA + degC).toFixed(1);
       const sumBDVal = (degB + degD).toFixed(1);
       this.currentLabels.push(
-        { key: 'sumAC', at: midAC.clone().add(new THREE.Vector3(0, 0.6, 0)), text: `A+C = ${sumACVal}°`, color: 'color-lavender', show: true },
-        { key: 'sumBD', at: midBD.clone().add(new THREE.Vector3(0, -0.6, 0)), text: `B+D = ${sumBDVal}°`, color: 'color-sky', show: true }
+        { key: 'sumAC', at: posAC.clone().add(new THREE.Vector3(0, 0.6, 0)), text: `AC (A+C = ${sumACVal}°)`, color: 'color-lavender', show: true },
+        { key: 'sumBD', at: posBD.clone().add(new THREE.Vector3(0, -0.6, 0)), text: `BD (B+D = ${sumBDVal}°)`, color: 'color-sky', show: true }
       );
     }
     if (isSpatial && quadCenter && excessQuad > 0) {

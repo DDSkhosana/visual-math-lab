@@ -13,10 +13,22 @@
 }
 
 #canvas-3d-container .view-title {
-  max-width: calc(100% - 19.5rem) !important;
+  max-width: calc(100% - var(--dimension-bar-clearance, 19.5rem)) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Reserve the pill's full footprint (right: 8.2rem + its width + gap) so the title
+   truncates before reaching it. Exact value is re-measured at runtime by
+   visual-page.js (initDimensionBarClearance); these are first-paint fallbacks. */
+#canvas-3d-container:has(> .dimension-mode-bar) {
+  --dimension-bar-clearance: 23rem;
+}
+
+/* Angle Sum's pill has longer labels ("Planar SO(2)" / "Spatial SO(3)"). */
+#canvas-3d-container:has(> .dimension-mode-bar [aria-label="3D Rotation Model"]) {
+  --dimension-bar-clearance: 26rem;
 }
 
 @container canvas3d (max-width: 56rem) {

@@ -681,3 +681,141 @@ test("Container Queries & Non-Overlapping Viewport Layout: canvas3d container qu
   assert.ok(circleCoreJs.includes("export function attachCanvasTouchAndWheelGestures"), "circle-core.js must export attachCanvasTouchAndWheelGestures");
   assert.ok(circleCoreJs.includes("attachCanvasTouchAndWheelGestures(canvas2dEl, store"), "bindStandardToggles must wire attachCanvasTouchAndWheelGestures universally");
 });
+
+test("MODES Panel (#viewport-toolbar) 8-Directional Resizing, Scroll Overflow & Adaptive Layout Reflow", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, "..");
+
+  const circleCoreJs = fs.readFileSync(path.join(rootDir, "js", "circle-core.js"), "utf8");
+  const thalesToolbarJs = fs.readFileSync(path.join(rootDir, "visuals", "circle-theorems", "thales-theorem", "src", "ui", "DraggableToolbar.js"), "utf8");
+  const visualCss = fs.readFileSync(path.join(rootDir, "css", "visual.css"), "utf8");
+  const circleCss = fs.readFileSync(path.join(rootDir, "css", "circle-visual.css"), "utf8");
+  const thalesControlsCss = fs.readFileSync(path.join(rootDir, "visuals", "circle-theorems", "thales-theorem", "styles", "controls.css"), "utf8");
+
+  // 1. Both DraggableToolbar implementations support all 8 resize directions, wheel overflow, and adaptive reflow
+  for (const [name, src] of [["circle-core.js", circleCoreJs], ["DraggableToolbar.js", thalesToolbarJs]]) {
+    assert.ok(
+      src.includes("static RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']"),
+      `${name} must declare all 8 RESIZE_DIRS ('n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw')`
+    );
+    assert.ok(
+      src.includes("toolbar-resize-handle handle-${dir}"),
+      `${name} must dynamically inject .toolbar-resize-handle.handle-<dir> elements`
+    );
+    assert.ok(
+      src.includes("is-reflow-nowrap") && src.includes("is-reflow-wrap") && src.includes("is-reflow-vertical"),
+      `${name} must manage adaptive reflow classes (is-reflow-nowrap, is-reflow-wrap, is-reflow-vertical)`
+    );
+    assert.ok(
+      src.includes("resetSize()"),
+      `${name} must implement resetSize() for double-click handle or reset restoration`
+    );
+    assert.ok(
+      src.includes("this.content.scrollLeft +="),
+      `${name} must translate vertical wheel deltas into horizontal scroll when overflowing in single-row mode`
+    );
+  }
+
+  // 2. CSS defines 8-directional handles, scroll overflow on .toolbar-content, and adaptive layout reflow rules
+  for (const dir of ["n", "s", "e", "w", "ne", "nw", "se", "sw"]) {
+    assert.ok(
+      visualCss.includes(`.toolbar-resize-handle.handle-${dir}`),
+      `visual.css must style .toolbar-resize-handle.handle-${dir}`
+    );
+  }
+  assert.ok(
+    visualCss.includes(".viewport-header-toolbar:not(.is-collapsed).is-reflow-wrap .toolbar-content") &&
+    visualCss.includes(".viewport-header-toolbar:not(.is-collapsed).is-reflow-vertical .toolbar-content"),
+    "visual.css must define adaptive layout reflow rules for .is-reflow-wrap and .is-reflow-vertical"
+  );
+  for (const [name, css] of [["visual.css", visualCss], ["circle-visual.css", circleCss], ["controls.css", thalesControlsCss]]) {
+    assert.ok(
+      css.includes("overflow-x: auto") && css.includes("overflow-y: auto"),
+      `${name} must enable horizontal and vertical scroll overflow on expanded .toolbar-content`
+    );
+  }
+});
+
+test("Coordinate Axes Alignment Across 2D, 3D Planar & 3D Spatial in All 12 Visualizers", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, "..");
+
+  const visualizers = [
+    "visuals/circle-theorems/thales-theorem/index.html",
+    "visuals/circle-theorems/angle-at-centre/index.html",
+    "visuals/circle-theorems/angles-in-same-segment/index.html",
+    "visuals/circle-theorems/cyclic-quadrilateral/index.html",
+    "visuals/circle-theorems/tangent-radius/index.html",
+    "visuals/circle-theorems/alternate-segment/index.html",
+    "visuals/circle-theorems/tangents-from-external-point/index.html",
+    "visuals/circle-theorems/perpendicular-chord-bisector/index.html",
+    "visuals/trigonometry/unit-circle-helix/index.html",
+    "visuals/trigonometry/law-of-sines/index.html",
+    "visuals/trigonometry/law-of-cosines/index.html",
+    "visuals/trigonometry/angle-sum-identities/index.html",
+  ];
+
+  // 1. All 12 visualizers declare #vis-2d-axes, #vis-3d-axes, and 3-component (x, y, z) #vis-3d-coords
+  for (const rel of visualizers) {
+    const html = fs.readFileSync(path.join(rootDir, rel), "utf8");
+    assert.ok(html.includes('id="vis-2d-axes"'), `${rel} must include #vis-2d-axes toggle`);
+    assert.ok(html.includes('id="vis-3d-axes"'), `${rel} must include #vis-3d-axes toggle`);
+    assert.ok(html.includes('id="vis-3d-coords"'), `${rel} must include #vis-3d-coords toggle`);
+    const coordsLine = html.split("\n").find((l) => l.includes('id="vis-3d-coords"')) || "";
+    assert.ok(
+      coordsLine.includes(">x<") && coordsLine.includes(">y<") && coordsLine.includes(">z<"),
+      `${rel} #vis-3d-coords must list all 3 spatial coordinates (x, y, z): ${coordsLine.trim()}`
+    );
+  }
+
+  // 2. Thales 2D & 3D axes parity with shared BaseScene3DView & draw2DCartesianGrid
+  const thales2dDraw = fs.readFileSync(
+    path.join(rootDir, "visuals/circle-theorems/thales-theorem/src/views/canvas2d-draw.js"),
+    "utf8"
+  );
+  assert.ok(
+    thales2dDraw.includes("if (state.vis2d?.axes === false) return;"),
+    "Thales drawAxes must respect state.vis2d.axes === false"
+  );
+  assert.ok(
+    thales2dDraw.includes("drawAxisArrow") && thales2dDraw.includes("xNegLabel") && thales2dDraw.includes("yNegLabel"),
+    "Thales drawAxes must render 4-way arrowheads and negative axis labels (-X, -Y/-Z/-Y2D)"
+  );
+
+  const thalesSceneFactory = fs.readFileSync(
+    path.join(rootDir, "visuals/circle-theorems/thales-theorem/src/views/scene3d/scene-factory.js"),
+    "utf8"
+  );
+  assert.ok(
+    thalesSceneFactory.includes("new THREE.ArrowHelper(direction, origin, length, color") &&
+      thalesSceneFactory.includes("new THREE.ArrowHelper(negDir, origin, length, color"),
+    "Thales createAxis must render symmetrical positive and negative 3D ArrowHelpers"
+  );
+
+  const thalesOverlay = fs.readFileSync(
+    path.join(rootDir, "visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js"),
+    "utf8"
+  );
+  for (const key of ["axis-x", "axis-x-neg", "axis-y", "axis-y-neg", "axis-z", "axis-z-neg"]) {
+    assert.ok(thalesOverlay.includes(`key: '${key}'`), `Thales LabelOverlayView must include 3D axis label ${key}`);
+  }
+  assert.ok(
+    thalesOverlay.includes("vis3d.axes !== false"),
+    "Thales LabelOverlayView must gate 3D axis labels by vis3d.axes !== false"
+  );
+
+  // 3. Angle Sum 3D Spatial mode (SO(3)) tilts compound vector e1 with gamma while preserving X-axis cosine projection
+  const { computeSpatialAngleSumEuler } = await import("../visuals/trigonometry/js/trig-math.js");
+  const spatial = computeSpatialAngleSumEuler(Math.PI / 6, Math.PI / 4, Math.PI / 5, 10);
+  const expectedCosSum = 10 * Math.cos(Math.PI / 6 + Math.PI / 4);
+  assert.ok(Math.abs(spatial.triad.e1.x - expectedCosSum) < 1e-6, "Spatial e1.x must equal R cos(alpha + beta)");
+  assert.ok(Math.abs(spatial.triad.e1.z) > 1.0, "Spatial e1 must tilt out of the planar floor when gamma != 0");
+});
+
+

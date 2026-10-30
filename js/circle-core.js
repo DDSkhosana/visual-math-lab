@@ -383,14 +383,18 @@ export class Panel {
 }
 
 /**
- * Reusable Draggable floating toolbar.
+ * Reusable Draggable floating toolbar with 8-directional resizing,
+ * scroll overflow, and adaptive layout reflow.
  */
 export class DraggableToolbar {
+  static RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+
   constructor(toolbar, handle = null) {
     if (!toolbar) return;
     this.toolbar = toolbar;
     this.handle = handle;
     this.collapseBtn = toolbar.querySelector('#toolbar-collapse-btn, .toolbar-collapse-btn');
+    this.content = toolbar.querySelector('#toolbar-content, .toolbar-content');
     this.compact = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(COMPACT_QUERY) : { matches: false, addEventListener: () => {} };
     this.compact.addEventListener('change', () => this.resetPosition());
 
@@ -401,20 +405,43 @@ export class DraggableToolbar {
       });
     }
 
+    this.#initResizeHandles();
+
     if (this.isCollapsed) {
       this.setCollapsed(true);
+    } else {
+      this.#updateReflowState();
     }
 
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', () => {
         if (this.toolbar.style.transform === 'none') {
           const parent = this.toolbar.offsetParent ?? document.body;
+          if (this._hasCustomSize && this.toolbar.style.width) {
+            const maxW = Math.max(160, parent.clientWidth - 16);
+            const curW = parseFloat(this.toolbar.style.width) || 0;
+            if (curW > maxW) {
+              this.toolbar.style.width = `${maxW}px`;
+              this._savedWidth = `${maxW}px`;
+            }
+          }
+          if (this._hasExplicitHeight && this.toolbar.style.height && this.toolbar.style.height !== 'auto') {
+            const maxH = Math.max(38, parent.clientHeight - 16);
+            const curH = parseFloat(this.toolbar.style.height) || 0;
+            if (curH > maxH) {
+              this.toolbar.style.height = `${maxH}px`;
+              this._savedHeight = `${maxH}px`;
+            }
+          }
           const maxX = parent.clientWidth - this.toolbar.offsetWidth;
           const maxY = parent.clientHeight - this.toolbar.offsetHeight;
           const curLeft = parseFloat(this.toolbar.style.left) || 0;
           const curTop = parseFloat(this.toolbar.style.top) || 0;
           this.toolbar.style.left = `${clamp(curLeft, 0, Math.max(0, maxX))}px`;
           this.toolbar.style.top = `${clamp(curTop, 0, Math.max(0, maxY))}px`;
+        }
+        if (!this.isCollapsed) {
+          this.#updateReflowState();
         }
       });
     }
@@ -467,18 +494,246 @@ export class DraggableToolbar {
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
       if (iconExpand) iconExpand.style.display = collapsed ? 'inline-block' : 'none';
     }
-    if (collapsed && !this._hasCustomPos) {
-      this.resetPosition();
+    if (collapsed) {
+      this.toolbar.classList.remove('is-reflow-wrap', 'is-reflow-vertical', 'is-reflow-nowrap');
+      this.toolbar.style.width = '';
+      this.toolbar.style.height = '';
+      if (!this._hasCustomPos) {
+        this.resetPosition();
+      }
+    } else {
+      if (this._hasCustomSize) {
+        if (this._savedWidth) this.toolbar.style.width = this._savedWidth;
+        if (this._savedHeight) this.toolbar.style.height = this._savedHeight;
+        this.toolbar.classList.add('is-resized');
+      }
+      this.#updateReflowState();
     }
+  }
+
+  resetSize() {
+    this._hasCustomSize = false;
+    this._hasExplicitHeight = false;
+    this._savedWidth = '';
+    this._savedHeight = '';
+    this.toolbar.style.width = '';
+    this.toolbar.style.height = '';
+    this.toolbar.classList.remove('is-resized', 'is-resizing', 'is-reflow-wrap', 'is-reflow-vertical', 'is-reflow-nowrap');
+    if (this.toolbar.dataset) {
+      delete this.toolbar.dataset.reflowMode;
+    }
+    this.#updateReflowState();
   }
 
   resetPosition() {
     this._hasCustomPos = false;
+    this.resetSize();
     Object.assign(this.toolbar.style, { left: '', top: '', right: '', bottom: '', transform: '' });
   }
 
+  #initResizeHandles() {
+    for (const dir of DraggableToolbar.RESIZE_DIRS) {
+      let h = this.toolbar.querySelector?.(`.toolbar-resize-handle[data-resize-dir="${dir}"]`);
+      if (!h && typeof document !== 'undefined' && document.createElement && this.toolbar.appendChild) {
+        h = document.createElement('div');
+        h.className = `toolbar-resize-handle handle-${dir}`;
+        h.dataset.resizeDir = dir;
+        h.setAttribute('aria-hidden', 'true');
+        h.title = 'Drag to resize modes panel (Double-click to reset size)';
+        this.toolbar.appendChild(h);
+      }
+      if (h) {
+        h.addEventListener('pointerdown', (e) => this.#onResizeDown(e, dir, h));
+        h.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          this.resetSize();
+        });
+      }
+    }
+
+    if (this.content) {
+      this.content.addEventListener('wheel', (e) => {
+        if (this.isCollapsed) return;
+        const canScrollY = this.content.scrollHeight > this.content.clientHeight + 2;
+        const canScrollX = this.content.scrollWidth > this.content.clientWidth + 2;
+        if (!canScrollX && !canScrollY) return;
+        e.stopPropagation();
+        if (!canScrollY && canScrollX && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          e.preventDefault();
+          this.content.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => {
+        if (!this.isCollapsed && !this.toolbar.classList.contains('is-resizing')) {
+          this.#updateReflowState();
+        }
+      });
+      this._resizeObserver.observe(this.toolbar);
+    }
+  }
+
+  #updateReflowState(widthOverride = null, heightOverride = null) {
+    if (!this.toolbar || this.isCollapsed) {
+      this.toolbar?.classList?.remove('is-reflow-wrap', 'is-reflow-vertical', 'is-reflow-nowrap');
+      return;
+    }
+    const box = this.toolbar.getBoundingClientRect?.() || { width: 0, height: 0 };
+    const w = widthOverride ?? (parseFloat(this.toolbar.style.width) || box.width || 0);
+    const h = heightOverride ?? (this._hasExplicitHeight ? (parseFloat(this.toolbar.style.height) || box.height || 0) : null);
+
+    if (!w) return;
+
+    const isSingleRowStrip = h !== null && h <= 52 && w >= 240;
+    const isVertical = !isSingleRowStrip && w < 320;
+    const isWrap = !isSingleRowStrip && !isVertical && w < 780;
+
+    this.toolbar.classList.toggle('is-reflow-nowrap', Boolean(isSingleRowStrip));
+    this.toolbar.classList.toggle('is-reflow-vertical', Boolean(isVertical));
+    this.toolbar.classList.toggle('is-reflow-wrap', Boolean(isWrap));
+    if (this.toolbar.dataset) {
+      this.toolbar.dataset.reflowMode = isVertical
+        ? 'vertical'
+        : isWrap
+          ? 'wrap'
+          : isSingleRowStrip
+            ? 'nowrap-scroll'
+            : 'horizontal';
+    }
+  }
+
+  #onResizeDown(event, dir, handleEl) {
+    if (this.isCollapsed) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    const parentEl = this.toolbar.offsetParent ?? document.body;
+    const parent = parentEl.getBoundingClientRect();
+    const box = this.toolbar.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startLeft = box.left - parent.left;
+    const startTop = box.top - parent.top;
+    const startWidth = box.width;
+    const startHeight = box.height;
+
+    const minW = 160;
+    const minH = 38;
+    const hasHoriz = dir.includes('e') || dir.includes('w');
+    const hasVert = dir.includes('n') || dir.includes('s');
+
+    this._hasCustomPos = true;
+    this._hasCustomSize = true;
+    if (hasVert) {
+      this._hasExplicitHeight = true;
+    }
+
+    Object.assign(this.toolbar.style, {
+      transform: 'none',
+      left: `${startLeft}px`,
+      top: `${startTop}px`,
+      width: `${startWidth}px`,
+      height: this._hasExplicitHeight ? `${startHeight}px` : 'auto',
+      right: 'auto',
+      bottom: 'auto',
+    });
+
+    this.toolbar.classList.add('is-resizing', 'is-resized');
+
+    const captureTarget = handleEl || this.toolbar;
+    try {
+      if (captureTarget.setPointerCapture && event.pointerId !== undefined) {
+        captureTarget.setPointerCapture(event.pointerId);
+      }
+    } catch (_) {}
+
+    const move = (e) => {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const pWidth = parentEl.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200) || 1200;
+      const pHeight = parentEl.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 800) || 800;
+
+      let nextLeft = startLeft;
+      let nextTop = startTop;
+      let nextW = startWidth;
+      let nextH = startHeight;
+
+      if (dir.includes('e')) {
+        const maxE = Math.max(minW, pWidth - startLeft - 8);
+        nextW = clamp(startWidth + dx, minW, maxE);
+      }
+      if (dir.includes('w')) {
+        const maxW = Math.max(minW, startLeft + startWidth - 8);
+        nextW = clamp(startWidth - dx, minW, maxW);
+        nextLeft = startLeft + (startWidth - nextW);
+      }
+      if (dir.includes('s')) {
+        const maxS = Math.max(minH, pHeight - startTop - 8);
+        nextH = clamp(startHeight + dy, minH, maxS);
+      }
+      if (dir.includes('n')) {
+        const maxN = Math.max(minH, startTop + startHeight - 8);
+        nextH = clamp(startHeight - dy, minH, maxN);
+        nextTop = startTop + (startHeight - nextH);
+      }
+
+      this.toolbar.style.left = `${nextLeft}px`;
+      this.toolbar.style.top = `${nextTop}px`;
+      if (hasHoriz || this.toolbar.style.width) {
+        this.toolbar.style.width = `${nextW}px`;
+        this._savedWidth = `${nextW}px`;
+      }
+      if (this._hasExplicitHeight) {
+        this.toolbar.style.height = `${nextH}px`;
+        this._savedHeight = `${nextH}px`;
+      } else {
+        this.toolbar.style.height = 'auto';
+        this._savedHeight = '';
+      }
+
+      this.#updateReflowState(nextW, this._hasExplicitHeight ? nextH : null);
+    };
+
+    const up = () => {
+      this.toolbar.classList.remove('is-resizing');
+      try {
+        if (captureTarget.hasPointerCapture?.(event.pointerId)) {
+          captureTarget.releasePointerCapture(event.pointerId);
+        }
+      } catch (_) {}
+      captureTarget.removeEventListener('pointermove', move);
+      captureTarget.removeEventListener('pointerup', up);
+      captureTarget.removeEventListener('pointercancel', up);
+    };
+
+    captureTarget.addEventListener('pointermove', move);
+    captureTarget.addEventListener('pointerup', up);
+    captureTarget.addEventListener('pointercancel', up);
+  }
+
   #onDown(event) {
-    if (event.target.closest('button, input, a, select')) return;
+    if (event.target.closest('button, input, a, select, .toolbar-resize-handle')) return;
+    if (this.content && event.target === this.content) {
+      if (event.offsetX > this.content.clientWidth || event.offsetY > this.content.clientHeight) {
+        return;
+      }
+    }
+    // On touch devices, if touching inside an overflowing .toolbar-content (and not the explicit drag handle),
+    // allow smooth touch-scrolling inside the toolbar content instead of hijacking as a panel move.
+    if (
+      event.pointerType === 'touch' &&
+      this.content &&
+      this.content.contains?.(event.target) &&
+      (!this.handle || !this.handle.contains?.(event.target))
+    ) {
+      const canScrollX = (this.content.scrollWidth || 0) > (this.content.clientWidth || 0) + 2;
+      const canScrollY = (this.content.scrollHeight || 0) > (this.content.clientHeight || 0) + 2;
+      if (canScrollX || canScrollY) {
+        return;
+      }
+    }
     this._hasCustomPos = true;
     const parentEl = this.toolbar.offsetParent ?? document.body;
     const parent = parentEl.getBoundingClientRect();
@@ -1981,6 +2236,29 @@ export function bindStandardToggles(store, ...args) {
   const vId = opts.visualId || opts.exportPrefix || '';
   const setDimensionMode = (mode) => {
     const isSpatial = mode === 'spatial';
+    if (vId.includes('thales')) {
+      const cur = store.get();
+      const ang = cur.angle2D ?? Math.PI / 4;
+      if (isSpatial) {
+        const x = Math.cos(ang);
+        const y2D = Math.sin(ang);
+        const psi = Math.PI / 6;
+        const y = y2D * Math.cos(psi);
+        const z = y2D * Math.sin(psi);
+        store.set({
+          dimensionMode: 'spatial',
+          lat3D: Math.acos(Math.max(-1, Math.min(1, y))),
+          lon3D: Math.atan2(x, z),
+        });
+      } else {
+        store.set({
+          dimensionMode: 'planar',
+          lat3D: Math.acos(Math.max(-1, Math.min(1, Math.sin(ang)))),
+          lon3D: Math.cos(ang) >= 0 ? Math.PI / 2 : -Math.PI / 2,
+        });
+      }
+      return;
+    }
     if (isSpatial) {
       const updates = { dimensionMode: 'spatial' };
       const cur = store.get();
@@ -2313,8 +2591,10 @@ export function bindStandardToggles(store, ...args) {
     btn.addEventListener('click', () => viewTarget?.exportSVG?.());
   });
 
-  // Universal Two-Finger Touch Gestures & Scroll Wheel Wiring
-  const canvas2dEl = viewTarget?.canvas || (typeof document !== 'undefined' ? document.getElementById('canvas2d') : null);
+  // Universal Two-Finger Touch Gestures (Pinch-Zoom, Two-Finger Pan, Two-Finger Spin) & Panel Touch Fluidity
+  const canvas2dEl =
+    viewTarget?.canvas ||
+    (typeof document !== 'undefined' ? (document.getElementById('main-canvas') || document.getElementById('canvas2d')) : null);
   if (canvas2dEl && !canvas2dEl._touchWheelGesturesAttached) {
     canvas2dEl._touchWheelGesturesAttached = true;
     const vId = opts.visualId || opts.exportPrefix || '';
@@ -2329,11 +2609,21 @@ export function bindStandardToggles(store, ...args) {
     } else {
       attachCanvasTouchAndWheelGestures(canvas2dEl, store, {
         getRadius: (st) => st.radius || 180,
-        setRadius: (r) => ({ radius: r }),
+        setRadius: (r, st) => {
+          const patch = { radius: r };
+          if (st?.pointDist) {
+            patch.pointDist = Math.max(r + 35, st.pointDist);
+          }
+          return patch;
+        },
         minRadius: 80,
-        maxRadius: 280,
+        maxRadius: 320,
       });
     }
+  }
+
+  if (typeof document !== 'undefined') {
+    enableUniversalPanelTouch(document);
   }
 }
 
@@ -2857,9 +3147,44 @@ export class PlaybackController {
 }
 
 /**
- * Attaches unified two-finger touch gestures (pinch-to-zoom radius + two-finger pan)
- * and rich scroll wheel functionality (mouse wheel zoom, trackpad pinch ctrlKey zoom,
- * and trackpad horizontal/shift two-finger pan) to any 2D canvas.
+ * Rotates all active angular coordinates on a 2D state object by deltaAngle (radians)
+ * so the user can spin the 2D figure with a two-finger twist gesture or Alt+drag.
+ */
+export function computeSpinAngleUpdates2D(st, deltaAngle) {
+  if (!st || !Number.isFinite(deltaAngle) || Math.abs(deltaAngle) < 1e-6) return {};
+  const TAU = Math.PI * 2;
+  const wrap = (a) => ((a % TAU) + TAU) % TAU;
+  const updates = {};
+
+  if (st.baselineRotation !== undefined) {
+    updates.baselineRotation = wrap((st.baselineRotation || 0) + deltaAngle);
+    return updates;
+  }
+
+  const angleKeys = [
+    'angleA',
+    'angleB',
+    'angleC',
+    'angleD',
+    'angleP',
+    'angleP1',
+    'angleP2',
+    'angleT',
+    'angleTheta',
+    'angleAlpha',
+  ];
+  for (const key of angleKeys) {
+    if (typeof st[key] === 'number' && Number.isFinite(st[key])) {
+      updates[key] = wrap(st[key] + deltaAngle);
+    }
+  }
+  return updates;
+}
+
+/**
+ * Attaches unified two-finger touch gestures (pinch-to-zoom radius, two-finger omni-directional pan,
+ * and two-finger twist-to-spin), Alt+drag 2D spin, and rich scroll wheel functionality (mouse wheel zoom,
+ * trackpad pinch ctrlKey zoom, and trackpad horizontal/shift two-finger pan) to any 2D canvas.
  *
  * Automatically coordinates with active single-finger dragging by canceling single-finger
  * vertex drags whenever two touch points are detected.
@@ -2878,12 +3203,16 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
   const pointers = new Map();
   let prevDist = 0;
   let prevMid = { x: 0, y: 0 };
+  let prevAngle = 0;
   let isGesturing = false;
+  let isAltSpinning = false;
+  let prevAltAngle = 0;
 
-  const getDistanceAndMidpoint = (p1, p2) => {
+  const getDistanceMidpointAndAngle = (p1, p2) => {
     const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
     const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-    return { dist, mid };
+    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    return { dist, mid, angle };
   };
 
   // 1. Wheel & Trackpad Listener (capture: true, passive: false)
@@ -2896,10 +3225,20 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
       const curPan = st.pan || { x: 0, y: 0 };
 
       // Trackpad Pinch-to-Zoom (emitted as e.ctrlKey === true)
-      if (e.ctrlKey) {
+      if (e.ctrlKey || e.metaKey) {
         const factor = Math.exp(-e.deltaY * 0.008);
-        const nextR = clamp(Math.round(curR * factor / radiusStep) * radiusStep, minRadius, maxRadius);
+        const nextR = clamp(Math.round((curR * factor) / radiusStep) * radiusStep, minRadius, maxRadius);
         store.set(setRadius(nextR, st));
+        return;
+      }
+
+      // Alt + Wheel: Spin the 2D figure smoothly
+      if (e.altKey) {
+        const deltaSpin = (e.deltaY > 0 ? -1 : 1) * 0.06;
+        const spinPatch = computeSpinAngleUpdates2D(st, deltaSpin);
+        if (Object.keys(spinPatch).length > 0) {
+          store.set(spinPatch);
+        }
         return;
       }
 
@@ -2916,26 +3255,41 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
 
       // Standard Mouse Wheel Zoom
       const factor = e.deltaY > 0 ? 0.95 : 1.05;
-      const nextR = clamp(Math.round(curR * factor / radiusStep) * radiusStep, minRadius, maxRadius);
+      const nextR = clamp(Math.round((curR * factor) / radiusStep) * radiusStep, minRadius, maxRadius);
       store.set(setRadius(nextR, st));
     },
     { capture: true, passive: false }
   );
 
-  // 2. Pointer Listeners for Two-Finger Touch Gestures (Pinch Zoom & Two-Finger Pan)
+  // 2. Pointer Listeners for Two-Finger Touch Gestures (Pinch Zoom, Two-Finger Pan & Two-Finger Spin) + Alt+Drag Spin
   canvas.addEventListener(
     'pointerdown',
     (e) => {
+      if (e.altKey && e.pointerType !== 'touch') {
+        isAltSpinning = true;
+        const rect = canvas.getBoundingClientRect?.() || { left: 0, top: 0, width: 600, height: 600 };
+        const st = store.get();
+        const cx = (rect.width || 600) / 2 + (st.pan?.x || 0);
+        const cy = (rect.height || 600) / 2 + (st.pan?.y || 0);
+        prevAltAngle = Math.atan2(cy - (e.clientY - rect.top), e.clientX - rect.left - cx);
+        if (canvas.style) canvas.style.cursor = 'alias';
+        try { canvas.setPointerCapture?.(e.pointerId); } catch (_) {}
+        e.stopPropagation?.();
+        return;
+      }
+
       if (e.pointerType !== 'touch') return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (pointers.size === 2) {
+      if (pointers.size >= 2) {
         isGesturing = true;
         const pts = Array.from(pointers.values());
-        const { dist, mid } = getDistanceAndMidpoint(pts[0], pts[1]);
+        const { dist, mid, angle } = getDistanceMidpointAndAngle(pts[0], pts[1]);
         prevDist = dist;
         prevMid = mid;
+        prevAngle = angle;
         if (typeof onGestureStart === 'function') onGestureStart();
+        e.stopPropagation?.();
       }
     },
     { capture: true }
@@ -2944,42 +3298,83 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
   canvas.addEventListener(
     'pointermove',
     (e) => {
+      if (isAltSpinning) {
+        const rect = canvas.getBoundingClientRect?.() || { left: 0, top: 0, width: 600, height: 600 };
+        const st = store.get();
+        const cx = (rect.width || 600) / 2 + (st.pan?.x || 0);
+        const cy = (rect.height || 600) / 2 + (st.pan?.y || 0);
+        const curAltAngle = Math.atan2(cy - (e.clientY - rect.top), e.clientX - rect.left - cx);
+        let delta = curAltAngle - prevAltAngle;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        if (delta < -Math.PI) delta += Math.PI * 2;
+        prevAltAngle = curAltAngle;
+        const spinPatch = computeSpinAngleUpdates2D(st, delta);
+        if (Object.keys(spinPatch).length > 0) {
+          store.set(spinPatch);
+        }
+        e.stopPropagation?.();
+        return;
+      }
+
       if (e.pointerType !== 'touch' || !pointers.has(e.pointerId)) return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (pointers.size === 2) {
-        e.preventDefault();
+      if (isGesturing && pointers.size < 2) {
+        // Keep suppressing single-finger vertex drag while the user is lifting fingers after a multi-touch gesture
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        return;
+      }
+
+      if (pointers.size >= 2) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
         const pts = Array.from(pointers.values());
-        const { dist, mid } = getDistanceAndMidpoint(pts[0], pts[1]);
+        const { dist, mid, angle } = getDistanceMidpointAndAngle(pts[0], pts[1]);
         const st = store.get();
 
-        // Two-Finger Pan
+        // 1. Two-Finger Omni-Directional Pan
         const dx = mid.x - prevMid.x;
         const dy = mid.y - prevMid.y;
         const curPan = st.pan || { x: 0, y: 0 };
         const nextPan = { x: curPan.x + dx, y: curPan.y + dy };
 
-        // Pinch Zoom
+        // 2. Two-Finger Pinch Zoom
         let radiusUpdate = {};
-        if (prevDist > 0 && dist > 0) {
+        if (prevDist > 4 && dist > 4) {
           const ratio = dist / prevDist;
           const curR = getRadius(st);
-          const nextR = clamp(Math.round(curR * ratio / radiusStep) * radiusStep, minRadius, maxRadius);
+          const nextR = clamp(Math.round((curR * ratio) / radiusStep) * radiusStep, minRadius, maxRadius);
           radiusUpdate = setRadius(nextR, st);
+        }
+
+        // 3. Two-Finger Twist-to-Spin
+        let spinUpdate = {};
+        let deltaTwist = -(angle - prevAngle);
+        if (deltaTwist > Math.PI) deltaTwist -= Math.PI * 2;
+        if (deltaTwist < -Math.PI) deltaTwist += Math.PI * 2;
+        if (Math.abs(deltaTwist) > 0.001 && Math.abs(deltaTwist) < 0.5) {
+          spinUpdate = computeSpinAngleUpdates2D(st, deltaTwist);
         }
 
         prevDist = dist;
         prevMid = mid;
-        store.set({ ...radiusUpdate, pan: nextPan });
+        prevAngle = angle;
+        store.set({ ...radiusUpdate, ...spinUpdate, pan: nextPan });
       }
     },
     { capture: true }
   );
 
   const onPointerUp = (e) => {
+    if (isAltSpinning) {
+      isAltSpinning = false;
+      if (canvas.style) canvas.style.cursor = '';
+      try { canvas.releasePointerCapture?.(e.pointerId); } catch (_) {}
+    }
     if (pointers.has(e.pointerId)) {
       pointers.delete(e.pointerId);
-      if (pointers.size < 2 && isGesturing) {
+      if (pointers.size === 0 && isGesturing) {
         isGesturing = false;
         if (typeof onGestureEnd === 'function') onGestureEnd();
       }
@@ -2988,7 +3383,7 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
 
   canvas.addEventListener('pointerup', onPointerUp, { capture: true });
   canvas.addEventListener('pointercancel', onPointerUp, { capture: true });
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
     window.addEventListener('pointerup', onPointerUp, { capture: true });
     window.addEventListener('pointercancel', onPointerUp, { capture: true });
   }
@@ -2997,6 +3392,193 @@ export function attachCanvasTouchAndWheelGestures(canvas, store, options = {}) {
     isGesturing: () => isGesturing,
     getPointersCount: () => pointers.size,
   };
+}
+
+/**
+ * Enables universal touch-scroll (2D pan-x + pan-y with momentum) and multi-touch
+ * two-finger pinch-to-zoom / resize across all workspace panels, toolbars, docks,
+ * and telemetry overlays.
+ */
+export function enableUniversalPanelTouch(root = typeof document !== 'undefined' ? document : null) {
+  if (!root || root._universalPanelTouchAttached) return;
+  root._universalPanelTouchAttached = true;
+
+  const SCROLLABLE_SELECTOR = [
+    '.panel-body',
+    '.collapsible-content',
+    '.derivation-card-content',
+    '.workspace-dock-body',
+    '.stats-body',
+    '#toolbar-content',
+    '.toolbar-content',
+    '.dock-breadcrumb-bar',
+    '.panels-tray-dropdown',
+    '.geometry-legend-scroll-container',
+    '.visual-info-overlay',
+    '.tutorial-modal-overlay',
+  ].join(', ');
+
+  const PANEL_SELECTOR = '.ui-panel, .viewport-header-toolbar, .stats-overlay, .workspace-dock';
+
+  const touchPointers = new Map();
+  let pinchState = null;
+  let scrollDragState = null;
+
+  const findScrollableAncestor = (el) => {
+    let cur = el;
+    while (cur && cur !== root && cur !== root.body) {
+      if (cur.matches?.(SCROLLABLE_SELECTOR)) {
+        const canY = (cur.scrollHeight || 0) > (cur.clientHeight || 0) + 2;
+        const canX = (cur.scrollWidth || 0) > (cur.clientWidth || 0) + 2;
+        if (canY || canX) return cur;
+      }
+      cur = cur.parentElement;
+    }
+    return el?.closest?.(SCROLLABLE_SELECTOR) || null;
+  };
+
+  root.addEventListener?.(
+    'pointerdown',
+    (e) => {
+      if (e.pointerType !== 'touch') return;
+      const panelEl = e.target?.closest?.(PANEL_SELECTOR);
+      if (!panelEl) return;
+
+      touchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY, target: e.target, panelEl });
+
+      if (touchPointers.size === 1) {
+        // Single-finger touch inside a scrollable panel container
+        if (e.target?.closest?.('input[type="range"], .toolbar-resize-handle, .omni-handle, .dock-resizer')) {
+          scrollDragState = null;
+          return;
+        }
+        const scrollEl = findScrollableAncestor(e.target);
+        if (scrollEl) {
+          scrollDragState = {
+            pointerId: e.pointerId,
+            scrollEl,
+            startX: e.clientX,
+            startY: e.clientY,
+            startScrollLeft: scrollEl.scrollLeft || 0,
+            startScrollTop: scrollEl.scrollTop || 0,
+            isScrolling: false,
+          };
+        }
+      } else if (touchPointers.size >= 2) {
+        // Two-finger pinch-zoom / resize on any panel
+        scrollDragState = null;
+        const pts = Array.from(touchPointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+        const targetPanel = pts[0].panelEl || panelEl;
+        const rect = targetPanel.getBoundingClientRect?.() || { width: 320, height: 240, left: 0, top: 0 };
+        pinchState = {
+          panelEl: targetPanel,
+          initialDist: Math.max(10, dist),
+          initialMid: mid,
+          initialW: rect.width || 320,
+          initialH: rect.height || 240,
+        };
+      }
+    },
+    { passive: true }
+  );
+
+  root.addEventListener?.(
+    'pointermove',
+    (e) => {
+      if (e.pointerType !== 'touch' || !touchPointers.has(e.pointerId)) return;
+      const prev = touchPointers.get(e.pointerId);
+      touchPointers.set(e.pointerId, { ...prev, x: e.clientX, y: e.clientY });
+
+      if (touchPointers.size >= 2 && pinchState?.panelEl) {
+        const pts = Array.from(touchPointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        if (dist > 10 && pinchState.initialDist > 10) {
+          const ratio = dist / pinchState.initialDist;
+          const p = pinchState.panelEl;
+          if (p.classList?.contains('workspace-dock') && !p.classList.contains('is-collapsed')) {
+            const nextDockSize = clamp(Math.round(pinchState.initialW * ratio), 260, 620);
+            p.style.setProperty('--dock-size', `${nextDockSize}px`);
+          } else if (p.classList?.contains('viewport-header-toolbar') && !p.classList.contains('is-collapsed')) {
+            const nextW = clamp(Math.round(pinchState.initialW * ratio), 180, 960);
+            p.style.width = `${nextW}px`;
+            p.classList.add('is-resized');
+          } else if (p.classList?.contains('is-floating') || p.classList?.contains('stats-overlay')) {
+            const nextW = clamp(Math.round(pinchState.initialW * ratio), 220, 760);
+            const nextH = clamp(Math.round(pinchState.initialH * ratio), 140, 680);
+            p.style.width = `${nextW}px`;
+            if (p.classList?.contains('is-floating')) {
+              p.style.height = `${nextH}px`;
+            }
+          }
+        }
+        return;
+      }
+
+      if (touchPointers.size === 1 && scrollDragState && scrollDragState.pointerId === e.pointerId) {
+        const dx = e.clientX - scrollDragState.startX;
+        const dy = e.clientY - scrollDragState.startY;
+        if (!scrollDragState.isScrolling && Math.hypot(dx, dy) > 6) {
+          scrollDragState.isScrolling = true;
+        }
+        if (scrollDragState.isScrolling) {
+          const el = scrollDragState.scrollEl;
+          if ((el.scrollHeight || 0) > (el.clientHeight || 0) + 1) {
+            el.scrollTop = scrollDragState.startScrollTop - dy;
+          }
+          if ((el.scrollWidth || 0) > (el.clientWidth || 0) + 1) {
+            el.scrollLeft = scrollDragState.startScrollLeft - dx;
+          }
+        }
+      }
+    },
+    { passive: true }
+  );
+
+  const endTouch = (e) => {
+    if (touchPointers.has(e.pointerId)) {
+      touchPointers.delete(e.pointerId);
+    }
+    if (touchPointers.size < 2) {
+      pinchState = null;
+    }
+    if (touchPointers.size === 0) {
+      scrollDragState = null;
+    }
+  };
+
+  root.addEventListener?.('pointerup', endTouch, { passive: true });
+  root.addEventListener?.('pointercancel', endTouch, { passive: true });
+
+  // Trackpad pinch-zoom (ctrlKey + wheel) on floating panels, modes toolbar, and dock
+  root.addEventListener?.(
+    'wheel',
+    (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      const panelEl = e.target?.closest?.(PANEL_SELECTOR);
+      if (!panelEl) return;
+      e.preventDefault?.();
+      const factor = Math.exp(-e.deltaY * 0.006);
+      const rect = panelEl.getBoundingClientRect?.() || { width: 320, height: 240 };
+      if (panelEl.classList?.contains('workspace-dock') && !panelEl.classList.contains('is-collapsed')) {
+        const nextDock = clamp(Math.round((rect.width || 380) * factor), 260, 620);
+        panelEl.style.setProperty('--dock-size', `${nextDock}px`);
+      } else if (panelEl.classList?.contains('viewport-header-toolbar') && !panelEl.classList.contains('is-collapsed')) {
+        const nextW = clamp(Math.round((rect.width || 420) * factor), 180, 960);
+        panelEl.style.width = `${nextW}px`;
+        panelEl.classList.add('is-resized');
+      } else if (panelEl.classList?.contains('is-floating') || panelEl.classList?.contains('stats-overlay')) {
+        const nextW = clamp(Math.round((rect.width || 320) * factor), 220, 760);
+        panelEl.style.width = `${nextW}px`;
+        if (panelEl.classList?.contains('is-floating') && !panelEl.classList.contains('is-shaded')) {
+          const nextH = clamp(Math.round((rect.height || 340) * factor), 140, 680);
+          panelEl.style.height = `${nextH}px`;
+        }
+      }
+    },
+    { passive: false }
+  );
 }
 
 export {

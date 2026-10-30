@@ -1049,7 +1049,13 @@ export class WorkspaceDockManager {
         const dy = moveEv.clientY - startY;
 
         if (!hasDragged) {
-          if (record.isFloating || Math.hypot(dx, dy) >= dragThreshold) {
+          const isTouchDocked = !record.isFloating && (moveEv.pointerType === 'touch' || e.pointerType === 'touch');
+          const passedThreshold = record.isFloating || (
+            isTouchDocked
+              ? (Math.abs(dx) >= 22 && Math.abs(dx) > Math.abs(dy) * 1.35)
+              : (Math.hypot(dx, dy) >= dragThreshold)
+          );
+          if (passedThreshold) {
             hasDragged = true;
             try {
               if (header.setPointerCapture) header.setPointerCapture(moveEv.pointerId || e.pointerId);
