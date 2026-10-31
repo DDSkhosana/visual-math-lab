@@ -80,6 +80,8 @@ import {
 } from './trig-math.js';
 
 import { HarmonicSonifier } from './harmonic-sonifier.js';
+import { generateTrigSVG } from './trig-svg.js';
+export { generateTrigSVG };
 
 /* ============================================================================
    1. INITIAL STATE FACTORY & GEOMETRY HELPERS
@@ -1899,26 +1901,29 @@ export class TrigCanvas2DView {
     }
   }
 
+  getSVG(width = this.width || 800, height = this.height || 600) {
+    return generateTrigSVG(this.visualId, this.state || {}, width, height);
+  }
+
   exportPNG() {
     const a = document.createElement('a');
     a.download = `${this.visualId}.png`;
     a.href = this.canvas.toDataURL('image/png');
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   }
 
-  exportSVG() {
-    const { cx, cy, r } = this.getCenterAndRadius(this.state || {});
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${this.width} ${this.height}" width="${this.width}" height="${this.height}" style="background:#0f172a;font-family:monospace;">
-  <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2.5"/>
-  <text x="16" y="${this.height - 16}" fill="#94a3b8" font-size="12">${this.visualId} | Visual Mathematics Lab</text>
-</svg>`;
+  exportSVG(filename = `${this.visualId}.svg`) {
+    const svg = this.getSVG();
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.download = `${this.visualId}.svg`;
+    a.download = filename;
     a.href = url;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }

@@ -816,6 +816,20 @@ export class BaseScene3DView {
     }
   }
 
+  export3DPNG(filename = 'scene-3d.png') {
+    if (!this.renderer || !this.scene || !this.camera) return null;
+    this.renderer.render(this.scene, this.camera);
+    const dataUrl = this.renderer.domElement.toDataURL('image/png');
+    if (typeof document !== 'undefined') {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = dataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    return dataUrl;
+  }
   applyCommonVis(state) {
     this.latestVis3d = state?.vis3d || {};
     if (this.grid) this.grid.visible = this.isARActive ? false : (state?.vis3d?.gridXZ !== false);

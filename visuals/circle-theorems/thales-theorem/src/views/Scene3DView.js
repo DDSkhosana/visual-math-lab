@@ -252,6 +252,20 @@ export class Scene3DView {
   }
 
   /** Called every animation frame (orbit damping needs it). */
+  export3DPNG(filename = 'thales-theorem-3d.png') {
+    if (!this.renderer || !this.objects?.scene || !this.camera) return null;
+    this.renderer.render(this.objects.scene, this.camera);
+    const dataUrl = this.renderer.domElement.toDataURL('image/png');
+    if (typeof document !== 'undefined') {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = dataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    return dataUrl;
+  }
   renderFrame() {
     this.controls.update();
     this.renderer.render(this.objects.scene, this.camera);

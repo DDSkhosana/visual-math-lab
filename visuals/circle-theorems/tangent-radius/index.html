@@ -379,11 +379,14 @@
                 <button type="button" class="btn text-xs active" data-camera-preset="iso">Iso</button>
               </div>
             </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false"><span>Snapshot Export</span><span class="icon">▶</span></div>
+                        <div class="collapsible-section collapsed" id="section-export-toolkit">
+              <div class="collapsible-header" aria-expanded="false"><span>Export &amp; Presentation Toolkit</span><span class="icon">▼</span></div>
               <div class="collapsible-content" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                <button type="button" class="btn" id="btn-export-png">Export PNG</button>
-                <button type="button" class="btn" id="btn-export-svg">Export SVG</button>
+                <button type="button" class="btn" id="btn-export-png" title="Export 2D canvas as high-resolution PNG">Export 2D PNG</button>
+                <button type="button" class="btn" id="btn-export-svg" title="Export crisp vector SVG illustration">Export 2D SVG</button>
+                <button type="button" class="btn" id="btn-export-3d-png" title="Export 3D WebGL camera view as PNG">Export 3D PNG</button>
+                <button type="button" class="btn" id="btn-record-loop" title="Record looping animation clip (WebM)">Record Loop</button>
+                <button type="button" class="btn btn-primary" id="btn-export-worksheet" style="grid-column: span 2;" title="Generate printable PDF student theorem worksheet and educator answer key">Print Theorem Worksheet</button>
               </div>
             </div>
           </div>

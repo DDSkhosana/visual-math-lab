@@ -3353,17 +3353,75 @@ export function bindStandardToggles(store, ...args) {
   // Set initial camera perspective to match 2D and 3D orientation on first load
   applyPerspective(store.get().cameraPerspective || defaultPreset);
 
-  // Export buttons
+  // Universal Export & Presentation Toolkit
+  if (typeof window !== 'undefined') {
+    window.__vmlView2D = viewTarget;
+    window.__vmlScene3D = sceneTarget;
+  }
+
   const pngButtons = document.querySelectorAll('#btn-export-png, #btn-export-png-2d, #btn-snapshot-png, #toolbar-2d-panel [id*="png"]');
   pngButtons.forEach((btn) => {
-    btn.addEventListener('click', () => viewTarget?.exportPNG?.());
+    if (!btn._exportBound) {
+      btn._exportBound = true;
+      btn.addEventListener('click', () => viewTarget?.exportPNG?.());
+    }
   });
 
   const svgButtons = document.querySelectorAll('#btn-export-svg, #btn-export-svg-2d, #btn-snapshot-svg, #toolbar-2d-panel [id*="svg"]');
   svgButtons.forEach((btn) => {
-    btn.addEventListener('click', () => viewTarget?.exportSVG?.());
+    if (!btn._exportBound) {
+      btn._exportBound = true;
+      btn.addEventListener('click', () => viewTarget?.exportSVG?.());
+    }
   });
 
+  const png3DButtons = document.querySelectorAll('#btn-export-3d-png, #btn-export-png-3d, #btn-snapshot-3d, [id*="export-3d"]');
+  png3DButtons.forEach((btn) => {
+    if (!btn._exportBound) {
+      btn._exportBound = true;
+      btn.addEventListener('click', () => {
+        const vId = opts.visualId || opts.exportPrefix || 'geometry';
+        if (sceneTarget?.export3DPNG) {
+          sceneTarget.export3DPNG(`${vId}-3d.png`);
+        } else if (sceneTarget?.exportPNG) {
+          sceneTarget.exportPNG(`${vId}-3d.png`);
+        } else {
+          const cont3d = document.getElementById('canvas-3d-container');
+          const s3d = cont3d?.__scene3d;
+          s3d?.export3DPNG?.(`${vId}-3d.png`);
+        }
+      });
+    }
+  });
+
+  const loopButtons = document.querySelectorAll('#btn-record-loop, [id*="record-loop"]');
+  loopButtons.forEach((btn) => {
+    if (!btn._exportBound) {
+      btn._exportBound = true;
+      btn.addEventListener('click', async () => {
+        const root = document.body?.dataset?.root || '../../..';
+        const { recordCanvasLoop } = await import(`${root}/js/animation-recorder.js`);
+        const targetCanvas = viewTarget?.canvas || document.getElementById('main-canvas') || document.getElementById('canvas2d');
+        if (targetCanvas) {
+          const vId = opts.visualId || opts.exportPrefix || 'geometry';
+          recordCanvasLoop(targetCanvas, { filename: `${vId}-loop.webm` });
+        }
+      });
+    }
+  });
+
+  const worksheetButtons = document.querySelectorAll('#btn-export-worksheet, #btn-print-worksheet, [id*="worksheet"]');
+  worksheetButtons.forEach((btn) => {
+    if (!btn._exportBound) {
+      btn._exportBound = true;
+      btn.addEventListener('click', async () => {
+        const root = document.body?.dataset?.root || '../../..';
+        const { openPrintableWorksheet } = await import(`${root}/js/worksheet-generator.js`);
+        const vId = opts.visualId || opts.exportPrefix || '';
+        openPrintableWorksheet({ visualId: vId, state: store.get(), viewTarget });
+      });
+    }
+  });
   // Universal Two-Finger Touch Gestures (Pinch-Zoom, Two-Finger Pan, Two-Finger Spin) & Panel Touch Fluidity
   const canvas2dEl =
     viewTarget?.canvas ||

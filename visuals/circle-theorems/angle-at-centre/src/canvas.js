@@ -267,6 +267,9 @@ export class CanvasView {
     });
   }
 
+  getSVG(width = this.width, height = this.height) {
+    return generateSVG(this.state, width, height);
+  }
   exportSVG() {
     const str = generateSVG(this.state, this.width, this.height);
     const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });

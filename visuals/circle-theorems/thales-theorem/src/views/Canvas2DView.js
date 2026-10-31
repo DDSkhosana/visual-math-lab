@@ -123,6 +123,11 @@ export class Canvas2DView {
     }, 'image/png');
   }
 
+  getSVG(width = this.logicalWidth || this.canvas.width, height = this.logicalHeight || this.canvas.height) {
+    if (!this.state || !this.canvas.width) return '';
+    const f = this.frame();
+    return f ? generateSceneSVG(this.state, f) : '';
+  }
   exportSVG(filename = 'thales-theorem-2d.svg') {
     if (!this.state || !this.canvas.width) return;
     const f = this.frame();

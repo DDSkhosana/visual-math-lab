@@ -3181,3 +3181,44 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   display: none;
 }
 
+
+
+/* ==========================================================================
+   Export & Presentation Toolkit Styles
+   ========================================================================== */
+#section-export-toolkit .collapsible-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+#section-export-toolkit .btn {
+  font-size: 11px;
+  padding: 5px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#btn-export-worksheet {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  grid-column: span 2;
+}
+
+#btn-export-worksheet:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.42) 0%, rgba(14, 165, 233, 0.28) 100%);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+@keyframes vml-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
