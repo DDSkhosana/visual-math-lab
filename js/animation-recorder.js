@@ -216,3 +216,4 @@ export function recordCanvasLoop(canvas, options = {}) {
     recorder.start();
   });
 }
+

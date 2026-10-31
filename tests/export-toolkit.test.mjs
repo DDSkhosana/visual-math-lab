@@ -179,3 +179,4 @@ test('Cross-Visual HTML Compliance: all 12 visualizers feature the Export & Pres
     assert.ok(raw.includes('id="btn-export-worksheet"'), `${path}: Must contain #btn-export-worksheet`);
   }
 });
+
