@@ -173,7 +173,8 @@
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand 2D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span class="color-blue">Angle at P₁ (∠AP₁B):</span><strong class="color-blue" id="tel-p1-angle">60.0°</strong>              <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
+              <div class="stat-line"><span class="color-blue">Angle at P₁ (∠AP₁B):</span><strong class="color-blue" id="tel-p1-angle">60.0°</strong></div>
+              <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
                 <span class="color-yellow">Conic Inv (v₁ᵀ Q v₂):</span><span class="stat-value color-yellow" id="val-affine-inv">0.000</span>
               </div>
               <div class="stat-line affine-telemetry-row" id="row-affine-angle" style="display: none;">
@@ -182,12 +183,15 @@
               <div class="stat-line affine-telemetry-row" id="row-affine-ecc" style="display: none;">
                 <span class="color-cyan">Eccentricity e:</span><span class="stat-value color-cyan" id="val-affine-ecc">0.000</span>
               </div>
-            </div>
               <div class="stat-line"><span class="color-blue">P₁ (<span class="color-amber">x</span>, <span class="color-lime">y</span>):</span><span id="tel-p1-coords"><span class="color-amber">0.0</span>, <span class="color-lime">0.0</span></span></div>
               <div class="stat-line"><span class="color-emerald">Angle at P₂ (∠AP₂B):</span><strong class="color-emerald" id="tel-p2-angle">60.0°</strong></div>
               <div class="stat-line"><span class="color-emerald">P₂ (<span class="color-amber">x</span>, <span class="color-lime">y</span>):</span><span id="tel-p2-coords"><span class="color-amber">0.0</span>, <span class="color-lime">0.0</span></span></div>
               <div class="stat-line"><span class="color-teal">Difference |P₁ − P₂|:</span><strong class="color-teal" id="tel-diff">0.000°</strong></div>
               <div class="stat-line"><span class="color-yellow">Central Angle (∠AOB):</span><span class="color-yellow" id="tel-central-angle">120.0°</span></div>
+              <div class="stat-line"><span class="color-red">Base Chord [AB]:</span><strong class="color-red" id="tel-chord-len">0.0 px</strong></div>
+              <div class="stat-line"><span class="color-amber">Geodesic Arch (⌒AB):</span><strong class="color-amber" id="tel-geodesic-arc">0.0 px</strong></div>
+              <div class="stat-line"><span class="color-amber">Curvature Ratio (L/s):</span><strong class="color-amber" id="tel-curvature-ratio">0.000</strong></div>
+              <div class="stat-line"><span class="color-amber">Sagitta Height (h):</span><strong class="color-amber" id="tel-sagitta">0.0 px</strong></div>
               <div class="stat-line"><span class="color-blue">Reflex θ₁* (360° − θ₁):</span><strong class="color-blue" id="tel-reflex-p1">300.0°</strong></div>
               <div class="stat-line"><span class="color-emerald">Reflex θ₂* (360° − θ₂):</span><strong class="color-emerald" id="tel-reflex-p2">300.0°</strong></div>
               <div class="stat-line"><span class="color-teal">Reflex Invariance (θ₁* = θ₂*):</span><strong class="color-teal" id="tel-reflex-same">Invariant</strong></div>
@@ -225,6 +229,12 @@
               <div class="stat-line"><span class="color-blue">3D Reflex θ₁*:</span><strong class="color-blue" id="val-3d-reflex-p1">300.0°</strong></div>
               <div class="stat-line"><span class="color-emerald">3D Reflex θ₂*:</span><strong class="color-emerald" id="val-3d-reflex-p2">300.0°</strong></div>
               <div class="stat-line"><span class="color-teal">3D Reflex Match:</span><strong class="color-teal" id="val-3d-reflex-same">Match</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
+                <span class="color-red">3D Chord [AB]:</span><strong class="color-red" id="val-3d-chord">0.00</strong>
+              </div>
+              <div class="stat-line"><span class="color-amber">3D Geodesic Arch (⌒AB):</span><strong class="color-amber" id="val-3d-geodesic">0.00</strong></div>
+              <div class="stat-line"><span class="color-amber">Curvature Ratio (L/s):</span><strong class="color-amber" id="val-3d-ratio">0.000</strong></div>
+              <div class="stat-line"><span class="color-amber">Sagitta Height (h):</span><strong class="color-amber" id="val-3d-sagitta">0.00</strong></div>
             </div>
           </div>
         </div>
@@ -331,11 +341,11 @@
               <div class="collapsible-header" aria-expanded="false"><span>2D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-points" checked><span class="checkmark"></span><span class="color-blue">Point Markers</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-yellow">θ</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-blue">θ₁</span>, <span class="color-emerald">θ₂</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-lengths" checked><span class="checkmark"></span><span class="color-red">Chord &amp; Arc Lengths</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-yellow">Subtended Angle Wedges</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-emerald">Segment &amp; Triangle Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-sky">Segment &amp; Triangle Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
               </div>
             </div>
@@ -387,10 +397,10 @@
             <div class="collapsible-section collapsed">
               <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-yellow">θ</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-red">A</span>, <span class="color-red">B</span>, <span class="color-blue">P₁</span>, <span class="color-emerald">P₂</span>, <span class="color-blue">θ₁</span>, <span class="color-emerald">θ₂</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-yellow">3D Angle Wedges &amp; Markers</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-emerald">3D Area Meshes</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-sky">3D Area Meshes</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>

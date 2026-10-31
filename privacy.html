@@ -48,20 +48,20 @@
   <main class="page-intro" style="max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem;">
     <p class="eyebrow">Privacy &amp; Security Compliance</p>
     <h1>Privacy with restraint.</h1>
-    <p class="lede">Visual Mathematics Lab is an open educational laboratory. We practice data restraint: no user accounts, client-side mathematical execution, no sale or cross-context sharing of personal data, and strict opt-in cookie compliance.</p>
+    <p class="lede">Visual Mathematics Lab is an open educational laboratory. We practice data restraint: no user accounts, client-side mathematical execution, no sale or cross-context sharing of personal data, and an essential analytics framework with a one-click opt-out.</p>
 
     <!-- Interactive Cookie Preference Manager -->
-    <section class="support-panel" style="margin: 2rem 0; border: 1px solid var(--accent); background: rgba(59, 130, 246, 0.08); padding: 1.5rem; border-radius: var(--radius);" aria-labelledby="cookie-mgmt-heading">
+    <section class="support-panel" style="margin: 2.5rem 0;" aria-labelledby="cookie-mgmt-heading">
       <div class="support-panel__content">
-        <p class="support-panel__eyebrow" style="color: var(--accent); font-weight: 700;">Cookie Preferences</p>
-        <h2 id="cookie-mgmt-heading" class="support-panel__heading" style="font-size: 1.25rem; margin-top: 0.25rem;">Manage Analytics Cookies</h2>
-        <p class="support-panel__text" style="font-size: 0.9rem; margin-bottom: 1rem;">
-          Control whether Google Analytics 4 (Measurement ID: <code>G-E1W7GYR7Q0</code>) is permitted to set non-essential cookies to measure aggregate screen dimensions and feature popularity.
+        <p class="support-panel__eyebrow">Cookie Preferences</p>
+        <h2 id="cookie-mgmt-heading" class="support-panel__heading">Manage Analytics Cookies</h2>
+        <p class="support-panel__text">
+          Technical analytics are active by default as a necessary feature to monitor visualizer reliability, screen dimensions, and mathematical rendering fidelity. If you prefer not to participate, you may explicitly opt out at any time.
         </p>
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
           <button type="button" class="button button--primary" id="privacy-btn-allow">Allow Analytics</button>
           <button type="button" class="button button--secondary" id="privacy-btn-block">Block Analytics</button>
-          <span id="privacy-consent-status" style="font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 4px; background: rgba(255, 255, 255, 0.06);">Checking current status...</span>
+          <span id="privacy-consent-status" style="font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: var(--radius); border: 1px solid var(--line); background: var(--canvas);">Checking current status...</span>
         </div>
       </div>
     </section>
@@ -71,59 +71,59 @@
 
     <h2>2. Client-Side Mathematical Execution &amp; Hardware Isolation</h2>
     <p>All geometric calculations, matrix transformations, coordinate updates, WebGL/Three.js shaders, and angle derivations execute 100% within your device's browser using HTML5 Canvas and WebGL. No user geometry configurations, slider parameters, or coordinates are ever transmitted to or stored on our servers.</p>
-    <p><strong>Camera Hardware Isolation:</strong> When entering Augmented Reality (AR) mode, the app uses native WebRTC <code>navigator.mediaDevices.getUserMedia({ video: true })</code>. This requires browser-level user permission each time. The camera video stream feeds directly into an in-memory <code>&lt;video&gt;</code> HTML element for real-time canvas backdrop rendering. Camera data is never recorded, captured to disk, or transmitted over any network.</p>
+    <p><strong>Camera Hardware Access:</strong> When entering Augmented Reality (AR) mode, the application requests access to your camera solely to render the live physical background behind 3D models. Camera access requires your explicit browser-level permission each time. The video feed is processed locally in memory in real time and is never recorded, saved, or transmitted across any network.</p>
 
     <h2>3. Aggregated Analytics &amp; Google Consent Mode v2</h2>
-    <p>We use Google Analytics 4 (Measurement ID: <code>G-E1W7GYR7Q0</code>) under <strong>Google Consent Mode v2</strong>. By default, all analytical storage (<code>analytics_storage: 'denied'</code>), ad storage, ad personalization, and user data signals are strictly <strong>denied</strong>. No analytics cookies are written to your device until you explicitly grant consent through our cookie banner or preference manager.</p>
-    <p>When permitted by the user, analytics data is aggregated and used solely to evaluate technical compatibility (e.g., mobile viewport performance, GPU capability, and theorem usage). We do not use analytics for behavioral tracking, advertising, or cross-site profiling.</p>
+    <p>We use Google Analytics under <strong>Google Consent Mode v2</strong>. Technical analytics are active by default as a necessary operational feature to monitor application performance, display responsiveness, and mathematical rendering accuracy across devices. If you prefer not to participate, you may explicitly opt out at any time through our cookie notice or the preferences manager above.</p>
+    <p>Opting out immediately signals Google Consent Mode (<code>analytics_storage: 'denied'</code>), disabling analytics cookies and telemetry. When active, analytics data is strictly aggregated and anonymized. All advertising storage (<code>ad_storage</code>, <code>ad_user_data</code>, <code>ad_personalization</code>) and Google Signals are permanently disabled, and IP addresses are strictly anonymized.</p>
 
     <h2>4. Cookie &amp; Storage Inventory</h2>
-    <div style="overflow-x: auto; margin: 1.5rem 0;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; border: 1px solid var(--line);">
+    <div style="overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left;">
         <thead>
-          <tr style="background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid var(--line);">
-            <th style="padding: 0.6rem 0.8rem;">Identifier</th>
-            <th style="padding: 0.6rem 0.8rem;">Provider</th>
-            <th style="padding: 0.6rem 0.8rem;">Purpose</th>
-            <th style="padding: 0.6rem 0.8rem;">Duration</th>
-            <th style="padding: 0.6rem 0.8rem;">Classification</th>
+          <tr style="background: var(--surface); border-bottom: 2px solid var(--line);">
+            <th style="padding: 0.75rem 1rem; color: var(--ink); font-weight: 600;">Identifier</th>
+            <th style="padding: 0.75rem 1rem; color: var(--ink); font-weight: 600;">Provider</th>
+            <th style="padding: 0.75rem 1rem; color: var(--ink); font-weight: 600;">Purpose</th>
+            <th style="padding: 0.75rem 1rem; color: var(--ink); font-weight: 600;">Duration</th>
+            <th style="padding: 0.75rem 1rem; color: var(--ink); font-weight: 600;">Classification</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style="background: var(--canvas);">
           <tr style="border-bottom: 1px solid var(--line);">
-            <td style="padding: 0.6rem 0.8rem;"><code>_ga</code></td>
-            <td style="padding: 0.6rem 0.8rem;">Google LLC</td>
-            <td style="padding: 0.6rem 0.8rem;">Distinguishes unique users across sessions in aggregated reports.</td>
-            <td style="padding: 0.6rem 0.8rem;">2 Years</td>
-            <td style="padding: 0.6rem 0.8rem; color: #38bdf8;">Analytics (Optional / Opt-in)</td>
+            <td style="padding: 0.75rem 1rem;"><code>_ga</code></td>
+            <td style="padding: 0.75rem 1rem;">Google LLC</td>
+            <td style="padding: 0.75rem 1rem;">Distinguishes unique users across sessions in aggregated reports.</td>
+            <td style="padding: 0.75rem 1rem;">2 Years</td>
+            <td style="padding: 0.75rem 1rem; color: #0284c7; font-weight: 600;">Analytics (Active by Default / Opt-out Available)</td>
           </tr>
           <tr style="border-bottom: 1px solid var(--line);">
-            <td style="padding: 0.6rem 0.8rem;"><code>_ga_E1W7GYR7Q0</code></td>
-            <td style="padding: 0.6rem 0.8rem;">Google LLC</td>
-            <td style="padding: 0.6rem 0.8rem;">Persists aggregated session state.</td>
-            <td style="padding: 0.6rem 0.8rem;">2 Years</td>
-            <td style="padding: 0.6rem 0.8rem; color: #38bdf8;">Analytics (Optional / Opt-in)</td>
+            <td style="padding: 0.75rem 1rem;"><code>_ga_*</code></td>
+            <td style="padding: 0.75rem 1rem;">Google LLC</td>
+            <td style="padding: 0.75rem 1rem;">Maintains aggregated session state for the analytics container.</td>
+            <td style="padding: 0.75rem 1rem;">2 Years</td>
+            <td style="padding: 0.75rem 1rem; color: #0284c7; font-weight: 600;">Analytics (Active by Default / Opt-out Available)</td>
           </tr>
           <tr style="border-bottom: 1px solid var(--line);">
-            <td style="padding: 0.6rem 0.8rem;"><code>vml_cookie_consent</code></td>
-            <td style="padding: 0.6rem 0.8rem;">Visual Math Lab (Local)</td>
-            <td style="padding: 0.6rem 0.8rem;">Remembers your cookie choice (granted or denied).</td>
-            <td style="padding: 0.6rem 0.8rem;">Persistent</td>
-            <td style="padding: 0.6rem 0.8rem; color: #22c55e;">Strictly Necessary (Functional)</td>
+            <td style="padding: 0.75rem 1rem;"><code>vml_cookie_consent</code></td>
+            <td style="padding: 0.75rem 1rem;">Visual Math Lab (Local)</td>
+            <td style="padding: 0.75rem 1rem;">Remembers your cookie choice (granted or denied).</td>
+            <td style="padding: 0.75rem 1rem;">Persistent</td>
+            <td style="padding: 0.75rem 1rem; color: #166534; font-weight: 600;">Strictly Necessary (Functional)</td>
           </tr>
           <tr style="border-bottom: 1px solid var(--line);">
-            <td style="padding: 0.6rem 0.8rem;"><code>vml_locale</code></td>
-            <td style="padding: 0.6rem 0.8rem;">Visual Math Lab (Local)</td>
-            <td style="padding: 0.6rem 0.8rem;">Remembers your language choice (e.g. English, German, IsiNdebele, Arabic).</td>
-            <td style="padding: 0.6rem 0.8rem;">Persistent</td>
-            <td style="padding: 0.6rem 0.8rem; color: #22c55e;">Strictly Necessary (Functional)</td>
+            <td style="padding: 0.75rem 1rem;"><code>vml_locale</code></td>
+            <td style="padding: 0.75rem 1rem;">Visual Math Lab (Local)</td>
+            <td style="padding: 0.75rem 1rem;">Remembers your language choice (e.g. English, German, IsiNdebele, Arabic).</td>
+            <td style="padding: 0.75rem 1rem;">Persistent</td>
+            <td style="padding: 0.75rem 1rem; color: #166534; font-weight: 600;">Strictly Necessary (Functional)</td>
           </tr>
           <tr>
-            <td style="padding: 0.6rem 0.8rem;"><code>vml_interaction_tips_enabled</code></td>
-            <td style="padding: 0.6rem 0.8rem;">Visual Math Lab (Local)</td>
-            <td style="padding: 0.6rem 0.8rem;">Remembers whether interactive geometry tips popups are enabled.</td>
-            <td style="padding: 0.6rem 0.8rem;">Persistent</td>
-            <td style="padding: 0.6rem 0.8rem; color: #22c55e;">Strictly Necessary (Functional)</td>
+            <td style="padding: 0.75rem 1rem;"><code>vml_interaction_tips_enabled</code></td>
+            <td style="padding: 0.75rem 1rem;">Visual Math Lab (Local)</td>
+            <td style="padding: 0.75rem 1rem;">Remembers whether interactive geometry tips popups are enabled.</td>
+            <td style="padding: 0.75rem 1rem;">Persistent</td>
+            <td style="padding: 0.75rem 1rem; color: #166534; font-weight: 600;">Strictly Necessary (Functional)</td>
           </tr>
         </tbody>
       </table>
@@ -132,7 +132,7 @@
     <h2>5. European Union &amp; United Kingdom Compliance (GDPR &amp; ePrivacy)</h2>
     <p>Under the EU General Data Protection Regulation (GDPR) and the UK Data Protection Act 2018:</p>
     <ul>
-      <li><strong>Lawful Basis for Analytics:</strong> We process aggregated telemetry exclusively based on your freely given, informed, and explicit consent (Article 6(1)(a) GDPR).</li>
+      <li><strong>Lawful Basis for Analytics:</strong> We process aggregated technical telemetry based on legitimate interests for application reliability and mathematical verification (Article 6(1)(f) GDPR), as well as explicit consent where confirmed (Article 6(1)(a) GDPR), with an unconditional right to opt out at any time.</li>
       <li><strong>Data Subject Rights:</strong> You have the right to access, rectify, or request erasure of personal data, as well as the right to restrict or object to processing. You may withdraw consent at any time using the preferences button above or the "Cookie Settings" link in the footer.</li>
       <li><strong>Supervisory Authority:</strong> You have the right to lodge a complaint with a supervisory authority, such as the Information Commissioner's Office (ICO) in the UK or the relevant Data Protection Authority (DPA) in your EU member state.</li>
     </ul>
@@ -180,18 +180,21 @@
     function renderStatus() {
       const status = getConsentStatus();
       if (!statusEl) return;
-      if (status === "granted") {
-        statusEl.textContent = "Status: Analytics Allowed (Cookies Granted)";
-        statusEl.style.color = "#22c55e";
-        statusEl.style.background = "rgba(34, 197, 94, 0.15)";
-      } else if (status === "denied") {
-        statusEl.textContent = "Status: Analytics Blocked (Privacy Maximized)";
-        statusEl.style.color = "#f43f5e";
-        statusEl.style.background = "rgba(244, 63, 94, 0.15)";
+      if (status === "denied") {
+        statusEl.textContent = "Status: Analytics Disabled (Opted Out)";
+        statusEl.style.color = "#991b1b";
+        statusEl.style.background = "rgba(153, 27, 27, 0.1)";
+        statusEl.style.borderColor = "rgba(153, 27, 27, 0.3)";
+      } else if (status === "granted") {
+        statusEl.textContent = "Status: Analytics Active (Confirmed)";
+        statusEl.style.color = "#166534";
+        statusEl.style.background = "rgba(22, 101, 52, 0.1)";
+        statusEl.style.borderColor = "rgba(22, 101, 52, 0.3)";
       } else {
-        statusEl.textContent = "Status: Default Denied (No Choice Recorded)";
-        statusEl.style.color = "#fbbf24";
-        statusEl.style.background = "rgba(251, 191, 36, 0.15)";
+        statusEl.textContent = "Status: Analytics Active (Default, Opt-out Available)";
+        statusEl.style.color = "#0369a1";
+        statusEl.style.background = "rgba(3, 105, 161, 0.1)";
+        statusEl.style.borderColor = "rgba(3, 105, 161, 0.3)";
       }
     }
 

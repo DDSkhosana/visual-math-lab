@@ -248,6 +248,21 @@ function bootstrap() {
     const elTelPerigonTan = document.getElementById('tel-perigon-tangent');
     if (elTelPerigonTan) elTelPerigonTan.textContent = UnitSystemConverter.formatAngle(360, angUnit);
 
+    // 2D Trigonometric Telemetry (Exclusively for Primary Tangent)
+    if (g.primaryTrig) {
+      const pt = g.primaryTrig;
+      const elCos = document.getElementById('tel-trig-cos');
+      if (elCos) elCos.textContent = pt.cosVal.toFixed(4);
+      const elSin = document.getElementById('tel-trig-sin');
+      if (elSin) elSin.textContent = pt.sinVal.toFixed(4);
+      const elTan = document.getElementById('tel-trig-tan');
+      if (elTan) elTan.textContent = pt.isSecantFinite ? pt.tanVal.toFixed(4) : (pt.tanVal >= 0 ? '+∞' : '-∞');
+      const elTanSpan = document.getElementById('tel-trig-tan-span');
+      if (elTanSpan) elTanSpan.textContent = pt.isSecantFinite ? UnitSystemConverter.formatLength(pt.tanLength, lenUnit, state.radius, 1) : '∞';
+      const elSecSpan = document.getElementById('tel-trig-sec-span');
+      if (elSecSpan) elSecSpan.textContent = pt.isSecantFinite ? UnitSystemConverter.formatLength(pt.secLength, lenUnit, state.radius, 1) : '∞';
+    }
+
     const telChords = document.getElementById('tel-chords-container');
     if (telChords) {
       if (g.chords && g.chords.length > 0) {
@@ -264,19 +279,28 @@ function bootstrap() {
     document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const m3d = scene3d.lastComputed3D;
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
     if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
-    const tx = (R3D * Math.cos(state.angleT)).toFixed(2);
-    const tz = (R3D * Math.sin(state.angleT)).toFixed(2);
+
+    const ptT = (isSpatial && m3d?.T) ? m3d.T : { x: R3D * Math.cos(state.angleT), y: 0, z: R3D * Math.sin(state.angleT) };
+    const tanVec = (isSpatial && m3d?.tanDir) ? m3d.tanDir : { x: -Math.sin(state.angleT), y: 0, z: Math.cos(state.angleT) };
+
     const elT = document.getElementById('val-3d-t');
-    if (elT) elT.textContent = `${tx}, ${tz}`;
+    if (elT) {
+      elT.textContent = (isSpatial && Math.abs(ptT.y || 0) > 0.01)
+        ? `${ptT.x.toFixed(2)}, ${ptT.y.toFixed(2)}, ${ptT.z.toFixed(2)}`
+        : `${ptT.x.toFixed(2)}, ${ptT.z.toFixed(2)}`;
+    }
     const elVtan3D = document.getElementById('val-3d-vtan');
-    if (elVtan3D) elVtan3D.textContent = `(${(-Math.sin(state.angleT)).toFixed(2)}, 0.00, ${(Math.cos(state.angleT)).toFixed(2)})`;
+    if (elVtan3D) elVtan3D.textContent = `(${tanVec.x.toFixed(2)}, ${(tanVec.y || 0).toFixed(2)}, ${tanVec.z.toFixed(2)})`;
     const elAngle = document.getElementById('val-3d-angle');
     if (elAngle) elAngle.textContent = UnitSystemConverter.formatAngle(90, angUnit);
+    const dotVal = (isSpatial && m3d?.dotProduct !== undefined) ? Math.abs(m3d.dotProduct) : Math.abs(g.dotProduct);
     const elDot = document.getElementById('val-3d-dot');
-    if (elDot) elDot.textContent = Math.abs(g.dotProduct).toFixed(4);
+    if (elDot) elDot.textContent = dotVal.toFixed(4);
 
     const val3dQuad = document.getElementById('val-3d-quadrant');
     if (val3dQuad && g.quadrant) {
@@ -287,6 +311,22 @@ function bootstrap() {
     if (el3dRefTan) el3dRefTan.textContent = UnitSystemConverter.formatAngle(270, angUnit);
     const el3dPerigonTan = document.getElementById('val-3d-perigon-tangent');
     if (el3dPerigonTan) el3dPerigonTan.textContent = UnitSystemConverter.formatAngle(360, angUnit);
+
+    // 3D Trigonometric Telemetry (Exclusively for Primary Tangent)
+    const cos3D = Math.cos(state.angleT);
+    const sin3D = Math.sin(state.angleT);
+    const is3DSecantFinite = Math.abs(cos3D) > 0.02;
+    const tan3D = Math.tan(state.angleT);
+    const el3dCos = document.getElementById('val-3d-trig-cos');
+    if (el3dCos) el3dCos.textContent = cos3D.toFixed(4);
+    const el3dSin = document.getElementById('val-3d-trig-sin');
+    if (el3dSin) el3dSin.textContent = sin3D.toFixed(4);
+    const el3dTan = document.getElementById('val-3d-trig-tan');
+    if (el3dTan) el3dTan.textContent = is3DSecantFinite ? tan3D.toFixed(4) : (tan3D >= 0 ? '+∞' : '-∞');
+    const el3dTanSpan = document.getElementById('val-3d-trig-tan-span');
+    if (el3dTanSpan) el3dTanSpan.textContent = is3DSecantFinite ? `${(R3D * Math.abs(tan3D)).toFixed(2)} u` : '∞';
+    const el3dSecSpan = document.getElementById('val-3d-trig-sec-span');
+    if (el3dSecSpan) el3dSecSpan.textContent = is3DSecantFinite ? `${(R3D * Math.abs(1 / cos3D)).toFixed(2)} u` : '∞';
 
     const val3dChords = document.getElementById('val-3d-chords-container');
     if (val3dChords) {
@@ -306,14 +346,38 @@ function bootstrap() {
       btn.classList.toggle('active', parseInt(btn.dataset.count, 10) === curCount);
     });
 
+    // Dynamic View Titles
+    const title2d = document.getElementById('view-title-2d');
+    if (title2d && g.quadrant) {
+      title2d.innerHTML = `2D: Tangent-Radius Theorem — <span class="color-yellow font-bold">${g.quadrant.label}</span> (<span class="color-blue">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90.0°</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span>`;
+    }
+    const title3d = document.getElementById('view-title-3d');
+    if (title3d && g.quadrant) {
+      const qSign3D = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'][g.quadrant.index];
+      title3d.innerHTML = `3D: Spherical Great-Circle Tangent — <span class="color-yellow font-bold">Quadrant ${g.quadrant.roman} ${qSign3D}</span>`;
+    }
+
     if (btnSegment && btnSector) {
       const isSec = state.chordAreaMode === 'sector';
       btnSegment.classList.toggle('active', !isSec);
       btnSector.classList.toggle('active', isSec);
     }
 
-    if (toggleQuad) {
-      toggleQuad.checked = (state.showQuadrant !== false);
+    const toggleQuad2d = document.getElementById('vis-2d-quadrant');
+    if (toggleQuad2d) {
+      toggleQuad2d.checked = (state.showQuadrant !== false && state.vis2d?.quadrant !== false);
+    }
+    const toggleQuad3d = document.getElementById('vis-3d-quadrant');
+    if (toggleQuad3d) {
+      toggleQuad3d.checked = (state.vis3d?.quadrant !== false);
+    }
+    const toggleTrig2d = document.getElementById('vis-2d-trig');
+    if (toggleTrig2d) {
+      toggleTrig2d.checked = (state.showTrigWedges !== false && state.vis2d?.trigWedges !== false);
+    }
+    const toggleTrig3d = document.getElementById('vis-3d-trig');
+    if (toggleTrig3d) {
+      toggleTrig3d.checked = (state.vis3d?.trigWedges !== false);
     }
 
     // Live math derivations

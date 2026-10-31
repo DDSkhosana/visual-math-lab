@@ -35,9 +35,12 @@
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountTrigVisual } from '../js/trig-core.js';
-    window.addEventListener('DOMContentLoaded', () => {
-      mountTrigVisual({ visualId: 'law-of-cosines' });
-    });
+    const init = () => mountTrigVisual({ visualId: 'law-of-cosines' });
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </head>
 <body data-root="../../.." class="visual-page-body">
@@ -68,9 +71,9 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
             <span>Flip</span>
           </button>
-          <button type="button" class="btn-toolbar btn-toolbar--badge" id="btn-toggle-dimension-mode" aria-label="Toggle Planar vs Spherical 3D Geometry" title="Toggle between Planar Euclidean (Y=0) and True Spherical Geometry on S²" aria-pressed="false">
+          <button type="button" class="btn-toolbar btn-toolbar--badge" id="btn-toggle-dimension-mode" aria-label="Toggle Planar vs Spatial 3D Geometry" title="Toggle between Planar Euclidean (Y=0) and True Spherical Geometry on S²" aria-pressed="false">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            <span>Spherical: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>
+            <span>Spatial: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>
           </button>
           <button type="button" class="btn-toolbar" id="btn-toggle-ar" title="Enter Augmented Reality mode (WebXR / Camera Pass-Through)" aria-pressed="false">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
@@ -145,7 +148,7 @@
           <div class="dimension-mode-bar">
             <div class="viewmode-segmented-group" role="group" aria-label="3D Geometry Model">
               <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar Euclidean Projection (Y = 0)">Planar</button>
-              <button type="button" class="btn" id="btn-mode-spatial-pill" title="Spherical Law of Cosines on S²">Spherical 3D</button>
+              <button type="button" class="btn" id="btn-mode-spatial-pill" title="Spherical Law of Cosines on S²">Spatial S²</button>
             </div>
           </div>
           <div class="camera-presets-bar">
@@ -170,11 +173,15 @@
               <div class="stat-line" id="row-3d-alt"><span class="color-amber">Altitude h = a sin C:</span><strong class="color-amber" id="val-3d-alt">6.062</strong></div>
               <div class="stat-line" id="row-3d-mixed"><span class="color-amber">Mixed Partial ∂²c²/(∂a∂b):</span><strong class="color-amber" id="val-3d-mixed">-1.0000</strong></div>
               <div class="stat-line" id="row-3d-cos-ratio"><span class="color-violet">Cosine Ratio cos C = (a²+b²−c²)/(2ab):</span><strong class="color-violet" id="val-3d-cos-ratio">0.5000</strong></div>
-              <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-emerald">3D Vertex B (x, z):</span><strong class="color-emerald" id="val-3d-b-coords">3.50, 6.06</strong></div>
-              <div class="stat-line hidden" id="row-3d-cosc-arc"><span class="color-amber">cos(c/R):</span><strong class="color-amber" id="val-3d-cosc-arc">0.778</strong></div>
+              <div class="stat-line" style="border-top:1px solid #334155; margin-top:4px; padding-top:4px;"><span class="color-rose" id="lbl-3d-c-coords">3D Vertex C (x, z):</span><strong class="color-rose" id="val-3d-c-coords">0.00, 0.00</strong></div>
+              <div class="stat-line"><span class="color-sky" id="lbl-3d-a-coords">3D Vertex A (x, z):</span><strong class="color-sky" id="val-3d-a-coords">9.00, 0.00</strong></div>
+              <div class="stat-line"><span class="color-emerald" id="lbl-3d-b-coords">3D Vertex B (x, z):</span><strong class="color-emerald" id="val-3d-b-coords">3.50, 6.06</strong></div>
+              <div class="stat-line" id="row-3d-d-coords"><span class="color-amber" id="lbl-3d-d-coords">3D Foot D (x, z):</span><strong class="color-amber" id="val-3d-d-coords">3.50, 0.00</strong></div>
+              <div class="stat-line hidden" id="row-3d-cosc-arc"><span class="color-rose">Spherical cos(c/R):</span><strong class="color-rose" id="val-3d-cosc-arc">0.778</strong></div>
               <div class="stat-line hidden" id="row-3d-sph-c"><span class="color-rose">Spherical Side c:</span><strong class="color-rose" id="val-3d-sph-c">7.820</strong></div>
               <div class="stat-line hidden" id="row-3d-excess"><span class="color-teal">Spherical Excess E:</span><strong class="color-teal" id="val-3d-excess">14.2°</strong></div>
               <div class="stat-line hidden" id="row-3d-area"><span class="color-teal">Spherical Area R²E:</span><strong class="color-teal" id="val-3d-area">24.78</strong></div>
+              <div class="stat-line hidden" id="row-3d-sph-pos"><span class="color-rose">Vertex C (θ, φ):</span><strong class="color-rose" id="val-3d-sph-pos">0.0°, 0.0°</strong></div>
             </div>
           </div>
         </div>
@@ -276,6 +283,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-rose">Angle C Wedge &amp; Right Angle</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Triangle △ABC Area Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angle (360° − C)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="toggle-locus-circle" checked><span class="checkmark"></span><span class="color-sky">Locus Circle (radius a)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-projection-loc" checked><span class="checkmark"></span><span class="color-amber">Orthogonal Projection (a cos C)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-interaction-rect" checked><span class="checkmark"></span>Bilinear Correction (−<span class="color-amber">2</span>·<span class="color-sky">a</span>·<span class="color-emerald">b</span>·<span class="color-violet">cos C</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-ratio-badge" checked><span class="checkmark"></span><span class="color-violet">Cosine Ratio Badge (cos C)</span> &amp; <span class="color-amber">Proportional Bar</span></label>
@@ -322,11 +330,27 @@
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
                 <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                   <button type="button" class="btn active" id="btn-mode-planar">Planar (Y = 0)</button>
-                  <button type="button" class="btn" id="btn-mode-spatial">Spherical 3D</button>
+                  <button type="button" class="btn" id="btn-mode-spatial">Spatial S²</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
                   Planar Euclidean embedding with orthogonal projection and −2ab cos C interaction rectangle.
                 </p>
+                <div id="spatial-sphere-position-controls" class="hidden" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:4px; padding-top:6px; border-top:1px solid #334155;">
+                  <span class="text-xs font-semibold text-slate-300">Spherical Triangle Placement</span>
+                  <div class="slider-container">
+                    <label for="slider-colat-c"><span class="color-rose">Colatitude θ_C:</span><span id="label-colat-c" class="color-rose font-bold">0.0°</span></label>
+                    <input type="range" id="slider-colat-c" min="0" max="180" step="1" value="0">
+                  </div>
+                  <div class="slider-container">
+                    <label for="slider-lon-c"><span class="color-teal">Longitude φ_C:</span><span id="label-lon-c" class="color-teal font-bold">0.0°</span></label>
+                    <input type="range" id="slider-lon-c" min="0" max="360" step="1" value="0">
+                  </div>
+                  <div class="slider-container">
+                    <label for="slider-heading-c"><span class="color-amber">Heading ψ:</span><span id="label-heading-c" class="color-amber font-bold">0.0°</span></label>
+                    <input type="range" id="slider-heading-c" min="0" max="360" step="1" value="0">
+                  </div>
+                  <button type="button" class="btn text-xs" id="btn-recenter-c" style="width:100%; margin-top:2px;">Recenter C to North Pole</button>
+                </div>
               </div>
             </div>
             <div class="collapsible-section collapsed">
@@ -342,6 +366,7 @@
               <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">A</span>, <span class="color-emerald">B</span>, <span class="color-rose">C</span>, <span class="color-amber">D</span>)</label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-lengths" checked><span class="checkmark"></span><span class="color-indigo">Side &amp; Projection Lengths</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>3D Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-rose">3D Angle Badge</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Triangle Mesh</span></label>

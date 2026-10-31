@@ -266,25 +266,26 @@ function bootstrap() {
     setT('label-dist', UnitSystemConverter.formatLength(g.d, lenUnit, state.radius));
 
     // 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const m3d = scene3d.lastComputed3D;
     const R3D = ((state.radius || 120) / 120) * 8;
     setT('val-3d-r', lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 8, 1));
     const distRatio = Math.max(1.15, (state.pointDist || 260) / (state.radius || 120));
-    const d3 = R3D * distRatio;
-    const ang3 = state.pointAngle || 0;
-    const px3 = (d3 * Math.cos(ang3)).toFixed(2);
-    const pz3 = (d3 * Math.sin(ang3)).toFixed(2);
-    const tanLen3 = Math.sqrt(Math.max(0, d3 * d3 - R3D * R3D)).toFixed(2);
+    const d3 = (isSpatial && m3d?.d !== undefined) ? m3d.d : (R3D * distRatio);
+    const tanLen3 = (isSpatial && m3d?.len1 !== undefined) ? m3d.len1.toFixed(2) : Math.sqrt(Math.max(0, d3 * d3 - R3D * R3D)).toFixed(2);
     const kiteArea3 = (R3D * parseFloat(tanLen3)).toFixed(2);
-    const alpha3Rad = Math.acos(Math.min(1, R3D / d3));
-    const alpha3Deg = (alpha3Rad * 180 / Math.PI);
-    const beta3Deg = (90 - alpha3Deg);
-    const t1x3 = (R3D * Math.cos(ang3 + alpha3Rad)).toFixed(2);
-    const t1z3 = (R3D * Math.sin(ang3 + alpha3Rad)).toFixed(2);
-    const t2x3 = (R3D * Math.cos(ang3 - alpha3Rad)).toFixed(2);
-    const t2z3 = (R3D * Math.sin(ang3 - alpha3Rad)).toFixed(2);
-    const kx3 = (((R3D * R3D) / d3) * Math.cos(ang3)).toFixed(2);
-    const kz3 = (((R3D * R3D) / d3) * Math.sin(ang3)).toFixed(2);
-    const chord3 = (2 * (R3D / d3) * parseFloat(tanLen3)).toFixed(2);
+    const alpha3Deg = (isSpatial && m3d?.degP1 !== undefined) ? m3d.degP1 : (Math.acos(Math.min(1, R3D / d3)) * 180 / Math.PI);
+    const beta3Deg = (isSpatial && m3d?.degO1 !== undefined) ? m3d.degO1 : (90 - alpha3Deg);
+    const chord3 = (isSpatial && m3d?.chord !== undefined) ? m3d.chord.toFixed(2) : (2 * (R3D / d3) * parseFloat(tanLen3)).toFixed(2);
+
+    const fmtCoords = (pt) => (isSpatial && Math.abs(pt?.y || 0) > 0.01)
+      ? `${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, ${pt.z.toFixed(2)}`
+      : `${pt.x.toFixed(2)}, ${pt.z.toFixed(2)}`;
+
+    const ptP = (isSpatial && m3d?.P) ? m3d.P : { x: d3 * Math.cos(state.pointAngle || 0), y: 0, z: d3 * Math.sin(state.pointAngle || 0) };
+    const ptT1 = (isSpatial && m3d?.T1) ? m3d.T1 : { x: R3D * Math.cos((state.pointAngle || 0) + (alpha3Deg * Math.PI / 180)), y: 0, z: R3D * Math.sin((state.pointAngle || 0) + (alpha3Deg * Math.PI / 180)) };
+    const ptT2 = (isSpatial && m3d?.T2) ? m3d.T2 : { x: R3D * Math.cos((state.pointAngle || 0) - (alpha3Deg * Math.PI / 180)), y: 0, z: R3D * Math.sin((state.pointAngle || 0) - (alpha3Deg * Math.PI / 180)) };
+    const ptK = (isSpatial && m3d?.K) ? m3d.K : { x: (((R3D * R3D) / d3) * Math.cos(state.pointAngle || 0)), y: 0, z: (((R3D * R3D) / d3) * Math.sin(state.pointAngle || 0)) };
 
     setT('val-3d-area', kiteArea3);
     setT('val-3d-len1', tanLen3);
@@ -302,10 +303,10 @@ function bootstrap() {
     setT('val-3d-reflex-tangent', UnitSystemConverter.formatAngle(270, angUnit));
     setT('val-3d-reflex-kite', UnitSystemConverter.formatAngle(1080, angUnit));
 
-    setT('val-3d-p', `${px3}, ${pz3}`);
-    setT('val-3d-t1', `${t1x3}, ${t1z3}`);
-    setT('val-3d-t2', `${t2x3}, ${t2z3}`);
-    setT('val-3d-k', `${kx3}, ${kz3}`);
+    setT('val-3d-p', fmtCoords(ptP));
+    setT('val-3d-t1', fmtCoords(ptT1));
+    setT('val-3d-t2', fmtCoords(ptT2));
+    setT('val-3d-k', fmtCoords(ptK));
 
     // Live math derivations
     derivations.render(state, g);

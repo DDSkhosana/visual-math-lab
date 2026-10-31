@@ -172,9 +172,10 @@
               <span class="stats-title">2D Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand 2D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
-            <div class="stats-body hidden" id="telemetry-body" style="max-height: 380px; overflow-y: auto;">
+            <div class="stats-body hidden" id="telemetry-body">
               <!-- 1. Computations -->
-              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics              <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
+              <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics</div>
+              <div class="stat-line affine-telemetry-row" id="row-affine-conic-inv" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px; display: none;">
                 <span class="color-yellow">Conic Inv (v₁ᵀ Q v₂):</span><span class="stat-value color-yellow" id="val-affine-inv">0.000</span>
               </div>
               <div class="stat-line affine-telemetry-row" id="row-affine-angle" style="display: none;">
@@ -183,7 +184,6 @@
               <div class="stat-line affine-telemetry-row" id="row-affine-ecc" style="display: none;">
                 <span class="color-cyan">Eccentricity e:</span><span class="stat-value color-cyan" id="val-affine-ecc">0.000</span>
               </div>
-            </div>
               <div class="stat-line"><span class="color-amber">Kite Area (OT₁PT₂):</span><strong class="color-amber" id="tel-kite-area">-- px²</strong></div>
               <div class="stat-line"><span class="color-emerald">Triangle Area (ΔOPT₁):</span><strong class="color-emerald" id="tel-tri-area">-- px²</strong></div>
               <div class="stat-line"><span class="color-emerald">Tangent Length |PT₁|:</span><strong class="color-emerald" id="tel-len-t1">-- px</strong></div>
@@ -197,14 +197,14 @@
               <!-- 2. Angles -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">2. Angles</div>
               <div class="stat-line"><span class="color-teal">Right Angles (∠OT₁P, ∠OT₂P):</span><strong class="color-teal">90.0°</strong></div>
-              <div class="stat-line"><span class="color-teal">Diagonal Intersection ∠OKT₁:</span><strong class="color-teal">90.0°</strong></div>
+              <div class="stat-line"><span class="color-violet">Diagonal Intersection ∠OKT₁:</span><strong class="color-violet">90.0°</strong></div>
               <div class="stat-line"><span class="color-lime">Vertex Angle α₁ (∠T₁PO):</span><strong class="color-lime" id="tel-angle-alpha1">--°</strong></div>
               <div class="stat-line"><span class="color-fuchsia">Vertex Angle α₂ (∠T₂PO):</span><strong class="color-fuchsia" id="tel-angle-alpha2">--°</strong></div>
-              <div class="stat-line"><span class="color-yellow">Total Subtended ∠T₁PT₂ (2α):</span><strong class="color-yellow" id="tel-angle-tpt">--°</strong></div>
+              <div class="stat-line"><span class="color-red">Total Subtended ∠T₁PT₂ (2α):</span><strong class="color-red" id="tel-angle-tpt">--°</strong></div>
               <div class="stat-line"><span class="color-amber">Central Angle β₁ (∠T₁OP):</span><strong class="color-amber" id="tel-angle-beta1">--°</strong></div>
               <div class="stat-line"><span class="color-orange">Central Angle β₂ (∠T₂OP):</span><strong class="color-orange" id="tel-angle-beta2">--°</strong></div>
-              <div class="stat-line"><span class="color-teal">Reflex Right Angles (T₁*, T₂*):</span><strong class="color-teal" id="tel-reflex-tangent">270.0°</strong></div>
-              <div class="stat-line"><span class="color-lavender">Kite Reflex Sum:</span><strong class="color-lavender" id="tel-reflex-kite">1080.0°</strong></div>
+              <div class="stat-line"><span class="color-cyan">Reflex Right Angles (T₁*, T₂*):</span><strong class="color-cyan" id="tel-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span class="color-lavender">Total 4-Angle Kite Sum:</span><strong class="color-lavender" id="tel-reflex-kite">1080.0°</strong></div>
 
               <!-- 3. Circle Geometry Glyphs -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
@@ -235,10 +235,10 @@
               <span class="stats-title">3D Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
-            <div class="stats-body hidden" id="stats-3d-body" style="max-height: 380px; overflow-y: auto;">
+            <div class="stats-body hidden" id="stats-3d-body">
               <!-- 1. Computations -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:4px; border-bottom:1px solid #334155; padding-bottom:2px;">1. Computations &amp; Metrics</div>
-              <div class="stat-line"><span class="color-blue">Radius R:</span><span class="color-blue" id="val-3d-r">8.0</span></div>
+              <div class="stat-line"><span class="color-sky">Radius R:</span><span class="color-sky" id="val-3d-r">8.0</span></div>
               <div class="stat-line"><span class="color-amber">3D Kite Area:</span><strong class="color-amber" id="val-3d-area">0.00</strong></div>
               <div class="stat-line"><span class="color-emerald">3D Tangent |PT₁|:</span><strong class="color-emerald" id="val-3d-len1">0.00</strong></div>
               <div class="stat-line"><span class="color-blue">3D Tangent |PT₂|:</span><strong class="color-blue" id="val-3d-len2">0.00</strong></div>
@@ -253,8 +253,8 @@
               <div class="stat-line"><span class="color-fuchsia">3D Vertex Angle α₂:</span><strong class="color-fuchsia" id="val-3d-ang-p2">0.0°</strong></div>
               <div class="stat-line"><span class="color-amber">3D Central Angle β₁:</span><strong class="color-amber" id="val-3d-ang-o1">0.0°</strong></div>
               <div class="stat-line"><span class="color-orange">3D Central Angle β₂:</span><strong class="color-orange" id="val-3d-ang-o2">0.0°</strong></div>
-              <div class="stat-line"><span class="color-teal">3D Reflex Angles (T₁*, T₂*):</span><strong class="color-teal" id="val-3d-reflex-tangent">270.0°</strong></div>
-              <div class="stat-line"><span class="color-lavender">3D Kite Reflex Sum:</span><strong class="color-lavender" id="val-3d-reflex-kite">1080.0°</strong></div>
+              <div class="stat-line"><span class="color-cyan">3D Reflex Angles (T₁*, T₂*):</span><strong class="color-cyan" id="val-3d-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span class="color-lavender">3D Total 4-Angle Kite Sum:</span><strong class="color-lavender" id="val-3d-reflex-kite">1080.0°</strong></div>
 
               <!-- 3. Circle Geometry Glyphs -->
               <div class="telemetry-category-title" style="font-size:0.75rem; text-transform:uppercase; color:#94a3b8; font-weight:700; margin-top:8px; border-bottom:1px solid #334155; padding-bottom:2px;">3. Circle Geometry Glyphs</div>
@@ -377,7 +377,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Angle Arcs &amp; Right-Angle Markers</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Congruent Triangle Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-cyan">Reflex Angles (360° − θ)</span></label>
               </div>
             </div>
             <div class="collapsible-section collapsed">
@@ -430,7 +430,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-teal">3D Right Angle Markers</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Congruence Cone / Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-cyan">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>
             <div class="collapsible-section collapsed">

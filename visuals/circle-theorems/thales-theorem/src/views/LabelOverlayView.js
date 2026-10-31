@@ -1,4 +1,5 @@
 import { sphereStats, toDegrees } from '../model/thales-math.js';
+import { isLabelVisible } from '../../../../../js/circle-core.js';
 
 const fix = (n, d = 1) => n.toFixed(d);
 
@@ -125,7 +126,8 @@ export class LabelOverlayView {
     const anythingVisible = state.vis3d.labels || Boolean(state.vis3d.coords);
     for (const label of describeLabels(state)) {
       const element = this.element(label.key);
-      const screen = label.show && anythingVisible ? this.project(label.at) : null;
+      const isIndividualHidden = !isLabelVisible(label.text || label.key, state.vis3d);
+      const screen = label.show && !isIndividualHidden && anythingVisible ? this.project(label.at) : null;
       if (!screen) {
         element.classList.remove('visible');
         continue;

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn, initCollapsibleSections } from '../js/circle-core.js';
+import { WorkspaceDockManager, initWorkspaceDock, syncPanelElevationTurn, cyclePanelSubpanel, initCollapsibleSections } from '../js/circle-core.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +57,10 @@ class MockDOMElement {
         return this._set.has(token);
       },
     };
+    this.scrollLeft = 0;
+    this.scrollTop = 0;
+    this.scrollHeight = 0;
+    this.clientHeight = 0;
     this.listeners = new Map();
   }
 
@@ -1105,10 +1109,20 @@ test('WorkspaceDockManager: Advanced Docking Refinements (Shade, Tray Float, Mag
   assert.strictEqual(secA.classList.contains('is-in-deck'), false, 'In Stack mode, subpanels must not have is-in-deck');
   assert.strictEqual(secB.classList.contains('is-in-deck'), false, 'In Stack mode, subpanels must not have is-in-deck');
 
-  // Switch back to Deck mode
+  // Switch to Accordion mode
+  const accordionModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  accordionModeBtn.dispatchEvent({ type: 'click' });
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'accordion');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), false);
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false);
+
+  // Switch back to Tabs / Deck mode
   const updatedModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
   updatedModeBtn.dispatchEvent({ type: 'click' });
-  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
+  assert.ok(
+    panelBody.getAttribute('data-deck-mode') === 'tabs' || panelBody.getAttribute('data-deck-mode') === 'deck',
+    'Must cycle back to tabs/deck mode'
+  );
   assert.strictEqual(secB.classList.contains('is-in-deck'), true, 'In Deck mode, non-active subpanel must have is-in-deck');
 });
 
@@ -1440,6 +1454,18 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
   assert.strictEqual(trayDropdown.hidden, true);
   assert.strictEqual(trayBtn.getAttribute('aria-expanded'), 'false');
 
+  // Open tray again, then click on panel inside dock -> must also close tray
+  trayBtn.click();
+  assert.strictEqual(trayDropdown.hidden, false);
+  mockDoc.dispatchEvent({ type: 'click', target: panel1 });
+  assert.strictEqual(trayDropdown.hidden, true, 'Clicking on panel inside dock must close tray dropdown');
+
+  // Open tray again, then press Escape -> must close tray
+  trayBtn.click();
+  assert.strictEqual(trayDropdown.hidden, false);
+  mockDoc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.strictEqual(trayDropdown.hidden, true, 'Pressing Escape must close tray dropdown');
+
   // Toggle checkbox to hide panel-derivations
   const rowsAfter = dock.trayItemsContainer.querySelectorAll('.tray-item-row');
   const p2Checkbox = rowsAfter[1].querySelector('input[type="checkbox"]');
@@ -1575,11 +1601,11 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
   assert.strictEqual(secB.getAttribute('data-elevation-turn'), 'top');
 
   // -------------------------------------------------------------
-  // Step 19: Elevation deck mode toggle (Deck ☵ vs Stack ↕)
+  // Step 19: Elevation deck mode toggle (Focus Step vs Scroll All)
   // -------------------------------------------------------------
   const modeToggleBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
   assert.ok(modeToggleBtn, 'Mode toggle button must exist');
-  assert.strictEqual(modeToggleBtn.textContent, 'Deck ☵');
+  assert.strictEqual(modeToggleBtn.textContent, 'Focus Step');
 
   // Switch to Stack mode
   modeToggleBtn.click();
@@ -1588,12 +1614,22 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
   assert.strictEqual(secB.classList.contains('is-in-deck'), false);
 
   const updatedModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
-  assert.strictEqual(updatedModeBtn.textContent, 'Stack ↕');
+  assert.strictEqual(updatedModeBtn.textContent, 'Scroll All');
   assert.strictEqual(updatedModeBtn.classList.contains('is-stack'), true);
 
-  // Switch back to Deck mode
+  // Switch to Accordion mode
   updatedModeBtn.click();
-  assert.strictEqual(p1Body.getAttribute('data-deck-mode'), 'deck');
+  assert.strictEqual(p1Body.getAttribute('data-deck-mode'), 'accordion');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), false);
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false);
+
+  // Switch back to Tabs / Deck mode
+  const finalModeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  finalModeBtn.click();
+  assert.ok(
+    p1Body.getAttribute('data-deck-mode') === 'tabs' || p1Body.getAttribute('data-deck-mode') === 'deck',
+    'Must cycle back to tabs/deck mode'
+  );
   assert.strictEqual(secA.classList.contains('is-in-deck'), true);
 
   // -------------------------------------------------------------
@@ -1967,10 +2003,20 @@ test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling
   assert.strictEqual(sec1.classList.contains('is-in-deck'), false);
   assert.strictEqual(sec2.classList.contains('is-in-deck'), false);
 
-  // Mode Toggle back to Deck
+  // Mode Toggle to Accordion
+  const accordionToggle = deck.querySelector('.elevation-deck-mode-toggle');
+  accordionToggle.click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'accordion');
+  assert.strictEqual(sec1.classList.contains('is-in-deck'), false);
+  assert.strictEqual(sec2.classList.contains('is-in-deck'), false);
+
+  // Mode Toggle back to Tabs / Deck
   const updatedToggle = deck.querySelector('.elevation-deck-mode-toggle');
   updatedToggle.click();
-  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'deck');
+  assert.ok(
+    panelBody.getAttribute('data-deck-mode') === 'tabs' || panelBody.getAttribute('data-deck-mode') === 'deck',
+    'Must cycle back to tabs/deck mode'
+  );
   assert.strictEqual(sec2.classList.contains('is-in-deck'), true);
 });
 
@@ -2112,15 +2158,19 @@ test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Do
   assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Wheel up on deck must retreat turn to Section 1');
   assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'deck');
 
-  // Test 2C: Boundary overscroll chaining on active subpanel content
+  // Test 2C: Card content wheel strictly scrolls text and does not hijack turn
   c1._lastTurnTime = 0;
   c1.dispatchEvent({ type: 'wheel', deltaY: 50 });
-  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Boundary overscroll down on active content must cycle to Section 2');
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Wheel inside card content must not hijack turn (strictly restricted to elevation deck)');
 
   // Test 2D: Touch swipe navigation on deck
   deckEl.dispatchEvent({ type: 'touchstart', touches: [{ clientX: 150, clientY: 20 }] });
   deckEl.dispatchEvent({ type: 'touchend', changedTouches: [{ clientX: 50, clientY: 20 }] });
-  assert.strictEqual(sec3.getAttribute('data-elevation-turn'), 'top', 'Swipe left on deck must advance turn to Section 3');
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Swipe left on deck must advance turn to Section 2');
+
+  deckEl.dispatchEvent({ type: 'touchstart', touches: [{ clientX: 150, clientY: 20 }] });
+  deckEl.dispatchEvent({ type: 'touchend', changedTouches: [{ clientX: 50, clientY: 20 }] });
+  assert.strictEqual(sec3.getAttribute('data-elevation-turn'), 'top', 'Second swipe left on deck must advance turn to Section 3');
 
   // Test 2E: Collapse All click functionality
   expandBtn.click();
@@ -2222,6 +2272,234 @@ test('WorkspaceDockManager: Tear-Off Drag From Dock & Smart Floating Placement P
   assert.ok(parseFloat(panel.style.left) > 0, 'Panel left coordinate must be set');
   assert.ok(parseFloat(panel.style.top) > 0, 'Panel top coordinate must be set');
 });
+
+test('WorkspaceDockManager: Subpanel Cycling without Requiring Prior Expansion Contract', () => {
+  const mockWin = {
+    innerWidth: 1280,
+    innerHeight: 800,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  };
+  const mockDoc = {
+    createElement: (tag) => new MockDOMElement(tag),
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    addEventListener: (type, fn) => {
+      mockDoc._listeners = mockDoc._listeners || {};
+      mockDoc._listeners[type] = fn;
+    },
+    removeEventListener: () => {},
+    dispatchEvent: (e) => {
+      if (mockDoc._listeners && mockDoc._listeners[e.type]) {
+        mockDoc._listeners[e.type](e);
+      }
+    },
+    body: new MockDOMElement('body'),
+  };
+  mockDoc.defaultView = mockWin;
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'cycle-panel');
+  panel.ownerDocument = mockDoc;
+  const header = new MockDOMElement('div', 'panel-header');
+  header.textContent = 'Derivations & Proofs';
+  panel.appendChild(header);
+
+  const body = new MockDOMElement('div', 'panel-body');
+  panel.appendChild(body);
+
+  const sec1 = new MockDOMElement('div', 'collapsible-section collapsed');
+  const h1 = new MockDOMElement('button', 'collapsible-header');
+  h1.textContent = 'Step 1: Invariant Analysis';
+  const c1 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec1.appendChild(h1);
+  sec1.appendChild(c1);
+  body.appendChild(sec1);
+
+  const sec2 = new MockDOMElement('div', 'collapsible-section collapsed');
+  const h2 = new MockDOMElement('button', 'collapsible-header');
+  h2.textContent = 'Step 2: Geometric Rigour';
+  const c2 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec2.appendChild(h2);
+  sec2.appendChild(c2);
+  body.appendChild(sec2);
+
+  const sec3 = new MockDOMElement('div', 'collapsible-section collapsed');
+  const h3 = new MockDOMElement('button', 'collapsible-header');
+  h3.textContent = 'Step 3: Axiomatic Conclusion';
+  const c3 = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec3.appendChild(h3);
+  sec3.appendChild(c3);
+  body.appendChild(sec3);
+
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { win: mockWin, doc: mockDoc });
+
+  // 1. Initially: panel is completely shaded and all 3 sections are collapsed
+  dock.setPanelShaded('cycle-panel', true);
+  assert.strictEqual(panel.classList.contains('is-shaded'), true, 'Panel starts shaded');
+  assert.strictEqual(sec1.classList.contains('collapsed'), true);
+  assert.strictEqual(sec2.classList.contains('collapsed'), true);
+  assert.strictEqual(sec3.classList.contains('collapsed'), true);
+
+  // 2. Press ']' (or cycle forward) WITHOUT having to manually expand the panel first
+  mockDoc.dispatchEvent({ type: 'keydown', key: ']' });
+
+  // Verify panel is automatically un-shaded and step 1 is opened
+  assert.strictEqual(panel.classList.contains('is-shaded'), false, 'Cycling automatically un-shades the panel');
+  assert.strictEqual(sec1.classList.contains('collapsed'), false, 'Step 1 is now expanded');
+
+  // 3. Press ']' again: cycle to step 2 without prior manual expansion
+  mockDoc.dispatchEvent({ type: 'keydown', key: ']' });
+  assert.strictEqual(sec2.classList.contains('collapsed'), false, 'Step 2 is now expanded');
+
+  // 4. Test programmatic cyclePanelSubpanel backward
+  cyclePanelSubpanel(panel, 'backward');
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Step 1 elevated to top');
+
+  // 5. Wrap around backward from step 1 to step 3
+  cyclePanelSubpanel(panel, 'backward');
+  assert.strictEqual(sec3.getAttribute('data-elevation-turn'), 'top', 'Step 3 elevated to top after wrapping backward');
+  assert.strictEqual(sec3.classList.contains('collapsed'), false, 'Step 3 is expanded');
+});
+
+test('WorkspaceDockManager: 4 Radical Usability Simplifications Pipeline', () => {
+  const mockDoc = new MockDocument();
+  const mockWin = {
+    innerWidth: 1024,
+    innerHeight: 768,
+    document: mockDoc,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  };
+  mockDoc.defaultView = mockWin;
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+
+  // 1. Automatic Horizontal Scroll on Top/Bottom Docks
+  const dock = new WorkspaceDockManager(root, { win: mockWin, doc: mockDoc });
+  dock.dockEdge = 'top';
+  dock.dockBody.scrollLeft = 0;
+
+  // Dispatch vertical mouse wheel on dock body -> directly increments scrollLeft
+  dock.dockBody.dispatchEvent({
+    type: 'wheel',
+    deltaY: 150,
+    deltaX: 0,
+    preventDefault: () => {},
+  });
+  assert.strictEqual(dock.dockBody.scrollLeft, 150, 'Vertical wheel deltaY on top dock maps to horizontal scrollLeft');
+
+  // Reverse wheel on dock body
+  dock.dockBody.dispatchEvent({
+    type: 'wheel',
+    deltaY: -50,
+    deltaX: 0,
+    preventDefault: () => {},
+  });
+  assert.strictEqual(dock.dockBody.scrollLeft, 100, 'Reverse wheel deltaY decreases scrollLeft');
+
+  // 2. Stop Hijacking Wheel Events Inside Content Cards
+  const panel = new MockDOMElement('div', 'ui-panel', 'deriv-panel');
+  panel.ownerDocument = mockDoc;
+  const panelHeader = new MockDOMElement('div', 'panel-header');
+  panel.appendChild(panelHeader);
+
+  const panelBody = new MockDOMElement('div', 'panel-body');
+  panel.appendChild(panelBody);
+
+  // Add 2 derivation cards (both initially expanded in multi-step view)
+  const card1 = new MockDOMElement('div', 'derivation-card open', 'step-1-card');
+  const h1 = new MockDOMElement('div', 'derivation-card-header collapsible-header open');
+  const c1 = new MockDOMElement('div', 'derivation-card-content collapsible-content open');
+  const footer1 = new MockDOMElement('div', 'derivation-card-footer');
+  const prevBtn1 = new MockDOMElement('button', 'btn-card-nav prev');
+  prevBtn1.setAttribute('data-card-nav', 'prev');
+  const nextBtn1 = new MockDOMElement('button', 'btn-card-nav next');
+  nextBtn1.setAttribute('data-card-nav', 'next');
+  footer1.appendChild(prevBtn1);
+  footer1.appendChild(nextBtn1);
+  c1.appendChild(footer1);
+  card1.appendChild(h1);
+  card1.appendChild(c1);
+
+  const card2 = new MockDOMElement('div', 'derivation-card open', 'step-2-card');
+  const h2 = new MockDOMElement('div', 'derivation-card-header collapsible-header open');
+  const c2 = new MockDOMElement('div', 'derivation-card-content collapsible-content open');
+  const footer2 = new MockDOMElement('div', 'derivation-card-footer');
+  const prevBtn2 = new MockDOMElement('button', 'btn-card-nav prev');
+  prevBtn2.setAttribute('data-card-nav', 'prev');
+  const nextBtn2 = new MockDOMElement('button', 'btn-card-nav next');
+  nextBtn2.setAttribute('data-card-nav', 'next');
+  footer2.appendChild(prevBtn2);
+  footer2.appendChild(nextBtn2);
+  c2.appendChild(footer2);
+  card2.appendChild(h2);
+  card2.appendChild(c2);
+
+  panelBody.appendChild(card1);
+  panelBody.appendChild(card2);
+  root.appendChild(panel);
+
+  syncPanelElevationTurn(panel, card1);
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
+
+  // Dispatch wheel on c1 (card content): MUST NOT flip or hijack card
+  c1.dispatchEvent({ type: 'wheel', deltaY: 200 });
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Wheel inside card content strictly scrolls text and does not hijack turn');
+  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
+
+  // 3. Obvious Visual Navigation Buttons on Derivation Cards
+  // Clicking nextBtn1 triggers cyclePanelSubpanel -> advances to card2
+  nextBtn1.click();
+  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'top', 'Clicking Next Step button advances to Card 2');
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'deck');
+
+  // Clicking prevBtn2 retreats to card1
+  prevBtn2.click();
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Clicking Prev Step button retreats back to Card 1');
+  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
+
+  // 4. Self-Explanatory Mode Toggle Labels & Stack Unrolling
+  const deckEl = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, 'Elevation deck pill bar exists');
+  const modeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.ok(modeBtn, 'Mode toggle button exists');
+  assert.strictEqual(modeBtn.textContent, 'Focus Step');
+  assert.ok(modeBtn.title.includes('Focus Step mode'));
+
+  // Switch to Scroll All (Stack)
+  modeBtn.click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'stack');
+  const modeBtnStack = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.strictEqual(modeBtnStack.textContent, 'Scroll All');
+  assert.ok(modeBtnStack.title.includes('Scroll All mode'));
+  // In stack mode, all cards are unrolled
+  assert.strictEqual(card1.classList.contains('is-in-deck'), false);
+  assert.strictEqual(card2.classList.contains('is-in-deck'), false);
+
+  // Switch to Accordion
+  modeBtnStack.click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'accordion');
+  const modeBtnAccordion = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.strictEqual(modeBtnAccordion.textContent, 'Accordion');
+
+  // Switch back to Focus Step (Tabs / Deck)
+  modeBtnAccordion.click();
+  assert.ok(
+    panelBody.getAttribute('data-deck-mode') === 'tabs' || panelBody.getAttribute('data-deck-mode') === 'deck'
+  );
+  const modeBtnDeck = deckEl.querySelector('.elevation-deck-mode-toggle');
+  assert.strictEqual(modeBtnDeck.textContent, 'Focus Step');
+});
+
 
 
 

@@ -163,7 +163,7 @@
       <div class="view-container layout-split horizontal-split" id="main-view">
         <div id="canvas-2d-container" class="perspective-top">
           <canvas id="main-canvas"></canvas>
-          <div class="view-title">2D: Tangent-Radius Theorem (<span class="color-blue">OT</span> ⊥ <span class="color-emerald">Tangent</span> = <span class="color-teal">90°</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span></div>
+          <div class="view-title" id="view-title-2d">2D: Tangent-Radius Theorem (<span class="color-blue">OT</span> ⊥ <span class="color-lime">Tangent</span> = <span class="color-teal">90°</span>) <span class="color-yellow font-bold">[Top View: XZ Plan]</span></div>
 
           <!-- Telemetry Stats Panel (2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
@@ -182,14 +182,19 @@
                 <span class="color-cyan">Eccentricity e:</span><span class="stat-value color-cyan" id="val-affine-ecc">0.000</span>
               </div>
             </div>
-              <div class="stat-line"><span class="color-emerald">Tangent Vector (v_tan):</span><strong class="color-emerald" id="tel-vtan">(-0.00, 0.00)</strong></div>
+              <div class="stat-line"><span class="color-lime">Tangent Vector (v_tan):</span><strong class="color-lime" id="tel-vtan">(-0.00, 0.00)</strong></div>
               <div class="stat-line"><span class="color-teal">Angle at Contact T:</span><strong class="color-teal" id="tel-angle">90.0°</strong></div>
-              <div class="stat-line"><span class="color-emerald">Vector Dot Product (r · t):</span><strong class="color-emerald" id="tel-dot">0.0000</strong></div>
+              <div class="stat-line"><span class="color-steel">Vector Dot Product (r · t):</span><strong class="color-steel" id="tel-dot">0.0000</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
-                <span class="color-indigo">Active Quadrant:</span><strong class="color-indigo" id="tel-quadrant">Quadrant I (+X, +Y)</strong>
+                <span class="color-yellow">Active Quadrant:</span><strong class="color-yellow" id="tel-quadrant">Quadrant I (+X, +Y)</strong>
               </div>
-              <div class="stat-line"><span class="color-teal">Reflex Right Angle (T*):</span><strong class="color-teal" id="tel-reflex-tangent">270.0°</strong></div>
-              <div class="stat-line"><span class="color-teal">Perigon Arc (90° + 270°):</span><strong class="color-teal" id="tel-perigon-tangent">360.0°</strong></div>
+              <div class="stat-line"><span class="color-sky">Cosine (cos θ):</span><strong class="color-sky" id="tel-trig-cos">0.7071</strong></div>
+              <div class="stat-line"><span class="color-emerald">Sine (sin θ):</span><strong class="color-emerald" id="tel-trig-sin">0.7071</strong></div>
+              <div class="stat-line"><span class="color-rose">Tangent (tan θ):</span><strong class="color-rose" id="tel-trig-tan">1.0000</strong></div>
+              <div class="stat-line"><span class="color-rose">Tangent Span (|T Sx|):</span><strong class="color-rose" id="tel-trig-tan-span">180.0 px</strong></div>
+              <div class="stat-line"><span class="color-violet">Secant Hypotenuse (|O Sx|):</span><strong class="color-violet" id="tel-trig-sec-span">254.6 px</strong></div>
+              <div class="stat-line"><span class="color-cyan">Reflex Right Angle (T*):</span><strong class="color-cyan" id="tel-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span class="color-lavender">Perigon Arc (90° + 270°):</span><strong class="color-lavender" id="tel-perigon-tangent">360.0°</strong></div>
               <div id="tel-chords-container"></div>
             </div>
           </div>
@@ -198,7 +203,7 @@
         <div class="viewport-resizer" id="viewport-resizer"></div>
 
         <div id="canvas-3d-container">
-          <div class="view-title">3D: Spherical Great-Circle Tangent</div>
+          <div class="view-title" id="view-title-3d">3D: Spherical Great-Circle Tangent</div>
           <div class="camera-presets-bar">
             <button type="button" data-preset="top">Top</button>
             <button type="button" data-preset="front">Front</button>
@@ -214,16 +219,21 @@
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
-              <div class="stat-line"><span class="color-amber">Contact T (x, z):</span><span class="color-amber" id="val-3d-t">0.00, 0.00</span></div>
+              <div class="stat-line"><span class="color-red">Contact T (x, z):</span><span class="color-red" id="val-3d-t">0.00, 0.00</span></div>
               <div class="stat-line"><span class="color-blue">Radius R:</span><span class="color-blue" id="val-3d-r">10.0</span></div>
-              <div class="stat-line"><span class="color-emerald">Tangent Vector (v_tan):</span><strong class="color-emerald" id="val-3d-vtan">(-0.00, 0.00, 0.00)</strong></div>
+              <div class="stat-line"><span class="color-lime">Tangent Vector (v_tan):</span><strong class="color-lime" id="val-3d-vtan">(-0.00, 0.00, 0.00)</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
                 <span class="color-teal">3D Normal Angle:</span><strong class="color-teal" id="val-3d-angle">90.0°</strong>
               </div>
-              <div class="stat-line"><span class="color-emerald">3D Dot Product (r · t):</span><strong class="color-emerald" id="val-3d-dot">0.0000</strong></div>
-              <div class="stat-line"><span class="color-indigo">Active Quadrant:</span><strong class="color-indigo" id="val-3d-quadrant">Quadrant I (+X, +Z)</strong></div>
-              <div class="stat-line"><span class="color-teal">3D Reflex Angle T*:</span><strong class="color-teal" id="val-3d-reflex-tangent">270.0°</strong></div>
-              <div class="stat-line"><span class="color-teal">3D Perigon Invariant:</span><strong class="color-teal" id="val-3d-perigon-tangent">360.0°</strong></div>
+              <div class="stat-line"><span class="color-steel">3D Dot Product (r · t):</span><strong class="color-steel" id="val-3d-dot">0.0000</strong></div>
+              <div class="stat-line"><span class="color-yellow">Active Quadrant:</span><strong class="color-yellow" id="val-3d-quadrant">Quadrant I (+X, +Z)</strong></div>
+              <div class="stat-line"><span class="color-sky">3D Cosine (cos θ):</span><strong class="color-sky" id="val-3d-trig-cos">0.7071</strong></div>
+              <div class="stat-line"><span class="color-emerald">3D Sine (sin θ):</span><strong class="color-emerald" id="val-3d-trig-sin">0.7071</strong></div>
+              <div class="stat-line"><span class="color-rose">3D Tangent (tan θ):</span><strong class="color-rose" id="val-3d-trig-tan">1.0000</strong></div>
+              <div class="stat-line"><span class="color-rose">3D Tangent Span (|T Sx|):</span><strong class="color-rose" id="val-3d-trig-tan-span">10.0 u</strong></div>
+              <div class="stat-line"><span class="color-violet">3D Secant Hypotenuse (|O Sx|):</span><strong class="color-violet" id="val-3d-trig-sec-span">14.1 u</strong></div>
+              <div class="stat-line"><span class="color-cyan">3D Reflex Angle T*:</span><strong class="color-cyan" id="val-3d-reflex-tangent">270.0°</strong></div>
+              <div class="stat-line"><span class="color-lavender">3D Perigon Invariant:</span><strong class="color-lavender" id="val-3d-perigon-tangent">360.0°</strong></div>
               <div id="val-3d-chords-container"></div>
             </div>
           </div>
@@ -353,9 +363,10 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-angles" checked><span class="checkmark"></span><span class="color-teal">Right Angle 90° Marker Square</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-area" checked><span class="checkmark"></span><span class="color-teal">Right-Angle / Triangle Shading</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-quadrant" checked><span class="checkmark"></span><span class="color-indigo">Dynamic Quadrant Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-trig" checked><span class="checkmark"></span><span class="color-sky">Trig Wedges (cos, sin, tan θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-quadrant" checked><span class="checkmark"></span><span class="color-yellow">Dynamic Quadrant Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-2d-chords" checked><span class="checkmark"></span><span class="color-violet">Tangent Chords &amp; Areas</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles (360° − θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-2d-reflex"><span class="checkmark"></span><span class="color-cyan">Reflex Angles (360° − θ)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="toggle-secant"><span class="checkmark"></span><span class="color-yellow">Show Secant Line (<span class="color-yellow">Q</span> → <span class="color-red">T</span>)</span></label>
               </div>
             </div>
@@ -411,9 +422,10 @@
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-angles" checked><span class="checkmark"></span><span class="color-teal">3D Right Angle 90° Marker</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-area" checked><span class="checkmark"></span><span class="color-teal">3D Area Meshes</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-quadrant" checked><span class="checkmark"></span><span class="color-indigo">3D Quadrant Shading</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-trig" checked><span class="checkmark"></span><span class="color-sky">3D Trig Wedges (cos, sin, tan θ)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-quadrant" checked><span class="checkmark"></span><span class="color-yellow">3D Quadrant Shading</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-chords" checked><span class="checkmark"></span><span class="color-violet">3D Tangent Chords &amp; Areas</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-teal">Reflex Angles &amp; Wedges</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-reflex"><span class="checkmark"></span><span class="color-cyan">Reflex Angles &amp; Wedges</span></label>
               </div>
             </div>
             <div class="collapsible-section collapsed">

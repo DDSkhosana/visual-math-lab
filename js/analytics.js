@@ -41,13 +41,17 @@ export function updateConsent(granted) {
 
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
     window.dispatchEvent(new CustomEvent("vml:consent-updated", { detail: { status, granted } }));
+    window.dispatchEvent(new CustomEvent("vml:consent-changed", { detail: { status, granted } }));
   }
 }
 
 /**
  * Initialize Google Analytics 4 with Google Consent Mode v2.
- * Enforces deny-by-default for non-essential analytics cookies, disables Google Signals,
- * disables ad personalization, and enables IP anonymization for COPPA/GDPR/POPIA compliance.
+ * Google Analytics is treated as a necessary operational feature to monitor visualizer reliability,
+ * screen dimensions, and rendering fidelity, enabled by default unless the user explicitly opts out.
+ * When opted out (savedConsent === "denied"), analytics_storage is set to "denied".
+ * Ad personalization, ad storage, and Google Signals are permanently disabled, and IP anonymization
+ * is enforced at all times for COPPA/GDPR/POPIA compliance.
  */
 export function initializeAnalytics() {
   const measurementId = SITE_CONFIG.analytics.measurementId;
@@ -64,12 +68,14 @@ export function initializeAnalytics() {
     window.dataLayer.push(arguments);
   };
 
-  // Google Consent Mode v2 — Denied by default unless explicitly granted by user
+  // Google Consent Mode v2 — Necessary / Opt-out model:
+  // Analytics storage is granted by default to monitor app performance and rendering reliability,
+  // unless the user has explicitly opted out (savedConsent === "denied").
   const savedConsent = getConsentStatus();
-  const isGranted = savedConsent === "granted";
+  const isOptedOut = savedConsent === "denied";
 
   window.gtag("consent", "default", {
-    analytics_storage: isGranted ? "granted" : "denied",
+    analytics_storage: isOptedOut ? "denied" : "granted",
     ad_storage: "denied",
     ad_user_data: "denied",
     ad_personalization: "denied",

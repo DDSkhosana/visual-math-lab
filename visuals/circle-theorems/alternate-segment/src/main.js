@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter, clampAngleInArc } from '../../../../js/circle-core.js';
 import { AlternateSegmentDerivations } from '../../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AlternateSegment3DView } from '../../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -212,9 +212,17 @@ function bootstrap() {
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
 
-    if (activePoint === 'T') store.set({ angleT: ang });
-    else if (activePoint === 'A') store.set({ angleA: ang });
-    else if (activePoint === 'B') store.set({ angleB: ang });
+    const cur = store.get();
+    if (activePoint === 'T') {
+      const clampedT = clampAngleInArc(ang, cur.angleA, cur.angleB, 0.2);
+      store.set({ angleT: clampedT });
+    } else if (activePoint === 'A') {
+      const clampedA = clampAngleInArc(ang, cur.angleB, cur.angleT, 0.2);
+      store.set({ angleA: clampedA });
+    } else if (activePoint === 'B') {
+      const clampedB = clampAngleInArc(ang, cur.angleT, cur.angleA, 0.15);
+      store.set({ angleB: clampedB });
+    }
     else if (activePoint === 'D') {
       const TAU = Math.PI * 2;
       const cur = store.get();
@@ -302,39 +310,51 @@ function bootstrap() {
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
     if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
-    const tx = (R3D * Math.cos(state.angleT)).toFixed(2);
-    const tz = (R3D * Math.sin(state.angleT)).toFixed(2);
-    const ax = (R3D * Math.cos(state.angleA)).toFixed(2);
-    const az = (R3D * Math.sin(state.angleA)).toFixed(2);
-    const bx = (R3D * Math.cos(state.angleB)).toFixed(2);
-    const bz = (R3D * Math.sin(state.angleB)).toFixed(2);
-    const dx = (R3D * Math.cos(state.angleT + Math.PI)).toFixed(2);
-    const dz = (R3D * Math.sin(state.angleT + Math.PI)).toFixed(2);
+
+    const m3d = scene3d?.lastComputed3D;
+    const isSpatial = state.dimensionMode === 'spatial';
+    const pT = (isSpatial && m3d?.T) ? m3d.T : { x: R3D * Math.cos(state.angleT), y: 0, z: R3D * Math.sin(state.angleT) };
+    const pA = (isSpatial && m3d?.A) ? m3d.A : { x: R3D * Math.cos(state.angleA), y: 0, z: R3D * Math.sin(state.angleA) };
+    const pB = (isSpatial && m3d?.B) ? m3d.B : { x: R3D * Math.cos(state.angleB), y: 0, z: R3D * Math.sin(state.angleB) };
+    const pD = (isSpatial && m3d?.D) ? m3d.D : { x: R3D * Math.cos(state.angleT + Math.PI), y: 0, z: R3D * Math.sin(state.angleT + Math.PI) };
+
+    const fmtCoords = (p) => isSpatial && Math.abs(p.y || 0) > 0.01
+      ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`
+      : `${p.x.toFixed(2)}, ${p.z.toFixed(2)}`;
 
     const elT = document.getElementById('val-3d-t');
-    if (elT) elT.textContent = `${tx}, ${tz}`;
+    if (elT) elT.textContent = fmtCoords(pT);
     const elA = document.getElementById('val-3d-a');
-    if (elA) elA.textContent = `${ax}, ${az}`;
+    if (elA) elA.textContent = fmtCoords(pA);
     const elB = document.getElementById('val-3d-b');
-    if (elB) elB.textContent = `${bx}, ${bz}`;
+    if (elB) elB.textContent = fmtCoords(pB);
     const elD = document.getElementById('val-3d-d');
-    if (elD) elD.textContent = `${dx}, ${dz}`;
+    if (elD) elD.textContent = fmtCoords(pD);
+
+    const tan3dDeg = (isSpatial && m3d) ? m3d.degTan : g.tangentChordDeg;
+    const tba3dDeg = (isSpatial && m3d) ? m3d.degB : g.inscribedDeg;
+    const diff3dDeg = (isSpatial && m3d) ? m3d.diffDeg : g.diffDeg;
 
     const elTan = document.getElementById('val-3d-ang-tan');
-    if (elTan) elTan.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg, angUnit);
+    if (elTan) elTan.textContent = UnitSystemConverter.formatAngle(tan3dDeg, angUnit);
     const elTba = document.getElementById('val-3d-ang-tba');
-    if (elTba) elTba.textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
+    if (elTba) elTba.textContent = UnitSystemConverter.formatAngle(tba3dDeg, angUnit);
     const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
+    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(diff3dDeg, angUnit, 3);
+
+    const tbd3dDeg = (isSpatial && m3d) ? m3d.thalesTBD : g.thalesAngleTBD;
+    const tad3dDeg = (isSpatial && m3d) ? m3d.thalesTAD : g.thalesAngleTAD;
+    const intD3dDeg = (isSpatial && m3d) ? m3d.degIntD : g.angleTDA;
+    const extD3dDeg = (isSpatial && m3d) ? m3d.degExtD : g.extAngleD;
 
     const el3DThalesTBD = document.getElementById('val-3d-thales-tbd');
-    if (el3DThalesTBD) el3DThalesTBD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTBD, angUnit);
+    if (el3DThalesTBD) el3DThalesTBD.textContent = UnitSystemConverter.formatAngle(tbd3dDeg, angUnit);
     const el3DThalesTAD = document.getElementById('val-3d-thales-tad');
-    if (el3DThalesTAD) el3DThalesTAD.textContent = UnitSystemConverter.formatAngle(g.thalesAngleTAD, angUnit);
+    if (el3DThalesTAD) el3DThalesTAD.textContent = UnitSystemConverter.formatAngle(tad3dDeg, angUnit);
     const el3DAngIntD = document.getElementById('val-3d-ang-int-d');
-    if (el3DAngIntD) el3DAngIntD.textContent = UnitSystemConverter.formatAngle(g.angleTDA, angUnit);
+    if (el3DAngIntD) el3DAngIntD.textContent = UnitSystemConverter.formatAngle(intD3dDeg, angUnit);
     const el3DAngExtD = document.getElementById('val-3d-ang-ext-d');
-    if (el3DAngExtD) el3DAngExtD.textContent = UnitSystemConverter.formatAngle(g.extAngleD, angUnit);
+    if (el3DAngExtD) el3DAngExtD.textContent = UnitSystemConverter.formatAngle(extD3dDeg, angUnit);
 
     // Reflex Telemetry (2D & 3D)
     const reflexAlpha = 360 - g.tangentChordDeg;
@@ -343,13 +363,20 @@ function bootstrap() {
     const elTelPerigonAlpha = document.getElementById('tel-perigon-alpha');
     if (elTelPerigonAlpha) elTelPerigonAlpha.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg + reflexAlpha, angUnit);
 
+    const reflexAlpha3d = 360 - tan3dDeg;
     const el3dRefAlpha = document.getElementById('val-3d-reflex-alpha');
-    if (el3dRefAlpha) el3dRefAlpha.textContent = UnitSystemConverter.formatAngle(reflexAlpha, angUnit);
+    if (el3dRefAlpha) el3dRefAlpha.textContent = UnitSystemConverter.formatAngle(reflexAlpha3d, angUnit);
     const el3dPerigonAlpha = document.getElementById('val-3d-perigon-alpha');
-    if (el3dPerigonAlpha) el3dPerigonAlpha.textContent = UnitSystemConverter.formatAngle(g.tangentChordDeg + reflexAlpha, angUnit);
+    if (el3dPerigonAlpha) el3dPerigonAlpha.textContent = UnitSystemConverter.formatAngle(tan3dDeg + reflexAlpha3d, angUnit);
 
     // Live math derivations
     derivations.render(state, g);
+
+    // Sync 3D View Title mode badge
+    const title3d = document.querySelector('#canvas-3d-container .view-title');
+    if (title3d) {
+      title3d.innerHTML = `3D: Great-Circle Tangent &amp; Alternate Triangle <span class="${isSpatial ? 'color-violet' : 'color-sky'} font-bold">[${isSpatial ? 'Spatial S² Spherical' : 'Planar Equatorial y=0'}]</span>`;
+    }
 
     // Sync Play button state
     const isPlaying = Boolean(state.playing);

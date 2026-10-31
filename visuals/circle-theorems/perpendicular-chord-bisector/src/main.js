@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
+import { clampMinAngleDistance, createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
 import { ChordBisectorDerivations } from '../../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, ChordBisector3DView } from '../../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -181,10 +181,13 @@ function bootstrap() {
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
 
+    const cur = store.get();
     if (activePoint === 'A') {
-      store.set({ angleA: ang });
+      const clampedA = clampMinAngleDistance(ang, cur.angleB, 0.2);
+      store.set({ angleA: clampedA });
     } else if (activePoint === 'B') {
-      store.set({ angleB: ang });
+      const clampedB = clampMinAngleDistance(ang, cur.angleA, 0.2);
+      store.set({ angleB: clampedB });
     } else if (activePoint === 'M') {
       const st = store.get();
       const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
@@ -229,25 +232,33 @@ function bootstrap() {
     document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const m3d = scene3d.lastComputed3D;
     const R3 = ((state.radius || 170) / 170) * 10;
     const elR3 = document.getElementById('val-3d-r');
     if (elR3) elR3.textContent = lenUnit === 'px' ? R3.toFixed(1) : UnitSystemConverter.formatLength(R3, lenUnit, 10, 1);
-    const a3 = { x: R3 * Math.cos(state.angleA), z: R3 * Math.sin(state.angleA) };
-    const b3 = { x: R3 * Math.cos(state.angleB), z: R3 * Math.sin(state.angleB) };
-    const m3 = { x: (a3.x + b3.x) / 2, z: (a3.z + b3.z) / 2 };
-    const lenAM3 = Math.hypot(a3.x - m3.x, a3.z - m3.z).toFixed(2);
-    const lenMB3 = Math.hypot(b3.x - m3.x, b3.z - m3.z).toFixed(2);
+
+    const a3 = (isSpatial && m3d?.A) ? m3d.A : { x: R3 * Math.cos(state.angleA), y: 0, z: R3 * Math.sin(state.angleA) };
+    const b3 = (isSpatial && m3d?.B) ? m3d.B : { x: R3 * Math.cos(state.angleB), y: 0, z: R3 * Math.sin(state.angleB) };
+    const m3 = (isSpatial && m3d?.M) ? m3d.M : { x: (a3.x + b3.x) / 2, y: ((a3.y || 0) + (b3.y || 0)) / 2, z: (a3.z + b3.z) / 2 };
+    const lenAM3 = (isSpatial && m3d?.lenAM !== undefined) ? m3d.lenAM : Math.hypot(a3.x - m3.x, (a3.y || 0) - (m3.y || 0), a3.z - m3.z);
+    const lenMB3 = (isSpatial && m3d?.lenMB !== undefined) ? m3d.lenMB : Math.hypot(b3.x - m3.x, (b3.y || 0) - (m3.y || 0), b3.z - m3.z);
 
     const elM = document.getElementById('val-3d-m');
-    if (elM) elM.textContent = `${m3.x.toFixed(2)}, ${m3.z.toFixed(2)}`;
+    if (elM) {
+      elM.textContent = (isSpatial && Math.abs(m3.y || 0) > 0.01)
+        ? `${m3.x.toFixed(2)}, ${m3.y.toFixed(2)}, ${m3.z.toFixed(2)}`
+        : `${m3.x.toFixed(2)}, ${m3.z.toFixed(2)}`;
+    }
     const elAm = document.getElementById('val-3d-am');
-    if (elAm) elAm.textContent = lenUnit === 'px' ? lenAM3 : UnitSystemConverter.formatLength(parseFloat(lenAM3), lenUnit, 10, 2);
+    if (elAm) elAm.textContent = lenUnit === 'px' ? lenAM3.toFixed(2) : UnitSystemConverter.formatLength(lenAM3, lenUnit, 10, 2);
     const elMb = document.getElementById('val-3d-mb');
-    if (elMb) elMb.textContent = lenUnit === 'px' ? lenMB3 : UnitSystemConverter.formatLength(parseFloat(lenMB3), lenUnit, 10, 2);
+    if (elMb) elMb.textContent = lenUnit === 'px' ? lenMB3.toFixed(2) : UnitSystemConverter.formatLength(lenMB3, lenUnit, 10, 2);
     const elAngM = document.getElementById('val-3d-ang-m');
     if (elAngM) elAngM.textContent = UnitSystemConverter.formatAngle(90, angUnit);
+    const diff3 = (isSpatial && m3d?.diffLen !== undefined) ? m3d.diffLen.toFixed(3) : Math.abs(lenAM3 - lenMB3).toFixed(3);
     const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = '0.000';
+    if (elDiff) elDiff.textContent = diff3;
 
     // Reflex Telemetry (2D & 3D)
     const elTelRefM = document.getElementById('tel-reflex-m');

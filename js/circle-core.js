@@ -66,6 +66,114 @@ export function pointerToAngle(dx, dy) {
 }
 
 /**
+ * Returns the counterclockwise circular arc (start and sweep) between prevAngle and nextAngle
+ * that strictly EXCLUDES the opposite vertex oppAngle in a simple cyclic polygon.
+ */
+export function getValidCyclicArc(prevAngle, nextAngle, oppAngle) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const p = norm(prevAngle);
+  const n = norm(nextAngle);
+  const opp = norm(oppAngle);
+  const sweep = norm(n - p);
+  const oppOffset = norm(opp - p);
+  const oppInSweep = (oppOffset > 0 && oppOffset < sweep);
+  return oppInSweep
+    ? { start: n, sweep: TAU - sweep }
+    : { start: p, sweep };
+}
+
+/**
+ * Clamps targetAngle inside the valid cyclic interval between prevAngle and nextAngle
+ * with an angular buffer minGap, guaranteeing non-self-intersection (bowtie prevention).
+ */
+export function clampCyclicAngle(targetAngle, prevAngle, nextAngle, oppAngle, minGap = 0.2) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const t = norm(targetAngle);
+  const arc = getValidCyclicArc(prevAngle, nextAngle, oppAngle);
+  const effectiveGap = Math.min(minGap, arc.sweep * 0.25);
+  const offset = norm(t - arc.start);
+
+  if (offset >= effectiveGap && offset <= arc.sweep - effectiveGap) {
+    return t;
+  }
+  if (offset < effectiveGap) {
+    return norm(arc.start + effectiveGap);
+  }
+  if (offset <= arc.sweep) {
+    return norm(arc.start + arc.sweep - effectiveGap);
+  }
+  const distFromEnd = offset - arc.sweep;
+  const distFromStart = TAU - offset;
+  return distFromEnd < distFromStart
+    ? norm(arc.start + arc.sweep - effectiveGap)
+    : norm(arc.start + effectiveGap);
+}
+
+/**
+ * Clamps targetAngle into a defined circular arc [start, start + sweep] with buffer margin.
+ */
+export function clampAngleToArc(targetAngle, start, sweep, margin = 0.15) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const t = norm(targetAngle);
+  const s = norm(start);
+  const effectiveMargin = Math.min(margin, sweep * 0.25);
+  const offset = norm(t - s);
+
+  if (offset >= effectiveMargin && offset <= sweep - effectiveMargin) {
+    return t;
+  }
+  if (offset < effectiveMargin) {
+    return norm(s + effectiveMargin);
+  }
+  if (offset <= sweep) {
+    return norm(s + sweep - effectiveMargin);
+  }
+  const distFromEnd = offset - sweep;
+  const distFromStart = TAU - offset;
+  return distFromEnd < distFromStart
+    ? norm(s + sweep - effectiveMargin)
+    : norm(s + effectiveMargin);
+}
+
+/**
+ * Enforces a minimum angular separation between targetAngle and fixedAngle along S¹.
+ */
+export function clampMinAngleDistance(targetAngle, fixedAngle, minGap = 0.2) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const t = norm(targetAngle);
+  const f = norm(fixedAngle);
+  let diff = norm(t - f);
+  if (diff > Math.PI) diff -= TAU;
+  if (Math.abs(diff) < minGap) {
+    const sign = diff >= 0 ? 1 : -1;
+    return norm(f + (sign * minGap));
+  }
+  return t;
+}
+
+/**
+ * Clamps targetAngle strictly between startAngle and endAngle along the counterclockwise arc,
+ * enforcing an angular buffer minBuf at both ends.
+ */
+export function clampAngleInArc(targetAngle, startAngle, endAngle, minBuf = 0.15) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const target = norm(targetAngle);
+  const s = norm(startAngle + minBuf);
+  const e = norm(endAngle - minBuf);
+  const sweep = norm(e - s);
+  const offset = norm(target - s);
+  if (offset <= sweep) return target;
+  const distFromEnd = offset - sweep;
+  const distFromStart = TAU - offset;
+  return distFromEnd < distFromStart ? e : s;
+}
+
+/**
  * Detects if a pointer coordinate (x, y) is on or very close to the circle circumference,
  * allowing direct click-and-drag radius resizing.
  * @param {number} x - Pointer x in local canvas pixels
@@ -78,6 +186,180 @@ export function pointerToAngle(dx, dy) {
  */
 export function isNearCircumference(x, y, cx, cy, r, tolerance = 14) {
   return Math.abs(Math.hypot(x - cx, y - cy) - r) <= tolerance;
+}
+
+/**
+ * Calculates the sagitta (height of the circular or geodesic arch above its chord):
+ * h = R * (1 - cos(|theta| / 2))
+ * For infinitesimal theta, h ≈ R * theta^2 / 8.
+ * @param {number} radius - Circle or sphere radius R > 0
+ * @param {number} thetaRad - Subtended angle theta in radians
+ * @returns {number} Sagitta height h >= 0
+ */
+export function computeSagitta(radius, thetaRad) {
+  const r = Math.max(0, Number(radius) || 0);
+  const th = Math.abs(Number(thetaRad) || 0);
+  return r * (1 - Math.cos(th / 2));
+}
+
+/**
+ * Calculates the Euclidean-to-Riemannian metric contraction ratio:
+ * rho = chord length / arc length = sinc(theta / 2) = sin(theta / 2) / (theta / 2)
+ * As theta -> 0, rho -> 1 (flat Euclidean limit).
+ * For theta in (0, 2pi], rho in [0, 1).
+ * @param {number} thetaRad - Subtended angle theta in radians
+ * @returns {number} Metric contraction ratio rho in [0, 1]
+ */
+export function computeCurvatureRatio(thetaRad) {
+  const th = Math.abs(Number(thetaRad) || 0);
+  const half = th / 2;
+  if (half < 1e-7) {
+    const h2 = half * half;
+    return 1 - h2 / 6 + (h2 * h2) / 120;
+  }
+  return Math.sin(half) / half;
+}
+
+/**
+ * Conformal stereographic projection from the North Pole (0, R, 0)
+ * onto the equatorial plane Y = 0 (X, Z coordinates):
+ * Pi(x, y, z) = (R*x / (R - y), 0, R*z / (R - y))
+ * Points on the equator (y = 0) are invariant: Pi(x, 0, z) = (x, 0, z).
+ * South Pole (0, -R, 0) projects to the origin (0, 0, 0).
+ * @param {{x: number, y: number, z: number}} pt3D - Point in R^3 or on S^2
+ * @param {number} [radius=1] - Sphere radius R
+ * @returns {{x: number, y: number, z: number}} Projected equatorial point
+ */
+export function projectStereographicToEquator(pt3D, radius = 1) {
+  const R = Number(radius) || 1;
+  const x = Number(pt3D?.x) || 0;
+  const y = Number(pt3D?.y) || 0;
+  const z = Number(pt3D?.z) || 0;
+  const denom = R - y;
+  if (Math.abs(denom) < 1e-12) {
+    const scale = 1e6;
+    return { x: x * scale, y: 0, z: z * scale };
+  }
+  const scale = R / denom;
+  return {
+    x: x * scale,
+    y: 0,
+    z: z * scale,
+  };
+}
+
+/**
+ * Inverse conformal stereographic projection from the equatorial plane Y = 0
+ * back onto the sphere S^2 of radius R:
+ * X = 2*R^2*x / (r^2 + R^2)
+ * Y = R*(r^2 - R^2) / (r^2 + R^2)
+ * Z = 2*R^2*z / (r^2 + R^2)
+ * where r^2 = x^2 + z^2.
+ * @param {number} x - Equatorial x coordinate
+ * @param {number} z - Equatorial z coordinate
+ * @param {number} [radius=1] - Sphere radius R
+ * @returns {{x: number, y: number, z: number}} Point on S^2 (X^2 + Y^2 + Z^2 = R^2)
+ */
+export function projectEquatorToSphere(x, z, radius = 1) {
+  const R = Number(radius) || 1;
+  const px = Number(x) || 0;
+  const pz = Number(z) || 0;
+  const r2 = px * px + pz * pz;
+  const R2 = R * R;
+  const denom = r2 + R2;
+  if (denom < 1e-12) {
+    return { x: 0, y: -R, z: 0 };
+  }
+  return {
+    x: (2 * R2 * px) / denom,
+    y: (R * (r2 - R2)) / denom,
+    z: (2 * R2 * pz) / denom,
+  };
+}
+
+/**
+ * Continuous Curvature Homotopy H(P, lambda) between flat Euclidean equator (lambda = 0)
+ * and Riemannian spherical manifold S^2 (lambda = 1):
+ * H(P, lambda) = (1 - lambda) * Pi(P) + lambda * P
+ * For points on the equator (y = 0), H(P, lambda) = P for all lambda in [0, 1].
+ * @param {{x: number, y: number, z: number}} pt - Point on sphere or equatorial plane
+ * @param {number} [lambda=0] - Homotopy parameter lambda in [0, 1]
+ * @param {number} [radius=1] - Radius R
+ * @returns {{x: number, y: number, z: number}}
+ */
+export function interpolateCurvatureHomotopy(pt, lambda = 0, radius = 1) {
+  const l = clamp(Number(lambda) || 0, 0, 1);
+  const R = Number(radius) || 1;
+  const proj = projectStereographicToEquator(pt, R);
+  const px = Number(pt?.x) || 0;
+  const py = Number(pt?.y) || 0;
+  const pz = Number(pt?.z) || 0;
+  const rawX = (1 - l) * proj.x + l * px;
+  const rawY = l * py;
+  const rawZ = (1 - l) * proj.z + l * pz;
+  return {
+    x: Math.abs(rawX) < 1e-15 ? 0 : rawX,
+    y: Math.abs(rawY) < 1e-15 ? 0 : rawY,
+    z: Math.abs(rawZ) < 1e-15 ? 0 : rawZ,
+  };
+}
+
+/**
+ * Continuous interpolation along the chord-to-geodesic continuum:
+ * At lambda = 0: Straight 1-simplex Euclidean chord segment (1 - t)*A + t*B.
+ * At lambda = 1: Riemannian geodesic great circle arc via spherical SLERP.
+ * Midpoint elevation (t = 0.5) rises by the sagitta h = R*(1 - cos(theta/2)).
+ * @param {{x: number, y: number, z: number}} pA - Start point
+ * @param {{x: number, y: number, z: number}} pB - End point
+ * @param {number} [t=0.5] - Path parameter in [0, 1]
+ * @param {number} [lambda=1] - Curvature homotopy parameter in [0, 1]
+ * @param {number} [radius=1] - Sphere radius
+ * @returns {{x: number, y: number, z: number}}
+ */
+export function interpolateGeodesicChord(pA, pB, t = 0.5, lambda = 1, radius = 1) {
+  const s = clamp(Number(t) || 0, 0, 1);
+  const l = clamp(Number(lambda) || 0, 0, 1);
+  const R = Number(radius) || 1;
+
+  const chordPt = {
+    x: (1 - s) * pA.x + s * pB.x,
+    y: (1 - s) * pA.y + s * pB.y,
+    z: (1 - s) * pA.z + s * pB.z,
+  };
+  if (l <= 0) return chordPt;
+
+  const lenA = Math.hypot(pA.x, pA.y, pA.z) || 1;
+  const lenB = Math.hypot(pB.x, pB.y, pB.z) || 1;
+  const uAx = pA.x / lenA, uAy = pA.y / lenA, uAz = pA.z / lenA;
+  const uBx = pB.x / lenB, uBy = pB.y / lenB, uBz = pB.z / lenB;
+  const dotVal = clamp(uAx * uBx + uAy * uBy + uAz * uBz, -1, 1);
+  const theta = Math.acos(dotVal);
+
+  let sphPt;
+  if (theta < 1e-4) {
+    sphPt = { ...chordPt };
+  } else {
+    const sinTh = Math.sin(theta);
+    const w1 = Math.sin((1 - s) * theta) / sinTh;
+    const w2 = Math.sin(s * theta) / sinTh;
+    const vx = uAx * w1 + uBx * w2;
+    const vy = uAy * w1 + uBy * w2;
+    const vz = uAz * w1 + uBz * w2;
+    const vlen = Math.hypot(vx, vy, vz) || 1;
+    sphPt = {
+      x: (vx / vlen) * R,
+      y: (vy / vlen) * R,
+      z: (vz / vlen) * R,
+    };
+  }
+
+  if (l >= 1) return sphPt;
+
+  return {
+    x: (1 - l) * chordPt.x + l * sphPt.x,
+    y: (1 - l) * chordPt.y + l * sphPt.y,
+    z: (1 - l) * chordPt.z + l * sphPt.z,
+  };
 }
 
 /**
@@ -931,6 +1213,43 @@ export function initCollapsibleSections(root = document) {
       return;
     }
 
+    const navBtn = e.target.closest ? e.target.closest('[data-card-nav]') : null;
+    if (navBtn) {
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      const direction = navBtn.getAttribute('data-card-nav') === 'prev' ? 'backward' : 'forward';
+      const panel = navBtn.closest?.('.ui-panel');
+      if (panel) {
+        cyclePanelSubpanel(panel, direction);
+        return;
+      }
+      const card = navBtn.closest?.('.derivation-card');
+      const container = card?.parentElement;
+      if (!container) return;
+      const cards = Array.from(container.querySelectorAll?.('.derivation-card') || []);
+      if (cards.length <= 1) return;
+      const curIdx = Math.max(0, cards.indexOf(card));
+      const nextIdx = direction === 'forward' ? (curIdx + 1) % cards.length : (curIdx - 1 + cards.length) % cards.length;
+      const targetCard = cards[nextIdx];
+      cards.forEach((c) => {
+        const isTarget = c === targetCard;
+        c.classList?.toggle('open', isTarget);
+        const h = c.querySelector?.('.derivation-card-header');
+        if (h) {
+          h.classList?.toggle('open', isTarget);
+          h.setAttribute?.('aria-expanded', isTarget ? 'true' : 'false');
+          const icon = h.querySelector('.icon');
+          if (icon) icon.textContent = isTarget ? '▼' : '▶';
+        }
+        const content = c.querySelector?.('.derivation-card-content');
+        if (content) {
+          content.classList?.toggle('open', isTarget);
+          if (content.style) content.style.display = isTarget ? 'block' : 'none';
+        }
+      });
+      return;
+    }
+
     const header = e.target.closest ? e.target.closest('.collapsible-header, .derivation-card-header') : null;
     if (!header || (root.contains && !root.contains(header))) return;
 
@@ -1021,10 +1340,117 @@ export function withShadow(ctx, paint, blur = 4) {
 }
 
 /**
+ * Robust string regex escaping helper.
+ */
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Matches a rendered annotation string (badge, point label, coordinate string)
+ * against an individual label identifier/key.
+ *
+ * Distinguishes case-sensitive single-letter points (A, B, C, P, O) from edge labels (a, b, c),
+ * supports numerical angle prefixes (2θ, θ, α, β, 90°), function tokens (cos, sin),
+ * and subscripts (P₁, P₂, T₁, T₂, N_D).
+ */
+export function isLabelKeyMatch(text, key) {
+  if (!text || !key) return false;
+  const t = String(text).trim();
+  const k = String(key).trim();
+  if (t === k) return true;
+
+  // Normalized subscripts (e.g. P₁ -> P1, T₁ -> T1)
+  const normT = t.replace(/₁/g, '1').replace(/₂/g, '2');
+  const normK = k.replace(/₁/g, '1').replace(/₂/g, '2');
+  if (normT === normK) return true;
+
+  // Single letter case-sensitive match (distinguishes Point 'A' from edge 'a = 5')
+  if (k.length === 1 && /[A-Za-z]/.test(k)) {
+    const pointRegex = new RegExp(`^${k}(?:\\s*\\(|\\s*,|\\s*:|\\s+|$)`);
+    if (pointRegex.test(t) || pointRegex.test(normT)) return true;
+
+    const edgeRegex = new RegExp(`^${k}\\s*=`);
+    if (edgeRegex.test(t) || edgeRegex.test(normT)) return true;
+
+    // Greek alpha alias 'a' -> 'α' (angle or edge label)
+    if (k === 'a' && (/^α\*?(?:\s*\(|\s*=|\s*:|\s*)/.test(t) || /^alpha\*?(?:\s*\(|\s*=|\s*:|\s*)/.test(normT))) return true;
+
+    return false;
+  }
+
+  // Multi-character keys: e.g. "2θ", "90°", "cos", "sin", "P1", "T1", "A'", "Hc", "Uc", "N_D"
+  if (k.endsWith('°')) {
+    const numPart = k.slice(0, -1);
+    if (/^\d+$/.test(numPart)) {
+      const degRegex = new RegExp(`^${numPart}(?:\\.0+)?°`, 'i');
+      if (degRegex.test(t) || degRegex.test(normT)) return true;
+    }
+  }
+
+  const escK = escapeRegex(k);
+  const escNormK = escapeRegex(normK);
+
+  const multiRegex = new RegExp(`^${escK}\\*?(?:\\s*\\(|\\s*=|\\s*:|\\s*\\+|-|\\s+|$)`, 'i');
+  if (multiRegex.test(t) || multiRegex.test(normT)) return true;
+
+  const multiNormRegex = new RegExp(`^${escNormK}\\*?(?:\\s*\\(|\\s*=|\\s*:|\\s*\\+|-|\\s+|$)`, 'i');
+  if (multiNormRegex.test(normT)) return true;
+
+  if (t.startsWith(`∠${k}`) || normT.startsWith(`∠${normK}`)) return true;
+
+  // Cyclic quadrilateral generic 'Angles' token
+  if ((k.toLowerCase() === 'angles') && (t.startsWith('∠') || t.includes('°'))) return true;
+
+  // Greek theta angle aliases (θ matches θ, θ₁, θ₂, θ*)
+  if (k === 'θ' && (/^θ[₁₂]?\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(t) || /^θ[12]?\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(normT))) return true;
+  if (k === '2θ' && (/^2θ\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(t) || /^2θ\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(normT))) return true;
+  if ((k === 'α' || k === 'alpha') && (/^α\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(t) || /^alpha\*?(?:\s*\(|\s*=|\s*:|\s*|\+|-|$)/.test(normT) || t.includes('Ext D'))) return true;
+
+  // Alternate segment tokens
+  if ((k.toLowerCase() === 'tangent') && t.toLowerCase().startsWith('tangent')) return true;
+  if ((k === 'segMajor' || k === 'Alt Seg (Maj)') && (t.includes('Alt Seg (Maj)') || t.includes('Alternate Segment (Major)'))) return true;
+  if ((k === 'segMinor' || k === 'Alt Seg (Min)') && (t.includes('Alt Seg (Min)') || t.includes('Alternate Segment (Minor)'))) return true;
+
+  // Special multi-char aliases
+  if ((k === 'N_D' || k === 'N_diff') && (t.startsWith('N_D') || t.startsWith('N_diff'))) return true;
+  if ((k === 'cos' || k === 'cos θ') && t.toLowerCase().startsWith('cos')) return true;
+  if ((k === 'sin' || k === 'sin θ') && t.toLowerCase().startsWith('sin')) return true;
+  if ((k === 'tan' || k === 'tan θ') && t.toLowerCase().startsWith('tan')) return true;
+  if ((k === 'csc' || k === 'csc θ') && t.toLowerCase().startsWith('csc')) return true;
+  if ((k === 'sec' || k === 'sec θ') && t.toLowerCase().startsWith('sec')) return true;
+  if ((k === 'cot' || k === 'cot θ') && t.toLowerCase().startsWith('cot')) return true;
+
+  return false;
+}
+
+/**
+ * Checks if a specific label/text should be visible according to individual label filter.
+ */
+export function isLabelVisible(name, vis = {}) {
+  if (!name) return true;
+  const hidden = vis.hiddenLabels;
+  if (!hidden || typeof hidden !== 'object') return true;
+
+  for (const [key, isHidden] of Object.entries(hidden)) {
+    if (isHidden && isLabelKeyMatch(name, key)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Draws text with a dark protective halo stroke so that underlying lines,
  * arcs, and fills never obstruct or get obstructed by the text.
  */
 export function drawHaloText(ctx, text, x, y, color, font = 'bold 13px monospace', align = 'center') {
+  if (!text) return;
+  const vis = ctx?.__vis || ctx?._vis2d;
+  if (vis) {
+    if (vis.labels === false) return;
+    if (!isLabelVisible(text, vis)) return;
+  }
   ctx.save();
   ctx.font = font;
   ctx.lineJoin = 'round';
@@ -1634,13 +2060,168 @@ export function formatCoord(x, y) {
 }
 
 export function getPointLabel(name, x, y, vis2d = {}) {
-  const showLabels = vis2d.labels !== false;
-  const showCoords = Boolean(vis2d.coords);
+  const isIndividualHidden = !isLabelVisible(name, vis2d);
+  const showLabels = (vis2d.labels !== false) && !isIndividualHidden;
+  const showCoords = Boolean(vis2d.coords) && !isIndividualHidden;
   if (!showLabels && !showCoords) return '';
   const coordStr = formatCoord(x, y);
   if (showLabels && showCoords) return `${name} ${coordStr}`;
   if (showLabels) return name;
   return coordStr;
+}
+
+export const VISUAL_LABELS_REGISTRY = {
+  'thales-theorem': [
+    { key: 'A', name: 'A', color: 'color-red' },
+    { key: 'B', name: 'B', color: 'color-orange' },
+    { key: 'P', name: 'P', color: 'color-violet' },
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: '90°', name: '90°', color: 'color-teal', isAngle: true },
+    { key: 'θ', name: 'θ', color: 'color-yellow', isAngle: true },
+  ],
+  'angle-at-centre': [
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'A', name: 'A', color: 'color-red' },
+    { key: 'B', name: 'B', color: 'color-orange' },
+    { key: 'P', name: 'P', color: 'color-violet' },
+    { key: '2θ', name: '2θ', color: 'color-yellow', isAngle: true },
+    { key: 'θ', name: 'θ', color: 'color-green', isAngle: true },
+  ],
+  'angles-in-same-segment': [
+    { key: 'A', name: 'A', color: 'color-red' },
+    { key: 'B', name: 'B', color: 'color-red' },
+    { key: 'P1', name: 'P₁', color: 'color-blue' },
+    { key: 'P2', name: 'P₂', color: 'color-emerald' },
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'θ1', name: 'θ₁', color: 'color-blue', isAngle: true },
+    { key: 'θ2', name: 'θ₂', color: 'color-emerald', isAngle: true },
+    { key: '2θ', name: '2θ', color: 'color-yellow', isAngle: true },
+  ],
+  'cyclic-quadrilateral': [
+    { key: 'A', name: 'A', color: 'color-violet' },
+    { key: 'B', name: 'B', color: 'color-cyan' },
+    { key: 'C', name: 'C', color: 'color-amber' },
+    { key: 'D', name: 'D', color: 'color-rose' },
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'Angles', name: 'Angles', color: 'color-teal', isAngle: true },
+  ],
+  'tangent-radius': [
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'T', name: 'T', color: 'color-red' },
+    { key: 'Q', name: 'Q', color: 'color-yellow' },
+    { key: '90°', name: '90°', color: 'color-teal', isAngle: true },
+  ],
+  'alternate-segment': [
+    { key: 'T', name: 'T', color: 'color-red' },
+    { key: 'A', name: 'A', color: 'color-blue' },
+    { key: 'B', name: 'B', color: 'color-orange' },
+    { key: 'D', name: 'D', color: 'color-indigo' },
+    { key: 'Tangent', name: 'Tangent', color: 'color-emerald' },
+    { key: 'α', name: 'α', color: 'color-yellow', isAngle: true },
+    { key: 'segMajor', name: 'Alt Seg (Maj)', color: 'color-sky' },
+    { key: 'segMinor', name: 'Alt Seg (Min)', color: 'color-violet' },
+  ],
+  'tangents-from-external-point': [
+    { key: 'O', name: 'O', color: 'color-sky' },
+    { key: 'T1', name: 'T₁', color: 'color-emerald' },
+    { key: 'T2', name: 'T₂', color: 'color-blue' },
+    { key: 'P', name: 'P', color: 'color-red' },
+    { key: 'K', name: 'K', color: 'color-violet' },
+    { key: '90°', name: '90°', color: 'color-teal', isAngle: true },
+    { key: 'α', name: 'α', color: 'color-teal', isAngle: true },
+    { key: 'β', name: 'β', color: 'color-teal', isAngle: true },
+  ],
+  'perpendicular-chord-bisector': [
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'A', name: 'A', color: 'color-blue' },
+    { key: 'B', name: 'B', color: 'color-orange' },
+    { key: 'M', name: 'M', color: 'color-emerald' },
+    { key: '90°', name: '90°', color: 'color-teal', isAngle: true },
+  ],
+  'unit-circle-helix': [
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'P', name: 'P', color: 'color-violet' },
+    { key: 'Cx', name: 'Cx', color: 'color-amber' },
+    { key: 'cos', name: 'cos θ', color: 'color-amber' },
+    { key: 'sin', name: 'sin θ', color: 'color-emerald' },
+  ],
+  'law-of-sines': [
+    { key: 'A', name: 'A', color: 'color-red' },
+    { key: 'B', name: 'B', color: 'color-green' },
+    { key: 'C', name: 'C', color: 'color-violet' },
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: "A'", name: "A'", color: 'color-sky' },
+    { key: 'Hc', name: 'Hc', color: 'color-orange' },
+  ],
+  'law-of-cosines': [
+    { key: 'A', name: 'A', color: 'color-sky' },
+    { key: 'B', name: 'B', color: 'color-emerald' },
+    { key: 'C', name: 'C', color: 'color-rose' },
+    { key: 'D', name: 'D', color: 'color-amber' },
+    { key: 'Uc', name: 'Uc', color: 'color-teal' },
+  ],
+  'angle-sum-identities': [
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 'A', name: 'A(α)', color: 'color-sky' },
+    { key: 'P', name: 'P(α+β)', color: 'color-emerald' },
+    { key: 'D', name: 'D(α−β)', color: 'color-rose' },
+    { key: 'Q', name: 'Q', color: 'color-amber' },
+    { key: 'M', name: 'M', color: 'color-amber' },
+    { key: 'N', name: 'N', color: 'color-amber' },
+    { key: 'N_D', name: 'N_D', color: 'color-orange' },
+  ],
+};
+
+export const VISUAL_LABELS_REGISTRY_3D = {
+  ...VISUAL_LABELS_REGISTRY,
+  'thales-theorem': [
+    { key: 'P', name: 'P', color: 'color-violet' },
+    { key: 'A', name: 'A', color: 'color-red' },
+    { key: 'B', name: 'B', color: 'color-orange' },
+    { key: 'O', name: 'O', color: 'color-indigo' },
+    { key: 's', name: 's', color: 'color-blue' },
+    { key: 't', name: 't', color: 'color-orange' },
+    { key: '|d|', name: '|d|', color: 'color-red' },
+    { key: 'r', name: 'r', color: 'color-indigo' },
+    { key: '90°', name: '90°', color: 'color-teal', isAngle: true },
+    { key: 'θ', name: 'θ', color: 'color-yellow', isAngle: true },
+  ],
+};
+
+export function getVisualLabels(visualId, mode = '2d', containerEl = null) {
+  let list = mode === '3d'
+    ? (VISUAL_LABELS_REGISTRY_3D[visualId] || VISUAL_LABELS_REGISTRY[visualId])
+    : VISUAL_LABELS_REGISTRY[visualId];
+
+  if (!list || list.length === 0) {
+    list = VISUAL_LABELS_REGISTRY[visualId] || [];
+  }
+
+  const result = [...list];
+  const seenKeys = new Set(result.map((it) => it.key));
+
+  if (containerEl) {
+    const spans = containerEl.querySelectorAll('span[class*="color-"]');
+    spans.forEach((span) => {
+      const text = span.textContent.trim();
+      const subTokens = text.split(',').map((s) => s.trim()).filter(Boolean);
+      for (const token of subTokens) {
+        const cleanKey = token.replace(/₁/g, '1').replace(/₂/g, '2');
+        if (!seenKeys.has(token) && !seenKeys.has(cleanKey)) {
+          const colorClass = Array.from(span.classList).find((c) => c.startsWith('color-')) || 'color-sky';
+          result.push({
+            key: cleanKey,
+            name: token,
+            color: colorClass,
+          });
+          seenKeys.add(token);
+          seenKeys.add(cleanKey);
+        }
+      }
+    });
+  }
+
+  return result;
 }
 
 export function createDefaultVisState() {
@@ -1663,6 +2244,7 @@ export function createDefaultVisState() {
       area: true,
       quadrant: true,
       chords: true,
+      hiddenLabels: {},
     },
     vis3d: {
       gridXZ: true,
@@ -1675,6 +2257,7 @@ export function createDefaultVisState() {
       area: true,
       quadrant: true,
       chords: true,
+      hiddenLabels: {},
     },
   };
 }
@@ -1717,6 +2300,177 @@ export function computeOptimalViewportRadius(width, height, visualId = '') {
 
   const optR = Math.round(maxAvailableR * multiplier);
   return Math.max(70, optR);
+}
+
+/**
+ * Mounts interactive chips for toggling individual labels on/off across 2D and 3D overlays.
+ * Synchronizes with store.vis2d.hiddenLabels and store.vis3d.hiddenLabels.
+ */
+export function mountIndividualLabelsUI(store, opts = {}) {
+  if (typeof document === 'undefined' || !document.getElementById) return;
+
+  const visualId = opts.visualId || opts.exportPrefix || '';
+
+  const mountContainer = (mode) => {
+    const is2D = mode === '2d';
+    const wrapperId = `individual-labels-${mode}-wrapper`;
+    if (document.getElementById(wrapperId)) return;
+
+    const labelInput = is2D
+      ? (document.getElementById('vis-2d-labels') || document.getElementById('vis-2d-points'))
+      : document.getElementById('vis-3d-labels');
+
+    if (!labelInput) return;
+
+    const container = labelInput.closest('.checkbox-container');
+    const parent = container ? container.parentNode : labelInput.parentNode;
+    if (!parent) return;
+
+    const items = getVisualLabels(visualId, mode, container);
+    if (!items || items.length === 0) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'individual-labels-wrapper';
+    wrapper.id = wrapperId;
+
+    const header = document.createElement('div');
+    header.className = 'individual-labels-header';
+
+    const headerTitle = document.createElement('span');
+    headerTitle.textContent = 'Individual Labels:';
+    header.appendChild(headerTitle);
+
+    const quickActions = document.createElement('div');
+    quickActions.className = 'individual-labels-quick-actions';
+
+    const btnAll = document.createElement('button');
+    btnAll.type = 'button';
+    btnAll.className = 'btn-chip-action';
+    btnAll.dataset.action = 'all';
+    btnAll.title = `Show all labels in ${mode.toUpperCase()}`;
+    btnAll.textContent = 'All';
+    quickActions.appendChild(btnAll);
+
+    const btnNone = document.createElement('button');
+    btnNone.type = 'button';
+    btnNone.className = 'btn-chip-action';
+    btnNone.dataset.action = 'none';
+    btnNone.title = `Hide all labels in ${mode.toUpperCase()}`;
+    btnNone.textContent = 'None';
+    quickActions.appendChild(btnNone);
+
+    header.appendChild(quickActions);
+    wrapper.appendChild(header);
+
+    const chipsGroup = document.createElement('div');
+    chipsGroup.className = 'individual-labels-chips';
+    chipsGroup.setAttribute('role', 'group');
+    chipsGroup.setAttribute('aria-label', `Toggle individual ${mode.toUpperCase()} labels`);
+
+    items.forEach((item) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'label-chip active';
+      chip.dataset.labelKey = item.key;
+      chip.setAttribute('aria-pressed', 'true');
+      chip.title = `Toggle label ${item.name || item.key} on/off`;
+
+      const check = document.createElement('span');
+      check.className = 'chip-check';
+      check.textContent = '✓';
+      chip.appendChild(check);
+
+      const text = document.createElement('span');
+      text.className = `chip-text ${item.color || ''}`.trim();
+      text.textContent = item.name || item.key;
+      chip.appendChild(text);
+
+      chip.addEventListener('click', () => {
+        const curVis = is2D ? (store.get().vis2d || {}) : (store.get().vis3d || {});
+        const curHidden = { ...(curVis.hiddenLabels || {}) };
+        if (curHidden[item.key]) {
+          delete curHidden[item.key];
+        } else {
+          curHidden[item.key] = true;
+        }
+        if (is2D) {
+          store.set({ vis2d: { ...curVis, hiddenLabels: curHidden } });
+        } else {
+          store.set({ vis3d: { ...curVis, hiddenLabels: curHidden } });
+        }
+      });
+
+      chipsGroup.appendChild(chip);
+    });
+
+    wrapper.appendChild(chipsGroup);
+
+    // Header Quick Actions
+    btnAll.addEventListener('click', () => {
+      const curVis = is2D ? (store.get().vis2d || {}) : (store.get().vis3d || {});
+      if (is2D) {
+        store.set({ vis2d: { ...curVis, hiddenLabels: {} } });
+      } else {
+        store.set({ vis3d: { ...curVis, hiddenLabels: {} } });
+      }
+    });
+
+    btnNone.addEventListener('click', () => {
+      const curVis = is2D ? (store.get().vis2d || {}) : (store.get().vis3d || {});
+      const allHidden = {};
+      items.forEach((it) => {
+        allHidden[it.key] = true;
+      });
+      if (is2D) {
+        store.set({ vis2d: { ...curVis, hiddenLabels: allHidden } });
+      } else {
+        store.set({ vis3d: { ...curVis, hiddenLabels: allHidden } });
+      }
+    });
+
+    if (container && container.nextSibling) {
+      parent.insertBefore(wrapper, container.nextSibling);
+    } else {
+      parent.appendChild(wrapper);
+    }
+  };
+
+  mountContainer('2d');
+  mountContainer('3d');
+
+  const syncUI = (state = {}) => {
+    const syncMode = (mode) => {
+      const is2D = mode === '2d';
+      const wrapper = document.getElementById(`individual-labels-${mode}-wrapper`);
+      if (!wrapper) return;
+
+      const vis = is2D ? (state.vis2d || {}) : (state.vis3d || {});
+      const isMasterOff = is2D
+        ? (vis.labels === false || (visualId === 'thales-theorem' && vis.points === false))
+        : (vis.labels === false);
+
+      wrapper.classList.toggle('is-disabled', isMasterOff);
+
+      const chips = wrapper.querySelectorAll('.label-chip');
+      chips.forEach((chip) => {
+        const key = chip.dataset.labelKey;
+        const isHidden = Boolean(vis.hiddenLabels?.[key]);
+        const isActive = !isHidden;
+        chip.classList.toggle('active', isActive);
+        chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        const checkEl = chip.querySelector('.chip-check');
+        if (checkEl) {
+          checkEl.textContent = isActive ? '✓' : '';
+        }
+      });
+    };
+
+    syncMode('2d');
+    syncMode('3d');
+  };
+
+  syncUI(store.get());
+  store.subscribe((st) => syncUI(st));
 }
 
 export function bindStandardToggles(store, ...args) {
@@ -1879,6 +2633,7 @@ export function bindStandardToggles(store, ...args) {
       syncCheck(['vis-2d-lengths', 'toggle-2d-lengths'], st.vis2d.lengths !== false);
       syncCheck(['vis-2d-angles', 'toggle-2d-angles'], st.vis2d.angles !== false);
       syncCheck(['vis-2d-area', 'toggle-2d-area'], st.vis2d.area !== false);
+      syncCheck(['vis-2d-trig', 'toggle-2d-trig'], st.vis2d.trigWedges !== false);
       syncCheck(['vis-2d-quadrant', 'toggle-2d-quadrant'], st.vis2d.quadrant !== false);
       syncCheck(['vis-2d-chords', 'toggle-2d-chords'], st.vis2d.chords !== false);
       syncCheck(['vis-2d-reflex', 'toggle-2d-reflex'], Boolean(st.vis2d.reflex));
@@ -1892,9 +2647,12 @@ export function bindStandardToggles(store, ...args) {
       syncCheck(['vis-3d-coords', 'toggle-3d-coords'], Boolean(st.vis3d.coords));
       syncCheck(['vis-3d-angles', 'toggle-3d-angles'], st.vis3d.angles !== false);
       syncCheck(['vis-3d-area', 'toggle-3d-area'], st.vis3d.area !== false);
+      syncCheck(['vis-3d-trig', 'toggle-3d-trig'], st.vis3d.trigWedges !== false);
       syncCheck(['vis-3d-quadrant', 'toggle-3d-quadrant'], st.vis3d.quadrant !== false);
       syncCheck(['vis-3d-chords', 'toggle-3d-chords'], st.vis3d.chords !== false);
       syncCheck(['vis-3d-reflex', 'toggle-3d-reflex'], Boolean(st.vis3d.reflex));
+      syncCheck(['vis-3d-geodesic-overlay', 'toggle-3d-geodesic-overlay'], Boolean(st.showGeodesicOverlay));
+      syncCheck(['vis-3d-spherical-overlay', 'toggle-3d-spherical-overlay'], Boolean(st.showSphericalOverlay));
     }
   };
 
@@ -1924,6 +2682,9 @@ export function bindStandardToggles(store, ...args) {
   });
   bindCheck(['vis-2d-area', 'toggle-2d-area'], (val) => {
     store.set({ vis2d: { ...(store.get().vis2d || {}), area: val }, showArea: val });
+  });
+  bindCheck(['vis-2d-trig', 'toggle-2d-trig'], (val) => {
+    store.set({ vis2d: { ...(store.get().vis2d || {}), trigWedges: val }, showTrigWedges: val });
   });
   bindCheck(['vis-2d-quadrant', 'toggle-2d-quadrant'], (val) => {
     store.set({ vis2d: { ...(store.get().vis2d || {}), quadrant: val }, showQuadrant: val });
@@ -1959,6 +2720,9 @@ export function bindStandardToggles(store, ...args) {
   bindCheck(['vis-3d-area', 'toggle-3d-area'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), area: val }, showArea: val });
   });
+  bindCheck(['vis-3d-trig', 'toggle-3d-trig'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), trigWedges: val }, showTrigWedges: val });
+  });
   bindCheck(['vis-3d-quadrant', 'toggle-3d-quadrant'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), quadrant: val }, showQuadrant: val });
   });
@@ -1968,6 +2732,15 @@ export function bindStandardToggles(store, ...args) {
   bindCheck(['vis-3d-reflex', 'toggle-3d-reflex'], (val) => {
     store.set({ vis3d: { ...(store.get().vis3d || {}), reflex: val }, showReflex: val });
   });
+  bindCheck(['vis-3d-geodesic-overlay', 'toggle-3d-geodesic-overlay'], (val) => {
+    store.set({ showGeodesicOverlay: val });
+  });
+  bindCheck(['vis-3d-spherical-overlay', 'toggle-3d-spherical-overlay'], (val) => {
+    store.set({ showSphericalOverlay: val });
+  });
+
+  // Universal Individual Labels Toggles & Filter Chips Across 2D & 3D Overlays
+  mountIndividualLabelsUI(store, opts);
 
   // 3D & 2D Synchronized Camera Perspective Presets
   const cameraButtonSelector =
@@ -3585,6 +4358,9 @@ export {
   WorkspaceDockManager,
   initWorkspaceDock,
   syncPanelElevationTurn,
+  cyclePanelSubpanel,
+  activateTabSubpanel,
+  setSubpanelOpen,
   stepSpring,
   VelocityTracker,
   computeEdgeSnapTarget,

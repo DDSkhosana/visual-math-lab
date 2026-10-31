@@ -18,6 +18,9 @@ import {
   translateDOM,
   loadBundle
 } from '../js/i18n.js';
+import { cardTemplate, AngleAtCentreDerivations } from '../js/circle-derivations.js';
+import { DerivationView } from '../visuals/circle-theorems/thales-theorem/src/views/DerivationView.js';
+import { TrigDerivationsView } from '../visuals/trigonometry/js/trig-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -319,4 +322,89 @@ test('i18n German (de): Comprehensive validation of German language support', as
   // Restore canonical locale
   await setLocale('en');
   assert.equal(getLocale(), 'en');
+});
+
+test('i18n Derivations & Telemetry: Complete step keys, controls and telemetry across all 7 bundles', async () => {
+  await initI18n({ initialLocale: 'en' });
+  const enBundle = JSON.parse(fs.readFileSync(path.join(localesDir, 'en.json'), 'utf8'));
+  const stepKeys = Object.keys(enBundle.derivations.steps);
+  assert.equal(stepKeys.length, 72, 'Must have all 72 derivation step keys defined in en.json');
+
+  for (const locale of EXPECTED_LOCALES) {
+    const bundle = JSON.parse(fs.readFileSync(path.join(localesDir, `${locale}.json`), 'utf8'));
+    assert.ok(bundle.derivations?.steps, `Bundle "${locale}" must define derivations.steps`);
+    for (const key of stepKeys) {
+      assert.ok(bundle.derivations.steps[key], `Bundle "${locale}" missing derivations.steps.${key}`);
+      assert.ok(bundle.derivations.steps[key].trim().length > 0, `Bundle "${locale}" has empty string at derivations.steps.${key}`);
+    }
+
+    // Verify key control extensions
+    assert.ok(bundle.controls.preset_top, `Bundle "${locale}" missing controls.preset_top`);
+    assert.ok(bundle.controls.preset_front, `Bundle "${locale}" missing controls.preset_front`);
+    assert.ok(bundle.controls.preset_side, `Bundle "${locale}" missing controls.preset_side`);
+    assert.ok(bundle.controls.preset_iso, `Bundle "${locale}" missing controls.preset_iso`);
+    assert.ok(bundle.controls.dimension_mode, `Bundle "${locale}" missing controls.dimension_mode`);
+    assert.ok(bundle.controls.flip, `Bundle "${locale}" missing controls.flip`);
+    assert.ok(bundle.controls.share, `Bundle "${locale}" missing controls.share`);
+
+    // Verify key telemetry extensions
+    assert.ok(bundle.telemetry.circumference, `Bundle "${locale}" missing telemetry.circumference`);
+    assert.ok(bundle.telemetry.polar_angle, `Bundle "${locale}" missing telemetry.polar_angle`);
+    assert.ok(bundle.telemetry.colatitude, `Bundle "${locale}" missing telemetry.colatitude`);
+    assert.ok(bundle.telemetry.longitude, `Bundle "${locale}" missing telemetry.longitude`);
+  }
+
+  // Test cardTemplate outputs in each locale
+  const localesMap = {
+    en: { badge: 'Step 1', title: 'Coordinate Setup & Diameter Chord' },
+    es: { badge: 'Paso 1', title: 'Configuración de Coordenadas y Cuerda Diametral' },
+    fr: { badge: 'Étape 1', title: 'Repère de Coordonnées et Corde Diamétrale' },
+    de: { badge: 'Schritt 1', title: 'Koordinatensystem & Durchmessersehne' },
+    zh: { badge: '第 1 步', title: '坐标系构建与直径弦设定' },
+    ar: { badge: 'الخطوة 1', title: 'إعداد الإحداثيات ووتر القطر' },
+    nr: { badge: 'Isinyathelo 1', title: 'Ukuhlelwa kwama-Coordinate ne-Chord ye-Diameter' }
+  };
+
+  for (const [code, expected] of Object.entries(localesMap)) {
+    await setLocale(code);
+    const html = cardTemplate('deriv-2d-step-1', 'Step 1', 'Coordinate Setup & Diameter Chord', 'Math');
+    assert.ok(html.includes(`<span class="derivation-badge">${expected.badge}</span>`), `cardTemplate in ${code} must contain localized badge "${expected.badge}"`);
+    assert.ok(html.includes(`<span class="derivation-title">${expected.title}</span>`), `cardTemplate in ${code} must contain localized title "${expected.title}"`);
+  }
+
+  // Restore English
+  await setLocale('en');
+  assert.equal(getLocale(), 'en');
+});
+
+test('i18n Dynamic Derivation Re-rendering: vml:locale-changed event binding and execution', async () => {
+  // Setup minimal window event dispatch mock
+  const listeners = [];
+  const origWindow = globalThis.window;
+  globalThis.window = {
+    addEventListener: (event, handler) => {
+      if (event === 'vml:locale-changed') listeners.push(handler);
+    },
+    removeEventListener: () => {}
+  };
+
+  try {
+    const mockContainer = { innerHTML: '', querySelectorAll: () => [] };
+    const circleDeriv = new AngleAtCentreDerivations(mockContainer);
+    assert.ok(listeners.length >= 1, 'AngleAtCentreDerivations must register vml:locale-changed listener');
+
+    const thalesDeriv = new DerivationView(mockContainer, mockContainer);
+    assert.ok(listeners.length >= 2, 'Thales DerivationView must register vml:locale-changed listener');
+
+    const trigDeriv = new TrigDerivationsView(mockContainer, 'unit-circle-helix');
+    assert.ok(listeners.length >= 3, 'TrigDerivationsView must register vml:locale-changed listener');
+
+    // Trigger locale change event to confirm handlers execute cleanly
+    listeners.forEach(fn => fn());
+    assert.equal(circleDeriv.initialized, false, 'AngleAtCentreDerivations must reset initialized flag on locale change');
+    assert.equal(thalesDeriv.initialized, false, 'Thales DerivationView must reset initialized flag on locale change');
+    assert.equal(trigDeriv.initialized, false, 'TrigDerivationsView must reset initialized flag on locale change');
+  } finally {
+    globalThis.window = origWindow;
+  }
 });

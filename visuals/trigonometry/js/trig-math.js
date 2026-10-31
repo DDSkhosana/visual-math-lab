@@ -579,7 +579,15 @@ export function computeLawOfCosines(sideA = 8, sideB = 10, angleCRad = Math.PI /
  * 4. Spherical excess E = A_sph + B_sph + C - π and area Area = R² * E.
  * 5. 3D Cartesian coordinates of vertices C, A, B on S² with exact arc lengths.
  */
-export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = Math.PI / 3, radius = 10) {
+export function computeSphericalLawOfCosines(
+  sideA = 7,
+  sideB = 9,
+  angleCRad = Math.PI / 3,
+  radius = 10,
+  colatCRad = 0,
+  lonCRad = 0,
+  headingRad = 0
+) {
   const R = Math.max(1, Number(radius) || 10);
   // Normalize side lengths so arc angles remain within (0, π)
   const maxArc = Math.PI * 0.85;
@@ -624,29 +632,75 @@ export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = M
   const cFlat2 = a * a + b * b - 2 * a * b * cosC;
   const cFlat = Math.sqrt(Math.max(0, cFlat2));
 
-  // 3D Cartesian vertex placement on S²:
-  // Place C at North Pole (0, R, 0)
-  // Vertex A along prime meridian (x = R sin(thetaB), y = R cos(thetaB), z = 0)
+  // Canonical unit vectors on S² (with C at North Pole (0, 1, 0)):
+  // Vertex A along prime meridian (x = sin(thetaB), y = cos(thetaB), z = 0)
   // Vertex B rotated azimuthally by angle C:
-  // (x = R sin(thetaA) cos C, y = R cos(thetaA), z = R sin(thetaA) sin C)
-  const vertexC = { x: 0, y: R, z: 0 };
-  const vertexA = { x: R * sinB_arc, y: R * cosB_arc, z: 0 };
-  const vertexB = { x: R * sinA_arc * cosC, y: R * cosA_arc, z: R * sinA_arc * sinC };
+  // (x = sin(thetaA) cos C, y = cos(thetaA), z = sin(thetaA) sin C)
+  const uC0 = { x: 0, y: 1, z: 0 };
+  const uA0 = { x: sinB_arc, y: cosB_arc, z: 0 };
+  const uB0 = { x: sinA_arc * cosC, y: cosA_arc, z: sinA_arc * sinC };
 
-  // Unit normal vectors for great circles
-  const uC = { x: 0, y: 1, z: 0 };
-  const uA = { x: sinB_arc, y: cosB_arc, z: 0 };
-  const uB = { x: sinA_arc * cosC, y: cosA_arc, z: sinA_arc * sinC };
+  // Rigid SO(3) spherical transformation:
+  // 1. Heading rotation ψ around canonical Y-axis (rotates triangle about C)
+  // 2. Colatitude tip θ_C around Z-axis (tips C from North Pole towards target colatitude)
+  // 3. Longitude rotation φ_C around Y-axis (rotates C to target azimuth)
+  const colatC = Number(colatCRad) || 0;
+  const lonC = Number(lonCRad) || 0;
+  const heading = Number(headingRad) || 0;
 
-  // Verification residuals
+  const rotateSO3 = (v) => {
+    if (colatC === 0 && lonC === 0 && heading === 0) {
+      return { x: v.x, y: v.y, z: v.z };
+    }
+    // 1. Heading around Y
+    const cosH = Math.cos(heading);
+    const sinH = Math.sin(heading);
+    const x1 = v.x * cosH - v.z * sinH;
+    const y1 = v.y;
+    const z1 = v.x * sinH + v.z * cosH;
+
+    // 2. Colatitude tip around Z
+    const cosT = Math.cos(colatC);
+    const sinT = Math.sin(colatC);
+    const x2 = x1 * cosT + y1 * sinT;
+    const y2 = -x1 * sinT + y1 * cosT;
+    const z2 = z1;
+
+    // 3. Longitude around Y
+    const cosL = Math.cos(lonC);
+    const sinL = Math.sin(lonC);
+    const x3 = x2 * cosL - z2 * sinL;
+    const y3 = y2;
+    const z3 = x2 * sinL + z2 * cosL;
+
+    return { x: x3, y: y3, z: z3 };
+  };
+
+  const uC = rotateSO3(uC0);
+  const uA = rotateSO3(uA0);
+  const uB = rotateSO3(uB0);
+
+  // 3D Cartesian vertex coordinates on S²:
+  const vertexC = { x: R * uC.x, y: R * uC.y, z: R * uC.z };
+  const vertexA = { x: R * uA.x, y: R * uA.y, z: R * uA.z };
+  const vertexB = { x: R * uB.x, y: R * uB.y, z: R * uB.z };
+
+  // Verification residuals & SO(3) invariant preservation
   const dotAB = uA.x * uB.x + uA.y * uB.y + uA.z * uB.z;
+  const dotCA = uC.x * uA.x + uC.y * uA.y + uC.z * uA.z;
+  const dotCB = uC.x * uB.x + uC.y * uB.y + uC.z * uB.z;
   const residualCosineLaw = Math.abs(dotAB - cosC_arc);
+  const residualSideA = Math.abs(dotCB - cosA_arc);
+  const residualSideB = Math.abs(dotCA - cosB_arc);
 
   return {
     R,
     a,
     b,
     c,
+    colatC,
+    lonC,
+    heading,
     thetaA,
     thetaB,
     thetaC,
@@ -677,9 +731,16 @@ export function computeSphericalLawOfCosines(sideA = 7, sideB = 9, angleCRad = M
       A: vertexA,
       B: vertexB,
     },
+    unitVectors: {
+      uC,
+      uA,
+      uB,
+    },
     invariants: {
       residualCosineLaw,
-      isVerified: residualCosineLaw < 1e-5 && excessRad >= -1e-6,
+      residualSideA,
+      residualSideB,
+      isVerified: residualCosineLaw < 1e-5 && residualSideA < 1e-5 && residualSideB < 1e-5 && excessRad >= -1e-6,
     },
   };
 }

@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
@@ -218,11 +219,11 @@ export class CanvasView {
     if (showReflex) {
       const angT1O = Math.atan2(g.cy - g.T1.y, g.cx - g.T1.x);
       const angT1P = Math.atan2(g.P.y - g.T1.y, g.P.x - g.T1.x);
-      drawReflexWedge(ctx, g.T1, angT1O, angT1P, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+      drawReflexWedge(ctx, g.T1, angT1O, angT1P, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);
 
       const angT2O = Math.atan2(g.cy - g.T2.y, g.cx - g.T2.x);
       const angT2P = Math.atan2(g.P.y - g.T2.y, g.P.x - g.T2.x);
-      drawReflexWedge(ctx, g.T2, angT2O, angT2P, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+      drawReflexWedge(ctx, g.T2, angT2O, angT2P, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);
 
       if (showLabels) {
         const uT1Ox = (g.cx - g.T1.x) / (Math.hypot(g.cx - g.T1.x, g.cy - g.T1.y) || 1);
@@ -231,7 +232,7 @@ export class CanvasView {
         const uT1Py = (g.P.y - g.T1.y) / (Math.hypot(g.P.x - g.T1.x, g.P.y - g.T1.y) || 1);
         const bis1X = uT1Ox + uT1Px, bis1Y = uT1Oy + uT1Py;
         const l1 = Math.hypot(bis1X, bis1Y) || 1;
-        drawTextBadge(ctx, '270.0° (T₁*)', g.T1.x - 38 * (bis1X / l1), g.T1.y - 38 * (bis1Y / l1), PALETTE.teal);
+        drawTextBadge(ctx, '270.0° (T₁*)', g.T1.x - 38 * (bis1X / l1), g.T1.y - 38 * (bis1Y / l1), PALETTE.cyan);
 
         const uT2Ox = (g.cx - g.T2.x) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
         const uT2Oy = (g.cy - g.T2.y) / (Math.hypot(g.cx - g.T2.x, g.cy - g.T2.y) || 1);
@@ -239,7 +240,7 @@ export class CanvasView {
         const uT2Py = (g.P.y - g.T2.y) / (Math.hypot(g.P.x - g.T2.x, g.P.y - g.T2.y) || 1);
         const bis2X = uT2Ox + uT2Px, bis2Y = uT2Oy + uT2Py;
         const l2 = Math.hypot(bis2X, bis2Y) || 1;
-        drawTextBadge(ctx, '270.0° (T₂*)', g.T2.x - 38 * (bis2X / l2), g.T2.y - 38 * (bis2Y / l2), PALETTE.teal);
+        drawTextBadge(ctx, '270.0° (T₂*)', g.T2.x - 38 * (bis2X / l2), g.T2.y - 38 * (bis2Y / l2), PALETTE.cyan);
       }
     }
   }

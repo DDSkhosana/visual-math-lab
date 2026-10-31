@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
@@ -37,12 +38,13 @@ export class CanvasView {
 
     const showArea = (state.vis2d?.area !== false) && (state.showArea !== false);
     const showQuadrant = (state.showQuadrant !== false) && (state.vis2d?.quadrant !== false);
+    const showTrig = (state.showTrigWedges !== false) && (state.vis2d?.trigWedges !== false);
     const showAngles = (state.vis2d?.angles !== false);
     const showLabels = (state.vis2d?.labels !== false);
     const showPoints = (state.vis2d?.points !== false);
     const vis = state.vis2d || {};
 
-    // 1. Dynamic Quadrant Shading
+    // 1. Dynamic Quadrant Shading & Quadrant Indicators
     if (showQuadrant) {
       const q = g.quadrant;
       ctx.save();
@@ -50,46 +52,64 @@ export class CanvasView {
       ctx.moveTo(g.cx, g.cy);
       ctx.arc(g.cx, g.cy, g.r, -q.startAngle, -q.endAngle, true);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.12)';
+      ctx.fillStyle = 'rgba(234, 179, 8, 0.14)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.55)';
       ctx.lineWidth = 1.5;
-      ctx.setLineDash([3, 3]);
+      ctx.setLineDash([4, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Subtle Roman Numerals in each quadrant
-      const qr = g.r * 0.78;
+      // Quadrant Numerals and Labels (Q1..Q4 / I..IV) at radius 0.82r
+      const qr = g.r * 0.82;
       const quads = [
-        { num: 'I', q: 0, x: g.cx + qr * 0.707, y: g.cy - qr * 0.707 },
-        { num: 'II', q: 1, x: g.cx - qr * 0.707, y: g.cy - qr * 0.707 },
-        { num: 'III', q: 2, x: g.cx - qr * 0.707, y: g.cy + qr * 0.707 },
-        { num: 'IV', q: 3, x: g.cx + qr * 0.707, y: g.cy + qr * 0.707 },
+        { num: 'I', qNum: 'Q1', q: 0, x: g.cx + qr * 0.707, y: g.cy - qr * 0.707 },
+        { num: 'II', qNum: 'Q2', q: 1, x: g.cx - qr * 0.707, y: g.cy - qr * 0.707 },
+        { num: 'III', qNum: 'Q3', q: 2, x: g.cx - qr * 0.707, y: g.cy + qr * 0.707 },
+        { num: 'IV', qNum: 'Q4', q: 3, x: g.cx + qr * 0.707, y: g.cy + qr * 0.707 },
       ];
 
       if (showLabels) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (const item of quads) {
-          if (item.q === q.index) {
+          const isActive = item.q === q.index;
+          if (isActive) {
+            // Circular glowing halo badge behind active numeral
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, 16, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(234, 179, 8, 0.18)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.75)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
             ctx.font = 'bold 15px sans-serif';
             ctx.fillStyle = PALETTE.yellow;
-            ctx.shadowColor = 'rgba(234, 179, 8, 0.6)';
-            ctx.shadowBlur = 8;
+            ctx.shadowColor = 'rgba(234, 179, 8, 0.75)';
+            ctx.shadowBlur = 10;
             ctx.fillText(item.num, item.x, item.y);
             ctx.shadowBlur = 0;
+
+            // Quadrant Q-number badge
+            ctx.font = 'bold 10px monospace';
+            ctx.fillStyle = PALETTE.yellow;
+            ctx.fillText(item.qNum, item.x, item.y - 22);
           } else {
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.28)';
             ctx.fillText(item.num, item.x, item.y);
+            ctx.font = 'bold 10px monospace';
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
+            ctx.fillText(item.qNum, item.x, item.y - 18);
           }
         }
 
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
-        ctx.fillText(`Active: ${q.label}`, 12, height - 10);
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.85)';
+        ctx.fillText(`Top View (Plane XZ) | ${q.label}`, 12, height - 10);
       }
       ctx.restore();
     }
@@ -98,7 +118,6 @@ export class CanvasView {
     if (g.chords && g.chords.length > 0) {
       const showChords = (state.vis2d?.chords !== false);
       for (const c of g.chords) {
-        // Area shading
         if (showArea && showChords) {
           ctx.save();
           ctx.beginPath();
@@ -115,7 +134,6 @@ export class CanvasView {
           ctx.restore();
         }
 
-        // Chord connecting adjacent tangent contact points
         if (showChords) {
           ctx.save();
           ctx.strokeStyle = c.strokeRgba;
@@ -129,7 +147,6 @@ export class CanvasView {
           ctx.restore();
         }
 
-        // Area badge
         if (showLabels && (state.vis2d?.lengths !== false) && showChords) {
           const areaVal = Math.round(c.area);
           drawTextBadge(ctx, `${c.t1Name}${c.t2Name}: ${areaVal}px²`, c.badgePos.x, c.badgePos.y, c.color);
@@ -144,10 +161,132 @@ export class CanvasView {
     ctx.arc(g.cx, g.cy, g.r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 4. Secant chord & triangle shading (optional)
+    // 4. Trigonometric Wedges & Projections (Exclusively for Primary Tangent T)
+    if (showTrig && g.primaryTrig) {
+      const pt = g.primaryTrig;
+
+      // Inscribed right triangle Δ O Tx T fill
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy);
+      ctx.lineTo(pt.Tx.x, pt.Tx.y);
+      ctx.lineTo(g.T.x, g.T.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.10)';
+      ctx.fill();
+
+      // Angle θ Arc Wedge at Origin O
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy);
+      ctx.arc(g.cx, g.cy, 36, 0, -pt.angleRad, true);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+      ctx.fill();
+      ctx.strokeStyle = PALETTE.amber;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (showLabels) {
+        const halfAng = -pt.angleRad / 2;
+        const badgeX = g.cx + 56 * Math.cos(halfAng);
+        const badgeY = g.cy + 56 * Math.sin(halfAng);
+        drawTextBadge(ctx, `θ = ${pt.angleDeg.toFixed(1)}°`, badgeX, badgeY, PALETTE.amber);
+      }
+
+      // Base Leg (cos θ) along X-axis from O to Tx
+      ctx.strokeStyle = PALETTE.sky;
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(g.cx, g.cy);
+      ctx.lineTo(pt.Tx.x, pt.Tx.y);
+      ctx.stroke();
+
+      if (showLabels && (state.vis2d?.lengths !== false)) {
+        const midTx = (g.cx + pt.Tx.x) / 2;
+        const offsetSign = pt.sinVal >= 0 ? 18 : -18;
+        drawTextBadge(ctx, `cos θ = ${pt.cosVal.toFixed(2)}`, midTx, g.cy + offsetSign, PALETTE.sky);
+      }
+
+      // Altitude Drop (sin θ) from Tx to T
+      ctx.strokeStyle = PALETTE.emerald;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pt.Tx.x, pt.Tx.y);
+      ctx.lineTo(g.T.x, g.T.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Right-angle square at Tx
+      const dirX = Math.sign(g.cx - pt.Tx.x) || 1;
+      const dirY = Math.sign(g.T.y - pt.Tx.y) || 1;
+      const sq = 12;
+      ctx.beginPath();
+      ctx.moveTo(pt.Tx.x, pt.Tx.y + dirY * sq);
+      ctx.lineTo(pt.Tx.x + dirX * sq, pt.Tx.y + dirY * sq);
+      ctx.lineTo(pt.Tx.x + dirX * sq, pt.Tx.y);
+      ctx.strokeStyle = PALETTE.teal;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (showLabels && (state.vis2d?.lengths !== false)) {
+        const midY = (pt.Tx.y + g.T.y) / 2;
+        const offX = pt.cosVal >= 0 ? -48 : 48;
+        drawTextBadge(ctx, `sin θ = ${pt.sinVal.toFixed(2)}`, pt.Tx.x + offX, midY, PALETTE.emerald);
+      }
+
+      // Projection point Tx marker
+      if (showPoints) {
+        drawLabelledPoint(ctx, pt.Tx, PALETTE.sky, getPointLabel('Tx', pt.Tx.x - g.cx, 0, vis), 8, 14);
+      }
+
+      // Tangent Secant Triangle Δ O T Sx & Segment (tan θ)
+      if (pt.isSecantFinite && Math.abs(pt.Sx.x - g.cx) < width * 2) {
+        // Secant triangle discrete fill
+        ctx.beginPath();
+        ctx.moveTo(g.cx, g.cy);
+        ctx.lineTo(g.T.x, g.T.y);
+        ctx.lineTo(pt.Sx.x, pt.Sx.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.10)';
+        ctx.fill();
+
+        // Secant hypotenuse bar along X-axis from O to Sx
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.55)';
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(g.cx, g.cy);
+        ctx.lineTo(pt.Sx.x, pt.Sx.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Highlight tangent segment from T to Sx in Rose
+        ctx.strokeStyle = PALETTE.rose;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(g.T.x, g.T.y);
+        ctx.lineTo(pt.Sx.x, pt.Sx.y);
+        ctx.stroke();
+
+        // Secant point Sx marker
+        if (showPoints) {
+          drawLabelledPoint(ctx, pt.Sx, PALETTE.rose, getPointLabel('Sx', pt.Sx.x - g.cx, 0, vis), 8, 14);
+        }
+
+        // Tangent length badge
+        if (showLabels && (state.vis2d?.lengths !== false)) {
+          const midX = (g.T.x + pt.Sx.x) / 2;
+          const midY = (g.T.y + pt.Sx.y) / 2;
+          drawTextBadge(ctx, `tan θ = ${pt.tanVal.toFixed(2)}`, midX, midY - 14, PALETTE.rose);
+        }
+      }
+      ctx.restore();
+    }
+
+    // 5. Secant chord & triangle shading (optional secondary secant Q)
     if (state.showSecant) {
       if (showArea) {
-        // Secant triangle discrete fill: Pure Sky tint
         ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
         ctx.beginPath();
         ctx.moveTo(g.O.x, g.O.y);
@@ -174,7 +313,7 @@ export class CanvasView {
       }
     }
 
-    // 5. Radii, Tangents, and Right-Angle Markers for each active tangent
+    // 6. Radii, Tangents, and Right-Angle Markers for each active tangent
     for (const t of g.tangents) {
       // Radius OT
       ctx.strokeStyle = PALETTE.blue;
@@ -184,7 +323,7 @@ export class CanvasView {
       ctx.stroke();
 
       // Tangent Line with sharp arrowheads at both ends (no blobs)
-      drawDoubleArrow(ctx, t.T1, t.T2, PALETTE.emerald, 3);
+      drawDoubleArrow(ctx, t.T1, t.T2, PALETTE.lime, 3);
 
       // Right-angle square marker at contact point
       if (showAngles) {
@@ -210,12 +349,12 @@ export class CanvasView {
       if (showReflex) {
         const angRad = Math.atan2(t.rightSquare.c1.y - t.pt.y, t.rightSquare.c1.x - t.pt.x);
         const angTan = Math.atan2(t.rightSquare.c3.y - t.pt.y, t.rightSquare.c3.x - t.pt.x);
-        drawReflexWedge(ctx, t.pt, angRad, angTan, 26, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+        drawReflexWedge(ctx, t.pt, angRad, angTan, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);
 
         if (showLabels) {
           const rbx = t.pt.x - 2.2 * (t.rightSquare.c2.x - t.pt.x);
           const rby = t.pt.y - 2.2 * (t.rightSquare.c2.y - t.pt.y);
-          drawTextBadge(ctx, `${t.name}* = 270.0°`, rbx, rby, PALETTE.teal);
+          drawTextBadge(ctx, `${t.name}* = 270.0°`, rbx, rby, PALETTE.cyan);
         }
       }
 
@@ -225,7 +364,7 @@ export class CanvasView {
       }
     }
 
-    // 6. Center Point O
+    // 7. Center Point O
     if (showPoints) {
       drawLabelledPoint(ctx, g.O, PALETTE.blue, getPointLabel('O', 0, 0, vis), 10, 16);
     }

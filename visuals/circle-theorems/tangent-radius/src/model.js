@@ -11,6 +11,7 @@ export function createInitialState() {
     angleT4: toRadians(315),
     tangentCount: 1,
     showQuadrant: true,
+    showTrigWedges: true,
     chordAreaMode: 'segment',
     showSecant: false,
     secantOffset: toRadians(30),
@@ -19,6 +20,14 @@ export function createInitialState() {
     showCoords: true,
     playing: false,
     ...vis,
+    vis2d: {
+      ...vis.vis2d,
+      trigWedges: true,
+    },
+    vis3d: {
+      ...vis.vis3d,
+      trigWedges: true,
+    },
   };
 }
 
@@ -49,6 +58,7 @@ export function computeGeometry(state, width, height) {
     startAngle: quadStartAngle,
     endAngle: quadEndAngle,
     label: `Quadrant ${quadRoman} ${quadSigns}`,
+    fullLabel: `Quadrant ${quadNumber} (${quadRoman}) ${quadSigns}`,
   };
 
   const maxTangentLen = Math.max(80, Math.min(width, height) * 0.45);
@@ -108,6 +118,40 @@ export function computeGeometry(state, width, height) {
   const T1 = primary.T1;
   const T2 = primary.T2;
   const dotProduct = primary.dotProduct;
+
+  // Trigonometric Projections & Wedges (Exclusively for Primary Tangent T)
+  const cosVal = Math.cos(angleT);
+  const sinVal = Math.sin(angleT);
+  const tanVal = Math.tan(angleT);
+  const secVal = Math.abs(cosVal) > 1e-4 ? (1 / cosVal) : (Math.sign(cosVal || 1) * 1e4);
+
+  // Horizontal projection Tx on X-axis (y = cy in 2D canvas coordinates)
+  const Tx = { x: cx + r * cosVal, y: cy };
+
+  // Secant point Sx along X-axis: tangent line intersection with horizontal axis y = cy
+  // Tangent line in centered coords: x * cos(angleT) + y * sin(angleT) = r
+  // Setting y = 0: x = r / cos(angleT) = r * sec(angleT)
+  const isSecantFinite = Math.abs(cosVal) > 0.02;
+  const maxSecDist = Math.max(width, height) * 2.5;
+  const clampedSecX = clamp(r * secVal, -maxSecDist, maxSecDist);
+  const Sx = { x: cx + clampedSecX, y: cy };
+
+  const tanLength = r * Math.abs(tanVal);
+  const secLength = r * Math.abs(secVal);
+
+  const primaryTrig = {
+    Tx,
+    Sx,
+    cosVal,
+    sinVal,
+    tanVal,
+    secVal,
+    tanLength,
+    secLength,
+    isSecantFinite,
+    angleRad: angleT,
+    angleDeg: toDegrees(angleT),
+  };
 
   // Secant point Q (relative to primary T)
   const angQ = angleT + state.secantOffset;
@@ -175,6 +219,7 @@ export function computeGeometry(state, width, height) {
     tangents,
     chords,
     count,
+    primaryTrig,
   };
 }
 
@@ -191,8 +236,26 @@ export function generateSVG(state, width, height) {
     const p2y = g.cy - g.r * Math.sin(q.endAngle);
     quadrantSVG = `
     <!-- Dynamic Quadrant Shading -->
-    <path d="M ${g.cx} ${g.cy} L ${p1x} ${p1y} A ${g.r} ${g.r} 0 0 0 ${p2x} ${p2y} Z" fill="rgba(99, 102, 241, 0.12)" stroke="rgba(99, 102, 241, 0.35)" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <path d="M ${g.cx} ${g.cy} L ${p1x} ${p1y} A ${g.r} ${g.r} 0 0 0 ${p2x} ${p2y} Z" fill="rgba(234, 179, 8, 0.14)" stroke="rgba(234, 179, 8, 0.55)" stroke-width="1.5" stroke-dasharray="4,4"/>
     <text x="${g.cx + (p1x + p2x - 2 * g.cx) * 0.4}" y="${g.cy + (p1y + p2y - 2 * g.cy) * 0.4}" fill="${PALETTE.yellow}" font-weight="bold" font-size="14" text-anchor="middle">${q.roman}</text>`;
+  }
+
+  let trigSVG = '';
+  const showTrig = state.showTrigWedges !== false && state.vis2d?.trigWedges !== false;
+  if (showTrig && g.primaryTrig) {
+    const pt = g.primaryTrig;
+    trigSVG = `
+    <!-- Trig Wedges: cos θ (Sky), sin θ (Emerald), tan θ (Rose) -->
+    <polygon points="${g.O.x},${g.O.y} ${pt.Tx.x},${pt.Tx.y} ${g.T.x},${g.T.y}" fill="rgba(56, 189, 248, 0.10)"/>
+    <line x1="${g.O.x}" y1="${g.O.y}" x2="${pt.Tx.x}" y2="${pt.Tx.y}" stroke="${PALETTE.sky}" stroke-width="3"/>
+    <line x1="${pt.Tx.x}" y1="${pt.Tx.y}" x2="${g.T.x}" y2="${g.T.y}" stroke="${PALETTE.emerald}" stroke-width="2.5" stroke-dasharray="4,4"/>
+    <circle cx="${pt.Tx.x}" cy="${pt.Tx.y}" r="4.5" fill="${PALETTE.sky}"/>`;
+    if (pt.isSecantFinite) {
+      trigSVG += `
+    <polygon points="${g.O.x},${g.O.y} ${g.T.x},${g.T.y} ${pt.Sx.x},${pt.Sx.y}" fill="rgba(244, 63, 94, 0.10)"/>
+    <line x1="${g.T.x}" y1="${g.T.y}" x2="${pt.Sx.x}" y2="${pt.Sx.y}" stroke="${PALETTE.rose}" stroke-width="3.5"/>
+    <circle cx="${pt.Sx.x}" cy="${pt.Sx.y}" r="4.5" fill="${PALETTE.rose}"/>`;
+    }
   }
 
   let chordsSVG = '';
@@ -219,7 +282,7 @@ export function generateSVG(state, width, height) {
     <!-- Radius OT for ${t.name} -->
     <line x1="${g.O.x}" y1="${g.O.y}" x2="${t.pt.x}" y2="${t.pt.y}" stroke="${PALETTE.blue}" stroke-width="2.5"/>
     <!-- Tangent line for ${t.name} -->
-    <line x1="${t.T1.x}" y1="${t.T1.y}" x2="${t.T2.x}" y2="${t.T2.y}" stroke="${PALETTE.emerald}" stroke-width="2.5"/>
+    <line x1="${t.T1.x}" y1="${t.T1.y}" x2="${t.T2.x}" y2="${t.T2.y}" stroke="${PALETTE.lime}" stroke-width="2.5"/>
     <!-- Contact point ${t.name} -->
     <circle cx="${t.pt.x}" cy="${t.pt.y}" r="6.5" fill="${PALETTE.red}"/>
     <text x="${lt.x}" y="${lt.y}" fill="${PALETTE.red}" font-weight="bold" text-anchor="${lt.anchor}" dominant-baseline="${lt.baseline}">${t.name}</text>`;
@@ -229,6 +292,7 @@ export function generateSVG(state, width, height) {
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
   ${quadrantSVG}
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
+  ${trigSVG}
   ${chordsSVG}
   ${tangentsSVG}
   <!-- Center point -->

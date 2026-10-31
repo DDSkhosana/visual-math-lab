@@ -1,14 +1,18 @@
+import { t } from '../../../../../js/i18n.js';
 import { sphereStats, thalesStats2D, toDegrees } from '../model/thales-math.js';
 
 const tag = (color, text) => `<span class="color-${color}">${text}</span>`;
 
 function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
+  const matchStep = typeof badge === "string" && badge.match(/^Step\s+(\d+)$/i);
+  const localizedBadge = matchStep ? t("derivations.step_prefix", { step: matchStep[1] }, badge) : badge;
+  const localizedTitle = t(`derivations.steps.${id}`, {}, title);
   return `
     <div class="derivation-card" id="${id}">
       <div class="derivation-card-header collapsible-header" role="button" tabindex="0" aria-expanded="false">
         <div class="derivation-card-header-title">
-          <span class="derivation-badge">${badge}</span>
-          <span class="derivation-title">${title}</span>
+          <span class="derivation-badge">${localizedBadge}</span>
+          <span class="derivation-title">${localizedTitle}</span>
         </div>
         <span class="icon">▶</span>
       </div>
@@ -29,6 +33,15 @@ export class DerivationView {
     this.flatElement = flatElement;
     this.solidElement = solidElement;
     this.initialized = false;
+    this.lastState = null;
+    if (typeof window !== "undefined") {
+      window.addEventListener("vml:locale-changed", () => {
+        this.initialized = false;
+        if (this.lastState) {
+          this.render(this.lastState);
+        }
+      });
+    }
   }
 
   #initDOM() {
@@ -186,6 +199,7 @@ export class DerivationView {
   }
 
   render(state) {
+    this.lastState = state;
     if (!this.initialized || !this.flatElement.firstElementChild) {
       this.#initDOM();
     }

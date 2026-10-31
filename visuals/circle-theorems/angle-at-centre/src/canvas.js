@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
 
     const g = computeGeometry(state, width, height);

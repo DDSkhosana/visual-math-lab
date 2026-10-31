@@ -1,6 +1,6 @@
 import { PALETTE } from '../config/palette.js';
 import { point3DToGreatCircle, pointOnCircle, sphericalToCartesian, thalesStats2D, toDegrees } from '../model/thales-math.js';
-import { drawHaloText, drawTextBadge, AffineTransform2D, evaluateConicConjugacy } from '../../../../../js/circle-core.js';
+import { drawHaloText, drawTextBadge, AffineTransform2D, evaluateConicConjugacy, isLabelVisible, getPointLabel } from '../../../../../js/circle-core.js';
 
 /** Maps world coordinates (y up) to canvas pixels for the current pan and zoom across projection planes. */
 export function computeFrame(state, width, height) {
@@ -720,10 +720,16 @@ const formatPoint = (x, y) => `(${x.toFixed(1)}, ${y.toFixed(1)})`;
 function drawPoints(ctx, state, f) {
   const showLabels = state.vis2d.points !== false && state.vis2d.labels !== false;
   const withCoords = state.vis2d.coords;
-  const label = (name, x, y) => (showLabels ? (withCoords ? `${name} ${formatPoint(x, y)}` : name) : (withCoords ? formatPoint(x, y) : ''));
+  const label = (name, x, y) => {
+    if (!isLabelVisible(name, state.vis2d)) return '';
+    return (showLabels ? (withCoords ? `${name} ${formatPoint(x, y)}` : name) : (withCoords ? formatPoint(x, y) : ''));
+  };
 
   if (f.plane === 'yz') {
-    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.red, showLabels ? (withCoords ? 'A,B (0,0) ⟂' : 'A,B ⟂') : (withCoords ? '(0,0) ⟂' : ''), -25, 20);
+    const isAHidden = !isLabelVisible('A', state.vis2d);
+    const isBHidden = !isLabelVisible('B', state.vis2d);
+    const yzLabel = (isAHidden && isBHidden) ? '' : (showLabels ? (withCoords ? 'A,B (0,0) ⟂' : 'A,B ⟂') : (withCoords ? '(0,0) ⟂' : ''));
+    drawLabelledPoint(ctx, { x: f.cx, y: f.cy }, PALETTE.red, yzLabel, -25, 20);
   } else {
     drawLabelledPoint(ctx, f.a, PALETTE.red, label('A', f.aCoords.x, f.aCoords.y), -16, 0, 'right', 'middle');
     drawLabelledPoint(ctx, f.b, PALETTE.orange, label('B', f.bCoords.x, f.bCoords.y), 16, 0, 'left', 'middle');
@@ -773,6 +779,7 @@ function drawLengthLabels(ctx, f, state) {
 
 /** Paints one frame. Layers are drawn back to front. */
 export function drawScene(ctx, state, frame) {
+  ctx.__vis = state.vis2d;
   ctx.clearRect(0, 0, frame.width, frame.height);
   drawGrid(ctx, state, frame);
   drawAxes(ctx, state, frame);

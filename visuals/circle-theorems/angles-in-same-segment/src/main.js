@@ -1,7 +1,7 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter, clampMinAngleDistance } from '../../../../js/circle-core.js';
 import { AnglesInSameSegmentDerivations } from '../../../../js/circle-derivations.js?v=20260524';
 import { loadThree, NullScene3DView, ViewModeController, AnglesInSameSegment3DView } from '../../../../js/circle-3d.js';
-import { createInitialState, computeGeometry } from './model.js';
+import { createInitialState, computeGeometry, getActiveSegmentArc, clampToArc } from './model.js';
 import { CanvasView } from './canvas.js';
 
 function createScene3D(container) {
@@ -233,14 +233,32 @@ function bootstrap() {
     const ang = pointerToAngle(x - g.cx, g.cy - y);
     const cur = store.get();
 
+    const segArc = getActiveSegmentArc(cur.angleA, cur.angleB, cur.segmentMode || 'major');
+
     if (activePoint === 'P1') {
-      store.set({ angleP1: clampToSegmentArc(ang, cur.angleA, cur.angleB, cur.angleP1) });
+      const c1 = clampToArc(ang, segArc);
+      const sep1 = clampMinAngleDistance(c1, cur.angleP2, 0.12);
+      store.set({ angleP1: clampToArc(sep1, segArc) });
     } else if (activePoint === 'P2') {
-      store.set({ angleP2: clampToSegmentArc(ang, cur.angleA, cur.angleB, cur.angleP2) });
+      const c2 = clampToArc(ang, segArc);
+      const sep2 = clampMinAngleDistance(c2, cur.angleP1, 0.12);
+      store.set({ angleP2: clampToArc(sep2, segArc) });
     } else if (activePoint === 'A') {
-      store.set({ angleA: ang });
+      const nextA = clampMinAngleDistance(ang, cur.angleB, 0.25);
+      const nextArc = getActiveSegmentArc(nextA, cur.angleB, cur.segmentMode || 'major');
+      store.set({
+        angleA: nextA,
+        angleP1: clampToArc(cur.angleP1, nextArc),
+        angleP2: clampToArc(cur.angleP2, nextArc),
+      });
     } else if (activePoint === 'B') {
-      store.set({ angleB: ang });
+      const nextB = clampMinAngleDistance(ang, cur.angleA, 0.25);
+      const nextArc = getActiveSegmentArc(cur.angleA, nextB, cur.segmentMode || 'major');
+      store.set({
+        angleB: nextB,
+        angleP1: clampToArc(cur.angleP1, nextArc),
+        angleP2: clampToArc(cur.angleP2, nextArc),
+      });
     }
   });
 
@@ -286,24 +304,57 @@ function bootstrap() {
     const labelRadius = document.getElementById('label-radius');
     if (labelRadius) labelRadius.textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
+    // Geodesic Arch & Euclidean Chord Primitive Telemetry (2D)
+    const elChordLen = document.getElementById('tel-chord-len');
+    if (elChordLen) elChordLen.textContent = UnitSystemConverter.formatLength(g.chordLen, lenUnit, state.radius, 1);
+    const elGeodesicArc = document.getElementById('tel-geodesic-arc');
+    if (elGeodesicArc) elGeodesicArc.textContent = UnitSystemConverter.formatLength(g.arcLen, lenUnit, state.radius, 1);
+    const elRatio = document.getElementById('tel-curvature-ratio');
+    if (elRatio) elRatio.textContent = g.curvatureRatio.toFixed(3);
+    const elSagitta = document.getElementById('tel-sagitta');
+    if (elSagitta) elSagitta.textContent = UnitSystemConverter.formatLength(g.sagitta, lenUnit, state.radius, 1);
+
     // 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const m3d = scene3d.lastComputed3D;
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
     if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
-    const p1x = (R3D * Math.cos(state.angleP1)).toFixed(2);
-    const p1z = (R3D * Math.sin(state.angleP1)).toFixed(2);
-    const p2x = (R3D * Math.cos(state.angleP2)).toFixed(2);
-    const p2z = (R3D * Math.sin(state.angleP2)).toFixed(2);
+
+    const p1_pos = (isSpatial && m3d?.P1) ? m3d.P1 : { x: R3D * Math.cos(state.angleP1), y: 0, z: R3D * Math.sin(state.angleP1) };
+    const p2_pos = (isSpatial && m3d?.P2) ? m3d.P2 : { x: R3D * Math.cos(state.angleP2), y: 0, z: R3D * Math.sin(state.angleP2) };
+    const fmtPt = (pt) => (isSpatial && Math.abs(pt.y || 0) > 0.01)
+      ? `<span class="color-amber">${pt.x.toFixed(2)}</span>, <span class="color-lime">${pt.y.toFixed(2)}</span>, <span class="color-steel">${pt.z.toFixed(2)}</span>`
+      : `<span class="color-amber">${pt.x.toFixed(2)}</span>, <span class="color-steel">${pt.z.toFixed(2)}</span>`;
+
     const elP1 = document.getElementById('val-3d-p1');
-    if (elP1) elP1.innerHTML = `<span class="color-amber">${p1x}</span>, <span class="color-steel">${p1z}</span>`;
+    if (elP1) elP1.innerHTML = fmtPt(p1_pos);
     const elP2 = document.getElementById('val-3d-p2');
-    if (elP2) elP2.innerHTML = `<span class="color-amber">${p2x}</span>, <span class="color-steel">${p2z}</span>`;
+    if (elP2) elP2.innerHTML = fmtPt(p2_pos);
+
+    const ang1_3d = (isSpatial && m3d) ? m3d.degP1 : g.angleP1Deg;
+    const ang2_3d = (isSpatial && m3d) ? m3d.degP2 : g.angleP2Deg;
+    const diff_3d = (isSpatial && m3d) ? m3d.diffDeg : g.diffDeg;
+
     const elAng1 = document.getElementById('val-3d-ang1');
-    if (elAng1) elAng1.textContent = UnitSystemConverter.formatAngle(g.angleP1Deg, angUnit);
+    if (elAng1) elAng1.textContent = UnitSystemConverter.formatAngle(ang1_3d, angUnit);
     const elAng2 = document.getElementById('val-3d-ang2');
-    if (elAng2) elAng2.textContent = UnitSystemConverter.formatAngle(g.angleP2Deg, angUnit);
+    if (elAng2) elAng2.textContent = UnitSystemConverter.formatAngle(ang2_3d, angUnit);
     const elDiff = document.getElementById('val-3d-diff');
-    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(g.diffDeg, angUnit, 3);
+    if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(diff_3d, angUnit, 3);
+
+    // Geodesic Arch & Euclidean Chord Primitive Telemetry (3D)
+    const chord3D = (isSpatial && m3d?.chordAB !== undefined) ? m3d.chordAB : (2 * R3D * Math.sin(g.centralRad / 2));
+    const arc3D = (isSpatial && m3d?.arcAB !== undefined) ? m3d.arcAB : (R3D * g.centralRad);
+    const sagitta3D = R3D * (1 - Math.cos(g.centralRad / 2));
+    const el3DChord = document.getElementById('val-3d-chord');
+    if (el3DChord) el3DChord.textContent = lenUnit === 'px' ? chord3D.toFixed(2) : UnitSystemConverter.formatLength(chord3D, lenUnit, 10, 2);
+    const el3DGeodesic = document.getElementById('val-3d-geodesic');
+    if (el3DGeodesic) el3DGeodesic.textContent = lenUnit === 'px' ? arc3D.toFixed(2) : UnitSystemConverter.formatLength(arc3D, lenUnit, 10, 2);
+    const el3DRatio = document.getElementById('val-3d-ratio');
+    if (el3DRatio) el3DRatio.textContent = g.curvatureRatio.toFixed(3);
+    const el3DSagitta = document.getElementById('val-3d-sagitta');
+    if (el3DSagitta) el3DSagitta.textContent = lenUnit === 'px' ? sagitta3D.toFixed(2) : UnitSystemConverter.formatLength(sagitta3D, lenUnit, 10, 2);
 
     // Reflex Telemetry (2D & 3D)
     const refP1 = 360 - g.angleP1Deg;
@@ -315,12 +366,14 @@ function bootstrap() {
     const elTelRefSame = document.getElementById('tel-reflex-same');
     if (elTelRefSame) elTelRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Invariant' : UnitSystemConverter.formatAngle(Math.abs(refP1 - refP2), angUnit, 3);
 
+    const refP1_3d = 360 - ang1_3d;
+    const refP2_3d = 360 - ang2_3d;
     const el3dRefP1 = document.getElementById('val-3d-reflex-p1');
-    if (el3dRefP1) el3dRefP1.textContent = UnitSystemConverter.formatAngle(refP1, angUnit);
+    if (el3dRefP1) el3dRefP1.textContent = UnitSystemConverter.formatAngle(refP1_3d, angUnit);
     const el3dRefP2 = document.getElementById('val-3d-reflex-p2');
-    if (el3dRefP2) el3dRefP2.textContent = UnitSystemConverter.formatAngle(refP2, angUnit);
+    if (el3dRefP2) el3dRefP2.textContent = UnitSystemConverter.formatAngle(refP2_3d, angUnit);
     const el3dRefSame = document.getElementById('val-3d-reflex-same');
-    if (el3dRefSame) el3dRefSame.textContent = Math.abs(refP1 - refP2) < 0.01 ? 'Match' : 'Mismatch';
+    if (el3dRefSame) el3dRefSame.textContent = Math.abs(refP1_3d - refP2_3d) < 0.01 ? 'Match' : 'Mismatch';
 
     // Live math derivations
     derivations.render(state, g);

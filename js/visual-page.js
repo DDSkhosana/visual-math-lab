@@ -4,7 +4,7 @@ import { initTutorialAndTips, openTutorialModal, isTipsEnabled, setTipsEnabled }
 import { initGeometryLegend, openLegendModal, toggleLegendModal } from "./geometry-legend.js?v=20260523";
 import { initWorkspaceDock } from "./workspace-dock.js?v=20260523";
 import { initPermalinkSync, copyShareUrl } from "./permalink.js?v=20260523";
-import { initI18n, t, getLocale } from "./i18n.js";
+import { initI18n, t, getLocale, translateDOM } from "./i18n.js";
 
 function currentSlug() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -297,6 +297,47 @@ async function initializeVisualPage() {
 
     const btn3d = document.getElementById("btn-3d");
     if (btn3d) btn3d.title = t("controls.full_3d", {}, "3D View");
+
+    // Synchronize Dimension Mode Bar
+    const planarBtn = document.getElementById("btn-mode-planar");
+    if (planarBtn) {
+      planarBtn.textContent = t("controls.planar", {}, "Planar");
+    }
+    const spatialBtn = document.getElementById("btn-mode-spatial");
+    if (spatialBtn) {
+      spatialBtn.textContent = t("controls.spatial", {}, "Spatial S²");
+    }
+
+    // Synchronize Camera Presets
+    const presetTop = document.querySelector('[data-preset="top"]');
+    if (presetTop) presetTop.textContent = t("controls.preset_top", {}, "Top");
+    const presetFront = document.querySelector('[data-preset="front"]');
+    if (presetFront) presetFront.textContent = t("controls.preset_front", {}, "Front");
+    const presetSide = document.querySelector('[data-preset="side"]');
+    if (presetSide) presetSide.textContent = t("controls.preset_side", {}, "Side");
+    const presetIso = document.querySelector('[data-preset="isometric"]');
+    if (presetIso) presetIso.textContent = t("controls.preset_iso", {}, "Iso");
+
+    // Synchronize Toolbar Buttons
+    const flipBtn = document.getElementById("split-dir-btn");
+    if (flipBtn) flipBtn.title = t("controls.flip", {}, "Flip Split");
+    const shareBtn = document.getElementById("btn-toolbar-share");
+    if (shareBtn) {
+      const span = shareBtn.querySelector("span");
+      if (span) span.textContent = t("controls.share", {}, "Share");
+      shareBtn.title = t("controls.share", {}, "Share");
+    }
+
+    // Synchronize Telemetry Panel Titles
+    document.querySelectorAll("#stats-2d-header .stats-title, #telemetry-header h1").forEach((el) => {
+      el.textContent = t("telemetry.panel_2d", {}, "2D Telemetry");
+    });
+    document.querySelectorAll("#stats-3d-header .stats-title").forEach((el) => {
+      el.textContent = t("telemetry.panel_3d", {}, "3D Telemetry");
+    });
+
+    // Run DOM Translation for all elements marked with data-i18n
+    translateDOM(document);
   };
 
   updateVisualMetadata();

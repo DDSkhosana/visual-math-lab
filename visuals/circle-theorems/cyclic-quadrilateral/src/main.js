@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter } from '../../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, bindStandardToggles, PlaybackController, UnitSystemConverter, clampCyclicAngle } from '../../../../js/circle-core.js';
 import { CyclicQuadDerivations } from '../../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, CyclicQuad3DView } from '../../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -204,11 +204,21 @@ function bootstrap() {
 
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
+    const cur = store.get();
 
-    if (activeVertex === 'A') store.set({ angleA: ang });
-    else if (activeVertex === 'B') store.set({ angleB: ang });
-    else if (activeVertex === 'C') store.set({ angleC: ang });
-    else if (activeVertex === 'D') store.set({ angleD: ang });
+    if (activeVertex === 'A') {
+      const clampedA = clampCyclicAngle(ang, cur.angleB, cur.angleD, cur.angleC, 0.2);
+      store.set({ angleA: clampedA });
+    } else if (activeVertex === 'B') {
+      const clampedB = clampCyclicAngle(ang, cur.angleA, cur.angleC, cur.angleD, 0.2);
+      store.set({ angleB: clampedB });
+    } else if (activeVertex === 'C') {
+      const clampedC = clampCyclicAngle(ang, cur.angleD, cur.angleB, cur.angleA, 0.2);
+      store.set({ angleC: clampedC });
+    } else if (activeVertex === 'D') {
+      const clampedD = clampCyclicAngle(ang, cur.angleC, cur.angleA, cur.angleB, 0.2);
+      store.set({ angleD: clampedD });
+    }
   });
 
   const stopDrag = (e) => {
@@ -247,21 +257,31 @@ function bootstrap() {
     document.getElementById('label-radius').textContent = UnitSystemConverter.formatLength(state.radius, lenUnit, state.radius);
 
     // 3D telemetry
+    const isSpatial = state.dimensionMode === 'spatial';
+    const m3d = scene3d.lastComputed3D;
     const R3D = ((state.radius || 180) / 180) * 10;
     const elR3D = document.getElementById('val-3d-r');
     if (elR3D) elR3D.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
+
+    const a3d = (isSpatial && m3d) ? m3d.degA : g.angleADeg;
+    const b3d = (isSpatial && m3d) ? m3d.degB : g.angleBDeg;
+    const c3d = (isSpatial && m3d) ? m3d.degC : g.angleCDeg;
+    const d3d = (isSpatial && m3d) ? m3d.degD : g.angleDDeg;
+    const sum1_3d = (isSpatial && m3d) ? m3d.sumAC : g.sumAC;
+    const sum2_3d = (isSpatial && m3d) ? m3d.sumBD : g.sumBD;
+
     const el3dA = document.getElementById('val-3d-a');
-    if (el3dA) el3dA.textContent = UnitSystemConverter.formatAngle(g.angleADeg, angUnit);
+    if (el3dA) el3dA.textContent = UnitSystemConverter.formatAngle(a3d, angUnit);
     const el3dB = document.getElementById('val-3d-b');
-    if (el3dB) el3dB.textContent = UnitSystemConverter.formatAngle(g.angleBDeg, angUnit);
+    if (el3dB) el3dB.textContent = UnitSystemConverter.formatAngle(b3d, angUnit);
     const el3dC = document.getElementById('val-3d-c');
-    if (el3dC) el3dC.textContent = UnitSystemConverter.formatAngle(g.angleCDeg, angUnit);
+    if (el3dC) el3dC.textContent = UnitSystemConverter.formatAngle(c3d, angUnit);
     const el3dD = document.getElementById('val-3d-d');
-    if (el3dD) el3dD.textContent = UnitSystemConverter.formatAngle(g.angleDDeg, angUnit);
+    if (el3dD) el3dD.textContent = UnitSystemConverter.formatAngle(d3d, angUnit);
     const elSum1 = document.getElementById('val-3d-sum1');
-    if (elSum1) elSum1.textContent = UnitSystemConverter.formatAngle(g.sumAC, angUnit);
+    if (elSum1) elSum1.textContent = UnitSystemConverter.formatAngle(sum1_3d, angUnit);
     const elSum2 = document.getElementById('val-3d-sum2');
-    if (elSum2) elSum2.textContent = UnitSystemConverter.formatAngle(g.sumBD, angUnit);
+    if (elSum2) elSum2.textContent = UnitSystemConverter.formatAngle(sum2_3d, angUnit);
 
     // Reflex Telemetry (2D & 3D)
     const refA = 360 - g.angleADeg;
@@ -272,6 +292,15 @@ function bootstrap() {
     const refAC = refA + refC;
     const refBD = refB + refD;
 
+    const elTelRefA = document.getElementById('tel-reflex-a');
+    if (elTelRefA) elTelRefA.textContent = UnitSystemConverter.formatAngle(refA, angUnit);
+    const elTelRefB = document.getElementById('tel-reflex-b');
+    if (elTelRefB) elTelRefB.textContent = UnitSystemConverter.formatAngle(refB, angUnit);
+    const elTelRefC = document.getElementById('tel-reflex-c');
+    if (elTelRefC) elTelRefC.textContent = UnitSystemConverter.formatAngle(refC, angUnit);
+    const elTelRefD = document.getElementById('tel-reflex-d');
+    if (elTelRefD) elTelRefD.textContent = UnitSystemConverter.formatAngle(refD, angUnit);
+
     const elTelRefSum = document.getElementById('tel-reflex-sum');
     if (elTelRefSum) elTelRefSum.textContent = UnitSystemConverter.formatAngle(refSum, angUnit);
     const elTelRefAC = document.getElementById('tel-reflex-ac');
@@ -279,12 +308,29 @@ function bootstrap() {
     const elTelRefBD = document.getElementById('tel-reflex-bd');
     if (elTelRefBD) elTelRefBD.textContent = UnitSystemConverter.formatAngle(refBD, angUnit);
 
+    const refA_3d = 360 - a3d;
+    const refB_3d = 360 - b3d;
+    const refC_3d = 360 - c3d;
+    const refD_3d = 360 - d3d;
+    const refSum_3d = refA_3d + refB_3d + refC_3d + refD_3d;
+    const refAC_3d = refA_3d + refC_3d;
+    const refBD_3d = refB_3d + refD_3d;
+
+    const el3dRefA = document.getElementById('val-3d-reflex-a');
+    if (el3dRefA) el3dRefA.textContent = UnitSystemConverter.formatAngle(refA_3d, angUnit);
+    const el3dRefB = document.getElementById('val-3d-reflex-b');
+    if (el3dRefB) el3dRefB.textContent = UnitSystemConverter.formatAngle(refB_3d, angUnit);
+    const el3dRefC = document.getElementById('val-3d-reflex-c');
+    if (el3dRefC) el3dRefC.textContent = UnitSystemConverter.formatAngle(refC_3d, angUnit);
+    const el3dRefD = document.getElementById('val-3d-reflex-d');
+    if (el3dRefD) el3dRefD.textContent = UnitSystemConverter.formatAngle(refD_3d, angUnit);
+
     const el3dRefSum = document.getElementById('val-3d-reflex-sum');
-    if (el3dRefSum) el3dRefSum.textContent = UnitSystemConverter.formatAngle(refSum, angUnit);
+    if (el3dRefSum) el3dRefSum.textContent = UnitSystemConverter.formatAngle(refSum_3d, angUnit);
     const el3dRefAC = document.getElementById('val-3d-reflex-ac');
-    if (el3dRefAC) el3dRefAC.textContent = UnitSystemConverter.formatAngle(refAC, angUnit);
+    if (el3dRefAC) el3dRefAC.textContent = UnitSystemConverter.formatAngle(refAC_3d, angUnit);
     const el3dRefBD = document.getElementById('val-3d-reflex-bd');
-    if (el3dRefBD) el3dRefBD.textContent = UnitSystemConverter.formatAngle(refBD, angUnit);
+    if (el3dRefBD) el3dRefBD.textContent = UnitSystemConverter.formatAngle(refBD_3d, angUnit);
 
     // Exterior Angle Telemetry (2D & 3D)
     const extC = g.exteriorAngleDeg !== undefined ? g.exteriorAngleDeg : g.angleADeg;
@@ -296,11 +342,13 @@ function bootstrap() {
       elTelExtMatch.textContent = isExtMatch ? `Equal (${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)})` : `${UnitSystemConverter.formatAngle(extC, angUnit)} ≠ ${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)}`;
     }
 
+    const extC_3d = (isSpatial && m3d?.degExt !== undefined) ? m3d.degExt : (isSpatial && m3d ? (180 - c3d) : extC);
+    const isExtMatch_3d = Math.abs(extC_3d - a3d) < 0.05;
     const el3dExtC = document.getElementById('val-3d-ext-c');
-    if (el3dExtC) el3dExtC.textContent = UnitSystemConverter.formatAngle(extC, angUnit);
+    if (el3dExtC) el3dExtC.textContent = UnitSystemConverter.formatAngle(extC_3d, angUnit);
     const el3dExtMatch = document.getElementById('val-3d-ext-match');
     if (el3dExtMatch) {
-      el3dExtMatch.textContent = isExtMatch ? `Equal (${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)})` : `${UnitSystemConverter.formatAngle(extC, angUnit)} ≠ ${UnitSystemConverter.formatAngle(g.angleADeg, angUnit)}`;
+      el3dExtMatch.textContent = isExtMatch_3d ? `Equal (${UnitSystemConverter.formatAngle(a3d, angUnit)})` : `${UnitSystemConverter.formatAngle(extC_3d, angUnit)} ≠ ${UnitSystemConverter.formatAngle(a3d, angUnit)}`;
     }
 
     // Sync toggle UI with store state
@@ -326,14 +374,14 @@ function bootstrap() {
       elTelPtolemy.textContent = isPtolemyMatch ? 'Verified (|AC|·|BD| = ∑opp)' : 'Crossed Quad';
     }
     const scale3D = R3D / (g.r || 180);
+    const d3AC = (isSpatial && m3d?.diagAC !== undefined) ? m3d.diagAC : ((g.lenAC || 0) * scale3D);
+    const d3BD = (isSpatial && m3d?.diagBD !== undefined) ? m3d.diagBD : ((g.lenBD || 0) * scale3D);
     const el3dDiagAC = document.getElementById('val-3d-diag-ac');
-    if (el3dDiagAC && g.lenAC !== undefined) {
-      const d3AC = g.lenAC * scale3D;
+    if (el3dDiagAC) {
       el3dDiagAC.textContent = lenUnit === 'px' ? d3AC.toFixed(2) : UnitSystemConverter.formatLength(d3AC, lenUnit, 10, 2);
     }
     const el3dDiagBD = document.getElementById('val-3d-diag-bd');
-    if (el3dDiagBD && g.lenBD !== undefined) {
-      const d3BD = g.lenBD * scale3D;
+    if (el3dDiagBD) {
       el3dDiagBD.textContent = lenUnit === 'px' ? d3BD.toFixed(2) : UnitSystemConverter.formatLength(d3BD, lenUnit, 10, 2);
     }
 

@@ -42,11 +42,14 @@ import {
   drawArrow,
   getRadialLabelCoords,
   getPointLabel,
+  isLabelVisible,
+  VISUAL_LABELS_REGISTRY,
+  VISUAL_LABELS_REGISTRY_3D,
   createDefaultVisState,
   computeOptimalViewportRadius,
 } from '../../../js/circle-core.js';
 
-export { computeOptimalViewportRadius };
+export { computeOptimalViewportRadius, isLabelVisible, VISUAL_LABELS_REGISTRY, VISUAL_LABELS_REGISTRY_3D };
 
 import {
   loadThree,
@@ -103,6 +106,16 @@ export function createTrigInitialState(visualId) {
       showTanSec: true,
       showCotCsc: true,
       showHelixWalls: true,
+      showSin: true,
+      showCos: true,
+      showTan: true,
+      showSec: true,
+      showCsc: true,
+      showCot: true,
+      showCosShading: true,
+      showSinShading: true,
+      showTanSecShading: true,
+      showCotCscShading: true,
     };
   }
   if (visualId === 'law-of-sines') {
@@ -127,6 +140,9 @@ export function createTrigInitialState(visualId) {
       sideB: 10.0,
       angleC: toRadians(62),
       dimensionMode: 'planar',
+      colatC: 0,
+      lonC: 0,
+      headingC: 0,
       showProjection: true,
       showSquares3D: true,
       showInteractionRect: true,
@@ -245,6 +261,70 @@ function drawVectorWithApexLabel(ctx, from, to, color, label = '', width = 2.5, 
   }
 }
 
+/**
+ * Aligns a circle wireframe (originally on XZ plane with normal (0,1,0)) to any plane in 3D.
+ */
+export function alignCircleWireToPlane(circleWire, normal, center = null, radius = null, customTHREE = null) {
+  if (!circleWire) return;
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  const Vec3 = THREE?.Vector3 || circleWire.position.constructor;
+  const up = new Vec3(0, 1, 0);
+  if (normal) {
+    const lenSq = typeof normal.lengthSq === 'function'
+      ? normal.lengthSq()
+      : (normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    if (lenSq > 1e-7) {
+      const n = normal.clone ? normal.clone().normalize() : new Vec3(normal.x, normal.y, normal.z).normalize();
+      circleWire.quaternion.setFromUnitVectors(up, n);
+    } else {
+      circleWire.quaternion.identity();
+    }
+  } else {
+    circleWire.quaternion.identity();
+  }
+  if (center) {
+    circleWire.position.copy(center);
+  } else {
+    circleWire.position.set(0, 0, 0);
+  }
+  if (typeof radius === 'number' && Number.isFinite(radius) && radius > 0) {
+    circleWire.scale.setScalar(radius);
+  }
+}
+
+/**
+ * Computes the unique circumcircle and containing plane for any 3 points on sphere S²(O, R).
+ */
+export function computeConcyclicPlaneAndCircle(p1, p2, p3, R = 10, customTHREE = null) {
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  const Vec3 = THREE?.Vector3 || p1.constructor;
+  const v12 = new Vec3().subVectors(p2, p1);
+  const v13 = new Vec3().subVectors(p3, p1);
+  const normal = new Vec3().crossVectors(v12, v13);
+  const lenSq = normal.lengthSq();
+  if (lenSq < 1e-6) {
+    const fallbackN = new Vec3(0, 1, 0);
+    const u = new Vec3(1, 0, 0);
+    const v = new Vec3(0, 0, 1);
+    return {
+      normal: fallbackN,
+      center: new Vec3(0, 0, 0),
+      radius: R,
+      u,
+      v,
+      h: 0,
+    };
+  }
+  normal.normalize();
+  const h = p1.dot(normal);
+  const center = normal.clone().multiplyScalar(h);
+  const radius = Math.sqrt(Math.max(0.1, R * R - h * h));
+  const diff = new Vec3().subVectors(p1, center);
+  const u = diff.lengthSq() > 1e-6 ? diff.normalize() : new Vec3(1, 0, 0);
+  const v = new Vec3().crossVectors(normal, u).normalize();
+  return { normal, center, radius, u, v, h };
+}
+
 /* ============================================================================
    2. UNIFIED 2D CANVAS VIEW
    ============================================================================ */
@@ -276,14 +356,21 @@ export class TrigCanvas2DView {
   }
 
   resize() {
-    const rect = this.container.getBoundingClientRect();
+    if (!this.container) return;
+    const rect = typeof this.container.getBoundingClientRect === 'function' ? this.container.getBoundingClientRect() : null;
+    const clientW = this.container.clientWidth || 0;
+    const clientH = this.container.clientHeight || 0;
+    const w = (rect && rect.width > 0) ? rect.width : clientW;
+    const h = (rect && rect.height > 0) ? rect.height : clientH;
     const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
-    this.canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-    this.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.width = rect.width;
-    this.height = rect.height;
-    if (this.state) this.render(this.state);
+    this.canvas.width = Math.max(1, Math.floor(w * dpr));
+    this.canvas.height = Math.max(1, Math.floor(h * dpr));
+    if (this.ctx && typeof this.ctx.setTransform === 'function') {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    this.width = w;
+    this.height = h;
+    if (this.state && this.width > 0 && this.height > 0) this.render(this.state);
   }
 
   getCenterAndRadius(state) {
@@ -343,6 +430,10 @@ export class TrigCanvas2DView {
       const scale = (r * 1.15) / Math.max(m.a, m.b, m.c, 10);
       const originX = cx - m.b * scale * 0.42;
       const originY = cy + m.projection.hAlt * scale * 0.35;
+      const vertA = { x: originX + m.vertices2D.A.x * scale, y: originY - m.vertices2D.A.y * scale };
+      const vertB = { x: originX + m.vertices2D.B.x * scale, y: originY - m.vertices2D.B.y * scale };
+      const vertC = { x: originX, y: originY };
+      const vertD = { x: originX + m.vertices2D.D.x * scale, y: originY - m.vertices2D.D.y * scale };
       return {
         cx: originX,
         cy: originY,
@@ -350,12 +441,14 @@ export class TrigCanvas2DView {
         circleCx: originX,
         circleCy: originY,
         circleR: m.a * scale,
+        scale,
+        vertices2D: { A: vertA, B: vertB, C: vertC, D: vertD },
         handles: [
           {
             id: 'B',
             label: 'B',
-            x: originX + m.vertices2D.B.x * scale,
-            y: originY - m.vertices2D.B.y * scale,
+            x: vertB.x,
+            y: vertB.y,
             field: 'angleC',
             scale,
             color: PALETTE.emerald,
@@ -363,11 +456,20 @@ export class TrigCanvas2DView {
           {
             id: 'A',
             label: 'A',
-            x: originX + m.vertices2D.A.x * scale,
-            y: originY - m.vertices2D.A.y * scale,
+            x: vertA.x,
+            y: vertA.y,
             field: 'sideB',
             scale,
             color: PALETTE.sky,
+          },
+          {
+            id: 'C',
+            label: 'C',
+            x: vertC.x,
+            y: vertC.y,
+            field: 'pan',
+            scale,
+            color: PALETTE.rose,
           },
         ],
       };
@@ -415,9 +517,13 @@ export class TrigCanvas2DView {
 
   render(state) {
     this.state = state;
+    if (!this.width || !this.height) {
+      this.resize();
+    }
     const { ctx, width, height } = this;
-    if (!width || !height) return;
+    if (!width || !height || !ctx) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
     const { cx, cy, r } = this.getCenterAndRadius(state);
 
@@ -481,6 +587,8 @@ export class TrigCanvas2DView {
           drawTextBadge(ctx, `B: ∠C = ${cDeg}°, a = ${state.sideA}`, activeH.x, activeH.y - 28, PALETTE.emerald);
         } else if (adh.id === 'A') {
           drawTextBadge(ctx, `A: b = ${state.sideB}`, activeH.x, activeH.y - 28, PALETTE.sky);
+        } else if (adh.id === 'C') {
+          drawTextBadge(ctx, 'C: Move / Translate', activeH.x, activeH.y - 28, PALETTE.rose);
         }
       } else if (this.visualId === 'law-of-sines') {
         const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, getModelRadius(state));
@@ -568,17 +676,41 @@ export class TrigCanvas2DView {
 
     // Relevant Area Shading (Crisp High-Contrast Solid Translucent Shading for 6 Trig Functions)
     if (showArea) {
+      // Dedicated Cosine Area Shading (Crisp Amber along X-axis projection)
+      if (state.showCos !== false && state.showCosShading !== false) {
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.20)';
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(projX.x, projX.y);
+        ctx.lineTo(P.x, P.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Dedicated Sine Area Shading (Crisp Emerald along Y-axis projection)
+      if (state.showSin !== false && state.showSinShading !== false) {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.20)';
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(projY.x, projY.y);
+        ctx.lineTo(P.x, P.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
       // 1. Primary Pythagorean Right Triangle: cos²θ + sin²θ = 1 (Crisp Indigo)
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.lineTo(projX.x, projX.y);
-      ctx.lineTo(P.x, P.y);
-      ctx.closePath();
-      ctx.fill();
+      if (state.showCosShading === false && state.showSinShading === false) {
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(projX.x, projX.y);
+        ctx.lineTo(P.x, P.y);
+        ctx.closePath();
+        ctx.fill();
+      }
 
       // 2. Discrete Secant-Tangent Right Triangle: 1 + tan²θ = sec²θ (Crisp Rose)
-      if (state.showTanSec !== false && Math.abs(m.tan) < 4.0) {
+      if (state.showTanSec !== false && state.showTan !== false && state.showSec !== false && state.showTanSecShading !== false && Math.abs(m.tan) < 4.0) {
         ctx.fillStyle = 'rgba(244, 63, 94, 0.16)';
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
@@ -589,7 +721,7 @@ export class TrigCanvas2DView {
       }
 
       // 3. Discrete Cotangent-Cosecant Right Triangle: 1 + cot²θ = csc²θ (Crisp Fuchsia)
-      if (state.showCotCsc !== false && Math.abs(m.cot) < 4.0) {
+      if (state.showCotCsc !== false && state.showCot !== false && state.showCsc !== false && state.showCotCscShading !== false && Math.abs(m.cot) < 4.0) {
         ctx.fillStyle = 'rgba(217, 70, 239, 0.16)';
         ctx.beginPath();
         ctx.moveTo(O.x, O.y);
@@ -597,6 +729,17 @@ export class TrigCanvas2DView {
         ctx.lineTo(cotTip.x, cotTip.y);
         ctx.closePath();
         ctx.fill();
+
+        // Dedicated Cosecant Tangent Triangle △O P (0, csc θ) in fuchsia
+        if (Math.abs(m.csc) < 4.5) {
+          ctx.fillStyle = 'rgba(217, 70, 239, 0.13)';
+          ctx.beginPath();
+          ctx.moveTo(O.x, O.y);
+          ctx.lineTo(P.x, P.y);
+          ctx.lineTo(cscPt.x, cscPt.y);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
     }
 
@@ -622,72 +765,84 @@ export class TrigCanvas2DView {
     // Cosine (amber) & Sine (emerald) orthogonal projections
     if (state.showProjections !== false) {
       ctx.lineWidth = 2.8;
-      ctx.strokeStyle = PALETTE.amber;
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.lineTo(projX.x, projX.y);
-      ctx.stroke();
+      if (state.showCos !== false) {
+        ctx.strokeStyle = PALETTE.amber;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(projX.x, projX.y);
+        ctx.stroke();
+      }
 
-      ctx.strokeStyle = PALETTE.emerald;
-      ctx.beginPath();
-      ctx.moveTo(projX.x, projX.y);
-      ctx.lineTo(P.x, P.y);
-      ctx.stroke();
+      if (state.showSin !== false) {
+        ctx.strokeStyle = PALETTE.emerald;
+        ctx.beginPath();
+        ctx.moveTo(projX.x, projX.y);
+        ctx.lineTo(P.x, P.y);
+        ctx.stroke();
 
-      ctx.save();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = PALETTE.emerald;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.lineTo(projY.x, projY.y);
-      ctx.lineTo(P.x, P.y);
-      ctx.stroke();
-      ctx.restore();
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = PALETTE.emerald;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(projY.x, projY.y);
+        ctx.lineTo(P.x, P.y);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // Exterior Tangent (rose) & Secant (violet)
     if (state.showTanSec !== false) {
-      ctx.strokeStyle = PALETTE.rose;
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(tanBase.x, tanBase.y);
-      ctx.lineTo(tanTip.x, tanTip.y);
-      ctx.stroke();
+      if (state.showTan !== false) {
+        ctx.strokeStyle = PALETTE.rose;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(tanBase.x, tanBase.y);
+        ctx.lineTo(tanTip.x, tanTip.y);
+        ctx.stroke();
+      }
 
-      ctx.save();
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = PALETTE.violet;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.lineTo(tanTip.x, tanTip.y);
-      ctx.moveTo(P.x, P.y);
-      ctx.lineTo(secPt.x, secPt.y);
-      ctx.stroke();
-      ctx.restore();
+      if (state.showSec !== false) {
+        ctx.save();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = PALETTE.violet;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(tanTip.x, tanTip.y);
+        ctx.moveTo(P.x, P.y);
+        ctx.lineTo(secPt.x, secPt.y);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // Exterior Cotangent (orange) & Cosecant (fuchsia)
     if (state.showCotCsc !== false) {
-      ctx.strokeStyle = PALETTE.orange;
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      ctx.moveTo(cotBase.x, cotBase.y);
-      ctx.lineTo(cotTip.x, cotTip.y);
-      ctx.stroke();
+      if (state.showCot !== false) {
+        ctx.strokeStyle = PALETTE.orange;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(cotBase.x, cotBase.y);
+        ctx.lineTo(cotTip.x, cotTip.y);
+        ctx.stroke();
+      }
 
-      ctx.save();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = PALETTE.fuchsia;
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(O.x, O.y);
-      ctx.lineTo(cotTip.x, cotTip.y);
-      ctx.moveTo(P.x, P.y);
-      ctx.lineTo(cscPt.x, cscPt.y);
-      ctx.stroke();
-      ctx.restore();
+      if (state.showCsc !== false) {
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = PALETTE.fuchsia;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(O.x, O.y);
+        ctx.lineTo(cotTip.x, cotTip.y);
+        ctx.moveTo(P.x, P.y);
+        ctx.lineTo(cscPt.x, cscPt.y);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // Radius vector OP (indigo) with sharp arrowhead (no globe on vector apex)
@@ -706,23 +861,27 @@ export class TrigCanvas2DView {
         );
       }
       if (state.showProjections !== false && showLengths) {
-        drawTextBadge(
-          ctx,
-          `cos θ = ${m.cos.toFixed(3)}`,
-          (O.x + projX.x) / 2,
-          O.y + (m.sin >= 0 ? 18 : -18),
-          PALETTE.amber
-        );
-        drawTextBadge(
-          ctx,
-          `sin θ = ${m.sin.toFixed(3)}`,
-          projX.x + 44 * (m.cos >= 0 ? 1 : -1),
-          (projX.y + P.y) / 2,
-          PALETTE.emerald
-        );
+        if (state.showCos !== false) {
+          drawTextBadge(
+            ctx,
+            `cos θ = ${m.cos.toFixed(3)}`,
+            (O.x + projX.x) / 2,
+            O.y + (m.sin >= 0 ? 18 : -18),
+            PALETTE.amber
+          );
+        }
+        if (state.showSin !== false) {
+          drawTextBadge(
+            ctx,
+            `sin θ = ${m.sin.toFixed(3)}`,
+            projX.x + 44 * (m.cos >= 0 ? 1 : -1),
+            (projX.y + P.y) / 2,
+            PALETTE.emerald
+          );
+        }
       }
       if (state.showTanSec !== false && showLengths) {
-        if (Math.abs(m.tan) < 3.5) {
+        if (state.showTan !== false && Math.abs(m.tan) < 3.5) {
           drawTextBadge(
             ctx,
             `tan θ = ${m.tan.toFixed(2)}`,
@@ -731,7 +890,7 @@ export class TrigCanvas2DView {
             PALETTE.rose
           );
         }
-        if (Math.abs(m.sec) < 4.5) {
+        if (state.showSec !== false && Math.abs(m.sec) < 4.5) {
           drawTextBadge(
             ctx,
             `sec θ = ${m.sec.toFixed(2)}`,
@@ -742,7 +901,7 @@ export class TrigCanvas2DView {
         }
       }
       if (state.showCotCsc !== false && showLengths) {
-        if (Math.abs(m.cot) < 3.5) {
+        if (state.showCot !== false && Math.abs(m.cot) < 3.5) {
           drawTextBadge(
             ctx,
             `cot θ = ${m.cot.toFixed(2)}`,
@@ -751,7 +910,7 @@ export class TrigCanvas2DView {
             PALETTE.orange
           );
         }
-        if (Math.abs(m.csc) < 4.5) {
+        if (state.showCsc !== false && Math.abs(m.csc) < 4.5) {
           drawTextBadge(
             ctx,
             `csc θ = ${m.csc.toFixed(2)}`,
@@ -1048,14 +1207,16 @@ export class TrigCanvas2DView {
     const centroid = { x: (A.x + B.x + C.x) / 3, y: (A.y + B.y + C.y) / 3 };
 
     // Reference Circle centered at C with radius a = BC (shows locus of B as angle C sweeps)
-    ctx.save();
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.arc(C.x, C.y, m.a * scale, 0, TAU);
-    ctx.stroke();
-    ctx.restore();
+    if (state.showLocusCircle !== false) {
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(C.x, C.y, m.a * scale, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Sub-triangle Area Shading (△CDB and △ADB) with constitutive vertex/side gradients
     if (showArea) {
@@ -1324,8 +1485,10 @@ export class TrigCanvas2DView {
     if (showLabels && showLengths) {
       const posA = getOutwardEdgeBadge(C, B, 32);
       const posC = getOutwardEdgeBadge(A, B, 32);
+      const bBadgeX = (C.x + A.x) * 0.5;
+      const bBadgeY = Math.abs(D.x - bBadgeX) < 32 ? C.y - 28 : C.y - 14;
       drawTextBadge(ctx, `a = ${m.a.toFixed(2)}`, posA.x, posA.y, PALETTE.sky);
-      drawTextBadge(ctx, `b = ${m.b.toFixed(2)}`, A.x + 48, A.y + 18, PALETTE.emerald);
+      drawTextBadge(ctx, `b = ${m.b.toFixed(2)}`, bBadgeX, bBadgeY, PALETTE.emerald);
       drawTextBadge(ctx, `c = ${m.c.toFixed(2)}`, posC.x, posC.y, PALETTE.rose);
     }
 
@@ -1682,7 +1845,7 @@ export class TrigCanvas2DView {
         // Chord PD bisected perpendicularly at Q by ray OA
         ctx.save();
         ctx.setLineDash([3, 3]);
-        ctx.strokeStyle = 'rgba(244, 63, 94, 0.75)';
+        ctx.strokeStyle = 'rgba(20, 184, 166, 0.85)';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(P.x, P.y);
@@ -1706,12 +1869,18 @@ export class TrigCanvas2DView {
           (Ndiff.y + Pdiff.y) / 2,
           PALETTE.rose
         );
+        // Chord length |PD| = 2 sin β in Teal, positioned non-obstructively along segment QD with outward radial offset
+        const midQD = { x: (Q.x + Pdiff.x) * 0.5, y: (Q.y + Pdiff.y) * 0.5 };
+        const radDx = midQD.x - O.x;
+        const radDy = midQD.y - O.y;
+        const radLen = Math.hypot(radDx, radDy) || 1;
+        const outNorm = { x: radDx / radLen, y: radDy / radLen };
         drawTextBadge(
           ctx,
           `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`,
-          (P.x + Pdiff.x) / 2 - 40,
-          (P.y + Pdiff.y) / 2 - 12,
-          PALETTE.violet
+          midQD.x + outNorm.x * 28,
+          midQD.y + outNorm.y * 28,
+          PALETTE.teal
         );
       }
     }
@@ -1789,7 +1958,8 @@ export class TrigScene3DView extends BaseScene3DView {
     this.handleA = makeMarker3D(PALETTE.red, 0.18);
     this.handleB = makeMarker3D(PALETTE.green, 0.18);
     this.handleC = makeMarker3D(PALETTE.violet, 0.18);
-    this.scene.add(this.markerO, this.handleP, this.handleHelix, this.handleA, this.handleB, this.handleC);
+    this.handleAp = makeMarker3D(PALETTE.amber, 0.18);
+    this.scene.add(this.markerO, this.handleP, this.handleHelix, this.handleA, this.handleB, this.handleC, this.handleAp);
 
     // Reusable 3D Angle Wedge & Right-Angle Meshes (matching Circle Theorems)
     this.wedge1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
@@ -1812,6 +1982,7 @@ export class TrigScene3DView extends BaseScene3DView {
       this.handleA.visible = false;
       this.handleB.visible = false;
       this.handleC.visible = false;
+      this.handleAp.visible = false;
       this.draggableTargets = [
         {
           id: 'P',
@@ -1827,6 +1998,7 @@ export class TrigScene3DView extends BaseScene3DView {
       ];
     } else if (this.visualId === 'law-of-sines') {
       this.handleP.visible = false;
+      this.handleHelix.visible = false;
       const makeLawOfSinesTarget = (id, mesh, angleField, latField) => ({
         id,
         mesh,
@@ -1845,10 +2017,50 @@ export class TrigScene3DView extends BaseScene3DView {
         makeLawOfSinesTarget('A', this.handleA, 'angleA', 'latA'),
         makeLawOfSinesTarget('B', this.handleB, 'angleB', 'latB'),
         makeLawOfSinesTarget('C', this.handleC, 'angleC', 'latC'),
+        {
+          id: 'Ap',
+          mesh: this.handleAp,
+          field: 'antipodeA',
+          onDrag: (angle, hit, store, lat) => {
+            const st = store.get();
+            if (st.dimensionMode === 'spatial') {
+              if (hit && this.circleInfo) {
+                // In spatial mode, Ap is the antipode of B on the concyclic circle
+                // Ap = 2 * center - B  =>  B = 2 * center - Ap
+                const center = this.circleInfo.center;
+                const newB = center.clone().multiplyScalar(2).sub(hit);
+                const rSphere = this.R || 10;
+                let angB = Math.atan2(newB.z, newB.x);
+                if (angB < 0) angB += Math.PI * 2;
+                const latB = Math.acos(clamp(newB.y / rSphere, -1, 1));
+                store.set({ angleB: angB, latB: latB });
+              }
+            } else {
+              const TAU = Math.PI * 2;
+              const nextB = (angle + Math.PI) % TAU;
+              store.set({ angleB: nextB, latB: Math.PI / 2 });
+            }
+          },
+        },
       ];
     } else if (this.visualId === 'law-of-cosines') {
       this.handleP.visible = false;
+      this.handleAp.visible = false;
       this.draggableTargets = [
+        {
+          id: 'C',
+          mesh: this.handleC,
+          onDrag: (_angle, hit, store, _lat) => {
+            const st = store.get();
+            if (st.dimensionMode === 'spatial' && hit) {
+              const R = this.R || 10;
+              const colat = Math.acos(clamp(hit.y / R, -1, 1));
+              let lon = Math.atan2(hit.z, hit.x);
+              if (lon < 0) lon += Math.PI * 2;
+              store.set({ colatC: colat, lonC: lon });
+            }
+          },
+        },
         {
           id: 'B',
           mesh: this.handleB,
@@ -1856,9 +2068,26 @@ export class TrigScene3DView extends BaseScene3DView {
             const st = store.get();
             let ang = Math.atan2(hit.z, hit.x);
             if (ang < 0) ang += Math.PI * 2;
-            if (st.dimensionMode === 'spatial' && Number.isFinite(lat)) {
+            if (st.dimensionMode === 'spatial' && hit) {
               const R = this.R || 10;
-              const nextA = clamp(Math.round(lat * R * 2) / 2, 2, 12);
+              const colat = st.colatC || 0;
+              const lon = st.lonC || 0;
+              const uC = new THREE.Vector3(
+                Math.sin(colat) * Math.cos(lon),
+                Math.cos(colat),
+                Math.sin(colat) * Math.sin(lon)
+              );
+              const uHit = hit.clone().normalize();
+              const dot = clamp(uC.dot(uHit), -1, 1);
+              const arcDist = Math.acos(dot) * R;
+              const nextA = clamp(Math.round(arcDist * 2) / 2, 2, 12);
+              store.set({ angleC: ang, sideA: nextA });
+            } else if (hit) {
+              const R = this.R || 10;
+              const dist = Math.hypot(hit.x, hit.z);
+              const m = computeLawOfCosines(st.sideA, st.sideB, st.angleC);
+              const s = R / Math.max(m.a, m.b, m.c, 10);
+              const nextA = clamp(Math.round((dist / (s || 1)) * 2) / 2, 2, 12);
               store.set({ angleC: ang, sideA: nextA });
             } else {
               store.set({ angleC: ang });
@@ -1871,8 +2100,24 @@ export class TrigScene3DView extends BaseScene3DView {
           onDrag: (_angle, hit, store, lat) => {
             const st = store.get();
             const R = this.R || 10;
-            if (st.dimensionMode === 'spatial' && Number.isFinite(lat)) {
-              const nextB = clamp(Math.round(lat * R * 2) / 2, 2, 12);
+            if (st.dimensionMode === 'spatial' && hit) {
+              const colat = st.colatC || 0;
+              const lon = st.lonC || 0;
+              const uC = new THREE.Vector3(
+                Math.sin(colat) * Math.cos(lon),
+                Math.cos(colat),
+                Math.sin(colat) * Math.sin(lon)
+              );
+              const uHit = hit.clone().normalize();
+              const dot = clamp(uC.dot(uHit), -1, 1);
+              const arcDist = Math.acos(dot) * R;
+              const nextB = clamp(Math.round(arcDist * 2) / 2, 2, 12);
+              store.set({ sideB: nextB });
+            } else if (hit) {
+              const m = computeLawOfCosines(st.sideA, st.sideB, st.angleC);
+              const s = R / Math.max(m.a, m.b, m.c, 10);
+              const dist = Math.hypot(hit.x, hit.z);
+              const nextB = clamp(Math.round((dist / (s || 1)) * 2) / 2, 2, 12);
               store.set({ sideB: nextB });
             } else {
               const m = computeLawOfCosines(st.sideA, st.sideB, st.angleC);
@@ -1887,6 +2132,7 @@ export class TrigScene3DView extends BaseScene3DView {
       // angle-sum-identities: vector apexes have generous invisible pick spheres (no visible globes)
       this.handleB.visible = false;
       this.handleC.visible = false;
+      this.handleAp.visible = false;
       for (const h of [this.handleA, this.handleP, this.handleB, this.handleC]) {
         h.material.transparent = true;
         h.material.opacity = 0.01;
@@ -2002,6 +2248,7 @@ export class TrigScene3DView extends BaseScene3DView {
     this.applyCommonVis(state);
     this.#clearDynamicGroup();
     this.#applyVisualPalette();
+    if (this.handleAp) this.handleAp.visible = false;
 
     const THREE = this.THREE;
     const R = this.R;
@@ -2138,10 +2385,52 @@ export class TrigScene3DView extends BaseScene3DView {
         )
       );
 
+      // Helical Ruled Surface Curtain between equatorial circle and helix curve
+      if (showArea) {
+        const ribbonPts = [];
+        const ribbonIndices = [];
+        const activeSteps = Math.max(2, Math.round((m.theta / TAU) * 140));
+        for (let i = 0; i <= activeSteps; i++) {
+          const t = (i / 140) * TAU;
+          const yH = R * pitch * (t - Math.PI);
+          const hx = R * Math.cos(t);
+          const hz = R * Math.sin(t);
+          ribbonPts.push(new THREE.Vector3(hx, 0, hz));
+          ribbonPts.push(new THREE.Vector3(hx, yH, hz));
+          if (i > 0) {
+            const b = (i - 1) * 2;
+            ribbonIndices.push(b, b + 1, b + 2);
+            ribbonIndices.push(b + 2, b + 1, b + 3);
+          }
+        }
+        if (ribbonIndices.length > 0) {
+          const ribbonGeom = new THREE.BufferGeometry().setFromPoints(ribbonPts);
+          ribbonGeom.setIndex(ribbonIndices);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              ribbonGeom,
+              new THREE.MeshBasicMaterial({ color: PALETTE.violetLight, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
+      }
+
       const yNow = R * pitch * (m.theta - Math.PI);
       const P_helix = new THREE.Vector3(R * m.cos, yNow, R * m.sin);
       this.handleHelix.position.copy(P_helix);
       this.handleHelix.visible = true;
+
+      // Vertical Harmonic Elevation Triangle between O, P_eq, and P_helix
+      if (showArea && Math.abs(yNow) > 0.05) {
+        const vertTri = new THREE.BufferGeometry().setFromPoints([O, P_eq, P_helix]);
+        vertTri.setIndex([0, 1, 2]);
+        this.dynamicGroup.add(
+          new THREE.Mesh(
+            vertTri,
+            new THREE.MeshBasicMaterial({ color: PALETTE.lavender, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false })
+          )
+        );
+      }
 
       // 3. Dynamic Harmonic Wave Projections from P_helix to Cosine & Sine Walls
       if (state.showHelixWalls !== false) {
@@ -2155,6 +2444,54 @@ export class TrigScene3DView extends BaseScene3DView {
             new THREE.LineBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.85 })
           )
         );
+
+        // Cosine 3D Wave Wall Surface Shading (Amber curtain on plane Z = -wallDist)
+        if (showArea && state.showCosShading !== false) {
+          const cosWallPtsMesh = [];
+          const cosWallIdx = [];
+          for (let i = 0; i < cosWallPts.length; i++) {
+            const p = cosWallPts[i];
+            cosWallPtsMesh.push(new THREE.Vector3(0, p.y, -wallDist));
+            cosWallPtsMesh.push(new THREE.Vector3(p.x, p.y, -wallDist));
+            if (i > 0) {
+              const b = (i - 1) * 2;
+              cosWallIdx.push(b, b + 1, b + 2);
+              cosWallIdx.push(b + 2, b + 1, b + 3);
+            }
+          }
+          const cosWallGeom = new THREE.BufferGeometry().setFromPoints(cosWallPtsMesh);
+          cosWallGeom.setIndex(cosWallIdx);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              cosWallGeom,
+              new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
+
+        // Sine 3D Wave Wall Surface Shading (Emerald curtain on plane X = -wallDist)
+        if (showArea && state.showSinShading !== false) {
+          const sinWallPtsMesh = [];
+          const sinWallIdx = [];
+          for (let i = 0; i < sinWallPts.length; i++) {
+            const p = sinWallPts[i];
+            sinWallPtsMesh.push(new THREE.Vector3(-wallDist, p.y, 0));
+            sinWallPtsMesh.push(new THREE.Vector3(-wallDist, p.y, p.z));
+            if (i > 0) {
+              const b = (i - 1) * 2;
+              sinWallIdx.push(b, b + 1, b + 2);
+              sinWallIdx.push(b + 2, b + 1, b + 3);
+            }
+          }
+          const sinWallGeom = new THREE.BufferGeometry().setFromPoints(sinWallPtsMesh);
+          sinWallGeom.setIndex(sinWallIdx);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              sinWallGeom,
+              new THREE.MeshBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
 
         const W_cos = new THREE.Vector3(R * m.cos, yNow, -wallDist);
         const W_sin = new THREE.Vector3(-wallDist, yNow, R * m.sin);
@@ -2189,10 +2526,14 @@ export class TrigScene3DView extends BaseScene3DView {
       // 4. Primary Radius Vector & Orthogonal Projections
       addVectorArrow(O, P_eq, PALETTE.indigo);
       if (state.showProjections !== false) {
-        addSeg(O, projX, PALETTE.amber);
-        addSeg(projX, P_eq, PALETTE.emerald);
-        addSeg(O, projZ, PALETTE.emerald, true);
-        addSeg(projZ, P_eq, PALETTE.amber, true);
+        if (state.showCos !== false) {
+          addSeg(O, projX, PALETTE.amber);
+          addSeg(projZ, P_eq, PALETTE.amber, true);
+        }
+        if (state.showSin !== false) {
+          addSeg(projX, P_eq, PALETTE.emerald);
+          addSeg(O, projZ, PALETTE.emerald, true);
+        }
       }
       addSeg(P_eq, P_helix, PALETTE.violet, true);
 
@@ -2204,14 +2545,18 @@ export class TrigScene3DView extends BaseScene3DView {
         const T_tip = new THREE.Vector3(R, 0, R * clampedTan);
         const Sec_pt = new THREE.Vector3(R * clampedSec, 0, 0);
 
-        addSeg(T_base, T_tip, PALETTE.rose);
-        addSeg(O, T_tip, PALETTE.violet, true);
-        addSeg(P_eq, Sec_pt, PALETTE.violet, true);
+        if (state.showTan !== false) {
+          addSeg(T_base, T_tip, PALETTE.rose);
+          addSeg(O, T_tip, PALETTE.violet, true);
+        }
+        if (state.showSec !== false) {
+          addSeg(P_eq, Sec_pt, PALETTE.violet, true);
+        }
 
         setRightAngle3DVertices(this.rightAngle2, T_base, O, T_tip, 0.85, THREE);
-        this.rightAngle2.visible = showAngles && Math.abs(clampedTan) > 0.15;
+        this.rightAngle2.visible = showAngles && state.showTan !== false && Math.abs(clampedTan) > 0.15;
 
-        if (showArea && Math.abs(m.tan) < 3.2) {
+        if (showArea && state.showTan !== false && state.showTanSecShading !== false && Math.abs(m.tan) < 3.2) {
           const tanTri = new THREE.BufferGeometry().setFromPoints([O, T_base, T_tip]);
           tanTri.setIndex([0, 1, 2]);
           this.dynamicGroup.add(
@@ -2223,7 +2568,7 @@ export class TrigScene3DView extends BaseScene3DView {
         }
 
         if (showLengths) {
-          if (Math.abs(m.tan) < 3.2) {
+          if (state.showTan !== false && Math.abs(m.tan) < 3.2) {
             labels.push({
               key: 'tan-len-3d',
               text: `tan θ = ${m.tan.toFixed(2)}`,
@@ -2233,7 +2578,7 @@ export class TrigScene3DView extends BaseScene3DView {
               show: true,
             });
           }
-          if (Math.abs(m.sec) < 4.5) {
+          if (state.showSec !== false && Math.abs(m.sec) < 4.5) {
             labels.push({
               key: 'sec-len-3d',
               text: `sec θ = ${m.sec.toFixed(2)}`,
@@ -2246,9 +2591,9 @@ export class TrigScene3DView extends BaseScene3DView {
         }
         if (showPoints) {
           labels.push(
-            { key: 'T_base', name: 'T₀', at: { x: T_base.x + 0.6, y: 0.35, z: 0 }, coords: T_base, color: 'color-rose', show: true },
-            { key: 'T_tip', name: 'T', at: { x: T_tip.x + 0.6, y: 0.35, z: T_tip.z + 0.6 }, coords: T_tip, color: 'color-rose', show: Math.abs(m.tan) < 3.5 },
-            { key: 'Sec_pt', name: 'Sec', at: { x: Sec_pt.x + 0.6, y: 0.35, z: 0 }, coords: Sec_pt, color: 'color-violet', show: Math.abs(m.sec) < 4.5 }
+            { key: 'T_base', name: 'T₀', at: { x: T_base.x + 0.6, y: 0.35, z: 0 }, coords: T_base, color: 'color-rose', show: state.showTan !== false },
+            { key: 'T_tip', name: 'T', at: { x: T_tip.x + 0.6, y: 0.35, z: T_tip.z + 0.6 }, coords: T_tip, color: 'color-rose', show: state.showTan !== false && Math.abs(m.tan) < 3.5 },
+            { key: 'Sec_pt', name: 'Sec', at: { x: Sec_pt.x + 0.6, y: 0.35, z: 0 }, coords: Sec_pt, color: 'color-violet', show: state.showSec !== false && Math.abs(m.sec) < 4.5 }
           );
         }
       }
@@ -2261,14 +2606,18 @@ export class TrigScene3DView extends BaseScene3DView {
         const C_tip = new THREE.Vector3(R * clampedCot, 0, R);
         const Csc_pt = new THREE.Vector3(0, 0, R * clampedCsc);
 
-        addSeg(C_base, C_tip, PALETTE.orange);
-        addSeg(O, C_tip, PALETTE.fuchsia, true);
-        addSeg(P_eq, Csc_pt, PALETTE.fuchsia, true);
+        if (state.showCot !== false) {
+          addSeg(C_base, C_tip, PALETTE.orange);
+          addSeg(O, C_tip, PALETTE.fuchsia, true);
+        }
+        if (state.showCsc !== false) {
+          addSeg(P_eq, Csc_pt, PALETTE.fuchsia, true);
+        }
 
         setRightAngle3DVertices(this.rightAngle3, C_base, O, C_tip, 0.85, THREE);
-        this.rightAngle3.visible = showAngles && Math.abs(clampedCot) > 0.15;
+        this.rightAngle3.visible = showAngles && state.showCot !== false && Math.abs(clampedCot) > 0.15;
 
-        if (showArea && Math.abs(m.cot) < 3.2) {
+        if (showArea && state.showCot !== false && state.showCotCscShading !== false && Math.abs(m.cot) < 3.2) {
           const cotTri = new THREE.BufferGeometry().setFromPoints([O, C_base, C_tip]);
           cotTri.setIndex([0, 1, 2]);
           this.dynamicGroup.add(
@@ -2278,9 +2627,19 @@ export class TrigScene3DView extends BaseScene3DView {
             )
           );
         }
+        if (showArea && state.showCsc !== false && state.showCotCscShading !== false && Math.abs(m.csc) < 3.5) {
+          const cscTri = new THREE.BufferGeometry().setFromPoints([O, P_eq, Csc_pt]);
+          cscTri.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              cscTri,
+              new THREE.MeshBasicMaterial({ color: PALETTE.fuchsia, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
 
         if (showLengths) {
-          if (Math.abs(m.cot) < 3.2) {
+          if (state.showCot !== false && Math.abs(m.cot) < 3.2) {
             labels.push({
               key: 'cot-len-3d',
               text: `cot θ = ${m.cot.toFixed(2)}`,
@@ -2290,7 +2649,7 @@ export class TrigScene3DView extends BaseScene3DView {
               show: true,
             });
           }
-          if (Math.abs(m.csc) < 4.5) {
+          if (state.showCsc !== false && Math.abs(m.csc) < 4.5) {
             labels.push({
               key: 'csc-len-3d',
               text: `csc θ = ${m.csc.toFixed(2)}`,
@@ -2303,9 +2662,9 @@ export class TrigScene3DView extends BaseScene3DView {
         }
         if (showPoints) {
           labels.push(
-            { key: 'C_base', name: 'C₀', at: { x: 0, y: 0.35, z: C_base.z + 0.6 }, coords: C_base, color: 'color-orange', show: true },
-            { key: 'C_tip', name: 'Cot', at: { x: C_tip.x + 0.6, y: 0.35, z: C_tip.z + 0.6 }, coords: C_tip, color: 'color-orange', show: Math.abs(m.cot) < 3.5 },
-            { key: 'Csc_pt', name: 'Csc', at: { x: 0, y: 0.35, z: Csc_pt.z + 0.6 }, coords: Csc_pt, color: 'color-fuchsia', show: Math.abs(m.csc) < 4.5 }
+            { key: 'C_base', name: 'C₀', at: { x: 0, y: 0.35, z: C_base.z + 0.6 }, coords: C_base, color: 'color-orange', show: state.showCot !== false },
+            { key: 'C_tip', name: 'Cot', at: { x: C_tip.x + 0.6, y: 0.35, z: C_tip.z + 0.6 }, coords: C_tip, color: 'color-orange', show: state.showCot !== false && Math.abs(m.cot) < 3.5 },
+            { key: 'Csc_pt', name: 'Csc', at: { x: 0, y: 0.35, z: Csc_pt.z + 0.6 }, coords: Csc_pt, color: 'color-fuchsia', show: state.showCsc !== false && Math.abs(m.csc) < 4.5 }
           );
         }
       }
@@ -2321,18 +2680,53 @@ export class TrigScene3DView extends BaseScene3DView {
       this.reflexWedge1.visible = showReflex;
 
       if (showArea) {
-        const triGeom = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(O.x, 0.02, O.z),
-          new THREE.Vector3(projX.x, 0.02, projX.z),
-          new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
-        ]);
-        triGeom.setIndex([0, 1, 2]);
-        this.dynamicGroup.add(
-          new THREE.Mesh(
-            triGeom,
-            new THREE.MeshBasicMaterial({ color: PALETTE.indigo, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
-          )
-        );
+        // Dedicated Cosine 3D Shading Mesh (Amber on XZ plane: O - projX - P_eq)
+        if (state.showCos !== false && state.showCosShading !== false) {
+          const cosTri = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(O.x, 0.02, O.z),
+            new THREE.Vector3(projX.x, 0.02, projX.z),
+            new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
+          ]);
+          cosTri.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              cosTri,
+              new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.20, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
+
+        // Dedicated Sine 3D Shading Mesh (Emerald on XZ plane: O - projZ - P_eq)
+        if (state.showSin !== false && state.showSinShading !== false) {
+          const sinTri = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(O.x, 0.02, O.z),
+            new THREE.Vector3(projZ.x, 0.02, projZ.z),
+            new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
+          ]);
+          sinTri.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              sinTri,
+              new THREE.MeshBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.20, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
+
+        // Generic Pythagorean Right Triangle: cos²θ + sin²θ = 1 (Crisp Indigo fallback when both dedicated shadings are off)
+        if (state.showCosShading === false && state.showSinShading === false) {
+          const triGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(O.x, 0.02, O.z),
+            new THREE.Vector3(projX.x, 0.02, projX.z),
+            new THREE.Vector3(P_eq.x, 0.02, P_eq.z),
+          ]);
+          triGeom.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              triGeom,
+              new THREE.MeshBasicMaterial({ color: PALETTE.indigo, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+            )
+          );
+        }
       }
 
       // Directed-angle label anchors: θ at θ/2, conjugate θ* at θ/2 + π (valid for θ on either side of 180°)
@@ -2408,10 +2802,51 @@ export class TrigScene3DView extends BaseScene3DView {
           this.dynamicGroup.add(new THREE.Line(geom, mat));
         };
 
-        // Geodesic Arcs: BC = a (red), AC = b (green), AB = c (violet)
-        addGeodesicArc(B, C, PALETTE.red);
-        addGeodesicArc(A, C, PALETTE.green);
-        addGeodesicArc(A, B, PALETTE.violet);
+        const circleInfo = computeConcyclicPlaneAndCircle(A, B, C, R, THREE);
+        this.circleInfo = circleInfo;
+        alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
+
+        const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+        const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
+
+        // 1. Primary Straight Euclidean Chords in R³ (Solid, Unbent Triangle Edges)
+        addSeg(B, C, PALETTE.red, false);
+        addSeg(A, C, PALETTE.green, false);
+        addSeg(A, B, PALETTE.violet, false);
+        // addSeg(B, C, PALETTE.red, true); addSeg(A, C, PALETTE.green, true); addSeg(A, B, PALETTE.violet, true);
+
+        // 2. Curved Geodesic Arcs on S² (Secondary / Optional Overlay)
+        if (showGeodesicOverlay) {
+          addGeodesicArc(B, C, PALETTE.red);
+          addGeodesicArc(A, C, PALETTE.green);
+          addGeodesicArc(A, B, PALETTE.violet);
+        }
+
+        // Circumcircle Antipode Ap for Thales Diameter Bridge in 3D
+        const Ap = circleInfo.center.clone().multiplyScalar(2).sub(B);
+
+        // Foot Hc of Altitude dropped from C onto side AB in 3D
+        const vAB = new THREE.Vector3().subVectors(B, A);
+        const lenSqAB = vAB.lengthSq();
+        const vAC = new THREE.Vector3().subVectors(C, A);
+        const tAlt = lenSqAB > 1e-8 ? vAC.dot(vAB) / lenSqAB : 0.5;
+        const Hc = new THREE.Vector3().copy(A).addScaledVector(vAB, tAlt);
+
+        if (state.showCircumcircleDiameter !== false) {
+          addSeg(B, Ap, PALETTE.amber, true);
+          addSeg(Ap, C, PALETTE.amber, true);
+          setRightAngle3DVertices(this.rightAngle2, C, Ap, B, 0.95, THREE);
+          this.rightAngle2.visible = showAngles;
+          this.handleAp.position.copy(Ap);
+          this.handleAp.visible = true;
+        } else {
+          this.handleAp.visible = false;
+        }
+        if (state.showAltitude !== false) {
+          addSeg(C, Hc, PALETTE.teal, true);
+          setRightAngle3DVertices(this.rightAngle1, Hc, C, B, 0.85, THREE);
+          this.rightAngle1.visible = showAngles;
+        }
 
         // Subtended central rays from origin O to vertices A, B, C
         if (state.showRadii !== false) {
@@ -2420,8 +2855,57 @@ export class TrigScene3DView extends BaseScene3DView {
           addSeg(O, C, PALETTE.indigo, true);
         }
 
-        // Spherical Triangle Curved Mesh Cap on S²
+        // 3. Flat Euclidean Secant Triangle / Altitude Sub-triangles / Thales Bridge in R³
         if (showArea) {
+          if (state.showAltitude !== false) {
+            const leftGeom = new THREE.BufferGeometry().setFromPoints([A, Hc, C]);
+            leftGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                leftGeom,
+                new THREE.MeshBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+              )
+            );
+
+            const rightGeom = new THREE.BufferGeometry().setFromPoints([B, Hc, C]);
+            rightGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                rightGeom,
+                new THREE.MeshBasicMaterial({ color: PALETTE.red, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+              )
+            );
+          } else {
+            const flatSecantGeom = new THREE.BufferGeometry().setFromPoints([A, B, C]);
+            flatSecantGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                flatSecantGeom,
+                new THREE.MeshBasicMaterial({
+                  color: PALETTE.sky,
+                  transparent: true,
+                  opacity: 0.22,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          }
+
+          if (state.showCircumcircleDiameter !== false) {
+            const thalesGeom = new THREE.BufferGeometry().setFromPoints([Ap, B, C]);
+            thalesGeom.setIndex([0, 1, 2]);
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                thalesGeom,
+                new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+              )
+            );
+          }
+        }
+
+        // 4. Spherical Triangle Curved Mesh Cap on S² (Optional Dual Overlay)
+        if (showArea && showSphericalCap) {
           const uA = sM.unitVectors.uA;
           const uB = sM.unitVectors.uB;
           const uC = sM.unitVectors.uC;
@@ -2501,55 +2985,82 @@ export class TrigScene3DView extends BaseScene3DView {
           addConeFace(C, A);
         }
 
-        // Tangent directions at each vertex along geodesic edges for angle wedges:
-        const tangentAt = (fromPt, toPt) => {
-          const uF = fromPt.clone().normalize();
-          const uT = toPt.clone().normalize();
-          return new THREE.Vector3().subVectors(uT, uF.clone().multiplyScalar(uF.dot(uT))).normalize();
-        };
+        // Exact 3D Euclidean metrics on secant triangle ABC in R³:
+        const dist3D = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+        const aEuclid = dist3D(B, C);
+        const bEuclid = dist3D(A, C);
+        const cEuclid = dist3D(A, B);
+        const cosAEuclid = clamp((bEuclid * bEuclid + cEuclid * cEuclid - aEuclid * aEuclid) / (2 * bEuclid * cEuclid), -1, 1);
+        const cosBEuclid = clamp((aEuclid * aEuclid + cEuclid * cEuclid - bEuclid * bEuclid) / (2 * aEuclid * cEuclid), -1, 1);
+        const cosCEuclid = clamp((aEuclid * aEuclid + bEuclid * bEuclid - cEuclid * cEuclid) / (2 * aEuclid * bEuclid), -1, 1);
+        const intAEuclid = Math.acos(cosAEuclid);
+        const intBEuclid = Math.acos(cosBEuclid);
+        const intCEuclid = Math.acos(cosCEuclid);
 
-        const tAB = tangentAt(A, B);
-        const tAC = tangentAt(A, C);
-        const tBA = tangentAt(B, A);
-        const tBC = tangentAt(B, C);
-        const tCA = tangentAt(C, A);
-        const tCB = tangentAt(C, B);
-
-        // Position wedge vertices using tangent frame
+        // True 3D Euclidean interior angle wedges lying completely flat in the plane of triangle ABC:
         this.wedge1.material.color.set(PALETTE.red);
         this.wedge1.arcLine.material.color.set(PALETTE.red);
-        setAngleWedgeVertices3D(this.wedge1, A, A.clone().addScaledVector(tAB, 2.5), A.clone().addScaledVector(tAC, 2.5), 2.2, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge1, A, B, C, 2.2, 24, THREE);
 
         this.wedge2.material.color.set(PALETTE.green);
         this.wedge2.arcLine.material.color.set(PALETTE.green);
-        setAngleWedgeVertices3D(this.wedge2, B, B.clone().addScaledVector(tBA, 2.5), B.clone().addScaledVector(tBC, 2.5), 2.2, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge2, B, A, C, 2.2, 24, THREE);
 
         this.wedge3.material.color.set(PALETTE.violet);
         this.wedge3.arcLine.material.color.set(PALETTE.violet);
-        setAngleWedgeVertices3D(this.wedge3, C, C.clone().addScaledVector(tCA, 2.5), C.clone().addScaledVector(tCB, 2.5), 2.2, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge3, C, A, B, 2.2, 24, THREE);
 
         this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
 
-        // Centroid of spherical triangle for excess label
-        const cX = (A.x + B.x + C.x) / 3;
-        const cY = (A.y + B.y + C.y) / 3;
-        const cZ = (A.z + B.z + C.z) / 3;
-        const cLen = Math.hypot(cX, cY, cZ) || 1;
-        const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+        setAngleWedgeVertices3D(this.reflexWedge1, C, A, B, 2.9, 32, THREE, true);
+        this.reflexWedge1.visible = showReflex;
+
+        const bisA = get3DAngleBisector(A, B, C, 3.2, THREE);
+        const bisB = get3DAngleBisector(B, A, C, 3.2, THREE);
+        const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
 
         labels.push(
           { key: 'O', name: 'O', at: { x: 0, y: 0.6, z: 0 }, coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A', at: { x: A.x * 1.15, y: A.y + 0.4, z: A.z * 1.15 }, coords: A, color: 'color-red' },
           { key: 'B', name: 'B', at: { x: B.x * 1.15, y: B.y + 0.4, z: B.z * 1.15 }, coords: B, color: 'color-green' },
           { key: 'C', name: 'C', at: { x: C.x * 1.15, y: C.y + 0.4, z: C.z * 1.15 }, coords: C, color: 'color-violet' },
-          { key: 'sphA', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.05 + tAC.x * 1.2, y: A.y + 0.8, z: A.z * 1.05 + tAC.z * 1.2 }, color: 'color-red', isAngle: true, show: showAngles },
-          { key: 'sphB', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.05 + tBC.x * 1.2, y: B.y + 0.8, z: B.z * 1.05 + tBC.z * 1.2 }, color: 'color-green', isAngle: true, show: showAngles },
-          { key: 'sphC', text: `C_sph = ${fmtAngle(sM.sphericalAngles.degC, angUnit)}`, at: { x: C.x * 1.05 + tCA.x * 1.2, y: C.y + 0.8, z: C.z * 1.05 + tCA.z * 1.2 }, color: 'color-violet', isAngle: true, show: showAngles },
-          { key: 'sphExcess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true }
+          ...(state.showCircumcircleDiameter !== false
+            ? [{ key: 'Ap', name: "A'", at: { x: Ap.x * 1.15, y: Ap.y + 0.4, z: Ap.z * 1.15 }, coords: Ap, color: 'color-amber' }]
+            : []),
+          ...(state.showAltitude !== false
+            ? [{ key: 'Hc', name: 'Hc', at: { x: Hc.x * 1.05, y: Hc.y + 0.3, z: Hc.z * 1.05 }, coords: Hc, color: 'color-teal' }]
+            : []),
+          { key: 'angA', text: `∠A = ${fmtAngle(toDegrees(intAEuclid), angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
+          { key: 'angB', text: `∠B = ${fmtAngle(toDegrees(intBEuclid), angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
+          { key: 'angC', text: `∠C = ${fmtAngle(toDegrees(intCEuclid), angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
+          ...(showLengths
+            ? [
+                { key: 'a-len-3d', text: `a = ${aEuclid.toFixed(2)}`, at: { x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 + 0.4, z: (B.z + C.z) / 2 }, color: 'color-red', isAngle: true, show: true },
+                { key: 'b-len-3d', text: `b = ${bEuclid.toFixed(2)}`, at: { x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 + 0.4, z: (A.z + C.z) / 2 }, color: 'color-green', isAngle: true, show: true },
+                { key: 'c-len-3d', text: `c = ${cEuclid.toFixed(2)}`, at: { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 + 0.4, z: (A.z + B.z) / 2 }, color: 'color-violet', isAngle: true, show: true },
+              ]
+            : [])
         );
+
+        if (showSphericalCap) {
+          const cX = (A.x + B.x + C.x) / 3;
+          const cY = (A.y + B.y + C.y) / 3;
+          const cZ = (A.z + B.z + C.z) / 3;
+          const cLen = Math.hypot(cX, cY, cZ) || 1;
+          const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+          labels.push(
+            { key: 'sphA', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.05, y: A.y + 0.8, z: A.z * 1.05 }, color: 'color-red', isAngle: true, show: showAngles },
+            { key: 'sphB', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.05, y: B.y + 0.8, z: B.z * 1.05 }, color: 'color-green', isAngle: true, show: showAngles },
+            { key: 'sphC', text: `C_sph = ${fmtAngle(sM.sphericalAngles.degC, angUnit)}`, at: { x: C.x * 1.05, y: C.y + 0.8, z: C.z * 1.05 }, color: 'color-violet', isAngle: true, show: showAngles },
+            { key: 'sphExcess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true }
+          );
+        }
       } else {
+        alignCircleWireToPlane(this.circleWire, new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), R, THREE);
+        this.circleWire.visible = true;
         // --- PLANAR EUCLIDEAN EMBEDDING (Y = 0) ---
         const m = computeLawOfSines(state.angleA, state.angleB, state.angleC, R);
+        this.circleInfo = { center: new THREE.Vector3(0, 0, 0), radius: R, normal: new THREE.Vector3(0, 1, 0) };
         const O = new THREE.Vector3(0, 0, 0);
         const A = new THREE.Vector3(m.vertices2D.A.x, 0, m.vertices2D.A.y);
         const B = new THREE.Vector3(m.vertices2D.B.x, 0, m.vertices2D.B.y);
@@ -2577,6 +3088,10 @@ export class TrigScene3DView extends BaseScene3DView {
           addSeg(Ap, C, PALETTE.amber, true);
           setRightAngle3DVertices(this.rightAngle2, C, Ap, B, 0.95, THREE);
           this.rightAngle2.visible = showAngles;
+          this.handleAp.position.copy(Ap);
+          this.handleAp.visible = true;
+        } else {
+          this.handleAp.visible = false;
         }
         if (state.showAltitude !== false) {
           addSeg(C, Hc, PALETTE.teal, true);
@@ -2662,7 +3177,16 @@ export class TrigScene3DView extends BaseScene3DView {
     } else if (this.visualId === 'law-of-cosines') {
       const isSpatial = state.dimensionMode === 'spatial';
       if (isSpatial) {
-        const sM = computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, R);
+        // computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, R)
+        const sM = computeSphericalLawOfCosines(
+          state.sideA,
+          state.sideB,
+          state.angleC,
+          R,
+          state.colatC ?? 0,
+          state.lonC ?? 0,
+          state.headingC ?? 0
+        );
         const O = new THREE.Vector3(0, 0, 0);
         const C = new THREE.Vector3(sM.vertices3D.C.x, sM.vertices3D.C.y, sM.vertices3D.C.z);
         const A = new THREE.Vector3(sM.vertices3D.A.x, sM.vertices3D.A.y, sM.vertices3D.A.z);
@@ -2672,6 +3196,10 @@ export class TrigScene3DView extends BaseScene3DView {
         this.handleA.position.copy(A);
         this.handleB.position.copy(B);
         this.handleC.position.copy(C);
+        this.markerO.material.color.set(PALETTE.indigo);
+        this.handleA.material.color.set(PALETTE.sky);
+        this.handleB.material.color.set(PALETTE.emerald);
+        this.handleC.material.color.set(PALETTE.rose);
         this.handleA.visible = true;
         this.handleB.visible = true;
         this.handleC.visible = true;
@@ -2709,11 +3237,45 @@ export class TrigScene3DView extends BaseScene3DView {
           this.dynamicGroup.add(line);
         };
 
-        addGeodesicArc(C, A, PALETTE.emerald);
-        addGeodesicArc(C, B, PALETTE.sky);
-        addGeodesicArc(A, B, PALETTE.rose);
+        const circleInfo = computeConcyclicPlaneAndCircle(C, A, B, R, THREE);
+        alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
 
+        const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+        const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
+
+        // 1. Primary Straight Euclidean Chords in R³ (Solid, Unbent Triangle Edges)
+        addSeg(C, A, PALETTE.emerald, false);
+        addSeg(C, B, PALETTE.sky, false);
+        addSeg(A, B, PALETTE.rose, false);
+        // addSeg(C, A, PALETTE.emerald, true); addSeg(C, B, PALETTE.sky, true); addSeg(A, B, PALETTE.rose, true);
+
+        // 2. Curved Geodesic Arcs on S² (Secondary / Optional Overlay)
+        if (showGeodesicOverlay) {
+          addGeodesicArc(C, A, PALETTE.emerald);
+          addGeodesicArc(C, B, PALETTE.sky);
+          addGeodesicArc(A, B, PALETTE.rose);
+        }
+
+        // 3. Flat Euclidean Secant Triangle in R³ inside the sphere (Primary Shaded Triangle)
         if (showArea) {
+          const flatSecantGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
+          flatSecantGeom.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              flatSecantGeom,
+              new THREE.MeshBasicMaterial({
+                color: PALETTE.sky,
+                transparent: true,
+                opacity: 0.22,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            )
+          );
+        }
+
+        // 4. Spherical Triangle Curved Mesh Cap on S² (Optional Dual Overlay)
+        if (showArea && showSphericalCap) {
           const nSub = 8;
           const verts = [];
           const indices = [];
@@ -2762,149 +3324,89 @@ export class TrigScene3DView extends BaseScene3DView {
           );
         }
 
-        const tangentAt = (fromPt, toPt) => {
-          const uF = fromPt.clone().normalize();
-          const uT = toPt.clone().normalize();
-          return new THREE.Vector3().subVectors(uT, uF.clone().multiplyScalar(uF.dot(uT))).normalize();
-        };
+        // Exact 3D Euclidean chord metrics on secant triangle CAB:
+        const dist3D = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+        const aEuclid = dist3D(C, B);
+        const bEuclid = dist3D(C, A);
+        const cEuclid = dist3D(A, B);
+        const cosCEuclid = clamp((aEuclid * aEuclid + bEuclid * bEuclid - cEuclid * cEuclid) / (2 * aEuclid * bEuclid), -1, 1);
+        const cosAEuclid = clamp((bEuclid * bEuclid + cEuclid * cEuclid - aEuclid * aEuclid) / (2 * bEuclid * cEuclid), -1, 1);
+        const cosBEuclid = clamp((aEuclid * aEuclid + cEuclid * cEuclid - bEuclid * bEuclid) / (2 * aEuclid * cEuclid), -1, 1);
+        const intCEuclid = Math.acos(cosCEuclid);
+        const intAEuclid = Math.acos(cosAEuclid);
+        const intBEuclid = Math.acos(cosBEuclid);
 
-        const tCA = tangentAt(C, A);
-        const tCB = tangentAt(C, B);
-        const tAC = tangentAt(A, C);
-        const tAB = tangentAt(A, B);
-        const tBC = tangentAt(B, C);
-        const tBA = tangentAt(B, A);
-
+        // True 3D Euclidean interior angle wedges lying completely flat in the plane of triangle CAB:
         this.wedge1.material.color.set(PALETTE.rose);
         this.wedge1.arcLine.material.color.set(PALETTE.rose);
-        setAngleWedgeVertices3D(this.wedge1, C, C.clone().addScaledVector(tCA, 2.5), C.clone().addScaledVector(tCB, 2.5), 2.2, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge1, C, A, B, 2.2, 24, THREE);
 
         this.wedge2.material.color.set(PALETTE.sky);
         this.wedge2.arcLine.material.color.set(PALETTE.sky);
-        setAngleWedgeVertices3D(this.wedge2, A, A.clone().addScaledVector(tAC, 2.5), A.clone().addScaledVector(tAB, 2.5), 2.0, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge2, A, C, B, 2.0, 24, THREE);
 
         this.wedge3.material.color.set(PALETTE.emerald);
         this.wedge3.arcLine.material.color.set(PALETTE.emerald);
-        setAngleWedgeVertices3D(this.wedge3, B, B.clone().addScaledVector(tBC, 2.5), B.clone().addScaledVector(tBA, 2.5), 2.0, 24, THREE);
+        setAngleWedgeVertices3D(this.wedge3, B, C, A, 2.0, 24, THREE);
 
         this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
-        this.rightAngle2.visible = false;
         this.reflexWedge1.visible = false;
 
-        const cX = (A.x + B.x + C.x) / 3;
-        const cY = (A.y + B.y + C.y) / 3;
-        const cZ = (A.z + B.z + C.z) / 3;
-        const cLen = Math.hypot(cX, cY, cZ) || 1;
-        const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+        // 3D Euclidean Projection Foot D from Vertex B onto baseline CA:
+        const uCA = new THREE.Vector3().subVectors(A, C).normalize();
+        const vCB = new THREE.Vector3().subVectors(B, C);
+        const projLen = vCB.dot(uCA);
+        const D_3D = C.clone().addScaledVector(uCA, projLen);
 
-        // Equatorial projection of the 2ab cos C bilinear interaction rectangle in Spherical 3D mode
-        const showSphRect = state.showInteractionRect !== false && showArea;
-        const mFlat = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
-        const sFlat = R / Math.max(mFlat.a, mFlat.b, mFlat.c, 10);
-        const sphDx = mFlat.vertices2D.D.x * sFlat;
-        const sphRectDepth = Math.min(3.4, mFlat.b * sFlat * 0.36);
-        if (showSphRect) {
-          const SR0 = new THREE.Vector3(0, 0.015, 0);
-          const SR1 = new THREE.Vector3(sphDx, 0.015, 0);
-          const SR2 = new THREE.Vector3(sphDx, 0.015, -sphRectDepth);
-          const SR3 = new THREE.Vector3(0, 0.015, -sphRectDepth);
-          const sphRectGeom = new THREE.BufferGeometry().setFromPoints([SR0, SR1, SR2, SR3]);
-          sphRectGeom.setIndex([0, 1, 2, 0, 2, 3]);
-          sphRectGeom.setAttribute(
-            'color',
-            new THREE.Float32BufferAttribute(
-              [
-                0.957, 0.247, 0.369, // Rose (C / c)
-                0.008, 0.518, 0.780, // Sky (a cos C)
-                0.659, 0.333, 0.969, // Violet (cos C)
-                0.063, 0.725, 0.506, // Emerald (b)
-              ],
-              3
-            )
-          );
-          this.dynamicGroup.add(
-            new THREE.Mesh(
-              sphRectGeom,
-              new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.42,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-              })
-            )
-          );
-          addSeg(SR0, SR1, PALETTE.sky);
-          addSeg(SR3, SR2, PALETTE.violet);
-          addSeg(SR0, SR3, PALETTE.emerald);
-          addSeg(SR1, SR2, PALETTE.emerald);
-          addSeg(SR0, SR2, PALETTE.rose, true);
+        if (state.showAltitude !== false) {
+          addSeg(B, D_3D, PALETTE.amber, true); // Perpendicular altitude in 3D
+          addSeg(C, D_3D, PALETTE.amber, false); // Base projection segment (a cos C)
+          setRightAngle3DVertices(this.rightAngle2, D_3D, B, C, 0.85, THREE);
+          this.rightAngle2.visible = showAngles;
         }
 
-        // Spherical 3D Unit Cosine Construction at Apex C (PALETTE.violet)
-        const rUnitSph = 2.4;
-        const UbSph = C.clone().addScaledVector(tCB, rUnitSph);
-        const UcSph = C.clone().addScaledVector(tCA, rUnitSph * Math.cos(sM.angleC));
-        if (state.showRatioBadge !== false) {
-          addSeg(C, UcSph, PALETTE.violet);
-          addVectorArrow(C, UcSph, PALETTE.violet);
-          addSeg(UbSph, UcSph, PALETTE.violet, true);
-          if (showArea) {
-            const uSphGeom = new THREE.BufferGeometry().setFromPoints([C, UcSph, UbSph]);
-            uSphGeom.setIndex([0, 1, 2]);
-            this.dynamicGroup.add(
-              new THREE.Mesh(
-                uSphGeom,
-                new THREE.MeshBasicMaterial({
-                  color: PALETTE.violet,
-                  transparent: true,
-                  opacity: 0.28,
-                  side: THREE.DoubleSide,
-                  depthWrite: false,
-                })
-              )
-            );
-          }
-        }
+        const bisC = get3DAngleBisector(C, A, B, 2.8, THREE);
+        const bisA = get3DAngleBisector(A, C, B, 2.8, THREE);
+        const bisB = get3DAngleBisector(B, C, A, 2.8, THREE);
+
+        const uC_norm = C.clone().normalize();
+        const uA_norm = A.clone().normalize();
+        const uB_norm = B.clone().normalize();
 
         labels.push(
           { key: 'O', name: 'O', at: { x: 0, y: -0.9, z: 0 }, coords: O, color: 'color-indigo' },
-          { key: 'C', name: 'C', at: { x: -0.8, y: R + 0.9, z: -0.8 }, coords: C, color: 'color-rose' },
-          { key: 'A', name: 'A', at: { x: A.x * 1.18, y: A.y + 0.4, z: A.z * 1.18 }, coords: A, color: 'color-sky' },
-          { key: 'B', name: 'B', at: { x: B.x * 1.18, y: B.y + 0.4, z: B.z * 1.18 }, coords: B, color: 'color-emerald' },
-          { key: 'sph-C', text: `∠C = ${fmtAngle(sM.angleCDeg, angUnit)}`, at: { x: C.x - tCA.x * 1.6, y: C.y + 0.9, z: C.z - tCB.z * 1.6 }, color: 'color-rose', isAngle: true, show: showAngles },
-          { key: 'sph-A', text: `A_sph = ${fmtAngle(sM.sphericalAngles.degA, angUnit)}`, at: { x: A.x * 1.24, y: A.y - 0.6, z: A.z * 1.24 }, color: 'color-sky', isAngle: true, show: showAngles },
-          { key: 'sph-B', text: `B_sph = ${fmtAngle(sM.sphericalAngles.degB, angUnit)}`, at: { x: B.x * 1.24, y: B.y - 0.6, z: B.z * 1.24 }, color: 'color-emerald', isAngle: true, show: showAngles },
-          { key: 'sph-excess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true },
-          ...(showSphRect
+          { key: 'C', name: 'C', at: C.clone().addScaledVector(uC_norm, 0.9), coords: C, color: 'color-rose' },
+          { key: 'A', name: 'A', at: A.clone().addScaledVector(uA_norm, 0.9), coords: A, color: 'color-sky' },
+          { key: 'B', name: 'B', at: B.clone().addScaledVector(uB_norm, 0.9), coords: B, color: 'color-emerald' },
+          { key: 'D', name: 'D', at: { x: D_3D.x, y: D_3D.y + 0.4, z: D_3D.z }, coords: D_3D, color: 'color-amber', show: state.showAltitude !== false },
+          { key: 'sph-C', text: `∠C = ${fmtAngle(toDegrees(intCEuclid), angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
+          { key: 'sph-A', text: `∠A = ${fmtAngle(toDegrees(intAEuclid), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
+          { key: 'sph-B', text: `∠B = ${fmtAngle(toDegrees(intBEuclid), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
+          ...(showLengths
             ? [
-                {
-                  key: 'sph-rect-2abcos',
-                  text: `2ab cos C = ${mFlat.squares.interaction2abCosC.toFixed(1)}`,
-                  at: { x: sphDx / 2, y: -0.5, z: -sphRectDepth - 0.8 },
-                  color: 'color-amber',
-                  isAngle: true,
-                  show: true,
-                },
-              ]
-            : []),
-          ...(state.showRatioBadge !== false
-            ? [
-                {
-                  key: 'sph-ratio-cos',
-                  text: `cos C = ${Math.cos(sM.angleC).toFixed(3)}`,
-                  at: { x: UcSph.x, y: R + 1.8, z: UcSph.z },
-                  color: 'color-violet',
-                  isAngle: true,
-                  show: true,
-                },
+                { key: 'sph-a-len', text: `a = ${aEuclid.toFixed(2)}`, at: { x: (C.x + B.x) / 2, y: (C.y + B.y) / 2 + 0.4, z: (C.z + B.z) / 2 }, color: 'color-sky', isAngle: true, show: true },
+                { key: 'sph-b-len', text: `b = ${bEuclid.toFixed(2)}`, at: { x: (C.x + A.x) / 2, y: (C.y + A.y) / 2 + 0.4, z: (C.z + A.z) / 2 }, color: 'color-emerald', isAngle: true, show: true },
+                { key: 'sph-c-len', text: `c = ${cEuclid.toFixed(2)}`, at: { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 + 0.4, z: (A.z + B.z) / 2 }, color: 'color-rose', isAngle: true, show: true },
               ]
             : [])
         );
+
+        const showSphRect = state.showInteractionRect !== false && showArea;
+        if (showSphericalCap) {
+          const cX = (A.x + B.x + C.x) / 3;
+          const cY = (A.y + B.y + C.y) / 3;
+          const cZ = (A.z + B.z + C.z) / 3;
+          const cLen = Math.hypot(cX, cY, cZ) || 1;
+          const capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+          labels.push(
+            { key: 'sph-excess', text: `Excess E = ${sM.sphericalExcess.excessDeg.toFixed(1)}°`, at: capCenter, color: 'color-amber', isAngle: true, show: true }
+          );
+        }
       } else {
         const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
         const s = R / Math.max(m.a, m.b, m.c, 10);
+        alignCircleWireToPlane(this.circleWire, new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), m.a * s, THREE);
+        this.circleWire.visible = state.showLocusCircle !== false;
         const C = new THREE.Vector3(0, 0, 0);
         const A = new THREE.Vector3(m.b * s, 0, 0);
         const B = new THREE.Vector3(m.vertices2D.B.x * s, 0, m.vertices2D.B.y * s);
@@ -2914,6 +3416,10 @@ export class TrigScene3DView extends BaseScene3DView {
         this.handleA.position.copy(A);
         this.handleB.position.copy(B);
         this.handleC.position.copy(D);
+        this.markerO.material.color.set(PALETTE.rose);
+        this.handleA.material.color.set(PALETTE.sky);
+        this.handleB.material.color.set(PALETTE.emerald);
+        this.handleC.material.color.set(PALETTE.amber);
         this.handleA.visible = true;
         this.handleB.visible = true;
         this.handleC.visible = state.showProjection !== false;
@@ -3145,6 +3651,19 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'B', name: 'B', at: { x: B.x, y: 0.7, z: B.z + 1.3 }, coords: B, color: 'color-emerald' },
           { key: 'D', name: 'D', at: { x: D.x, y: 0.5, z: 0.9 }, coords: D, color: 'color-amber', show: state.showProjection !== false },
           { key: 'Uc', name: 'Uc', at: { x: Uc3D.x, y: 0.5, z: -0.8 }, coords: Uc3D, color: 'color-violet', show: state.showRatioBadge !== false },
+          ...(showLengths
+            ? [
+                { key: 'side-a-len', text: `a = ${m.a.toFixed(2)}`, at: { x: B.x * 0.5 - 1.2, y: 0.45, z: B.z * 0.5 + 0.8 }, color: 'color-sky', isAngle: true, show: true },
+                { key: 'side-b-len', text: `b = ${m.b.toFixed(2)}`, at: { x: A.x * 0.5, y: 0.45, z: -0.9 }, color: 'color-emerald', isAngle: true, show: true },
+                { key: 'side-c-len', text: `c = ${m.c.toFixed(2)}`, at: { x: (A.x + B.x) * 0.5 + 1.0, y: 0.45, z: B.z * 0.5 + 0.9 }, color: 'color-rose', isAngle: true, show: true },
+                ...(state.showProjection !== false
+                  ? [
+                      { key: 'alt-h-len', text: `h = ${m.projection.hAlt.toFixed(2)}`, at: { x: D.x + (D.x <= A.x * 0.5 ? 1.4 : -1.4), y: 0.45, z: B.z * 0.5 }, color: 'color-amber', isAngle: true, show: true },
+                      { key: 'proj-p-len', text: `a cos C = ${m.projection.pProj.toFixed(2)}`, at: { x: D.x * 0.5, y: 0.45, z: 0.85 }, color: 'color-amber', isAngle: true, show: true },
+                    ]
+                  : []),
+              ]
+            : []),
           { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
           { key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
@@ -3175,12 +3694,17 @@ export class TrigScene3DView extends BaseScene3DView {
       const isSpatial = state.dimensionMode === 'spatial';
       if (isSpatial) {
         const eM = computeSpatialAngleSumEuler(state.angleAlpha, state.angleBeta, state.angleGamma, R);
+        const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, R);
         const O = new THREE.Vector3(0, 0, 0);
         const e1 = new THREE.Vector3(eM.triad.e1.x, eM.triad.e1.z, eM.triad.e1.y);
         const e2 = new THREE.Vector3(eM.triad.e2.x, eM.triad.e2.z, eM.triad.e2.y);
         const e3 = new THREE.Vector3(eM.triad.e3.x, eM.triad.e3.z, eM.triad.e3.y);
         const Aray = new THREE.Vector3(eM.intermediateAlpha.e1_alpha.x, eM.intermediateAlpha.e1_alpha.z, eM.intermediateAlpha.e1_alpha.y);
         const X_ref = new THREE.Vector3(R, 0, 0);
+
+        // Align primary unit circle wireframe to the SO(3) Euler plane spanned by {e1, e2}
+        alignCircleWireToPlane(this.circleWire, e3, O, R, THREE);
+        this.circleWire.visible = state?.vis3d?.circleWire !== false;
 
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
@@ -3193,48 +3717,113 @@ export class TrigScene3DView extends BaseScene3DView {
         // Spatial cosine projections onto X-axis: N = R cos(α+β) (Amber) and N_D = R cos(α−β) (Orange)
         const cosSum = Math.cos(state.angleAlpha + state.angleBeta);
         const sinSum = Math.sin(state.angleAlpha + state.angleBeta);
+        const cosGamma = Math.cos(state.angleGamma || 0);
+        const sinGamma = Math.sin(state.angleGamma || 0);
+
+        // Tilted planar decomposition coordinates (straight, unbent Euclidean geometry in R³):
+        // Orthonormal basis for tilted Euler plane: u = (1, 0, 0), v = (0, sinGamma, cosGamma)
+        const Q = new THREE.Vector3(m.points2D.Q.x, m.points2D.Q.y * sinGamma, m.points2D.Q.y * cosGamma);
+        const S = new THREE.Vector3(m.points2D.S_corner.x, m.points2D.S_corner.y * sinGamma, m.points2D.S_corner.y * cosGamma);
+        const M = new THREE.Vector3(m.points2D.M.x, 0, 0);
         const N_spatial = new THREE.Vector3(R * cosSum, 0, 0);
-        addSeg(O, N_spatial, PALETTE.amber);
-        addSeg(e1, N_spatial, PALETTE.emerald, true);
 
         // Spatial difference vector D(α-β) under the Euler rotation frame
         const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
         const sinDiff = Math.sin(state.angleAlpha - state.angleBeta);
-        const cosGamma = Math.cos(state.angleGamma || 0);
-        const sinGamma = Math.sin(state.angleGamma || 0);
         const D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
         const Ndiff_spatial = new THREE.Vector3(R * cosDiff, 0, 0);
+
+        // Crisp 3D Conical Vector Arrows (unbent Euclidean vectors from origin)
+        addVectorArrow(O, Aray, PALETTE.sky);
+        addVectorArrow(O, e1, PALETTE.emerald);
+        addVectorArrow(O, e2, PALETTE.amber);
+        addVectorArrow(O, e3, PALETTE.indigo);
 
         if (state.showDifferenceRay !== false) {
           this.handleC.position.copy(D_spatial);
           this.handleC.visible = true;
           addVectorArrow(O, D_spatial, PALETTE.rose);
           // Spatial chord PD rigidly invariant at |PD| = 2R sin β under SO(3)
-          addSeg(e1, D_spatial, PALETTE.rose, true);
+          addSeg(e1, D_spatial, PALETTE.teal, true);
           // Spatial dropped perpendicular to X-axis at N_D and Orange cosine segment ON_D = cos(α−β)
           addSeg(D_spatial, Ndiff_spatial, PALETTE.rose, true);
           addSeg(O, Ndiff_spatial, PALETTE.orange);
           addSeg(new THREE.Vector3(0, 0.03, 0.14), new THREE.Vector3(R * cosDiff, 0.03, 0.14), PALETTE.orange);
+
+          if (showPoints) {
+            const ndMarker = new THREE.Mesh(
+              new THREE.SphereGeometry(0.14, 16, 16),
+              new THREE.MeshBasicMaterial({ color: PALETTE.orange })
+            );
+            ndMarker.position.set(Ndiff_spatial.x, 0.03, 0.14);
+            this.dynamicGroup.add(ndMarker);
+          }
+          // Right angle at Ndiff
+          setRightAngle3DVertices(this.rightAngle4, Ndiff_spatial, O, D_spatial, 0.75, THREE);
+          this.rightAngle4.visible = showAngles && Math.abs(m.trig.sinDiff) > 0.05 && Math.abs(m.trig.cosDiff) > 0.05;
         } else {
           this.handleC.visible = false;
         }
 
-        addVectorArrow(O, Aray, PALETTE.sky);
-        addVectorArrow(O, e1, PALETTE.emerald);
-        addVectorArrow(O, e2, PALETTE.amber);
-        addVectorArrow(O, e3, PALETTE.indigo);
+        if (state.showStackedTriangles !== false) {
+          addSeg(O, Q, PALETTE.amber);
+          addSeg(Q, e1, PALETTE.violet);
+          addSeg(O, N_spatial, PALETTE.amber);
+          addSeg(new THREE.Vector3(0, 0.03, -0.1), new THREE.Vector3(N_spatial.x, 0.03, -0.1), PALETTE.amber);
+          if (showPoints) {
+            for (const pt of [N_spatial, M, Q]) {
+              const mMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.13, 16, 16),
+                new THREE.MeshBasicMaterial({ color: PALETTE.amber })
+              );
+              mMesh.position.copy(pt);
+              this.dynamicGroup.add(mMesh);
+            }
+          }
+          // Straight Euclidean decomposition perimeter box (Q-M-N-S-P) in R³:
+          addSeg(Q, M, PALETTE.amber, true);
+          addSeg(e1, N_spatial, PALETTE.emerald, true); // Dropped perpendicular from e1 (P) to X-axis (sin(α+β))
+          addSeg(Q, S, PALETTE.amber, true);
+          addSeg(e1, S, PALETTE.amber, true);
+          addSeg(M, N_spatial, PALETTE.amber, true);
 
-        const groundPts = [];
+          // Right angles: at Q in △OPQ, at M in △OMQ, and at N for dropped perpendicular PN ⊥ X-axis
+          setRightAngle3DVertices(this.rightAngle1, Q, O, e1, 0.85, THREE);
+          setRightAngle3DVertices(this.rightAngle2, M, O, Q, 0.75, THREE);
+          setRightAngle3DVertices(this.rightAngle3, N_spatial, O, e1, 0.75, THREE);
+          this.rightAngle1.visible = showAngles;
+          this.rightAngle2.visible = showAngles;
+          this.rightAngle3.visible = showAngles && Math.abs(m.trig.sinSum) > 0.05 && Math.abs(m.trig.cosSum) > 0.05;
+        }
+
+        // Subtle equatorial ground reference circle on XZ plane
+        if (state.vis3d?.gridXZ !== false) {
+          const groundPts = [];
+          for (let i = 0; i <= 64; i++) {
+            const ang = (i / 64) * Math.PI * 2;
+            groundPts.push(new THREE.Vector3(R * Math.cos(ang), 0, R * Math.sin(ang)));
+          }
+          const groundGeom = new THREE.BufferGeometry().setFromPoints(groundPts);
+          const groundMat = new THREE.LineDashedMaterial({ color: PALETTE.slate, dashSize: 0.4, gapSize: 0.25, transparent: true, opacity: 0.35 });
+          const groundCircle = new THREE.Line(groundGeom, groundMat);
+          groundCircle.computeLineDistances();
+          this.dynamicGroup.add(groundCircle);
+        }
+
+        // Tilted dynamic great circle wireframe in the SO(3) Euler plane spanned by {e1, e2}
+        const tiltedPts = [];
         for (let i = 0; i <= 64; i++) {
           const ang = (i / 64) * Math.PI * 2;
-          groundPts.push(new THREE.Vector3(R * Math.cos(ang), 0, R * Math.sin(ang)));
+          const pt = new THREE.Vector3()
+            .addScaledVector(e1, Math.cos(ang))
+            .addScaledVector(e2, Math.sin(ang));
+          tiltedPts.push(pt);
         }
-        const groundGeom = new THREE.BufferGeometry().setFromPoints(groundPts);
-        const groundMat = new THREE.LineDashedMaterial({ color: PALETTE.slate, dashSize: 0.4, gapSize: 0.25 });
-        const groundCircle = new THREE.Line(groundGeom, groundMat);
-        groundCircle.computeLineDistances();
-        this.dynamicGroup.add(groundCircle);
+        const tiltedGeom = new THREE.BufferGeometry().setFromPoints(tiltedPts);
+        const tiltedMat = new THREE.LineBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.5, linewidth: 2 });
+        this.dynamicGroup.add(new THREE.Line(tiltedGeom, tiltedMat));
 
+        // 3D Angle Wedges alpha and beta in tilted Euler plane
         this.wedge1.material.color.set(PALETTE.sky);
         this.wedge1.arcLine.material.color.set(PALETTE.sky);
         setAngleWedgeVertices3D(this.wedge1, O, X_ref, Aray, 2.2, 24, THREE, state.angleAlpha > Math.PI);
@@ -3243,9 +3832,36 @@ export class TrigScene3DView extends BaseScene3DView {
         this.wedge2.arcLine.material.color.set(PALETTE.violet);
         setAngleWedgeVertices3D(this.wedge2, O, Aray, e1, 3.0, 24, THREE, state.angleBeta > Math.PI);
         this.wedge1.visible = this.wedge2.visible = showAngles;
-        this.wedge3.visible = false;
-        this.rightAngle1.visible = this.rightAngle2.visible = this.rightAngle3.visible = this.rightAngle4.visible = false;
-        this.reflexWedge1.visible = false;
+
+        // Directed conjugate wedge in tilted Euler plane: correctly sweeps 360° - (α+β)
+        setAngleWedgeVertices3D(this.reflexWedge1, O, X_ref, e1, 3.6, 32, THREE, m.sumAngle <= Math.PI);
+        this.reflexWedge1.visible = showReflex;
+
+        // Stacked Right Triangles Shading in 3D Spatial Mode (unified with 2D and 3D Planar)
+        if (showArea && state.showStackedTriangles !== false) {
+          const g1 = new THREE.BufferGeometry().setFromPoints([O, M, Q]);
+          g1.setIndex([0, 1, 2]);
+
+          const g2 = new THREE.BufferGeometry().setFromPoints([O, Q, e1]);
+          g2.setIndex([0, 1, 2]);
+
+          const g3 = new THREE.BufferGeometry().setFromPoints([e1, S, Q]);
+          g3.setIndex([0, 1, 2]);
+
+          this.dynamicGroup.add(
+            new THREE.Mesh(g1, new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
+            new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: PALETTE.violet, transparent: true, opacity: 0.18, side: THREE.DoubleSide })),
+            new THREE.Mesh(g3, new THREE.MeshBasicMaterial({ color: PALETTE.amber, transparent: true, opacity: 0.18, side: THREE.DoubleSide }))
+          );
+        }
+
+        if (showArea && state.showDifferenceRay !== false) {
+          const gDiff = new THREE.BufferGeometry().setFromPoints([O, Q, D_spatial]);
+          gDiff.setIndex([0, 1, 2]);
+          this.dynamicGroup.add(
+            new THREE.Mesh(gDiff, new THREE.MeshBasicMaterial({ color: PALETTE.rose, transparent: true, opacity: 0.18, side: THREE.DoubleSide }))
+          );
+        }
 
         // 3D Determinant Volume Parallelepiped Shading spanned by orthonormal triad {e1, e2, e3}:
         // Signed volume V = e1 · (e2 × e3) = det(R) = +1
@@ -3296,22 +3912,39 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'e2', name: 'e₂(γ)', at: { x: e2.x * 1.12, y: e2.y + 0.4, z: e2.z * 1.12 }, coords: e2, color: 'color-amber' },
           { key: 'e3', name: 'e₃: n(Euler)', at: { x: e3.x * 1.12, y: e3.y + 0.6, z: e3.z * 1.12 }, coords: e3, color: 'color-indigo' },
           { key: 'N', name: 'N', at: { x: N_spatial.x, y: 0.4, z: -0.35 }, coords: N_spatial, color: 'color-amber', show: true },
+          { key: 'Q', name: 'Q', at: { x: Q.x, y: Q.y + 0.4, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
+          { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'cos-sum-len', text: `cos(α+β) = ${cosSum.toFixed(3)}`, at: { x: N_spatial.x / 2, y: 0.45, z: -0.85 }, color: 'color-amber', isAngle: true, show: showLengths && showAngles },
+          { key: 'sin-sum-len', text: `sin(α+β) = ${sinSum.toFixed(3)}`, at: { x: N_spatial.x + 1.2 * (N_spatial.x >= 0 ? -1 : 1), y: (N_spatial.y + e1.y) / 2 + 0.35, z: (N_spatial.z + e1.z) / 2 }, color: 'color-emerald', isAngle: true, show: state.showStackedTriangles !== false && showAngles },
           ...(state.showDifferenceRay !== false
             ? [
                 { key: 'Pdiff', name: 'D(α−β)', at: { x: D_spatial.x * 1.15, y: D_spatial.y + 0.4, z: D_spatial.z * 1.15 }, coords: D_spatial, color: 'color-rose' },
                 { key: 'Ndiff', name: 'N_D', at: { x: Ndiff_spatial.x, y: 0.4, z: 0.45 }, coords: Ndiff_spatial, color: 'color-orange', show: true },
                 { key: 'cos-diff-len', text: `cos(α−β) = ${cosDiff.toFixed(3)}`, at: { x: Ndiff_spatial.x / 2, y: 0.45, z: 0.95 }, color: 'color-orange', isAngle: true, show: showLengths && showAngles },
+                { key: 'sin-diff-len', text: `sin(α−β) = ${sinDiff.toFixed(3)}`, at: { x: Ndiff_spatial.x + 1.2 * (Ndiff_spatial.x >= 0 ? -1 : 1), y: (Ndiff_spatial.y + D_spatial.y) / 2 + 0.35, z: (Ndiff_spatial.z + D_spatial.z) / 2 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
+                {
+                  key: 'chord-pd-len',
+                  text: `|PD| = 2R sin β = ${(2 * Math.sin(eM.beta) * R).toFixed(2)}`,
+                  at: { x: (D_spatial.x * 0.7 + e1.x * 0.3) * 1.22, y: (D_spatial.y * 0.7 + e1.y * 0.3) * 1.22 + 0.45, z: (D_spatial.z * 0.7 + e1.z * 0.3) * 1.22 },
+                  color: 'color-teal',
+                  isAngle: true,
+                  show: showLengths && showAngles,
+                },
               ]
             : []),
-          { key: 'angAlpha', text: `α = ${fmtAngle(eM.alphaDeg, angUnit)}`, at: { x: Aray.x * 0.5 + 0.8, y: 0.4, z: Aray.z * 0.5 }, color: 'color-sky', isAngle: true, show: showAngles },
-          { key: 'angBeta', text: `β = ${fmtAngle(eM.betaDeg, angUnit)}`, at: { x: (Aray.x + e1.x) * 0.4, y: 0.4, z: (Aray.z + e1.z) * 0.4 }, color: 'color-violet', isAngle: true, show: showAngles },
+          { key: 'angAlpha', text: `α = ${fmtAngle(eM.alphaDeg, angUnit)}`, at: { x: Aray.x * 0.5 + 0.8, y: Aray.y * 0.5 + 0.4, z: Aray.z * 0.5 }, color: 'color-sky', isAngle: true, show: showAngles },
+          { key: 'angBeta', text: `β = ${fmtAngle(eM.betaDeg, angUnit)}`, at: { x: (Aray.x + e1.x) * 0.4, y: (Aray.y + e1.y) * 0.4 + 0.4, z: (Aray.z + e1.z) * 0.4 }, color: 'color-violet', isAngle: true, show: showAngles },
+          { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: { x: -(Aray.x + e1.x) * 0.35, y: -(Aray.y + e1.y) * 0.35 + 0.4, z: -(Aray.z + e1.z) * 0.35 }, color: 'color-teal', isAngle: true, show: showReflex },
           { key: 'detR', text: `det(R) = ${eM.lieAlgebra.detR.toFixed(4)}`, at: { x: e3.x * 0.5, y: e3.y * 0.5 + 0.5, z: e3.z * 0.5 }, color: 'color-teal', isAngle: true, show: true }
         );
       } else {
+        const O = new THREE.Vector3(0, 0, 0);
+        // Reset circle wire to flat XZ plane in planar mode
+        alignCircleWireToPlane(this.circleWire, new THREE.Vector3(0, 1, 0), O, R, THREE);
+        this.circleWire.visible = state?.vis3d?.circleWire !== false;
+
         // angle-sum-identities: crisp 3D ArrowHelper vectors (no visible spheres on vector apexes)
         const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, R);
-        const O = new THREE.Vector3(0, 0, 0);
         const X_ref = new THREE.Vector3(R, 0, 0);
         const Aray = new THREE.Vector3(m.points2D.A_ray.x, 0, m.points2D.A_ray.y);
         const P = new THREE.Vector3(m.points2D.P.x, 0, m.points2D.P.y);
@@ -3337,7 +3970,7 @@ export class TrigScene3DView extends BaseScene3DView {
         if (state.showDifferenceRay !== false) {
           addVectorArrow(O, Pdiff, PALETTE.rose);
           // Chord PD bisected perpendicularly by ray OA at Q
-          addSeg(P, Pdiff, PALETTE.rose, true);
+          addSeg(P, Pdiff, PALETTE.teal, true);
           // Dropped perpendicular from Pdiff to X-axis at Ndiff (sin(α−β) altitude in Rose)
           addSeg(Pdiff, Ndiff, PALETTE.rose, true);
           // Horizontal projection from origin to Ndiff (cos(α−β) in Orange, distinct from Amber cos(α+β))
@@ -3438,7 +4071,18 @@ export class TrigScene3DView extends BaseScene3DView {
             { key: 'Ndiff', name: 'N_D', at: { x: Ndiff.x, y: 0.4, z: Ndiff.z }, coords: Ndiff, color: 'color-orange', show: true },
             { key: 'cos-diff-len', text: `cos(α−β) = ${m.trig.cosDiff.toFixed(3)}`, at: { x: Ndiff.x / 2, y: 0.45, z: 0.8 * (Pdiff.z >= 0 ? 1 : -1) }, color: 'color-orange', isAngle: true, show: showLengths && showAngles },
             { key: 'sin-diff-len', text: `sin(α−β) = ${m.trig.sinDiff.toFixed(3)}`, at: { x: Ndiff.x + 1.2 * (Ndiff.x >= 0 ? -1 : 1), y: 0.45, z: Pdiff.z / 2 }, color: 'color-rose', isAngle: true, show: showLengths && showAngles },
-            { key: 'chord-pd-len', text: `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`, at: { x: (P.x + Pdiff.x) * 0.5 + 0.8, y: 0.55, z: (P.z + Pdiff.z) * 0.5 }, color: 'color-violet', isAngle: true, show: showLengths && showAngles }
+            {
+              key: 'chord-pd-len',
+              text: `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(3)}`,
+              at: {
+                x: (Q.x + Pdiff.x) * 0.5 + ((Q.x + Pdiff.x) * 0.5 / (Math.hypot((Q.x + Pdiff.x) * 0.5, (Q.z + Pdiff.z) * 0.5) || 1)) * 1.8,
+                y: 0.55,
+                z: (Q.z + Pdiff.z) * 0.5 + ((Q.z + Pdiff.z) * 0.5 / (Math.hypot((Q.x + Pdiff.x) * 0.5, (Q.z + Pdiff.z) * 0.5) || 1)) * 1.8,
+              },
+              color: 'color-teal',
+              isAngle: true,
+              show: showLengths && showAngles,
+            }
           ] : []),
           { key: 'Q', name: 'Q', at: { x: Q.x, y: 0.5, z: Q.z }, coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'M', name: 'M', at: { x: M.x, y: 0.4, z: M.z }, coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
@@ -3523,6 +4167,15 @@ export class TrigDerivationsView {
     this.visualId = visualId;
     this.initialized = false;
     this.currentMode = null;
+    this.lastState = null;
+    if (typeof window !== "undefined") {
+      window.addEventListener("vml:locale-changed", () => {
+        this.initialized = false;
+        if (this.lastState && this.container) {
+          this.render(this.lastState);
+        }
+      });
+    }
   }
 
   #initDOM(dimensionMode = 'planar') {
@@ -3557,6 +4210,14 @@ export class TrigDerivationsView {
         ${cardTemplate(
           'uch-step-4',
           'Step 4',
+          `Complementary Cotangent & Cosecant Duality (${tag('indigo', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')})`,
+          `At vertical contact ${tag('violet', 'C₀(0, 1)')}, horizontal cotangent ${tag('orange', 'cot θ = cos θ / sin θ')} and radial cosecant ${tag('fuchsia', 'csc θ = 1 / sin θ')} intersect the Y-axis at ${tag('fuchsia', '(0, csc θ)')}:<br>` +
+          `${tag('indigo', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')} &nbsp;|&nbsp; By triangle similarity ${tag('teal', '△OCₓP ∼ △(0, csc θ) P O')}: ${tag('fuchsia', 'csc θ')} = ${tag('indigo', '1')} / ${tag('emerald', 'sin θ')}`,
+          true
+        )}
+        ${cardTemplate(
+          'uch-step-5',
+          'Step 5',
           `3D Cylindrical Helix & Perigon Identity (${tag('teal', '360°')})`,
           `Lifting ${tag('violet', 'P')} along pitch axis ${tag('lime', 'Y')} forms helix ${tag('violet', 'r(θ) = (R cos θ, y(θ), R sin θ)')}.<br>` +
           `Conjugate reflex angle ${tag('teal', 'θ* = 360° − θ')} completes the ${tag('teal', '360°')} perigon.`,
@@ -3795,6 +4456,7 @@ export class TrigDerivationsView {
 
   render(state) {
     if (!this.container) return;
+    this.lastState = state;
     const isModeChanged = this.currentMode !== (state.dimensionMode || 'planar');
     if (!this.initialized || !this.container.firstElementChild || isModeChanged) {
       this.#initDOM(state.dimensionMode || 'planar');
@@ -3826,7 +4488,7 @@ export class TrigDerivationsView {
       );
       setSlot(
         '#uch-step-3 [data-sub]',
-        `↳ ${tag('rose', `tan θ = ${m.tan.toFixed(3)}`)}, ${tag('violet', `sec θ = ${m.sec.toFixed(3)}`)} | ${tag('orange', `cot θ = ${m.cot.toFixed(3)}`)}, ${tag('fuchsia', `csc θ = ${m.csc.toFixed(3)}`)}`
+        `↳ ${tag('rose', `tan θ = ${m.tan.toFixed(3)}`)}, ${tag('violet', `sec θ = ${m.sec.toFixed(3)}`)} | ${tag('indigo', '1')} + ${tag('rose', `tan²θ = ${(m.tan * m.tan).toFixed(4)}`)} = ${tag('sky', `sec²θ = ${(m.sec * m.sec).toFixed(4)}`)}`
       );
       setSlot(
         '#uch-step-3 [data-eval]',
@@ -3834,10 +4496,18 @@ export class TrigDerivationsView {
       );
       setSlot(
         '#uch-step-4 [data-sub]',
-        `↳ Helix height ${tag('violet', `y(θ) = ${m.points3D.point3D.z.toFixed(3)}`)} | Reflex ${tag('teal', `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`)}`
+        `↳ ${tag('orange', `cot θ = ${m.cot.toFixed(3)}`)}, ${tag('fuchsia', `csc θ = ${m.csc.toFixed(3)}`)} | ${tag('indigo', '1')} + ${tag('orange', `cot²θ = ${(m.cot * m.cot).toFixed(4)}`)} = ${tag('fuchsia', `csc²θ = ${(m.csc * m.csc).toFixed(4)}`)}`
       );
       setSlot(
         '#uch-step-4 [data-eval]',
+        `<span>${tag('indigo', '1')} + ${tag('orange', 'cot²θ')} = ${tag('fuchsia', 'csc²θ')} (Residual: ${tag('teal', Math.abs(m.invariants.pythagoreanCotCsc).toExponential(1))})</span><span class="derivation-check">✓ Verified</span>`
+      );
+      setSlot(
+        '#uch-step-5 [data-sub]',
+        `↳ Helix height ${tag('violet', `y(θ) = ${m.points3D.point3D.z.toFixed(3)}`)} | Reflex ${tag('teal', `θ* = ${fmtAngle(360 - m.thetaDeg, angUnit)}`)}`
+      );
+      setSlot(
+        '#uch-step-5 [data-eval]',
         `<span>${tag('teal', `Perigon: θ + θ* = ${fmtAngle(360, angUnit)}`)}</span><span class="derivation-check">✓ Perigon Invariant</span>`
       );
     } else if (this.visualId === 'law-of-sines') {
@@ -3905,7 +4575,15 @@ export class TrigDerivationsView {
       }
     } else if (this.visualId === 'law-of-cosines') {
       if (state.dimensionMode === 'spatial') {
-        const sM = computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, getModelRadius(state));
+        const sM = computeSphericalLawOfCosines(
+          state.sideA,
+          state.sideB,
+          state.angleC,
+          getModelRadius(state),
+          state.colatC ?? 0,
+          state.lonC ?? 0,
+          state.headingC ?? 0
+        );
         setSlot(
           '#loc-step-1 [data-sub]',
           `↳ Central arcs: ${tag('sky', `θa = ${(sM.thetaA * 180 / Math.PI).toFixed(1)}°`)}, ${tag('emerald', `θb = ${(sM.thetaB * 180 / Math.PI).toFixed(1)}°`)}, ${tag('rose', `θc = ${(sM.thetaC * 180 / Math.PI).toFixed(1)}°`)}<br>` +
@@ -4037,7 +4715,7 @@ export class TrigDerivationsView {
         );
         setSlot(
           '#asi-step-4 [data-sub]',
-          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('rose', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('violet', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('orange', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
+          `↳ Difference Point ${tag('rose', 'D(α−β)')} (Separation ${tag('violet', `∠POD = 2β = ${fmtAngle(2 * m.betaDeg, angUnit)}`)}, Chord ${tag('teal', `|PD| = 2 sin β = ${(2 * Math.sin(m.beta)).toFixed(4)}`)}): ${tag('orange', `cos(α−β) = ${m.trig.cosDiff.toFixed(4)}`)}, ${tag('rose', `sin(α−β) = ${m.trig.sinDiff.toFixed(4)}`)}`
         );
         setSlot(
           '#asi-step-4 [data-eval]',
@@ -4184,6 +4862,13 @@ export function mountTrigVisual({ visualId }) {
   store.subscribe(update);
   update(store.get());
 
+  if (typeof requestAnimationFrame !== 'undefined') {
+    requestAnimationFrame(() => {
+      view2d.resize();
+      scene3d.resize();
+    });
+  }
+
   return { store, view2d, scene3d, sonifier };
 }
 
@@ -4218,6 +4903,16 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindRangeDeg('slider-angle-c', 'angleC');
   bindRangeNum('slider-side-a', 'sideA');
   bindRangeNum('slider-side-b', 'sideB');
+  bindRangeDeg('slider-colat-c', 'colatC');
+  bindRangeDeg('slider-lon-c', 'lonC');
+  bindRangeDeg('slider-heading-c', 'headingC');
+
+  const btnRecenterC = document.getElementById('btn-recenter-c');
+  if (btnRecenterC) {
+    btnRecenterC.addEventListener('click', () => {
+      store.set({ colatC: 0, lonC: 0, headingC: 0 });
+    });
+  }
   bindRangeDeg('slider-alpha', 'angleAlpha');
   bindRangeDeg('slider-beta', 'angleBeta');
   const sliderGamma = document.getElementById('slider-gamma');
@@ -4235,6 +4930,16 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-projections', 'showProjections');
   bindCheck(['toggle-tan-sec', 'vis-3d-tan-sec'], 'showTanSec');
   bindCheck(['toggle-cot-csc', 'vis-3d-cot-csc'], 'showCotCsc');
+  bindCheck(['check-func-sin', 'vis-2d-sin'], 'showSin');
+  bindCheck(['check-func-cos', 'vis-2d-cos'], 'showCos');
+  bindCheck(['check-func-tan', 'vis-2d-tan'], 'showTan');
+  bindCheck(['check-func-csc', 'vis-2d-csc'], 'showCsc');
+  bindCheck(['check-func-sec', 'vis-2d-sec'], 'showSec');
+  bindCheck(['check-func-cot', 'vis-2d-cot'], 'showCot');
+  bindCheck(['check-shading-sin', 'vis-2d-shading-sin'], 'showSinShading');
+  bindCheck(['check-shading-cos', 'vis-2d-shading-cos'], 'showCosShading');
+  bindCheck(['check-shading-tan-sec', 'vis-2d-shading-tan-sec'], 'showTanSecShading');
+  bindCheck(['check-shading-cot-csc', 'vis-2d-shading-cot-csc'], 'showCotCscShading');
   bindCheck('vis-3d-cylinder', 'showCylinder');
   bindCheck('toggle-helix-walls', 'showHelixWalls');
   bindCheck('toggle-diameter', 'showCircumcircleDiameter');
@@ -4243,6 +4948,10 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-projection-loc', 'showProjection');
   bindCheck(['toggle-interaction-rect', 'vis-3d-rect'], 'showInteractionRect');
   bindCheck(['toggle-ratio-badge', 'vis-3d-ratio'], 'showRatioBadge');
+  bindCheck(['toggle-locus-circle', 'vis-2d-circle'], 'showLocusCircle');
+  bindCheck(['vis-3d-lengths', 'toggle-3d-lengths'], (val) => {
+    store.set({ vis3d: { ...(store.get().vis3d || {}), lengths: val } });
+  });
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
@@ -4360,6 +5069,24 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     return best;
   };
 
+  const distToSegment = (px, py, x1, y1, x2, y2) => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  };
+
+  const pointInTriangle = (px, py, ax, ay, bx, by, cx, cy) => {
+    const d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by);
+    const d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy);
+    const d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+    const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+    const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+    return !(hasNeg && hasPos);
+  };
+
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button && e.button !== 0) return;
     const rect = canvas.getBoundingClientRect();
@@ -4392,31 +5119,59 @@ function bindVisualSpecificControls(store, visualId, view2d) {
         }
         if (closestH) {
           hitHandle = closestH;
+          if (closestH.field === 'antipodeA' || closestH.id === 'antipodeA') {
+            store.set({ angleB: normalizeAngle(clickAng + Math.PI) });
+          } else if (closestH.field) {
+            store.set({ [closestH.field]: clickAng });
+          }
         }
       }
     }
 
-    // Direct spoke / vertex B & A proximity fallback for law-of-cosines
+    // Direct vertex & edge interaction fallback for law-of-cosines
     if (!hitHandle && visualId === 'law-of-cosines') {
       const dx = x - circCx;
       const dy = circCy - y;
-      const distFromCenter = Math.hypot(dx, dy);
       const hB = info.handles.find((h) => h.id === 'B') || info.handles[0];
       const hA = info.handles.find((h) => h.id === 'A') || info.handles[1];
-      // Check baseline AC interaction (side b)
-      if (hA && Math.abs(dy) <= 22 && dx >= -10 && dx <= (st.sideB * (hA.scale || 1)) + 28) {
-        if (Math.abs(x - hA.x) <= 32 || dx > (st.sideB * (hA.scale || 1)) * 0.5) {
+      const hC = info.handles.find((h) => h.id === 'C');
+
+      // 1. Proximity to vertex C (origin)
+      if (hC && Math.hypot(x - hC.x, y - hC.y) <= 26) {
+        hitHandle = hC;
+      }
+
+      // 2. Check baseline AC interaction (side b)
+      if (!hitHandle && hA) {
+        const distToA = Math.hypot(x - hA.x, y - hA.y);
+        const dSegmentAC = distToSegment(x, y, circCx, circCy, hA.x, hA.y);
+        if (distToA <= 28 || dSegmentAC <= 22) {
           hitHandle = hA;
         }
       }
-      // Check side a (ray CB) or reference circle locus of B
+
+      // 3. Check side a (ray/segment CB) or vertex B anywhere in 2D
       if (!hitHandle && hB) {
-        const clickAng = pointerToAngle(dx, dy);
-        const curC = normalizeAngle(st.angleC || 0);
-        let diff = Math.abs(normalizeAngle(clickAng - curC));
-        if (diff > Math.PI) diff = 2 * Math.PI - diff;
-        if (diff < 0.45 && distFromCenter >= 14 && distFromCenter <= circR + 32) {
+        const distToB = Math.hypot(x - hB.x, y - hB.y);
+        const dSegmentCB = distToSegment(x, y, circCx, circCy, hB.x, hB.y);
+        if (distToB <= 32 || dSegmentCB <= 22) {
           hitHandle = hB;
+        }
+      }
+
+      // 4. Check side c (segment AB)
+      if (!hitHandle && hA && hB) {
+        const dSegmentAB = distToSegment(x, y, hA.x, hA.y, hB.x, hB.y);
+        if (dSegmentAB <= 22) {
+          hitHandle = hB;
+        }
+      }
+
+      // 5. Check inside triangle ABC area
+      if (!hitHandle && info.vertices2D) {
+        const { A: vA, B: vB, C: vC } = info.vertices2D;
+        if (pointInTriangle(x, y, vA.x, vA.y, vB.x, vB.y, vC.x, vC.y)) {
+          hitHandle = hC;
         }
       }
     }
@@ -4474,15 +5229,19 @@ function bindVisualSpecificControls(store, visualId, view2d) {
 
     if (hitHandle) {
       activeDrag = { type: 'handle', handle: hitHandle };
+      if (hitHandle.field === 'pan' || hitHandle.id === 'C') {
+        const curPan = st.pan || { x: 0, y: 0 };
+        panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
+      }
       view2d.activeDrag = activeDrag;
-      if (hitHandle.id && ['A', 'B', 'C', 'P', 'D'].includes(hitHandle.id)) {
+      if (hitHandle.id && ['A', 'B', 'C', 'P', 'D', 'antipodeA'].includes(hitHandle.id)) {
         view2d.selectedVertexId = hitHandle.id;
       }
       canvas.style.cursor = 'grabbing';
       view2d.render(store.get());
     } else if (spokeHit) {
       // already set
-    } else if (isNearCircumference(x, y, circCx, circCy, circR, 14)) {
+    } else if (isNearCircumference(x, y, circCx, circCy, circR, 14) && (visualId !== 'law-of-cosines' || st.showLocusCircle !== false)) {
       activeDrag = { type: 'radius', cx: circCx, cy: circCy };
       view2d.activeDrag = activeDrag;
       canvas.style.cursor = 'ew-resize';
@@ -4531,11 +5290,56 @@ function bindVisualSpecificControls(store, visualId, view2d) {
           }
         }
       }
-      const hoverCirc = !hoverH && isNearCircumference(x, y, circCx, circCy, circR, 14);
+      if (!hoverH && visualId === 'law-of-cosines') {
+        const hB = info.handles.find((h) => h.id === 'B') || info.handles[0];
+        const hA = info.handles.find((h) => h.id === 'A') || info.handles[1];
+        const hC = info.handles.find((h) => h.id === 'C');
+
+        // 1. Proximity to vertex C (origin / pan)
+        if (hC && Math.hypot(x - hC.x, y - hC.y) <= 26) {
+          hoverH = hC;
+        }
+
+        // 2. Proximity to baseline AC (side b / handle A)
+        if (!hoverH && hA) {
+          const distToA = Math.hypot(x - hA.x, y - hA.y);
+          const dSegmentAC = distToSegment(x, y, circCx, circCy, hA.x, hA.y);
+          if (distToA <= 28 || dSegmentAC <= 22) {
+            hoverH = hA;
+          }
+        }
+
+        // 3. Proximity to side a (segment CB) or vertex B anywhere in 2D
+        if (!hoverH && hB) {
+          const distToB = Math.hypot(x - hB.x, y - hB.y);
+          const dSegmentCB = distToSegment(x, y, circCx, circCy, hB.x, hB.y);
+          if (distToB <= 32 || dSegmentCB <= 22) {
+            hoverH = hB;
+          }
+        }
+
+        // 4. Proximity to side c (segment AB)
+        if (!hoverH && hA && hB) {
+          const dSegmentAB = distToSegment(x, y, hA.x, hA.y, hB.x, hB.y);
+          if (dSegmentAB <= 22) {
+            hoverH = hB;
+          }
+        }
+
+        // 5. Inside triangle ABC interior (translates entire triangle via handle C)
+        if (!hoverH && info.vertices2D) {
+          const { A: vA, B: vB, C: vC } = info.vertices2D;
+          if (pointInTriangle(x, y, vA.x, vA.y, vB.x, vB.y, vC.x, vC.y)) {
+            hoverH = hC;
+          }
+        }
+      }
+      const canHoverCirc = visualId !== 'law-of-cosines' ? true : (st.showLocusCircle !== false);
+      const hoverCirc = !hoverH && canHoverCirc && isNearCircumference(x, y, circCx, circCy, circR, 14);
       const changed = view2d.hoverHandle !== hoverH || view2d.hoverCircumference !== hoverCirc;
       view2d.hoverHandle = hoverH;
       view2d.hoverCircumference = hoverCirc;
-      canvas.style.cursor = hoverH ? 'pointer' : hoverCirc ? 'ew-resize' : 'grab';
+      canvas.style.cursor = hoverH ? (hoverH.id === 'C' || hoverH.field === 'pan' ? 'grab' : 'pointer') : hoverCirc ? 'ew-resize' : 'grab';
       if (changed) {
         view2d.render(st);
       }
@@ -4586,6 +5390,17 @@ function bindVisualSpecificControls(store, visualId, view2d) {
         } else if (h.field === 'sideB' && h.scale) {
           const nextB = clamp((x - info.cx) / h.scale, 2, 12);
           store.set({ sideB: Math.round(nextB * 2) / 2 });
+        } else if (h.field === 'pan' || h.id === 'C') {
+          if (!panOrigin || (panOrigin.x === 0 && panOrigin.y === 0)) {
+            const curPan = st.pan || { x: 0, y: 0 };
+            panOrigin = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
+          }
+          store.set({
+            pan: {
+              x: e.clientX - panOrigin.x,
+              y: e.clientY - panOrigin.y,
+            },
+          });
         }
       } else if (visualId === 'angle-sum-identities' && h.field === 'angleBeta') {
         store.set({ angleBeta: normalizeAngle(ang - (st.angleAlpha || 0)) });
@@ -4631,7 +5446,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     const currentHandleId = view2d.selectedVertexId || defaultId;
     const fieldMap = visualId === 'angle-sum-identities'
       ? { A: 'angleAlpha', B: 'angleBeta', P: 'angleBeta', D: 'angleBeta', C: 'angleBeta' }
-      : { A: 'angleA', B: 'angleB', C: 'angleC' };
+      : { A: 'angleA', B: 'angleB', C: 'angleC', antipodeA: 'angleB' };
     const field = fieldMap[currentHandleId] || (
       visualId === 'law-of-sines' ? 'angleC'
       : visualId === 'angle-sum-identities' ? 'angleBeta'
@@ -4650,6 +5465,11 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       handled = true;
     } else if (e.key === '-' || e.key === '_') {
       store.set({ radius: clamp((st.radius || 175) - 5, 100, 260) });
+      handled = true;
+    } else if (e.key === "'" || (e.key.toLowerCase() === 'a' && (e.altKey || e.shiftKey))) {
+      view2d.selectedVertexId = 'antipodeA';
+      view2d.hoverHandle = view2d.getInteractiveHandles2D(st).handles.find((h) => h.id === 'antipodeA') || null;
+      view2d.render(store.get());
       handled = true;
     } else if (e.key.toLowerCase() === 'a') {
       view2d.selectedVertexId = 'A';
@@ -4836,22 +5656,59 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const lblRb = document.getElementById('lbl-3d-rb');
     const lblRc = document.getElementById('lbl-3d-rc');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spherical (S²)' : 'Planar (Y = 0)');
+    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : 'Planar (Y = 0)');
 
     if (isSpatial) {
       const sM = computeSphericalLawOfSines(state, R3D);
-      if (lblRa) lblRa.textContent = 'R sin(a/R) / sin A:';
-      if (lblRb) lblRb.textContent = 'R sin(b/R) / sin B:';
-      if (lblRc) lblRc.textContent = 'R sin(c/R) / sin C:';
-      if (lblArea) lblArea.textContent = 'Spherical Area R²E:';
-      if (row2R) row2R.classList.add('hidden');
-      if (rowExcess) rowExcess.classList.remove('hidden');
-      if (rowVolume) rowVolume.classList.remove('hidden');
+      const pA = sM.vertices3D.A;
+      const pB = sM.vertices3D.B;
+      const pC = sM.vertices3D.C;
+      const aE = Math.hypot(pB.x - pC.x, pB.y - pC.y, pB.z - pC.z);
+      const bE = Math.hypot(pA.x - pC.x, pA.y - pC.y, pA.z - pC.z);
+      const cE = Math.hypot(pA.x - pB.x, pA.y - pB.y, pA.z - pB.z);
+      const cosAE = clamp((bE * bE + cE * cE - aE * aE) / (2 * bE * cE), -1, 1);
+      const cosBE = clamp((aE * aE + cE * cE - bE * bE) / (2 * aE * cE), -1, 1);
+      const cosCE = clamp((aE * aE + bE * bE - cE * cE) / (2 * aE * bE), -1, 1);
+      const intAE = Math.acos(cosAE);
+      const intBE = Math.acos(cosBE);
+      const intCE = Math.acos(cosCE);
+      const sinAE = Math.sin(intAE);
+      const sinBE = Math.sin(intBE);
+      const sinCE = Math.sin(intCE);
 
-      setText('val-3d-ra', sM.ratios.ratioSphA.toFixed(3));
-      setText('val-3d-rb', sM.ratios.ratioSphB.toFixed(3));
-      setText('val-3d-rc', sM.ratios.ratioSphC.toFixed(3));
-      setText('val-3d-area', sM.sphericalExcess.sphericalArea.toFixed(2));
+      const v1 = { x: pB.x - pA.x, y: pB.y - pA.y, z: pB.z - pA.z };
+      const v2 = { x: pC.x - pA.x, y: pC.y - pA.y, z: pC.z - pA.z };
+      const nx = v1.y * v2.z - v1.z * v2.y;
+      const ny = v1.z * v2.x - v1.x * v2.z;
+      const nz = v1.x * v2.y - v1.y * v2.x;
+      const nLen = Math.hypot(nx, ny, nz) || 1;
+      const n = { x: nx / nLen, y: ny / nLen, z: nz / nLen };
+      const hPlane = pA.x * n.x + pA.y * n.y + pA.z * n.z;
+      const rCircum = Math.sqrt(Math.max(0.1, R3D * R3D - hPlane * hPlane));
+      const diamCircum = 2 * rCircum;
+
+      const rA = sinAE > 1e-4 ? aE / sinAE : diamCircum;
+      const rB = sinBE > 1e-4 ? bE / sinBE : diamCircum;
+      const rC = sinCE > 1e-4 ? cE / sinCE : diamCircum;
+      const areaE = 0.5 * aE * bE * sinCE;
+
+      if (lblRa) lblRa.textContent = '3D a / sin A:';
+      if (lblRb) lblRb.textContent = '3D b / sin B:';
+      if (lblRc) lblRc.textContent = '3D c / sin C:';
+      if (lblArea) lblArea.textContent = 'Triangle Area abc/(4r):';
+      if (row2R) {
+        row2R.classList.remove('hidden');
+        const lbl2r = row2R.querySelector('span');
+        if (lbl2r) lbl2r.textContent = 'Circumdiameter 2r:';
+      }
+      if (rowExcess) rowExcess.classList.add('hidden');
+      if (rowVolume) rowVolume.classList.add('hidden');
+
+      setText('val-3d-2r', diamCircum.toFixed(3));
+      setText('val-3d-ra', rA.toFixed(3));
+      setText('val-3d-rb', rB.toFixed(3));
+      setText('val-3d-rc', rC.toFixed(3));
+      setText('val-3d-area', areaE.toFixed(2));
       setText('val-3d-excess', `${sM.sphericalExcess.excessDeg.toFixed(2)}°`);
       setText('val-3d-volume', sM.pyramidVolume.toFixed(3));
     } else {
@@ -4875,9 +5732,15 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     syncSlider('slider-side-a', m.a);
     syncSlider('slider-side-b', m.b);
     syncSlider('slider-angle-c', Math.round(m.angleCDeg));
+    syncSlider('slider-colat-c', Math.round(toDegrees(state.colatC || 0)));
+    syncSlider('slider-lon-c', Math.round(toDegrees(state.lonC || 0)));
+    syncSlider('slider-heading-c', Math.round(toDegrees(state.headingC || 0)));
     setText('label-side-a', m.a.toFixed(1));
     setText('label-side-b', m.b.toFixed(1));
     setText('label-angle-c', fmtAng(m.angleCDeg));
+    setText('label-colat-c', fmtAng(toDegrees(state.colatC || 0)));
+    setText('label-lon-c', fmtAng(toDegrees(state.lonC || 0)));
+    setText('label-heading-c', fmtAng(toDegrees(state.headingC || 0)));
     setText('tel-a', m.a.toFixed(2));
     setText('tel-b', m.b.toFixed(2));
     setText('tel-c', m.c.toFixed(3));
@@ -4944,6 +5807,11 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
         : 'Planar Euclidean triangle with squares on edges and projection prism foot D.';
     }
 
+    const sphPosContainer = document.getElementById('spatial-sphere-position-controls');
+    if (sphPosContainer) {
+      sphPosContainer.classList.toggle('hidden', !isSpatial);
+    }
+
     const rowC2 = document.getElementById('row-3d-c2');
     const rowProj = document.getElementById('row-3d-proj');
     const rowAlt = document.getElementById('row-3d-alt');
@@ -4953,26 +5821,71 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const rowSphC = document.getElementById('row-3d-sph-c');
     const rowExcess = document.getElementById('row-3d-excess');
     const rowArea = document.getElementById('row-3d-area');
+    const rowSphPos = document.getElementById('row-3d-sph-pos');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spherical (S²)' : 'Planar (Y = 0)');
+    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : 'Planar (Y = 0)');
 
     if (isSpatial) {
-      const sM = computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, R3D);
-      if (rowC2) rowC2.classList.add('hidden');
-      if (rowProj) rowProj.classList.add('hidden');
-      if (rowAlt) rowAlt.classList.add('hidden');
-      if (rowMixed) rowMixed.classList.add('hidden');
-      if (rowCosRatio) rowCosRatio.classList.add('hidden');
-      if (rowCosCArc) rowCosCArc.classList.remove('hidden');
-      if (rowSphC) rowSphC.classList.remove('hidden');
-      if (rowExcess) rowExcess.classList.remove('hidden');
-      if (rowArea) rowArea.classList.remove('hidden');
+      const sM = computeSphericalLawOfCosines(
+        state.sideA,
+        state.sideB,
+        state.angleC,
+        R3D,
+        state.colatC ?? 0,
+        state.lonC ?? 0,
+        state.headingC ?? 0
+      );
+      const pC = sM.vertices3D.C;
+      const pA = sM.vertices3D.A;
+      const pB = sM.vertices3D.B;
+      const aE = Math.hypot(pC.x - pB.x, pC.y - pB.y, pC.z - pB.z);
+      const bE = Math.hypot(pC.x - pA.x, pC.y - pA.y, pC.z - pA.z);
+      const cE = Math.hypot(pA.x - pB.x, pA.y - pB.y, pA.z - pB.z);
+      const cosCE = clamp((aE * aE + bE * bE - cE * cE) / (2 * aE * bE), -1, 1);
+      const c2E = cE * cE;
 
+      // 3D projection foot D on line CA:
+      const uCA = { x: (pA.x - pC.x) / (bE || 1), y: (pA.y - pC.y) / (bE || 1), z: (pA.z - pC.z) / (bE || 1) };
+      const vCB = { x: pB.x - pC.x, y: pB.y - pC.y, z: pB.z - pC.z };
+      const projLen = vCB.x * uCA.x + vCB.y * uCA.y + vCB.z * uCA.z;
+      const hAlt3D = Math.sqrt(Math.max(0, aE * aE - projLen * projLen));
+
+      if (rowC2) rowC2.classList.remove('hidden');
+      if (rowProj) rowProj.classList.remove('hidden');
+      if (rowAlt) rowAlt.classList.remove('hidden');
+      if (rowMixed) rowMixed.classList.remove('hidden');
+      if (rowCosRatio) rowCosRatio.classList.remove('hidden');
+      if (rowCosCArc) rowCosCArc.classList.add('hidden');
+      if (rowSphC) rowSphC.classList.add('hidden');
+      if (rowExcess) rowExcess.classList.add('hidden');
+      if (rowArea) rowArea.classList.remove('hidden');
+      if (rowSphPos) {
+        rowSphPos.classList.remove('hidden');
+        setText('val-3d-sph-pos', `${toDegrees(sM.colatC).toFixed(1)}°, ${toDegrees(sM.lonC).toFixed(1)}°`);
+      }
+
+      setText('val-3d-c2', c2E.toFixed(2));
+      setText('val-3d-proj', projLen.toFixed(3));
+      setText('val-3d-alt', hAlt3D.toFixed(3));
+      setText('val-3d-mixed', (-2 * cosCE).toFixed(4));
+      setText('val-3d-cos-ratio', cosCE.toFixed(4));
       setText('val-3d-cosc-arc', sM.cosC_arc.toFixed(4));
       setText('val-3d-sph-c', sM.c.toFixed(3));
       setText('val-3d-excess', `${sM.sphericalExcess.excessDeg.toFixed(2)}°`);
-      setText('val-3d-area', sM.sphericalExcess.sphericalArea.toFixed(2));
+      setText('val-3d-area', (0.5 * aE * bE * Math.sqrt(Math.max(0, 1 - cosCE * cosCE))).toFixed(2));
+      setText('lbl-3d-c-coords', '3D Vertex C (x, y, z):');
+      setText('lbl-3d-a-coords', '3D Vertex A (x, y, z):');
+      setText('lbl-3d-b-coords', '3D Vertex B (x, y, z):');
+      setText('val-3d-c-coords', `${pC.x.toFixed(2)}, ${pC.y.toFixed(2)}, ${pC.z.toFixed(2)}`);
+      setText('val-3d-a-coords', `${pA.x.toFixed(2)}, ${pA.y.toFixed(2)}, ${pA.z.toFixed(2)}`);
+      setText('val-3d-b-coords', `${pB.x.toFixed(2)}, ${pB.y.toFixed(2)}, ${pB.z.toFixed(2)}`);
+      const rowDCoords = document.getElementById('row-3d-d-coords');
+      if (rowDCoords) {
+        rowDCoords.classList.remove('hidden');
+        setText('val-3d-d-coords', `${(pC.x + projLen * uCA.x).toFixed(2)}, ${(pC.y + projLen * uCA.y).toFixed(2)}, ${(pC.z + projLen * uCA.z).toFixed(2)}`);
+      }
     } else {
+      if (rowSphPos) rowSphPos.classList.add('hidden');
       if (rowC2) rowC2.classList.remove('hidden');
       if (rowProj) rowProj.classList.remove('hidden');
       if (rowAlt) rowAlt.classList.remove('hidden');
@@ -4988,6 +5901,20 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       setText('val-3d-alt', m.projection.hAlt.toFixed(3));
       setText('val-3d-mixed', m.mixedPartialCoeff.toFixed(4));
       setText('val-3d-cos-ratio', m.cosC.toFixed(4));
+      setText('lbl-3d-c-coords', '3D Vertex C (x, z):');
+      setText('lbl-3d-a-coords', '3D Vertex A (x, z):');
+      setText('lbl-3d-b-coords', '3D Vertex B (x, z):');
+      setText('val-3d-c-coords', `${m.vertices2D.C.x.toFixed(2)}, ${m.vertices2D.C.y.toFixed(2)}`);
+      setText('val-3d-a-coords', `${m.vertices2D.A.x.toFixed(2)}, ${m.vertices2D.A.y.toFixed(2)}`);
+      setText('val-3d-b-coords', `${m.vertices2D.B.x.toFixed(2)}, ${m.vertices2D.B.y.toFixed(2)}`);
+      setText('val-3d-d-coords', `${m.vertices2D.D.x.toFixed(2)}, 0.00`);
+      const rowDCoords = document.getElementById('row-3d-d-coords');
+      if (rowDCoords) rowDCoords.classList.remove('hidden');
+    }
+
+    const lenCheck = document.getElementById('vis-3d-lengths');
+    if (lenCheck && lenCheck.checked !== (state.vis3d?.lengths !== false)) {
+      lenCheck.checked = state.vis3d?.lengths !== false;
     }
 
     const rectCheck = document.getElementById('vis-3d-rect');
@@ -5088,6 +6015,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       setText('val-3d-gamma', `${eM.gammaDeg.toFixed(1)}°`);
       setText('val-3d-trace', eM.lieAlgebra.trace.toFixed(4));
       setText('val-3d-rot-angle', `${eM.lieAlgebra.rotAngleDeg.toFixed(1)}°`);
+      setText('val-3d-chord-pd', (2 * Math.sin(eM.beta)).toFixed(4));
     } else {
       if (rowGamma) rowGamma.classList.remove('hidden');
       if (rowTrace) rowTrace.classList.remove('hidden');
@@ -5101,6 +6029,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       setText('val-3d-gamma', '0.0° (Planar)');
       setText('val-3d-trace', (1 + 2 * m.trig.cosSum).toFixed(4));
       setText('val-3d-rot-angle', fmtAng(m.sumAngleDeg));
+      setText('val-3d-chord-pd', (2 * Math.sin(m.beta)).toFixed(4));
     }
   }
 }

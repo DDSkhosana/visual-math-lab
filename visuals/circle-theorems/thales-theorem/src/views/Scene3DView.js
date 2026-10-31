@@ -23,7 +23,7 @@ export class Scene3DView {
 
     this.controls = new ArcballTrackballControls(THREE, this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.035;
 
     new ResizeObserver(() => this.resize()).observe(container);
     container.__scene3d = this;

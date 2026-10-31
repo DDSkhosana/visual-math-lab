@@ -9,6 +9,8 @@ export function createInitialState() {
     angleB: toRadians(330),
     angleP1: toRadians(120),
     angleP2: toRadians(60),
+    segmentMode: 'major',
+    showGeodesicOverlay: false,
     showCenter: true,
     showShading: true,
     showArea: true,
@@ -16,6 +18,43 @@ export function createInitialState() {
     playing: false,
     ...vis,
   };
+}
+
+export function getActiveSegmentArc(angleA, angleB, mode = 'major') {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const a = norm(angleA);
+  const b = norm(angleB);
+  const sweepCW = norm(b - a);
+  const isArc1Major = sweepCW >= Math.PI;
+  if (mode === 'major') {
+    return isArc1Major ? { start: a, sweep: sweepCW } : { start: b, sweep: TAU - sweepCW };
+  } else {
+    return isArc1Major ? { start: b, sweep: TAU - sweepCW } : { start: a, sweep: sweepCW };
+  }
+}
+
+export function clampToArc(targetAngle, arc, margin = 0.08) {
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const t = norm(targetAngle);
+  const { start, sweep } = arc;
+  const effectiveMargin = Math.min(margin, sweep * 0.1);
+  const offset = norm(t - start);
+  if (offset >= effectiveMargin && offset <= sweep - effectiveMargin) {
+    return t;
+  }
+  if (offset < effectiveMargin) {
+    return norm(start + effectiveMargin);
+  }
+  if (offset <= sweep) {
+    return norm(start + sweep - effectiveMargin);
+  }
+  const distFromEnd = offset - sweep;
+  const distFromStart = TAU - offset;
+  return distFromEnd < distFromStart
+    ? norm(start + sweep - effectiveMargin)
+    : norm(start + effectiveMargin);
 }
 
 export function computeGeometry(state, width, height) {
@@ -45,12 +84,22 @@ export function computeGeometry(state, width, height) {
   const angleP1Deg = toDegrees(angleP1Rad);
   const angleP2Deg = toDegrees(angleP2Rad);
 
-  // Central angle
+  // Central angle subtended by chord AB
   let centralRad = state.angleB - state.angleA;
   while (centralRad < 0) centralRad += Math.PI * 2;
   while (centralRad >= Math.PI * 2) centralRad -= Math.PI * 2;
   if (centralRad > Math.PI) centralRad = Math.PI * 2 - centralRad;
   const centralDeg = toDegrees(centralRad);
+
+  // Base chord length and curved boundary arc length on circle
+  const chordLen = 2 * r * Math.sin(centralRad / 2);
+  const arcLen = r * centralRad;
+  const curvatureRatio = arcLen > 1e-4 ? (chordLen / arcLen) : 1;
+  const sagitta = r * (1 - Math.cos(centralRad / 2));
+  const majorArcLen = r * (Math.PI * 2 - centralRad);
+
+  const segmentMode = state.segmentMode || 'major';
+  const activeArc = getActiveSegmentArc(state.angleA, state.angleB, segmentMode);
 
   return {
     cx, cy, r, O, A, B, P1, P2,
@@ -58,6 +107,13 @@ export function computeGeometry(state, width, height) {
     angleP2Rad, angleP2Deg,
     centralRad, centralDeg,
     diffDeg: Math.abs(angleP1Deg - angleP2Deg),
+    chordLen,
+    arcLen,
+    majorArcLen,
+    sagitta,
+    curvatureRatio,
+    segmentMode,
+    activeArc,
   };
 }
 

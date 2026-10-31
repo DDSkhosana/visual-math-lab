@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
-const MIME_TYPES = {
+export const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -27,20 +27,21 @@ const MIME_TYPES = {
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
-const server = http.createServer((req, res) => {
+export function handleRequest(req, res, rootDir = ROOT) {
   let decodedUrl;
   try {
-    decodedUrl = decodeURIComponent(new URL(req.url, `http://${req.headers.host}`).pathname);
+    const host = req.headers?.host || 'localhost';
+    decodedUrl = decodeURIComponent(new URL(req.url, `http://${host}`).pathname);
   } catch {
     res.writeHead(400);
     res.end('Bad Request');
     return;
   }
 
-  let filePath = path.join(ROOT, decodedUrl);
+  let filePath = path.join(rootDir, decodedUrl);
 
   // Security: prevent path traversal outside root
-  if (!filePath.startsWith(ROOT)) {
+  if (!filePath.startsWith(rootDir)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
@@ -71,14 +72,23 @@ const server = http.createServer((req, res) => {
     const stream = fs.createReadStream(filePath);
     stream.pipe(res);
   });
-});
+}
 
-server.listen(PORT, () => {
-  console.log(`\n  🚀 Visual Math Lab is running at:`);
-  console.log(`  ➜ Local:         http://localhost:${PORT}/`);
-  console.log(`  ➜ Circle Suite:  http://localhost:${PORT}/visuals/circle-theorems/`);
-  console.log(`  ➜ Thales:        http://localhost:${PORT}/visuals/circle-theorems/thales-theorem/`);
-  console.log(`  ➜ Trig Suite:    http://localhost:${PORT}/visuals/trigonometry/`);
-  console.log(`\n  Press Ctrl+C to stop.\n`);
-});
+export function createServer(rootDir = ROOT) {
+  return http.createServer((req, res) => handleRequest(req, res, rootDir));
+}
+
+const isDirectCli = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectCli) {
+  const server = createServer();
+  server.listen(PORT, () => {
+    console.log(`\n  🚀 Visual Math Lab is running at:`);
+    console.log(`  ➜ Local:         http://localhost:${PORT}/`);
+    console.log(`  ➜ Circle Suite:  http://localhost:${PORT}/visuals/circle-theorems/`);
+    console.log(`  ➜ Thales:        http://localhost:${PORT}/visuals/circle-theorems/thales-theorem/`);
+    console.log(`  ➜ Trig Suite:    http://localhost:${PORT}/visuals/trigonometry/`);
+    console.log(`\n  Press Ctrl+C to stop.\n`);
+  });
+}
 

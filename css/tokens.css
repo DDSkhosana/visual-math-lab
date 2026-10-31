@@ -5,6 +5,8 @@
   --line: #deded9;
   --surface: #f2f1ed;
   --accent: #d75a34;
+  --text: var(--ink);
+  --text-muted: var(--muted);
   --max-width: 72rem;
   --space-1: 0.5rem;
   --space-2: 1rem;

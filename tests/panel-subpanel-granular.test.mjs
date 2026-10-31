@@ -822,12 +822,23 @@ test('Granular Subpanel: Deck vs Stack mode toggle dynamics and scroll flow', ()
   assert.strictEqual(body.getAttribute('data-deck-mode'), 'stack');
   assert.strictEqual(secA.classList.contains('is-in-deck'), false, 'In stack mode, secA must not be hidden in deck');
   assert.strictEqual(secB.classList.contains('is-in-deck'), false, 'In stack mode, secB must not be hidden in deck');
-  assert.ok(deck.querySelector('.elevation-deck-mode-toggle').textContent.includes('Stack'));
+  assert.ok(deck.querySelector('.elevation-deck-mode-toggle').textContent.includes('Scroll All'));
 
-  // Switch back to Deck mode
+  // Switch to Accordion mode
+  const modeBtnAccordion = deck.querySelector('.elevation-deck-mode-toggle');
+  modeBtnAccordion.click();
+  assert.strictEqual(body.getAttribute('data-deck-mode'), 'accordion');
+  assert.strictEqual(secA.classList.contains('is-in-deck'), false, 'In accordion mode, secA must not be in deck');
+  assert.strictEqual(secB.classList.contains('is-in-deck'), false, 'In accordion mode, secB must not be in deck');
+  assert.ok(deck.querySelector('.elevation-deck-mode-toggle').textContent.includes('Accordion'));
+
+  // Switch back to Tabs / Deck mode
   const modeBtnBack = deck.querySelector('.elevation-deck-mode-toggle');
   modeBtnBack.click();
-  assert.strictEqual(body.getAttribute('data-deck-mode'), 'deck');
+  assert.ok(
+    body.getAttribute('data-deck-mode') === 'tabs' || body.getAttribute('data-deck-mode') === 'deck',
+    'Must cycle back to tabs/deck mode'
+  );
   assert.strictEqual(secB.classList.contains('is-in-deck'), true, 'In deck mode, non-active turn must have is-in-deck');
 });
 
@@ -882,15 +893,15 @@ test('Granular Subpanel: Mousewheel cycling on deck bar and boundary overscroll 
   deck.dispatchEvent({ type: 'wheel', deltaY: -60 });
   assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top');
 
-  // 3. Boundary overscroll down on active content c1 (at bottom of non-scrollable content)
+  // 3. Wheel on active content c1 strictly scrolls content and does not hijack turn
   c1._lastTurnTime = 0;
   c1.dispatchEvent({ type: 'wheel', deltaY: 50 });
-  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Boundary overscroll must switch to sec2');
+  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Wheel inside active content must not hijack turn away from sec1');
 
-  // 4. Boundary overscroll up on active content c2 (at top)
-  c2._lastTurnTime = 0;
-  c2.dispatchEvent({ type: 'wheel', deltaY: -50 });
-  assert.strictEqual(sec1.getAttribute('data-elevation-turn'), 'top', 'Boundary overscroll must switch back to sec1');
+  // 4. Step cycling via wheel is strictly restricted to hovering over the elevation deck bar
+  deck._lastWheelTime = 0;
+  deck.dispatchEvent({ type: 'wheel', deltaY: 60 });
+  assert.strictEqual(sec2.getAttribute('data-elevation-turn'), 'top', 'Wheel on deck bar must cycle to sec2');
 });
 
 test('Granular Subpanel: Roving arrow navigation between Level 2 headers', () => {

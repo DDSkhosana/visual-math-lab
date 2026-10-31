@@ -17,7 +17,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'r, OA',
     formula: '|OA| = r',
     definition: 'A straight line segment from the centre of a circle to any point on its circumference. All radii in a circle are congruent.',
-    colorToken: 'PALETTE.indigo (#6366f1) / PALETTE.sky (#0284c7)',
+    colorToken: 'Center O: Indigo (#6366f1) | Radius OA: Sky (#0284c7) / Blue (#3b82f6) | Point A: Red (#ef4444)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -38,7 +38,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'd, AB',
     formula: '|d| = 2r',
     definition: 'A straight chord passing through the circle centre, dividing the circle into two congruent semicircles. It is the longest possible chord.',
-    colorToken: 'PALETTE.red (#ef4444)',
+    colorToken: 'Endpoint A: Red (#ef4444) | Endpoint B: Orange (#f97316) | Center O: Indigo (#6366f1) | Diameter Segment: Red (#ef4444)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -61,7 +61,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'AB',
     formula: '|AB| = 2r \\sin\\left(\\frac{\\theta}{2}\\right)',
     definition: 'A straight line segment joining two distinct points on the circumference without necessarily passing through the centre.',
-    colorToken: 'PALETTE.amber (#fbbf24)',
+    colorToken: 'Chord AB: Amber (#fbbf24) | Endpoint A: Blue (#3b82f6) | Endpoint B: Orange (#f97316)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -83,7 +83,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'Line AB',
     formula: '\\text{Secant cuts circle at 2 points: } A, B',
     definition: 'An extended straight line that cuts the circle at two distinct points. A chord is the finite segment bounded between the secant intersection points.',
-    colorToken: 'PALETTE.steel (#6488b0)',
+    colorToken: 'Secant Line: Steel (#6488b0) | Cut Points: Sky (#38bdf8)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -100,9 +100,9 @@ export const GEOMETRY_ELEMENTS = [
     categoryName: 'Lines & Distances',
     name: 'Tangent Line',
     symbol: 't, OT ⊥ t',
-    formula: 'OT \\perp t \\implies OT \\cdot \\mathbf{v}_{\\text{tan}} = 0',
-    definition: 'A coplanar line that touches the circle at exactly one point of contact T. The tangent is strictly perpendicular (90°) to the radius OT at point T.',
-    colorToken: 'PALETTE.emerald (#10b981)',
+    formula: 'OT \\perp t \\implies OT \\cdot \\mathbf{v}_{\\text{tan}} = 0, \\quad \\angle(OT, t) = 90^\\circ',
+    definition: 'A coplanar line touching the circle at exactly one contact point T, strictly perpendicular (90°) to radius OT. Dynamic quadrants and orthogonal trigonometric projections (cos, sin, tan) align with the tangent.',
+    colorToken: 'Tangent Line: Emerald (#10b981) / Lime (#84cc16) | Radius OT: Blue (#3b82f6) | Contact Point T: Red (#ef4444) | Right Angle: Teal (#14b8a6) | Reflex T*: Cyan (#06b6d4) | cos θ: Sky (#0284c7) | sin θ: Emerald (#10b981) | tan θ: Rose (#f43f5e)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="45" r="32" fill="none" stroke="#475569" stroke-width="2"/>
@@ -181,19 +181,84 @@ export const GEOMETRY_ELEMENTS = [
     id: 'alternate-segment',
     category: 'regions',
     categoryName: 'Regions & Arcs',
-    name: 'Alternate Segment',
-    symbol: 'Alt Seg (Maj / Min)',
-    formula: '\\angle(t, \\text{chord}) = \\angle(\\text{inscribed})',
-    definition: 'The segment of the circle containing the interior of the subtended angle opposite to the angle formed between a tangent and a chord.',
-    colorToken: 'PALETTE.sky (#0284c7) & PALETTE.violet (#a855f7)',
+    name: 'Alternate Segment Theorem & Auxiliary Thales Diameter',
+    symbol: '∠TAB = ∠APB = α',
+    formula: '\\angle(t, \\text{chord } TA) = \\angle TBA = \\alpha, \\quad TD = 2r \\implies \\angle TBD = 90^\\circ',
+    definition: 'The angle between a tangent line and a chord TA equals the inscribed angle subtended by the chord in the alternate segment. Proven via auxiliary diameter TD through center O with right angles ∠TBD = ∠TAD = 90° and interior angle ∠TDA = α.',
+    colorToken: 'Tangent: Emerald (#10b981) | Chord TA: Blue (#3b82f6) | Inscribed Angle α: Yellow (#eab308) | Major Segment: Sky (#0284c7) | Minor Segment: Violet (#a855f7) | Auxiliary Diameter TD: Indigo (#6366f1) | Right Angles: Teal (#14b8a6) | Ext D: Rose (#f43f5e)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
-        <circle cx="50" cy="46" r="32" fill="none" stroke="#475569" stroke-width="1.5"/>
-        <!-- Major segment shaded in sky -->
-        <path d="M 50 78 L 22 30 A 32 32 0 1 1 50 78 Z" fill="rgba(2, 132, 199, 0.22)" stroke="none"/>
-        <line x1="16" y1="78" x2="84" y2="78" stroke="#10b981" stroke-width="2"/>
-        <line x1="50" y1="78" x2="22" y2="30" stroke="#fbbf24" stroke-width="2"/>
-        <text x="36" y="44" fill="#0284c7" font-size="7.5" font-weight="bold">Alt Seg (Maj)</text>
+        <circle cx="50" cy="46" r="32" fill="none" stroke="#475569" stroke-width="1.8"/>
+        <!-- Major segment in Sky -->
+        <path d="M 50 78 L 22 30 A 32 32 0 1 1 50 78 Z" fill="rgba(2, 132, 199, 0.16)" stroke="none"/>
+        <!-- Minor segment in Violet -->
+        <path d="M 50 78 L 22 30 A 32 32 0 0 0 50 78 Z" fill="rgba(168, 85, 247, 0.16)" stroke="none"/>
+        <!-- Tangent line in emerald -->
+        <line x1="14" y1="78" x2="86" y2="78" stroke="#10b981" stroke-width="2.6" stroke-linecap="round"/>
+        <!-- Chord TA in blue -->
+        <line x1="50" y1="78" x2="22" y2="30" stroke="#3b82f6" stroke-width="2.2"/>
+        <!-- Chords to vertex B in orange -->
+        <line x1="50" y1="78" x2="78" y2="34" stroke="#f97316" stroke-width="2"/>
+        <line x1="22" y1="30" x2="78" y2="34" stroke="#f97316" stroke-width="2"/>
+        <!-- Auxiliary diameter TD in indigo dashed -->
+        <line x1="50" y1="78" x2="50" y2="14" stroke="#6366f1" stroke-width="1.8" stroke-dasharray="3,2"/>
+        <line x1="78" y1="34" x2="50" y2="14" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="2,2"/>
+        <!-- Inscribed angle wedges in yellow -->
+        <path d="M 42 78 A 8 8 0 0 1 45 70" fill="none" stroke="#eab308" stroke-width="2"/>
+        <path d="M 70 33 A 8 8 0 0 1 72 40" fill="none" stroke="#eab308" stroke-width="2"/>
+        <!-- Right angle mark at B in teal -->
+        <path d="M 74 30 L 76 26 L 72 24" fill="none" stroke="#14b8a6" stroke-width="1.5"/>
+        <!-- Vertices -->
+        <circle cx="50" cy="78" r="3.2" fill="#ef4444"/>
+        <circle cx="22" cy="30" r="3" fill="#3b82f6"/>
+        <circle cx="78" cy="34" r="3" fill="#f97316"/>
+        <circle cx="50" cy="14" r="2.8" fill="#6366f1"/>
+        <circle cx="50" cy="46" r="2" fill="#6366f1"/>
+        <!-- Labels -->
+        <text x="48" y="88" fill="#ef4444" font-size="8" font-weight="bold">T</text>
+        <text x="13" y="28" fill="#3b82f6" font-size="8" font-weight="bold">A</text>
+        <text x="82" y="36" fill="#f97316" font-size="8" font-weight="bold">B</text>
+        <text x="47" y="10" fill="#6366f1" font-size="8" font-weight="bold">D</text>
+        <text x="35" y="74" fill="#eab308" font-size="7.5" font-weight="bold">α</text>
+        <text x="65" y="42" fill="#eab308" font-size="7.5" font-weight="bold">α</text>
+        <text x="15" y="62" fill="#a855f7" font-size="6.5" font-weight="bold">Min</text>
+        <text x="56" y="58" fill="#0284c7" font-size="6.5" font-weight="bold">Maj</text>
+      </svg>
+    `
+  },
+  {
+    id: 'sagitta-curvature',
+    category: 'regions',
+    categoryName: 'Regions & Arcs',
+    name: 'Sagitta & Spherical Curvature Contraction',
+    symbol: 's = R(1 - cos(θ/2)), K = 1/r',
+    formula: 's = R\\left(1 - \\cos\\frac{\\theta}{2}\\right), \\quad K = \\frac{1}{r}, \\quad h = \\sqrt{R^2 - r^2}',
+    definition: 'The sagitta s measures the radial height from the midpoint of chord AB to the arc apex. Under spherical projection onto S², the cutting circle radius r contracts relative to sphere radius R with plane distance h = R cos(φ).',
+    colorToken: 'Sagitta s: Rose (#f43f5e) | Chord AB: Amber (#fbbf24) | Midpoint M: Teal (#14b8a6) | Cutting Circle: Sky (#0284c7) | Spherical Arc: Amber (#fbbf24)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
+        <!-- Chord AB in amber -->
+        <line x1="20" y1="40" x2="80" y2="40" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round"/>
+        <!-- Sagitta s in rose -->
+        <line x1="50" y1="40" x2="50" y2="12" stroke="#f43f5e" stroke-width="3" stroke-linecap="round"/>
+        <!-- Normal line to center in indigo dashed -->
+        <line x1="50" y1="50" x2="50" y2="40" stroke="#6366f1" stroke-width="1.8" stroke-dasharray="2,2"/>
+        <!-- Right angle mark at M in teal -->
+        <path d="M 50 46 L 56 46 L 56 40" fill="none" stroke="#14b8a6" stroke-width="1.5"/>
+        <!-- Points -->
+        <circle cx="50" cy="50" r="2.5" fill="#6366f1"/>
+        <circle cx="50" cy="40" r="2.5" fill="#14b8a6"/>
+        <circle cx="50" cy="12" r="3" fill="#f43f5e"/>
+        <circle cx="20" cy="40" r="3" fill="#3b82f6"/>
+        <circle cx="80" cy="40" r="3" fill="#f97316"/>
+        <!-- Labels -->
+        <text x="12" y="43" fill="#3b82f6" font-size="8" font-weight="bold">A</text>
+        <text x="83" y="43" fill="#f97316" font-size="8" font-weight="bold">B</text>
+        <text x="53" y="43" fill="#14b8a6" font-size="7.5" font-weight="bold">M</text>
+        <text x="54" y="28" fill="#f43f5e" font-size="8" font-weight="bold">s</text>
+        <text x="47" y="60" fill="#6366f1" font-size="7.5" font-weight="bold">O</text>
+        <text x="24" y="78" fill="#0284c7" font-size="7" font-weight="bold">s = R(1 - cos θ/2)</text>
       </svg>
     `
   },
@@ -207,7 +272,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: '∠APB',
     formula: '\\theta = \\frac{1}{2} \\angle\\text{AOB} = \\frac{1}{2} \\times \\text{Central } \\angle',
     definition: 'An angle whose vertex P lies on the circle circumference and whose legs contain chords subtending arc AB.',
-    colorToken: 'PALETTE.yellow (#eab308) / PALETTE.emerald (#10b981)',
+    colorToken: 'Vertex P: Violet (#a855f7) | Inscribed Angle θ: Yellow (#eab308) | Chords PA, PB: Blue (#3b82f6) / Orange (#f97316)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -228,7 +293,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: '∠AOB',
     formula: '\\angle\\text{AOB} = 2\\angle\\text{APB} = 2\\theta',
     definition: 'An angle whose apex is at the circle centre O, subtending the same arc as an inscribed angle. It is always exactly twice the measure of the inscribed angle.',
-    colorToken: 'PALETTE.indigo (#6366f1) / PALETTE.amber (#fbbf24)',
+    colorToken: 'Center O: Indigo (#6366f1) | Central Angle 2θ: Amber (#fbbf24) / Yellow (#eab308) | Radii OA, OB: Blue (#3b82f6) / Orange (#f97316)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -238,6 +303,54 @@ export const GEOMETRY_ELEMENTS = [
         <circle cx="50" cy="50" r="3" fill="#6366f1"/>
         <text x="47" y="44" fill="#6366f1" font-size="8.5" font-weight="bold">O</text>
         <text x="46" y="67" fill="#fbbf24" font-size="8" font-weight="bold">2θ</text>
+      </svg>
+    `
+  },
+  {
+    id: 'angles-same-segment',
+    category: 'angles',
+    categoryName: 'Angles & Theorems',
+    name: 'Angles in the Same Segment',
+    symbol: '∠AP₁B = ∠AP₂B = θ',
+    formula: '\\angle AP_1B = \\angle AP_2B = \\frac{1}{2}\\angle AOB = \\theta',
+    definition: 'Inscribed angles subtended at the circumference by the same chord AB in the same circular segment are identically congruent. Vertices P₁ and P₂ glide along the common arc while preserving angle measure θ.',
+    colorToken: 'P₁ / ∠P₁: Blue (#3b82f6) | P₂ / ∠P₂: Emerald (#10b981) | Common Chord AB: Red (#ef4444) | Same Segment: Sky (#0284c7) | Central 2θ: Yellow (#eab308) | Centre O: Indigo (#6366f1) | Spherical Arc: Amber (#fbbf24)',
+    svg: `
+      <svg viewBox="0 0 100 100" class="legend-svg">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
+        <!-- Same Segment fill in sky -->
+        <path d="M 22 70 L 78 70 A 38 38 0 1 0 22 70 Z" fill="rgba(2, 132, 199, 0.12)" stroke="none"/>
+        <!-- Common chord AB in red -->
+        <line x1="22" y1="70" x2="78" y2="70" stroke="#ef4444" stroke-width="2.8" stroke-linecap="round"/>
+        <!-- Chords from P1 in blue -->
+        <line x1="32" y1="20" x2="22" y2="70" stroke="#3b82f6" stroke-width="1.8"/>
+        <line x1="32" y1="20" x2="78" y2="70" stroke="#3b82f6" stroke-width="1.8"/>
+        <!-- Chords from P2 in emerald -->
+        <line x1="68" y1="22" x2="22" y2="70" stroke="#10b981" stroke-width="1.8"/>
+        <line x1="68" y1="22" x2="78" y2="70" stroke="#10b981" stroke-width="1.8"/>
+        <!-- Angle wedge arcs -->
+        <path d="M 29 30 A 11 11 0 0 0 40 30" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M 59 31 A 11 11 0 0 0 71 33" fill="none" stroke="#10b981" stroke-width="2"/>
+        <!-- Central angle radii in indigo dashed -->
+        <line x1="50" y1="50" x2="22" y2="70" stroke="#6366f1" stroke-width="1.2" stroke-dasharray="2,2"/>
+        <line x1="50" y1="50" x2="78" y2="70" stroke="#6366f1" stroke-width="1.2" stroke-dasharray="2,2"/>
+        <!-- Central angle arc in yellow -->
+        <path d="M 42 56 A 11 11 0 0 0 58 56" fill="none" stroke="#eab308" stroke-width="2"/>
+        <!-- Vertices -->
+        <circle cx="22" cy="70" r="3" fill="#ef4444"/>
+        <circle cx="78" cy="70" r="3" fill="#ef4444"/>
+        <circle cx="32" cy="20" r="3" fill="#3b82f6"/>
+        <circle cx="68" cy="22" r="3" fill="#10b981"/>
+        <circle cx="50" cy="50" r="2.5" fill="#6366f1"/>
+        <!-- Text labels -->
+        <text x="14" y="74" fill="#ef4444" font-size="8" font-weight="bold">A</text>
+        <text x="81" y="74" fill="#ef4444" font-size="8" font-weight="bold">B</text>
+        <text x="28" y="15" fill="#3b82f6" font-size="8" font-weight="bold">P₁</text>
+        <text x="70" y="17" fill="#10b981" font-size="8" font-weight="bold">P₂</text>
+        <text x="47" y="46" fill="#6366f1" font-size="7.5" font-weight="bold">O</text>
+        <text x="46" y="64" fill="#eab308" font-size="7.5" font-weight="bold">2θ</text>
+        <text x="32" y="38" fill="#3b82f6" font-size="7.5" font-weight="bold">θ₁</text>
+        <text x="65" y="39" fill="#10b981" font-size="7.5" font-weight="bold">θ₂</text>
       </svg>
     `
   },
@@ -269,7 +382,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'ABCD on circle',
     formula: '\\angle A + \\angle C = 180^\\circ, \\quad \\angle B + \\angle D = 180^\\circ',
     definition: 'A quadrilateral whose four vertices all lie on a single common circle. Opposite interior angles are strictly supplementary (sum to 180°). Diagonals AC and BD join opposite vertices and meet inside the circle.',
-    colorToken: 'A: Violet, B: Cyan, C: Amber, D: Rose | Diagonal AC: Lavender, Diagonal BD: Sky',
+    colorToken: 'Vertex A: Violet (#a855f7) | Vertex B: Cyan (#06b6d4) | Vertex C: Amber (#fbbf24) | Vertex D: Rose (#f43f5e) | Diagonal AC: Lavender (#c4b5fd) | Diagonal BD: Sky (#0284c7)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -323,7 +436,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: '∠APB = 90°',
     formula: '\\angle APB = 90^\\circ \\iff AB \\text{ is diameter}',
     definition: 'Any angle inscribed in a semicircle subtended by a diameter AB at circumference point P is strictly a right angle (90°). Triangle APB has hypotenuse AB = 2r.',
-    colorToken: 'PALETTE.teal (#14b8a6) / PALETTE.red (#ef4444)',
+    colorToken: 'Diameter AB: Red (#ef4444) / Orange (#f97316) | Vertex P: Teal (#14b8a6) | Right Angle 90°: Teal (#14b8a6) | Center O: Indigo (#6366f1)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <path d="M 14 62 A 36 36 0 0 1 86 62 Z" fill="rgba(20, 184, 166, 0.08)" stroke="#475569" stroke-width="2"/>
@@ -351,7 +464,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: '|PT₁| = |PT₂|',
     formula: '|PT_1| = |PT_2| = \\sqrt{d^2 - r^2}',
     definition: 'Two tangent lines drawn to a circle from an external point P are strictly congruent. Radii OT₁ and OT₂ form an orthogonal kite PT₁OT₂ with ∠PT₁O = ∠PT₂O = 90°.',
-    colorToken: 'PALETTE.emerald (#10b981) / PALETTE.teal (#14b8a6)',
+    colorToken: 'External Point P: Rose (#f43f5e) | Tangents PT₁, PT₂: Emerald (#10b981) | Contact Points T₁, T₂: Emerald (#10b981) | Radii OT₁, OT₂: Blue (#3b82f6) | Center O: Indigo (#6366f1) | Right Angles: Teal (#14b8a6)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="42" cy="50" r="28" fill="none" stroke="#475569" stroke-width="2"/>
@@ -383,7 +496,7 @@ export const GEOMETRY_ELEMENTS = [
     symbol: 'OM ⊥ AB, |AM| = |MB|',
     formula: 'OM \\perp AB \\iff |AM| = |MB|',
     definition: 'A line segment from the center O perpendicular to chord AB bisects the chord at M. Conversely, the perpendicular bisector of any chord passes through the center.',
-    colorToken: 'PALETTE.indigo (#6366f1) / PALETTE.amber (#fbbf24)',
+    colorToken: 'Chord AB: Amber (#fbbf24) | Bisector OM: Indigo (#6366f1) | Midpoint M: Teal (#14b8a6) | Right Angle 90°: Teal (#14b8a6) | Reflex M* (270°): Cyan (#06b6d4) | Center O: Indigo (#6366f1)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
@@ -700,24 +813,24 @@ export const GEOMETRY_ELEMENTS = [
 ];
 
 export const COLOR_GRAMMAR_TOKENS = [
-  { token: 'PALETTE.red', hex: '#ef4444', role: 'Diameter endpoint A, Tangent contact point T, Triangle vertex A / side a, Euler X-axis' },
+  { token: 'PALETTE.red', hex: '#ef4444', role: 'Diameter endpoint A, Tangent contact point T, Triangle vertex A / side a, Common chord AB (Angles in Same Segment), Euler X-axis' },
   { token: 'PALETTE.orange', hex: '#f97316', role: 'Diameter endpoint B, Side t length, Angle β, Triangle vertex B / side b, Cotangent leg' },
-  { token: 'PALETTE.blue', hex: '#3b82f6', role: 'Chord side s, Radial line OT, Triangle vertex C / side c, Euler Z-axis' },
-  { token: 'PALETTE.indigo', hex: '#6366f1', role: 'Circle center O, Radii, Derivation step headers, Coordinate origin' },
-  { token: 'PALETTE.violet', hex: '#a855f7', role: 'Inscribed point P, Minor Alternate Segment, Vertex A (Cyclic), Cosecant (csc θ), 3D wave projection' },
+  { token: 'PALETTE.blue', hex: '#3b82f6', role: 'Chord side s, Radial line OT, Triangle vertex C / side c, Vertex P₁ & angle θ₁ (Angles in Same Segment), Chord TA (Alternate Segment), Euler Z-axis' },
+  { token: 'PALETTE.indigo', hex: '#6366f1', role: 'Circle center O, Radii, Derivation step headers, Coordinate origin, Auxiliary point D & diameter TD (Alternate Segment)' },
+  { token: 'PALETTE.violet', hex: '#a855f7', role: 'Inscribed point P, Minor Alternate Segment, Vertex A (Cyclic), Cosecant (csc θ), 3D wave projection, Law of Cosines cos C' },
   { token: 'PALETTE.violetLight', hex: '#d8b4fe', role: 'Conjugate reflex arc halo, auxiliary geodesic guidance, ambient fill' },
-  { token: 'PALETTE.yellow', hex: '#eab308', role: 'Inscribed angle α/θ, Polar angle θ, Angular coordinate' },
-  { token: 'PALETTE.amber', hex: '#fbbf24', role: 'Chord AB, Central angle 2θ, Vertex C (Cyclic), Cosine leg (cos θ), Bilinear interaction rectangle (-2ab cos C), Compound angle α+β' },
-  { token: 'PALETTE.teal', hex: '#14b8a6', role: 'Right-angles 90°, Perigon sums 360°, Cyclic diagonal intersection & Ptolemy invariant, Cotangent (cot θ), Difference ray D(α-β), Invariant Δ' },
+  { token: 'PALETTE.yellow', hex: '#eab308', role: 'Inscribed angle α/θ, Polar angle θ, Angular coordinate, Tangent-Radius active quadrant numeral, Alternate Segment α, Central angle 2θ (Angles in Same Segment)' },
+  { token: 'PALETTE.amber', hex: '#fbbf24', role: 'Chord AB, Central angle 2θ, Vertex C (Cyclic), Cosine leg (cos θ), Bilinear interaction rectangle (-2ab cos C), Compound angle α+β, Spherical boundary geodesic arc on S²' },
+  { token: 'PALETTE.teal', hex: '#14b8a6', role: 'Right-angles 90°, Perigon sums 360°, Cyclic diagonal intersection & Ptolemy invariant, Cotangent (cot θ), Difference ray D(α-β), Invariant Δ, Midpoint M (Chord Bisector)' },
   { token: 'PALETTE.green', hex: '#22c55e', role: 'Subtended angle θ, Inscribed area (½st), Euler Y-axis' },
-  { token: 'PALETTE.emerald', hex: '#10b981', role: 'Tangent line direction, Altitude, Bisector normal, Sine leg (sin θ)' },
-  { token: 'PALETTE.sky', hex: '#0284c7', role: 'Major Alternate Segment, Circumference & 2R ratio, Cyclic diagonal BD & sum ∠B + ∠D, Secant line (sec θ), Cylindrical helix curve, Angle β' },
-  { token: 'PALETTE.lime', hex: '#84cc16', role: 'Reflex sector α*, Angle α at vertex A, Compound angle α' },
-  { token: 'PALETTE.rose', hex: '#f43f5e', role: 'Exterior angles, Vertex D (Cyclic), Tangent ratio leg (tan θ), External point P' },
-  { token: 'PALETTE.cyan', hex: '#06b6d4', role: 'Diameter square |d|², Vertex B (Cyclic), Affine conjugate axis v₁' },
-  { token: 'PALETTE.fuchsia', hex: '#d946ef', role: 'Angle β base angles, Cosecant (csc θ), 3D spherical longitude (φ)' },
+  { token: 'PALETTE.emerald', hex: '#10b981', role: 'Tangent line direction, Altitude, Bisector normal, Sine leg (sin θ), Vertex P₂ & angle θ₂ (Angles in Same Segment), Bisection Invariant Δ = |AM - MB|' },
+  { token: 'PALETTE.sky', hex: '#0284c7', role: 'Major Alternate Segment, Circumference & 2R ratio, Cyclic diagonal BD & sum ∠B + ∠D, Secant line (sec θ), Cylindrical helix curve, Angle β, Same Segment region (Angles in Same Segment), cos θ projection (Tangent-Radius)' },
+  { token: 'PALETTE.lime', hex: '#84cc16', role: 'Reflex sector α*, Angle α at vertex A, Compound angle α, Tangent line vector' },
+  { token: 'PALETTE.rose', hex: '#f43f5e', role: 'Exterior angles, Vertex D (Cyclic), Tangent ratio leg (tan θ), External point P, Exterior angle D (Alternate Segment), Sagitta s' },
+  { token: 'PALETTE.cyan', hex: '#06b6d4', role: 'Diameter square |d|², Vertex B (Cyclic), Affine conjugate axis v₁, Chord Bisector reflex angle M* (270°), Tangent-Radius reflex angle T* (270°)' },
+  { token: 'PALETTE.fuchsia', hex: '#d946ef', role: 'Angle β base angles, Cosecant (csc θ), 3D spherical longitude (φ), Multiple tangent chord areas' },
   { token: 'PALETTE.steel', hex: '#6488b0', role: 'Secant line construction, Cartesian reference grids, auxiliary chord extensions' },
-  { token: 'PALETTE.lavender', hex: '#c4b5fd', role: 'Reflex angle sums, Cyclic diagonal AC & sum ∠A + ∠C, radius OP helper in 3D, polar coordinate ground grid' },
+  { token: 'PALETTE.lavender', hex: '#c4b5fd', role: 'Reflex angle sums (1080° / 540° / 900°), Perigon Invariant 360°, Cyclic diagonal AC & sum ∠A + ∠C, radius OP helper in 3D, polar coordinate ground grid' },
   { token: 'PALETTE.platinum', hex: '#f8fafc', role: 'High-contrast labels, primary derivation headings, coordinate axes values' }
 ];
 

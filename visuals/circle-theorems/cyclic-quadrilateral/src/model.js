@@ -1,4 +1,6 @@
-import { toDegrees, toRadians, PALETTE, getRadialLabelCoords, createDefaultVisState } from '../../../../js/circle-core.js';
+import { toDegrees, toRadians, PALETTE, getRadialLabelCoords, createDefaultVisState, getValidCyclicArc, clampCyclicAngle } from '../../../../js/circle-core.js';
+
+export { getValidCyclicArc, clampCyclicAngle };
 
 export function createInitialState() {
   const vis = createDefaultVisState();

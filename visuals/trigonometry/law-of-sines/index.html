@@ -35,9 +35,12 @@
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountTrigVisual } from '../js/trig-core.js';
-    window.addEventListener('DOMContentLoaded', () => {
-      mountTrigVisual({ visualId: 'law-of-sines' });
-    });
+    const init = () => mountTrigVisual({ visualId: 'law-of-sines' });
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </head>
 <body data-root="../../.." class="visual-page-body">
@@ -68,9 +71,9 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
             <span>Flip</span>
           </button>
-          <button type="button" class="btn-toolbar btn-toolbar--badge" id="btn-toggle-dimension-mode" aria-label="Toggle Planar vs Spherical 3D Geometry" title="Toggle between Planar Euclidean (Y=0) and True Spherical Geometry on S²" aria-pressed="false">
+          <button type="button" class="btn-toolbar btn-toolbar--badge" id="btn-toggle-dimension-mode" aria-label="Toggle Planar vs Spatial 3D Geometry" title="Toggle between Planar Euclidean (Y=0) and True Spherical Geometry on S²" aria-pressed="false">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            <span>Spherical: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>
+            <span>Spatial: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>
           </button>
           <button type="button" class="btn-toolbar" id="btn-toggle-ar" title="Enter Augmented Reality mode (WebXR / Camera Pass-Through)" aria-pressed="false">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
@@ -140,7 +143,7 @@
           <div class="dimension-mode-bar">
             <div class="viewmode-segmented-group" role="group" aria-label="3D Geometry Model">
               <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar Euclidean Embedding (Y = 0)">Planar</button>
-              <button type="button" class="btn" id="btn-mode-spatial-pill" title="True Spherical Geometry on S²">Spherical 3D</button>
+              <button type="button" class="btn" id="btn-mode-spatial-pill" title="True Spherical Geometry on S²">Spatial S²</button>
             </div>
           </div>
           <div class="camera-presets-bar">
@@ -314,7 +317,7 @@
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
                 <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                   <button type="button" class="btn active" id="btn-mode-planar">Planar (Y = 0)</button>
-                  <button type="button" class="btn" id="btn-mode-spatial">Spherical 3D</button>
+                  <button type="button" class="btn" id="btn-mode-spatial">Spatial S²</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
                   Planar Euclidean embedding on equatorial plane Y = 0 with diameter 2R = a / sin A.

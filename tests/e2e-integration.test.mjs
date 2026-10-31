@@ -5,6 +5,8 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Writable } from 'node:stream';
+import { handleRequest } from '../scripts/serve.mjs';
 
 // Domain models & derivations
 import { createInitialState as createThalesInitialState } from '../visuals/circle-theorems/thales-theorem/src/config/defaults.js';
@@ -190,32 +192,73 @@ async function startServer(port) {
 // =============================================================================
 // Suite 1: Full-Stack HTTP Server, Routing & Network Asset E2E
 // =============================================================================
-test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and security resistance', async (t) => {
-  const port = await getFreePort();
-  let server;
-  try {
-    server = await startServer(port);
-  } catch (err) {
-    if (err?.code === 'EACCES') {
-      t.skip('Sandbox network boundary restricts port binding');
-      return;
-    }
-    throw err;
+class StreamResponse extends Writable {
+  constructor() {
+    super();
+    this.status = 200;
+    this.headersMap = new Map();
+    this.chunks = [];
   }
-  const { baseUrl, stop } = server;
+  writeHead(code, headers = {}) {
+    this.status = code;
+    for (const [k, v] of Object.entries(headers)) {
+      this.headersMap.set(k.toLowerCase(), v);
+    }
+    return this;
+  }
+  _write(chunk, encoding, callback) {
+    this.chunks.push(Buffer.from(chunk));
+    callback();
+  }
+  get headers() {
+    return {
+      get: (name) => this.headersMap.get(name.toLowerCase()) || null,
+    };
+  }
+  async text() {
+    return Buffer.concat(this.chunks).toString('utf-8');
+  }
+}
+
+test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and security resistance', async (t) => {
+  let useDirect = false;
+  let baseUrl = '';
+  let stop = async () => {};
+
+  try {
+    const port = await getFreePort();
+    const server = await startServer(port);
+    baseUrl = server.baseUrl;
+    stop = server.stop;
+    await fetch(`${baseUrl}/`);
+  } catch (err) {
+    if (err?.code === 'EACCES' || err?.cause?.code === 'EACCES') {
+      useDirect = true;
+    } else {
+      throw err;
+    }
+  }
+
+  const req = async (pathname) => {
+    if (!useDirect) {
+      return await fetch(`${baseUrl}${pathname}`);
+    }
+    return new Promise((resolve, reject) => {
+      const res = new StreamResponse();
+      const mockReq = {
+        url: pathname,
+        headers: { host: '127.0.0.1' },
+        method: 'GET',
+      };
+      res.on('finish', () => resolve(res));
+      res.on('error', reject);
+      handleRequest(mockReq, res, ROOT);
+    });
+  };
 
   try {
     // 1. Root landing page
-    let resRoot;
-    try {
-      resRoot = await fetch(`${baseUrl}/`);
-    } catch (err) {
-      if (err?.cause?.code === 'EACCES' || err?.code === 'EACCES') {
-        t.skip('Sandbox network boundary restricts loopback TCP connections');
-        return;
-      }
-      throw err;
-    }
+    const resRoot = await req('/');
     assert.strictEqual(resRoot.status, 200, 'Root index must serve 200 OK');
     assert.ok(resRoot.headers.get('content-type')?.includes('text/html'), 'Root must serve text/html');
     const htmlRoot = await resRoot.text();
@@ -235,7 +278,7 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     ];
 
     for (const vPath of visualPaths) {
-      const res = await fetch(`${baseUrl}/visuals/circle-theorems/${vPath}/`);
+      const res = await req(`/visuals/circle-theorems/${vPath}/`);
       assert.strictEqual(res.status, 200, `/visuals/circle-theorems/${vPath}/ must serve 200 OK`);
       assert.ok(res.headers.get('content-type')?.includes('text/html'), `${vPath} must serve text/html`);
       const body = await res.text();
@@ -260,7 +303,7 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     ];
 
     for (const asset of staticAssets) {
-      const res = await fetch(`${baseUrl}${asset.path}`);
+      const res = await req(asset.path);
       assert.strictEqual(res.status, 200, `${asset.path} must return 200 OK`);
       assert.ok(
         res.headers.get('content-type')?.includes(asset.type),
@@ -274,7 +317,7 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     for (const vPath of visualPaths) {
       const thumbFile = vPath === 'thales-theorem' ? 'thales-thumbnail.svg' : `${vPath}-thumbnail.svg`;
       const thumbPath = `/assets/images/${thumbFile}`;
-      const res = await fetch(`${baseUrl}${thumbPath}`);
+      const res = await req(thumbPath);
       assert.strictEqual(res.status, 200, `${thumbPath} must serve 200 OK`);
       assert.ok(res.headers.get('content-type')?.includes('image/svg+xml'), `${thumbPath} must serve SVG`);
       const svg = await res.text();
@@ -282,12 +325,12 @@ test('E2E HTTP Server: Real network lifecycle, response codes, MIME types, and s
     }
 
     // 5. 404 Not Found error handling
-    const res404 = await fetch(`${baseUrl}/visuals/non-existent-theorem/`);
+    const res404 = await req('/visuals/non-existent-theorem/');
     assert.strictEqual(res404.status, 404, 'Non-existent route must return 404');
     await res404.text();
 
     // 6. Security: Path traversal attempt cannot access external files
-    const resSec = await fetch(`${baseUrl}/../../nonexistent-secret.txt`);
+    const resSec = await req('/../../nonexistent-secret.txt');
     assert.strictEqual(resSec.status, 404, 'Path traversal attempt must return 404 Not Found');
     await resSec.text();
   } finally {

@@ -1,4 +1,4 @@
-import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter, computeSphericalTriangleExcess } from '../../../../js/circle-core.js';
+import { createStore, Panel, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections, pointerToAngle, isNearCircumference, toRadians, bindStandardToggles, PlaybackController, UnitSystemConverter, computeSphericalTriangleExcess, clampAngleInArc } from '../../../../js/circle-core.js';
 import { AngleAtCentreDerivations } from '../../../../js/circle-derivations.js';
 import { loadThree, NullScene3DView, ViewModeController, AngleAtCentre3DView } from '../../../../js/circle-3d.js';
 import { createInitialState, computeGeometry } from './model.js';
@@ -201,14 +201,18 @@ function bootstrap() {
 
     canvas.style.cursor = 'grabbing';
     const ang = pointerToAngle(x - g.cx, g.cy - y);
+    const cur = store.get();
 
     if (activeDragPoint === 'P') {
-      store.set({ angleP: ang });
-      pPosInput.value = Math.round(((ang * 180) / Math.PI + 360) % 360);
+      const clampedP = clampAngleInArc(ang, cur.angleB, cur.angleA, 0.15);
+      store.set({ angleP: clampedP });
+      pPosInput.value = Math.round(((clampedP * 180) / Math.PI + 360) % 360);
     } else if (activeDragPoint === 'A') {
-      store.set({ angleA: ang });
+      const clampedA = clampAngleInArc(ang, cur.angleP, cur.angleB, 0.2);
+      store.set({ angleA: clampedA });
     } else if (activeDragPoint === 'B') {
-      store.set({ angleB: ang });
+      const clampedB = clampAngleInArc(ang, cur.angleA, cur.angleP, 0.2);
+      store.set({ angleB: clampedB });
     }
   });
 
@@ -269,7 +273,7 @@ function bootstrap() {
 
     const R3D = ((state.radius || 180) / 180) * 10;
     const elDimMode = document.getElementById('val-3d-dim-mode');
-    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spherical 3D (S²)' : 'Planar (Y=0)';
+    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spatial S²' : 'Planar (Y=0)';
     const el3dR = document.getElementById('val-3d-r');
     if (el3dR) el3dR.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const elPx = document.getElementById('val-3d-px');
@@ -293,16 +297,23 @@ function bootstrap() {
     const elArea = document.getElementById('val-3d-area');
     if (elArea) elArea.textContent = sphExcess.area.toFixed(2);
 
+    const m3d = scene3d.lastComputed3D;
+    const central3dDeg = (isSpatial && m3d) ? m3d.degCentral : g.centralDeg;
+    const inscribed3dDeg = (isSpatial && m3d) ? m3d.degInscribed : g.inscribedDeg;
+    const alpha3dDeg = (isSpatial && m3d) ? m3d.degAlpha : alphaDeg;
+    const beta3dDeg = (isSpatial && m3d) ? m3d.degBeta : betaDeg;
+    const ratio3d = (isSpatial && m3d) ? m3d.ratio : g.ratio;
+
     const elCentral = document.getElementById('val-3d-central');
-    if (elCentral) elCentral.textContent = UnitSystemConverter.formatAngle(g.centralDeg, angUnit);
+    if (elCentral) elCentral.textContent = UnitSystemConverter.formatAngle(central3dDeg, angUnit);
     const elInscribed = document.getElementById('val-3d-inscribed');
-    if (elInscribed) elInscribed.textContent = UnitSystemConverter.formatAngle(g.inscribedDeg, angUnit);
+    if (elInscribed) elInscribed.textContent = UnitSystemConverter.formatAngle(inscribed3dDeg, angUnit);
     const el3dAlpha = document.getElementById('val-3d-alpha');
-    if (el3dAlpha) el3dAlpha.textContent = UnitSystemConverter.formatAngle(alphaDeg, angUnit);
+    if (el3dAlpha) el3dAlpha.textContent = UnitSystemConverter.formatAngle(alpha3dDeg, angUnit);
     const el3dBeta = document.getElementById('val-3d-beta');
-    if (el3dBeta) el3dBeta.textContent = UnitSystemConverter.formatAngle(betaDeg, angUnit);
+    if (el3dBeta) el3dBeta.textContent = UnitSystemConverter.formatAngle(beta3dDeg, angUnit);
     const elRatio = document.getElementById('val-3d-ratio');
-    if (elRatio) elRatio.textContent = g.ratio.toFixed(3);
+    if (elRatio) elRatio.textContent = ratio3d.toFixed(3);
 
     // Reflex Telemetry (2D & 3D)
     const reflexCentral = 360 - g.centralDeg;
@@ -314,12 +325,14 @@ function bootstrap() {
     const elTelPerigonCent = document.getElementById('tel-perigon-central');
     if (elTelPerigonCent) elTelPerigonCent.textContent = UnitSystemConverter.formatAngle(g.centralDeg + reflexCentral, angUnit);
 
+    const reflexCentral3d = 360 - central3dDeg;
+    const reflexInscribed3d = 360 - inscribed3dDeg;
     const el3dReflexCent = document.getElementById('val-3d-reflex-central');
-    if (el3dReflexCent) el3dReflexCent.textContent = UnitSystemConverter.formatAngle(reflexCentral, angUnit);
+    if (el3dReflexCent) el3dReflexCent.textContent = UnitSystemConverter.formatAngle(reflexCentral3d, angUnit);
     const el3dReflexInsc = document.getElementById('val-3d-reflex-inscribed');
-    if (el3dReflexInsc) el3dReflexInsc.textContent = UnitSystemConverter.formatAngle(reflexInscribed, angUnit);
+    if (el3dReflexInsc) el3dReflexInsc.textContent = UnitSystemConverter.formatAngle(reflexInscribed3d, angUnit);
     const el3dPerigon = document.getElementById('val-3d-perigon');
-    if (el3dPerigon) el3dPerigon.textContent = UnitSystemConverter.formatAngle(g.centralDeg + reflexCentral, angUnit);
+    if (el3dPerigon) el3dPerigon.textContent = UnitSystemConverter.formatAngle(central3dDeg + reflexCentral3d, angUnit);
 
     // Update live math derivations
     derivations.render(state, g);

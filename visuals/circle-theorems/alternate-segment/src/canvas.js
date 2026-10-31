@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, drawSegmentContainingPoint, drawSubtendedSegment, drawAngleWedge, drawRightAngle, drawReflexWedge, getPointLabel } from '../../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawRadialLabelledPoint, drawTextBadge, drawDoubleArrow, drawSegmentContainingPoint, drawSubtendedSegment, drawAngleWedge, drawRightAngle, drawReflexWedge, getPointLabel, isLabelVisible } from '../../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
@@ -123,7 +124,7 @@ export class CanvasView {
     const tanMidX = g.T.x + (g.Tan2.x - g.T.x) * 0.45;
     const tanMidY = g.T.y + (g.Tan2.y - g.T.y) * 0.45;
     const showLabels = state.vis2d?.labels !== false;
-    if (showLabels) {
+    if (showLabels && isLabelVisible('Tangent', state.vis2d) && isLabelVisible('tangent', state.vis2d)) {
       drawTextBadge(ctx, 'Tangent', tanMidX, tanMidY, PALETTE.emerald);
     }
 
@@ -162,14 +163,17 @@ export class CanvasView {
     const activeTanPt = Math.abs(diff1 * (180 / Math.PI) - g.tangentChordDeg) < Math.abs(diff2 * (180 / Math.PI) - g.tangentChordDeg) ? g.Tan1 : g.Tan2;
 
     const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
+    const isAlphaVisible = showAngles && isLabelVisible('α', state.vis2d) && isLabelVisible('a', state.vis2d);
 
     // Equal Angle Wedges (at T and B) + Thales Right Angles + Point D Wedges
     if (showAngles) {
-      // 1. Angle between Tangent and Chord TA at T
-      drawAngleWedge(ctx, g.T, angTan, angTA, 32, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+      if (isAlphaVisible) {
+        // 1. Angle between Tangent and Chord TA at T
+        drawAngleWedge(ctx, g.T, angTan, angTA, 32, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
 
-      // 2. Inscribed angle at B: ∠TBA
-      drawAngleWedge(ctx, g.B, angBA, angBT, 28, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+        // 2. Inscribed angle at B: ∠TBA
+        drawAngleWedge(ctx, g.B, angBA, angBT, 28, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
+      }
 
       // 3. Thales Right Angles and Point D Angle Wedges
       if (showThales && g.D) {
@@ -185,12 +189,15 @@ export class CanvasView {
         // Point D Interior and Exterior Angles
         if (state.showDAngles !== false) {
           // Point D Interior Angle: ∠TDA = α (yellow)
-          const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
-          const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
-          drawAngleWedge(ctx, g.D, angDT, angDA, 28, 'rgba(234, 179, 8, 0.28)', PALETTE.yellow);
+          if (isAlphaVisible) {
+            const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
+            const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
+            drawAngleWedge(ctx, g.D, angDT, angDA, 28, 'rgba(234, 179, 8, 0.28)', PALETTE.yellow);
+          }
 
           // Point D Exterior Angle: Ext D = 180° - α (rose)
-          if (g.Dext) {
+          if (g.Dext && isLabelVisible('Ext D', state.vis2d) && isLabelVisible('D', state.vis2d)) {
+            const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
             const angDext = Math.atan2(g.Dext.y - g.D.y, g.Dext.x - g.D.x);
             drawAngleWedge(ctx, g.D, angDA, angDext, 24, 'rgba(244, 63, 94, 0.28)', PALETTE.rose);
           }
@@ -211,31 +218,37 @@ export class CanvasView {
 
     // Alternate Segment Labels (Major: Sky, Minor: Violet)
     if (showLabels && showArea && g.alternateSegments) {
-      drawTextBadge(ctx, g.alternateSegments.major.label, g.alternateSegments.major.labelPos.x, g.alternateSegments.major.labelPos.y, g.alternateSegments.major.color || PALETTE.sky);
-      drawTextBadge(ctx, g.alternateSegments.minor.label, g.alternateSegments.minor.labelPos.x, g.alternateSegments.minor.labelPos.y, g.alternateSegments.minor.color || PALETTE.violet);
+      if (isLabelVisible('segMajor', state.vis2d) && isLabelVisible('Alt Seg (Maj)', state.vis2d)) {
+        drawTextBadge(ctx, g.alternateSegments.major.label, g.alternateSegments.major.labelPos.x, g.alternateSegments.major.labelPos.y, g.alternateSegments.major.color || PALETTE.sky);
+      }
+      if (isLabelVisible('segMinor', state.vis2d) && isLabelVisible('Alt Seg (Min)', state.vis2d)) {
+        drawTextBadge(ctx, g.alternateSegments.minor.label, g.alternateSegments.minor.labelPos.x, g.alternateSegments.minor.labelPos.y, g.alternateSegments.minor.color || PALETTE.violet);
+      }
     }
 
     // Angle text annotations with protective badge pills
-    if (showAngles && showLabels) {
-      // Inscribed angle at B (positioned outside the 28px wedge along bisector)
-      const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
-      const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
-      const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
-      const lenB = Math.hypot(bisBX, bisBY);
-      const nbBX = lenB > 0.001 ? bisBX / lenB : 0;
-      const nbBY = lenB > 0.001 ? bisBY / lenB : 1;
-      drawTextBadge(ctx, `α = ${g.inscribedDeg.toFixed(1)}°`, g.B.x + 50 * nbBX, g.B.y + 50 * nbBY, PALETTE.yellow);
+    if (showLabels) {
+      if (isAlphaVisible) {
+        // Inscribed angle at B (positioned outside the 28px wedge along bisector)
+        const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
+        const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
+        const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
+        const lenB = Math.hypot(bisBX, bisBY);
+        const nbBX = lenB > 0.001 ? bisBX / lenB : 0;
+        const nbBY = lenB > 0.001 ? bisBY / lenB : 1;
+        drawTextBadge(ctx, `α = ${g.inscribedDeg.toFixed(1)}°`, g.B.x + 50 * nbBX, g.B.y + 50 * nbBY, PALETTE.yellow);
 
-      // Tangent-chord angle at T (positioned outside the 32px wedge along bisector)
-      const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
-      const uTAx = lenTA > 0.001 ? (g.A.x - g.T.x) / lenTA : 0;
-      const uTAy = lenTA > 0.001 ? (g.A.y - g.T.y) / lenTA : -1;
-      const uActX = Math.cos(angTan), uActY = Math.sin(angTan);
-      const bisTX = uTAx + uActX, bisTY = uTAy + uActY;
-      const lenT = Math.hypot(bisTX, bisTY);
-      const nbTX = lenT > 0.001 ? bisTX / lenT : 0;
-      const nbTY = lenT > 0.001 ? bisTY / lenT : 1;
-      drawTextBadge(ctx, `α = ${g.tangentChordDeg.toFixed(1)}°`, g.T.x + 54 * nbTX, g.T.y + 54 * nbTY, PALETTE.yellow);
+        // Tangent-chord angle at T (positioned outside the 32px wedge along bisector)
+        const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y);
+        const uTAx = lenTA > 0.001 ? (g.A.x - g.T.x) / lenTA : 0;
+        const uTAy = lenTA > 0.001 ? (g.A.y - g.T.y) / lenTA : -1;
+        const uActX = Math.cos(angTan), uActY = Math.sin(angTan);
+        const bisTX = uTAx + uActX, bisTY = uTAy + uActY;
+        const lenT = Math.hypot(bisTX, bisTY);
+        const nbTX = lenT > 0.001 ? bisTX / lenT : 0;
+        const nbTY = lenT > 0.001 ? bisTY / lenT : 1;
+        drawTextBadge(ctx, `α = ${g.tangentChordDeg.toFixed(1)}°`, g.T.x + 54 * nbTX, g.T.y + 54 * nbTY, PALETTE.yellow);
+      }
 
       // Thales Badges: Right angles at B, A, T and Angles at D
       if (showThales && g.D) {
@@ -279,31 +292,35 @@ export class CanvasView {
     // Conjugate Reflex Angles (Perigon 360° - θ)
     const showReflex = Boolean(state.vis2d?.reflex);
     if (showReflex) {
-      drawReflexWedge(ctx, g.T, angTan, angTA, 40, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
-      drawReflexWedge(ctx, g.B, angBA, angBT, 36, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
+      if (isAlphaVisible) {
+        drawReflexWedge(ctx, g.T, angTan, angTA, 40, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
+        drawReflexWedge(ctx, g.B, angBA, angBT, 36, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
+      }
 
-      if (showThales && g.D && state.showDAngles !== false) {
+      if (showThales && g.D && state.showDAngles !== false && isAlphaVisible) {
         const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
         const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
         drawReflexWedge(ctx, g.D, angDT, angDA, 36, 'rgba(234, 179, 8, 0.15)', PALETTE.yellow);
       }
 
       if (showLabels) {
-        // Bisectors in outward reflex direction (negative of interior bisector)
-        const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
-        const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
-        const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
-        const lenB = Math.hypot(bisBX, bisBY) || 1;
-        drawTextBadge(ctx, `α* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.B.x - 56 * (bisBX / lenB), g.B.y - 56 * (bisBY / lenB), PALETTE.yellow);
+        if (isAlphaVisible) {
+          // Bisectors in outward reflex direction (negative of interior bisector)
+          const uBTx = Math.cos(angBT), uBTy = Math.sin(angBT);
+          const uBAx = Math.cos(angBA), uBAy = Math.sin(angBA);
+          const bisBX = uBTx + uBAx, bisBY = uBTy + uBAy;
+          const lenB = Math.hypot(bisBX, bisBY) || 1;
+          drawTextBadge(ctx, `α* = ${(360 - g.inscribedDeg).toFixed(1)}°`, g.B.x - 56 * (bisBX / lenB), g.B.y - 56 * (bisBY / lenB), PALETTE.yellow);
 
-        const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y) || 1;
-        const uTAx = (g.A.x - g.T.x) / lenTA, uTAy = (g.A.y - g.T.y) / lenTA;
-        const uActX = Math.cos(angTan), uActY = Math.sin(angTan);
-        const bisTX = uTAx + uActX, bisTY = uTAy + uActY;
-        const lenT = Math.hypot(bisTX, bisTY) || 1;
-        drawTextBadge(ctx, `α* = ${(360 - g.tangentChordDeg).toFixed(1)}°`, g.T.x - 60 * (bisTX / lenT), g.T.y - 60 * (bisTY / lenT), PALETTE.yellow);
+          const lenTA = Math.hypot(g.A.x - g.T.x, g.A.y - g.T.y) || 1;
+          const uTAx = (g.A.x - g.T.x) / lenTA, uTAy = (g.A.y - g.T.y) / lenTA;
+          const uActX = Math.cos(angTan), uActY = Math.sin(angTan);
+          const bisTX = uTAx + uActX, bisTY = uTAy + uActY;
+          const lenT = Math.hypot(bisTX, bisTY) || 1;
+          drawTextBadge(ctx, `α* = ${(360 - g.tangentChordDeg).toFixed(1)}°`, g.T.x - 60 * (bisTX / lenT), g.T.y - 60 * (bisTY / lenT), PALETTE.yellow);
+        }
 
-        if (showThales && g.D && state.showDAngles !== false) {
+        if (showThales && g.D && state.showDAngles !== false && isAlphaVisible) {
           const angDT = Math.atan2(g.T.y - g.D.y, g.T.x - g.D.x);
           const angDA = Math.atan2(g.A.y - g.D.y, g.A.x - g.D.x);
           const bisIntDX = Math.cos(angDT) + Math.cos(angDA);

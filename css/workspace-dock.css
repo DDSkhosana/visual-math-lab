@@ -540,6 +540,52 @@
   position: relative;
 }
 
+/* Level 2 Elevation: Nested Subpanels inside Dock Panel */
+.workspace-dock-body > .ui-panel [data-elevation-level="2"],
+.ui-panel.is-floating [data-elevation-level="2"],
+.workspace-dock-body > .ui-panel .collapsible-section:not(.collapsed),
+.workspace-dock-body > .ui-panel .derivation-card.open {
+  position: relative;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure each nested subpanel fully expands its contents,
+   and if they exceed parent container height, enforce internal scroll overflow */
+.workspace-dock-body .collapsible-section:not(.collapsed) > .collapsible-content,
+.workspace-dock-body .derivation-card.open > .derivation-card-content,
+.workspace-dock-body [data-elevation-turn="top"] > .collapsible-content,
+.workspace-dock-body [data-elevation-turn="top"] > .derivation-card-content,
+.workspace-dock-body .is-elevated-top > .collapsible-content,
+.workspace-dock-body .is-elevated-top > .derivation-card-content,
+.workspace-dock-body .is-subpanel-overlay > .collapsible-content,
+.workspace-dock-body .is-subpanel-overlay > .derivation-card-content,
+.ui-panel.is-floating .collapsible-section:not(.collapsed) > .collapsible-content,
+.ui-panel.is-floating .derivation-card.open > .derivation-card-content,
+.ui-panel.is-floating [data-elevation-turn="top"] > .collapsible-content,
+.ui-panel.is-floating [data-elevation-turn="top"] > .derivation-card-content,
+.ui-panel.is-floating .is-elevated-top > .collapsible-content,
+.ui-panel.is-floating .is-elevated-top > .derivation-card-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+  scrollbar-gutter: stable !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Live Derivations Content flex container inside panel body */
+.workspace-dock-body #live-derivations-content,
+.ui-panel.is-floating #live-derivations-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 /* Level 2: Elevation Deck Bar (Sticky Mini Strip at top of Panel Body) */
 .panel-elevation-deck {
   display: flex !important;
@@ -679,10 +725,71 @@
   border-color: #38bdf8 !important;
 }
 
+.elevation-deck-mode-toggle.is-tabs,
+.elevation-deck-mode-toggle.is-deck {
+  background: rgba(14, 165, 233, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #38bdf8 !important;
+}
+
+.elevation-deck-mode-toggle.is-accordion {
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  color: #fbbf24 !important;
+}
+
 .elevation-deck-mode-toggle.is-stack {
   background: rgba(148, 163, 184, 0.15) !important;
   border-color: rgba(148, 163, 184, 0.4) !important;
   color: #94a3b8 !important;
+}
+
+/* Derivation Card Navigation Footer in Dock & Floating Panels */
+.derivation-card-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  margin-top: 0.65rem !important;
+  padding-top: 0.5rem !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.15) !important;
+}
+
+.btn-card-nav {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 0.28rem 0.65rem !important;
+  border-radius: 0.375rem !important;
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  color: #38bdf8 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.15s ease !important;
+  line-height: 1.2 !important;
+}
+
+.btn-card-nav:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
+  color: #f0f9ff !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-card-nav:active {
+  transform: translateY(0) !important;
+}
+
+.card-step-indicator {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  letter-spacing: 0.02em !important;
 }
 
 /* Left/Right dock panels */
@@ -847,12 +954,21 @@
 [data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
 [data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
 .workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) > .collapsible-section.is-elevated-top > .collapsible-content,
-.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-content {
+.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-content,
+.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) > .collapsible-section[data-elevation-turn="top"] > .collapsible-content,
+.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card[data-elevation-turn="top"] > .derivation-card-content,
+.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) > .collapsible-section.is-subpanel-overlay > .collapsible-content,
+.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-subpanel-overlay > .derivation-card-content,
+.workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-content,
+.workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
+.ui-panel.is-floating .panel-body > .collapsible-section:not(.collapsed) > .collapsible-content,
+.ui-panel.is-floating .panel-body .derivation-card.open > .derivation-card-content {
   flex: 1 1 auto !important;
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   overscroll-behavior: contain !important;
   overscroll-behavior-y: contain !important;
   padding: 0.75rem !important;
@@ -898,14 +1014,43 @@
 
 .workspace-dock-body > .ui-panel .panel-body[data-deck-mode="stack"] > .collapsible-section:not(.collapsed) > .collapsible-content,
 .workspace-dock-body > .ui-panel .panel-body[data-deck-mode="stack"] .derivation-card.open > .derivation-card-content {
-  flex: 0 0 auto !important;
+  flex: 0 1 auto !important;
   height: auto !important;
-  max-height: 320px !important;
+  max-height: calc(var(--dock-size, 380px) - 5rem) !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   padding: 0.75rem !important;
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: contain !important;
+  scrollbar-gutter: stable !important;
+}
+
+/* Accordion mode for dock panels (independent collapsible sections in vertical flow) */
+.workspace-dock-body > .ui-panel .panel-body[data-deck-mode="accordion"] > .collapsible-section:not(.collapsed),
+.workspace-dock-body > .ui-panel .panel-body[data-deck-mode="accordion"] .derivation-card.open {
+  display: flex !important;
+  position: relative !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  margin-bottom: 0.5rem !important;
+  border-radius: 0.375rem !important;
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+}
+
+.workspace-dock-body > .ui-panel .panel-body[data-deck-mode="accordion"] > .collapsible-section:not(.collapsed) > .collapsible-content,
+.workspace-dock-body > .ui-panel .panel-body[data-deck-mode="accordion"] .derivation-card.open > .derivation-card-content {
+  flex: 0 1 auto !important;
+  height: auto !important;
+  max-height: calc(var(--dock-size, 380px) - 5rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 0.75rem !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+  scrollbar-gutter: stable !important;
 }
 
 /* Level 3: Component-level elevation inside Level 2 elevated subpanels */

@@ -2,6 +2,7 @@
  * Visual Mathematics Lab - Lightweight Cookie Consent & Privacy Manager
  * Compliant with GDPR (EU/UK), POPIA (South Africa), CCPA/CPRA (California), and COPPA.
  * Zero external dependencies. Fully integrated with Google Consent Mode v2 and i18n.
+ * Implements essential technical analytics by default with one-click user opt-out.
  */
 
 import { getConsentStatus, updateConsent } from "./analytics.js";
@@ -41,7 +42,7 @@ export function mountCookieBanner(root = ".") {
   }
 
   const title = t("cookie.title", {}, "Cookie & Privacy Choices");
-  const text = t("cookie.text", {}, "We use privacy-preserving, aggregated technical analytics to understand screen sizes and improve our geometry visualizers. We do not track you across websites, profile you, or sell your data. Choose whether to allow analytics cookies.");
+  const text = t("cookie.text", {}, "Visual Mathematics Lab uses privacy-preserving, aggregated technical analytics to monitor visualizer performance, screen dimensions, and mathematical rendering reliability. Analytics are active by default to support app functionality, but you can opt out at any time.");
   const acceptLabel = t("cookie.accept", {}, "Accept Analytics");
   const declineLabel = t("cookie.decline", {}, "Decline Non-Essential");
   const policyLabel = t("cookie.policy_link", {}, "Privacy Policy");
@@ -115,7 +116,7 @@ export function closeCookieBanner() {
 
 /**
  * Initialize cookie consent handling on page load.
- * Displays banner only if the user has not yet established a preference (status === null).
+ * In the opt-out model, displays the informative banner if the user has not yet acknowledged or chosen (status === null).
  * @param {string} [root='.']
  */
 export function initCookieConsent(root = ".") {
@@ -126,7 +127,7 @@ export function initCookieConsent(root = ".") {
   const rootDir = document.body?.dataset?.root || root;
   const status = getConsentStatus();
 
-  // If user has not yet recorded consent, display banner
+  // If user has not yet recorded consent choice or acknowledgement, display banner
   if (status === null) {
     mountCookieBanner(rootDir);
   }
@@ -147,6 +148,7 @@ export function initCookieConsent(root = ".") {
       mountCookieBanner(rootDir);
     }
   });
+
   // Initialize interactive privacy manager if present on page (e.g. privacy.html)
   initPrivacyManager();
 }
@@ -164,21 +166,21 @@ export function initPrivacyManager() {
   function updateStatusDisplay() {
     if (!statusEl) return;
     const current = getConsentStatus();
-    if (current === true) {
-      statusEl.textContent = t("cookie.status_granted", {}, "Status: Analytics Allowed");
-      statusEl.style.color = "#22c55e";
-    } else if (current === false) {
+    if (current === "denied") {
       statusEl.textContent = t("cookie.status_denied", {}, "Status: Analytics Blocked");
       statusEl.style.color = "#f43f5e";
+    } else if (current === "granted") {
+      statusEl.textContent = t("cookie.status_granted", {}, "Status: Analytics Allowed");
+      statusEl.style.color = "#22c55e";
     } else {
       statusEl.textContent = t("cookie.status_unset", {}, "Status: Not Yet Chosen");
       statusEl.style.color = "#94a3b8";
     }
     if (allowBtn) {
-      allowBtn.textContent = t("cookie.accept", {}, "Allow Analytics");
+      allowBtn.textContent = t("cookie.accept", {}, "Accept Analytics");
     }
     if (blockBtn) {
-      blockBtn.textContent = t("cookie.decline", {}, "Block Analytics");
+      blockBtn.textContent = t("cookie.decline", {}, "Decline Non-Essential");
     }
   }
 
@@ -200,5 +202,6 @@ export function initPrivacyManager() {
 
   updateStatusDisplay();
   window.addEventListener("vml:locale-changed", updateStatusDisplay);
+  window.addEventListener("vml:consent-updated", updateStatusDisplay);
   window.addEventListener("vml:consent-changed", updateStatusDisplay);
 }

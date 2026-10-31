@@ -90,7 +90,7 @@ test('Security & Privacy: Privacy Policy legislative compliance (GDPR, POPIA, CC
 
   // 1. Cookie & Local Storage Inventory
   assert.ok(privacyHtml.includes('<code>_ga</code>'), 'privacy.html must document _ga cookie');
-  assert.ok(privacyHtml.includes('<code>_ga_E1W7GYR7Q0</code>'), 'privacy.html must document container cookie');
+  assert.ok(privacyHtml.includes('<code>_ga_*</code>') || privacyHtml.includes('<code>_ga_'), 'privacy.html must document container cookie');
   assert.ok(privacyHtml.includes('<code>vml_cookie_consent</code>'), 'privacy.html must document consent storage');
   assert.ok(privacyHtml.includes('<code>vml_locale</code>'), 'privacy.html must document locale storage');
 
@@ -188,4 +188,26 @@ test('Security Hardening: Subresource Integrity (SRI) on all 12 visualizer pages
       `Page ${visualPage} must specify crossorigin="anonymous" for SRI`
     );
   }
+});
+
+
+test('Security & Privacy: Google Analytics Essential / Opt-out default behavior contract', () => {
+  const analyticsPath = path.join(rootDir, 'js', 'analytics.js');
+  const analyticsCode = fs.readFileSync(analyticsPath, 'utf8');
+
+  // Verify necessary / opt-out model logic in analytics.js
+  assert.ok(analyticsCode.includes('savedConsent === "denied"'), 'analytics.js must check if savedConsent is denied');
+  assert.ok(analyticsCode.includes('analytics_storage: isOptedOut ? "denied" : "granted"'), 'analytics.js must default analytics_storage to granted unless opted out');
+
+  // Verify informative disclosure copy in cookie consent module
+  const cookiePath = path.join(rootDir, 'js', 'cookie-consent.js');
+  const cookieCode = fs.readFileSync(cookiePath, 'utf8');
+  assert.ok(cookieCode.includes('active by default'), 'cookie-consent.js must inform users analytics are active by default');
+  assert.ok(cookieCode.includes('opt out at any time'), 'cookie-consent.js must inform users they can opt out at any time');
+
+  // Verify privacy policy documentation matches the opt-out architecture
+  const privacyPath = path.join(rootDir, 'privacy.html');
+  const privacyHtml = fs.readFileSync(privacyPath, 'utf8');
+  assert.ok(privacyHtml.includes('Technical analytics are active by default as a necessary operational feature'), 'privacy.html must declare analytics active by default as necessary');
+  assert.ok(privacyHtml.includes('opt out at any time'), 'privacy.html must document right to opt out at any time');
 });

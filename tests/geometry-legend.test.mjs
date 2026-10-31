@@ -77,9 +77,11 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
     'sector',
     'segment',
     'alternate-segment',
+    'sagitta-curvature',
     // Angles & Classical Invariants
     'inscribed-angle',
     'central-angle',
+    'angles-same-segment',
     'reflex-perigon',
     'cyclic-quad',
     'cyclic-diagonals-ptolemy',
@@ -126,6 +128,23 @@ test('Geometry Legend: geometry-legend.js exports notation elements and KaTeX re
   assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.sky').role.includes('diagonal BD'), 'Sky token must document cyclic diagonal BD');
   assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.amber').role.includes('Vertex C (Cyclic)'), 'Amber token must document cyclic vertex C');
   assert.ok(!COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.fuchsia').role.includes('(Cyclic)'), 'Fuchsia must not be documented as a cyclic vertex colour');
+
+  // Angles in the Same Segment: legend card and colour tokens match 2D/3D (P1 = blue, P2 = emerald, chord = red, segment = sky)
+  const sameSeg = GEOMETRY_ELEMENTS.find((item) => item.id === 'angles-same-segment');
+  assert.ok(sameSeg, 'angles-same-segment must exist in GEOMETRY_ELEMENTS');
+  assert.ok(sameSeg.formula.includes('\\angle AP_1B = \\angle AP_2B'), 'Same segment formula must equate inscribed angles P1 and P2');
+  assert.ok(sameSeg.svg.includes('stroke="#ef4444"') && sameSeg.svg.includes('fill="#3b82f6"') && sameSeg.svg.includes('fill="#10b981"'), 'Same segment SVG must render chord AB (red), P1 (blue), and P2 (emerald)');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.blue').role.includes('P₁'), 'Blue token must document Vertex P₁');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.emerald').role.includes('P₂'), 'Emerald token must document Vertex P₂');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.red').role.includes('Common chord AB'), 'Red token must document Common chord AB');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.sky').role.includes('Same Segment'), 'Sky token must document Same Segment');
+
+  // Sagitta & Curvature: verifies sagitta s formula and curvature ratio K
+  const sagitta = GEOMETRY_ELEMENTS.find((item) => item.id === 'sagitta-curvature');
+  assert.ok(sagitta, 'sagitta-curvature must exist in GEOMETRY_ELEMENTS');
+  assert.ok(sagitta.formula.includes('R\\left(1 - \\cos\\frac{\\theta}{2}\\right)'), 'Sagitta formula must define R(1 - cos(theta/2))');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.rose').role.includes('Sagitta s'), 'Rose token must document Sagitta s');
+  assert.ok(COLOR_GRAMMAR_TOKENS.find((t) => t.token === 'PALETTE.indigo').role.includes('Auxiliary point D'), 'Indigo token must document Auxiliary point D');
 
   // Verify categories distribution
   const trigElements = GEOMETRY_ELEMENTS.filter((item) => item.category === 'trig');

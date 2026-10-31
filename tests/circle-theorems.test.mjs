@@ -11,7 +11,7 @@ import * as ChordBisector from '../visuals/circle-theorems/perpendicular-chord-b
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { get3DAngleBisector, get3DAngleDegrees, computeSphericalTriangleExcess, getGeodesicTangent } from '../js/circle-3d.js';
+import { get3DAngleBisector, get3DAngleDegrees, computeSphericalTriangleExcess, getGeodesicTangent, alignCircleWireToPlane, computeConcyclicPlaneAndCircle, setSector3DVertices, setSegment3DVertices } from '../js/circle-3d.js';
 import { PALETTE, UnitSystemConverter, createStore, CHEVRON_DOWN_SVG, CHEVRON_UP_SVG, setExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG, CHEVRON_UP_SINGLE_SVG, setPanelMinimizeButtonUI, initCollapsibleSections, computeOptimalViewportRadius } from '../js/circle-core.js';
 import { setExpandButtonUI as thalesSetExpandButtonUI, CHEVRON_DOWN_SINGLE_SVG as thalesChevronDownSingle, CHEVRON_UP_SINGLE_SVG as thalesChevronUpSingle, setPanelMinimizeButtonUI as thalesSetPanelMinimizeButtonUI } from '../visuals/circle-theorems/thales-theorem/src/ui/Accordion.js';
 import { getMatchScore, highlightMatch } from '../js/components.js';
@@ -138,6 +138,79 @@ test('Tangent-Radius: dynamic quadrant calculation and orthogonality invariant a
   }
 });
 
+test('Tangent-Radius: active quadrant highlighting matches Thales standard across 2D, 3D, telemetry, and derivations', async () => {
+  globalThis.ResizeObserver = globalThis.ResizeObserver || class { observe() {} disconnect() {} };
+  globalThis.window = globalThis.window || { devicePixelRatio: 1 };
+  const fs = await import('fs');
+  const indexHtml = fs.readFileSync('visuals/circle-theorems/tangent-radius/index.html', 'utf8');
+  assert.ok(indexHtml.includes('id="view-title-2d"'), 'index.html must have id="view-title-2d"');
+  assert.ok(indexHtml.includes('id="view-title-3d"'), 'index.html must have id="view-title-3d"');
+  assert.ok(indexHtml.includes('id="tel-quadrant"') && indexHtml.includes('class="color-yellow" id="tel-quadrant"'), '2D telemetry quadrant must use color-yellow');
+  assert.ok(indexHtml.includes('id="val-3d-quadrant"') && indexHtml.includes('class="color-yellow" id="val-3d-quadrant"'), '3D telemetry quadrant must use color-yellow');
+
+  // Verify 2D CanvasView renders Roman numerals and watermark in golden yellow
+  const canvasMod = await import('../visuals/circle-theorems/tangent-radius/src/canvas.js');
+  const renderedTexts = [];
+  const strokes = [];
+  const fills = [];
+  const mockCtx = {
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    arc: () => {},
+    closePath: () => {},
+    stroke: () => strokes.push(mockCtx.strokeStyle),
+    fill: () => fills.push(mockCtx.fillStyle),
+    clearRect: () => {},
+    fillRect: () => {},
+    strokeRect: () => {},
+    setLineDash: () => {},
+    save: () => {},
+    restore: () => {},
+    fillText: (text) => renderedTexts.push({ text, fill: mockCtx.fillStyle, shadow: mockCtx.shadowColor }),
+    strokeText: () => {},
+    setTransform: () => {},
+    translate: () => {},
+    rotate: () => {},
+    scale: () => {},
+    measureText: (text) => ({ width: String(text).length * 7 }),
+  };
+  const mockCanvas = {
+    width: 800,
+    height: 600,
+    style: {},
+    getContext: () => mockCtx,
+    parentElement: { getBoundingClientRect: () => ({ width: 800, height: 600 }) },
+  };
+
+  const state = {
+    ...TangentRadius.createInitialState(),
+    angleT: Math.PI / 4, // Quadrant I
+    showQuadrant: true,
+    vis2d: { labels: true, quadrant: true, points: true, angles: true, lengths: true, grid: true, axes: true },
+  };
+  const view = new canvasMod.CanvasView(mockCanvas, mockCanvas.parentElement);
+  view.render(state);
+
+  const activeNum = renderedTexts.find((t) => t.text === 'I');
+  assert.ok(activeNum, 'Active numeral I must be rendered');
+  assert.strictEqual(activeNum.fill, '#eab308', 'Active numeral I must be rendered in PALETTE.yellow (#eab308)');
+  assert.ok(activeNum.shadow && activeNum.shadow.includes('234, 179, 8'), 'Active numeral I must have glowing yellow shadow');
+
+  const watermark = renderedTexts.find((t) => t.text && t.text.includes('Top View (Plane XZ) | Quadrant I'));
+  assert.ok(watermark, 'Corner pill watermark must be rendered for active quadrant');
+  assert.ok(watermark.fill.includes('234, 179, 8'), 'Watermark must use warm golden yellow fill');
+
+  // Verify 3D view and derivations color grammar
+  const circle3d = fs.readFileSync('js/circle-3d.js', 'utf8');
+  assert.ok(circle3d.includes('makeTriMesh(THREE, PALETTE.yellow, 0.20)'), 'TangentRadius3DView quadrant mesh must use PALETTE.yellow');
+  assert.ok(circle3d.includes("color: 'color-yellow'"), 'TangentRadius3DView quadrant billboard label must use color-yellow');
+
+  const derivations = fs.readFileSync('js/circle-derivations.js', 'utf8');
+  assert.ok(derivations.includes("tag('yellow', q.label)"), 'TangentRadiusDerivations Step 5 must tag q.label in yellow');
+  assert.ok(derivations.includes("tag('yellow', `Quadrant "), 'TangentRadiusDerivations Step 5e must tag Quadrant in yellow');
+});
+
 test('Tangent-Radius: multiple tangents option with chord-subtended areas and distinct non-overlapping color tokens', () => {
   const width = 800;
   const height = 600;
@@ -185,6 +258,89 @@ test('Tangent-Radius: multiple tangents option with chord-subtended areas and di
       usedChordColors.add(chord.color);
     }
   }
+});
+
+test('Tangent-Radius: 3D active quadrant numbering, trigonometric projection wedges (cos, sin, tan), enabled by default, and exclusivity to primary tangent', async () => {
+  const fs = await import('fs');
+  const width = 800;
+  const height = 600;
+  const state = TangentRadius.createInitialState();
+
+  // 1. Enabled by default contract
+  assert.strictEqual(state.showTrigWedges, true, 'showTrigWedges must be enabled by default in initial state');
+  assert.strictEqual(state.vis2d?.trigWedges, true, 'vis2d.trigWedges must be enabled by default');
+  assert.strictEqual(state.vis3d?.trigWedges, true, 'vis3d.trigWedges must be enabled by default');
+
+  // 2. HTML compliance: default checkboxes and telemetry stat lines
+  const indexHtml = fs.readFileSync('visuals/circle-theorems/tangent-radius/index.html', 'utf8');
+  assert.ok(indexHtml.includes('id="vis-2d-trig" checked'), '2D Trig Wedges checkbox must be checked by default in HTML');
+  assert.ok(indexHtml.includes('id="vis-3d-trig" checked'), '3D Trig Wedges checkbox must be checked by default in HTML');
+  assert.ok(indexHtml.includes('id="tel-trig-cos"'), '2D telemetry must contain id="tel-trig-cos"');
+  assert.ok(indexHtml.includes('id="tel-trig-sin"'), '2D telemetry must contain id="tel-trig-sin"');
+  assert.ok(indexHtml.includes('id="tel-trig-tan"'), '2D telemetry must contain id="tel-trig-tan"');
+  assert.ok(indexHtml.includes('id="tel-trig-tan-span"'), '2D telemetry must contain id="tel-trig-tan-span"');
+  assert.ok(indexHtml.includes('id="tel-trig-sec-span"'), '2D telemetry must contain id="tel-trig-sec-span"');
+  assert.ok(indexHtml.includes('id="val-3d-trig-cos"'), '3D telemetry must contain id="val-3d-trig-cos"');
+  assert.ok(indexHtml.includes('id="val-3d-trig-sin"'), '3D telemetry must contain id="val-3d-trig-sin"');
+  assert.ok(indexHtml.includes('id="val-3d-trig-tan"'), '3D telemetry must contain id="val-3d-trig-tan"');
+  assert.ok(indexHtml.includes('id="val-3d-trig-tan-span"'), '3D telemetry must contain id="val-3d-trig-tan-span"');
+
+  // 3. Mathematical precision across all 4 quadrants for primary tangent
+  const quadTrigCases = [
+    { deg: 45, expectedQuadNum: 1, expectedCos: Math.SQRT1_2, expectedSin: Math.SQRT1_2, expectedTan: 1.0 },
+    { deg: 135, expectedQuadNum: 2, expectedCos: -Math.SQRT1_2, expectedSin: Math.SQRT1_2, expectedTan: -1.0 },
+    { deg: 225, expectedQuadNum: 3, expectedCos: -Math.SQRT1_2, expectedSin: -Math.SQRT1_2, expectedTan: 1.0 },
+    { deg: 315, expectedQuadNum: 4, expectedCos: Math.SQRT1_2, expectedSin: -Math.SQRT1_2, expectedTan: -1.0 },
+  ];
+
+  for (const tc of quadTrigCases) {
+    state.angleT = (tc.deg * Math.PI) / 180;
+    const g = TangentRadius.computeGeometry(state, width, height);
+    assert.ok(g.primaryTrig, 'computeGeometry must return primaryTrig');
+    assert.strictEqual(g.quadrant.number, tc.expectedQuadNum, `Quadrant number must be ${tc.expectedQuadNum}`);
+
+    close(g.primaryTrig.cosVal, tc.expectedCos, 1e-4);
+    close(g.primaryTrig.sinVal, tc.expectedSin, 1e-4);
+    close(g.primaryTrig.tanVal, tc.expectedTan, 1e-4);
+
+    // Pythagorean identity: cos²θ + sin²θ = 1
+    close(g.primaryTrig.cosVal ** 2 + g.primaryTrig.sinVal ** 2, 1.0, 1e-6);
+
+    // Tangent span length: |T Sx| = r * |tan θ|
+    close(g.primaryTrig.tanLength, g.r * Math.abs(tc.expectedTan), 1e-4);
+
+    // Tangent-Radius Orthogonality Duality: r² + |T Sx|² = |O Sx|² ≡ r²(1 + tan²θ) = (r sec θ)²
+    const lhs = g.r ** 2 + g.primaryTrig.tanLength ** 2;
+    const rhs = g.primaryTrig.secLength ** 2;
+    close(lhs, rhs, 1e-3);
+  }
+
+  // 4. Exclusivity to primary tangent:
+  // When multiple tangents (e.g. 4) are active, primaryTrig is computed exclusively for primary tangent T
+  state.tangentCount = 4;
+  state.angleT = Math.PI / 4;
+  state.angleT2 = Math.PI * 0.75;
+  state.angleT3 = Math.PI * 1.25;
+  state.angleT4 = Math.PI * 1.75;
+  const multiG = TangentRadius.computeGeometry(state, width, height);
+  assert.strictEqual(multiG.tangents.length, 4, 'Must have 4 active tangents');
+  // primaryTrig corresponds strictly to primary angleT (45°)
+  close(multiG.primaryTrig.angleDeg, 45.0, 1e-4);
+  close(multiG.primaryTrig.tanVal, 1.0, 1e-4);
+  assert.strictEqual(multiG.quadrant.number, 1, 'Primary tangent quadrant must be Q1');
+
+  // 5. 3D Scene Architecture & Quadrant Numbering
+  const circle3d = fs.readFileSync('js/circle-3d.js', 'utf8');
+  assert.ok(circle3d.includes('this.lineCos = makeLine(THREE, PALETTE.sky);'), '3D view must create lineCos in PALETTE.sky');
+  assert.ok(circle3d.includes('this.lineSin = makeLine(THREE, PALETTE.emerald, true);'), '3D view must create lineSin in PALETTE.emerald');
+  assert.ok(circle3d.includes('this.lineTan = makeLine(THREE, PALETTE.rose);'), '3D view must create lineTan in PALETTE.rose');
+  assert.ok(circle3d.includes('this.trigAngleWedgeMesh = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.25);'), '3D view must create trigAngleWedgeMesh in PALETTE.amber');
+  assert.ok(circle3d.includes('Quadrant ${q + 1} (${romans[q]})'), '3D view must display quadrant numbers 1..4 with Roman numerals');
+
+  // 6. Live Math Derivations Step 8
+  const derivations = fs.readFileSync('js/circle-derivations.js', 'utf8');
+  assert.ok(derivations.includes('tr-step-8'), 'TangentRadiusDerivations must contain tr-step-8 card');
+  assert.ok(derivations.includes('Trigonometric Wedges & Orthogonality Duality'), 'tr-step-8 title must mention Trigonometric Wedges & Orthogonality Duality');
 });
 
 test('Alternate Segment: angle between tangent and chord equals inscribed angle in alternate segment', () => {
@@ -2488,6 +2644,43 @@ test('Omni-Directional 3D Movement, Canvas Spin, Multi-Touch Pinch/Twist/Pan & U
   assert.ok(outsideRimPt.z > 0.05, 'Holroyd hyperbolic sheet must maintain positive z outside rim for omni-directional rotation');
   close(outsideRimPt.length(), 1.0, 1e-5);
 
+  // Directional kinematic alignment:
+  // Dragging UP (y decreases) produces positive sphere Y so crossVectors(cur, prev) rotates camera down, moving graphic UP
+  const ptCenter = controls.projectOnVirtualSphere(200, 200, 400, 400);
+  const ptUp = controls.projectOnVirtualSphere(200, 150, 400, 400);
+  const ptDown = controls.projectOnVirtualSphere(200, 250, 400, 400);
+  const ptLeft = controls.projectOnVirtualSphere(150, 200, 400, 400);
+  const ptRight = controls.projectOnVirtualSphere(250, 200, 400, 400);
+
+  assert.ok(ptUp.y > ptCenter.y, 'Dragging UP must produce positive sphere Y for graphic upward motion');
+  assert.ok(ptDown.y < ptCenter.y, 'Dragging DOWN must produce negative sphere Y for graphic downward motion');
+  assert.ok(ptLeft.x < ptCenter.x, 'Dragging LEFT must produce negative sphere X for graphic leftward motion');
+  assert.ok(ptRight.x > ptCenter.x, 'Dragging RIGHT must produce positive sphere X for graphic rightward motion');
+
+  // Verify orbitRotate obeys user directional kinematics (drag up -> camera drops -> model moves up)
+  mockCamera.position = new MockVector3(0, 0, 30);
+  mockCamera.up = new MockVector3(0, 1, 0);
+  controls.orbitRotate(0, -50, 400, 400); // Drag UP
+  assert.ok(mockCamera.position.y < 0, 'Orbit drag UP must lower camera elevation so target graphic moves UP on screen');
+
+  mockCamera.position = new MockVector3(0, 0, 30);
+  mockCamera.up = new MockVector3(0, 1, 0);
+  controls.orbitRotate(0, 50, 400, 400); // Drag DOWN
+  assert.ok(mockCamera.position.y > 0, 'Orbit drag DOWN must raise camera elevation so target graphic moves DOWN on screen');
+
+  mockCamera.position = new MockVector3(0, 0, 30);
+  mockCamera.up = new MockVector3(0, 1, 0);
+  controls.orbitRotate(-50, 0, 400, 400); // Drag LEFT
+  assert.ok(mockCamera.position.x > 0, 'Orbit drag LEFT must move camera rightward so target graphic moves LEFT on screen');
+
+  mockCamera.position = new MockVector3(0, 0, 30);
+  mockCamera.up = new MockVector3(0, 1, 0);
+  controls.orbitRotate(50, 0, 400, 400); // Drag RIGHT
+  assert.ok(mockCamera.position.x < 0, 'Orbit drag RIGHT must move camera leftward so target graphic moves RIGHT on screen');
+
+  mockCamera.position = new MockVector3(0, 0, 30);
+  mockCamera.up = new MockVector3(0, 1, 0);
+
   // 2. 3D Canvas Spin (in-plane roll around camera forward axis)
   controls.spinCameraRoll(Math.PI / 2);
   close(mockCamera.up.x, 1.0, 1e-4);
@@ -2531,4 +2724,829 @@ test('Omni-Directional 3D Movement, Canvas Spin, Multi-Touch Pinch/Twist/Pan & U
 
   // 5. Universal Panel Touch-Scroll & Pinch-Zoom
   assert.equal(typeof enableUniversalPanelTouch, 'function', 'enableUniversalPanelTouch must be exported');
+});
+
+test('3D Spatial Mode Euclidean Invariants: Straight Chords, Flat Triangles & Geodesic Arc Decoupling across Circle Theorems', async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const rootDir = process.cwd();
+  const circle3DCode = fs.readFileSync(path.join(rootDir, 'js/circle-3d.js'), 'utf8');
+
+  // 1. AngleAtCentre3DView: straight chords PA & PB, flat triangles triOPA/triOPB, curved arc AB on S²
+  assert.ok(circle3DCode.includes('this.linePA.geometry.setFromPoints([P, A])'), 'AngleAtCentre3DView must set linePA from Euclidean points');
+  assert.ok(circle3DCode.includes('this.linePB.geometry.setFromPoints([P, B])'), 'AngleAtCentre3DView must set linePB from Euclidean points');
+  assert.ok(circle3DCode.includes('setTriVertices(this.triOPAMesh.geometry, O, P, A)'), 'AngleAtCentre3DView must build flat Euclidean triangle triOPAMesh');
+  assert.ok(circle3DCode.includes('setTriVertices(this.triOPBMesh.geometry, O, P, B)'), 'AngleAtCentre3DView must build flat Euclidean triangle triOPBMesh');
+  assert.ok(circle3DCode.includes('setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4)'), 'AngleAtCentre3DView must measure true Euclidean angle between straight chords');
+  assert.ok(circle3DCode.includes('updateGeodesicArc3D(this.geodesicArcAB, A, B, R)'), 'AngleAtCentre3DView must update geodesic arc AB for the subtended arc on S²');
+
+  // 2. AnglesInSameSegment3DView: straight chords AB, P1A, P1B, P2A, P2B, flat triangles tri1Mesh/tri2Mesh
+  assert.ok(circle3DCode.includes('this.chordAB.geometry.setFromPoints([A, B])'), 'AnglesInSameSegment3DView must set chordAB from straight endpoints');
+  assert.ok(circle3DCode.includes('this.lineP1A.geometry.setFromPoints([P1, A])'), 'AnglesInSameSegment3DView must set lineP1A from straight endpoints');
+  assert.ok(circle3DCode.includes('this.lineP2A.geometry.setFromPoints([P2, A])'), 'AnglesInSameSegment3DView must set lineP2A from straight endpoints');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri1Mesh.geometry, P1, A, B)'), 'AnglesInSameSegment3DView must build flat Euclidean triangle tri1Mesh');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri2Mesh.geometry, P2, A, B)'), 'AnglesInSameSegment3DView must build flat Euclidean triangle tri2Mesh');
+  assert.ok(circle3DCode.includes('setAngleWedgeVertices3D(this.angleP1Mesh, P1, A, B, 2.4)'), 'AnglesInSameSegment3DView must measure true Euclidean angle for P1');
+  assert.ok(circle3DCode.includes('setAngleWedgeVertices3D(this.angleP2Mesh, P2, A, B, 2.4)'), 'AnglesInSameSegment3DView must measure true Euclidean angle for P2');
+  assert.ok(circle3DCode.includes('updateGeodesicArc3D(this.geodesicChordAB, A, B, R)'), 'AnglesInSameSegment3DView must use geodesic arc for subtended arc AB on S²');
+
+  // 3. CyclicQuad3DView: straight quad edges AB, BC, CD, DA and diagonals AC, BD, flat quad meshes
+  assert.ok(circle3DCode.includes('this.edgeAB.geometry.setFromPoints([A, B])'), 'CyclicQuad3DView must set edgeAB from straight endpoints');
+  assert.ok(circle3DCode.includes('this.edgeBC.geometry.setFromPoints([B, C])'), 'CyclicQuad3DView must set edgeBC from straight endpoints');
+  assert.ok(circle3DCode.includes('this.edgeCD.geometry.setFromPoints([C, D])'), 'CyclicQuad3DView must set edgeCD from straight endpoints');
+  assert.ok(circle3DCode.includes('this.edgeDA.geometry.setFromPoints([D, A])'), 'CyclicQuad3DView must set edgeDA from straight endpoints');
+  assert.ok(circle3DCode.includes('this.diagAC.geometry.setFromPoints([A, C])'), 'CyclicQuad3DView must set diagAC from straight endpoints');
+  assert.ok(circle3DCode.includes('setTriVertices(this.quadMesh1.geometry, A, B, C)'), 'CyclicQuad3DView must build flat Euclidean triangle quadMesh1');
+  assert.ok(circle3DCode.includes('setTriVertices(this.quadMesh2.geometry, A, C, D)'), 'CyclicQuad3DView must build flat Euclidean triangle quadMesh2');
+  assert.ok(circle3DCode.includes('setAngleWedgeVertices3D(this.angleAMesh, A, B, D, 2.2)'), 'CyclicQuad3DView must measure straight Euclidean angle at A');
+  assert.ok(circle3DCode.includes('Math.atan2(d.dot(circleInfo.v), d.dot(circleInfo.u))'), 'CyclicQuad3DView must compute local concyclic circle angle for D');
+  assert.ok(circle3DCode.includes('p1.distanceTo(targetPos) < p2.distanceTo(targetPos)'), 'pickSphere must choose the root closest to targetPos');
+
+  // 4. TangentRadius3DView: straight chordLines, flat chordAreaMeshes, geodesic arc on S²
+  assert.ok(circle3DCode.includes('this.chordLines[k].geometry.setFromPoints([p1.pos, p2.pos])'), 'TangentRadius3DView must set chordLines from straight endpoints');
+  assert.ok(circle3DCode.includes('setTriVertices(this.chordAreaMeshes[k].geometry, O, p1.pos, p2.pos)'), 'TangentRadius3DView must build flat Euclidean triangle chordAreaMeshes in 3D');
+  assert.ok(circle3DCode.includes('updateGeodesicArc3D(this.geodesicChords[k], p1.pos, p2.pos, R * 1.002, 32)'), 'TangentRadius3DView must update geodesic arc on S²');
+
+  // 5. AlternateSegment3DView: straight chords TA, AB, BT, diameter TD, chords DB, DA, flat triangles
+  assert.ok(circle3DCode.includes('this.chordTA.geometry.setFromPoints([T, A])'), 'AlternateSegment3DView must set chordTA from straight endpoints');
+  assert.ok(circle3DCode.includes('this.chordAB.geometry.setFromPoints([A, B])'), 'AlternateSegment3DView must set chordAB from straight endpoints');
+  assert.ok(circle3DCode.includes('this.chordBT.geometry.setFromPoints([B, T])'), 'AlternateSegment3DView must set chordBT from straight endpoints');
+  assert.ok(circle3DCode.includes('this.diameterTD.geometry.setFromPoints([T, D])'), 'AlternateSegment3DView must set diameterTD from straight endpoints');
+  assert.ok(circle3DCode.includes('setTriVertices(this.triMesh.geometry, T, A, B)'), 'AlternateSegment3DView must build flat Euclidean triangle triMesh');
+
+  // 6. TangentsFromPoint3DView: straight secant chord T1T2 piercing through interior, flat right triangles
+  assert.ok(circle3DCode.includes('this.chordT1T2.geometry.setFromPoints([T1, T2])'), 'TangentsFromPoint3DView must set chordT1T2 from straight endpoints');
+  assert.ok(circle3DCode.includes('this.chordT1T2.visible = true;'), 'TangentsFromPoint3DView must keep straight chordT1T2 visible');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri1Mesh.geometry, O, T1, P)'), 'TangentsFromPoint3DView must build flat right triangle tri1Mesh');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri2Mesh.geometry, O, T2, P)'), 'TangentsFromPoint3DView must build flat right triangle tri2Mesh');
+
+  // 7. ChordBisector3DView: Euclidean midpoint M on chord AB, straight lines AM, MB, OM, flat right triangles
+  assert.ok(circle3DCode.includes('this.markerM.position.copy(M)'), 'ChordBisector3DView must keep markerM at Euclidean midpoint M = (A+B)/2');
+  assert.ok(circle3DCode.includes('this.lineAM.geometry.setFromPoints([A, M])'), 'ChordBisector3DView must set lineAM from straight endpoints');
+  assert.ok(circle3DCode.includes('this.lineMB.geometry.setFromPoints([M, B])'), 'ChordBisector3DView must set lineMB from straight endpoints');
+  assert.ok(circle3DCode.includes('this.perpOM.geometry.setFromPoints([O, M])'), 'ChordBisector3DView must set perpOM from straight endpoints');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri1Mesh.geometry, O, A, M)'), 'ChordBisector3DView must build flat right triangle tri1Mesh');
+  assert.ok(circle3DCode.includes('setTriVertices(this.tri2Mesh.geometry, O, B, M)'), 'ChordBisector3DView must build flat right triangle tri2Mesh');
+
+  // Mathematical Spatial Invariants
+  const R = 10;
+  // Non-equatorial points on S²
+  const latA = 1.13, angA = 0.5;
+  const latB = 2.01, angB = 2.4;
+  const latP = 0.73, angP = 1.6;
+  const A = {
+    x: R * Math.sin(latA) * Math.cos(angA),
+    y: R * Math.cos(latA),
+    z: R * Math.sin(latA) * Math.sin(angA),
+  };
+  const B = {
+    x: R * Math.sin(latB) * Math.cos(angB),
+    y: R * Math.cos(latB),
+    z: R * Math.sin(latB) * Math.sin(angB),
+  };
+  const P = {
+    x: R * Math.sin(latP) * Math.cos(angP),
+    y: R * Math.cos(latP),
+    z: R * Math.sin(latP) * Math.sin(angP),
+  };
+
+  // 1. Straight Euclidean chord length vs curved spherical geodesic arc length
+  const euclideanChordAB = Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z);
+  const dotAB = (A.x * B.x + A.y * B.y + A.z * B.z) / (R * R);
+  const sphericalArcAB = R * Math.acos(Math.max(-1, Math.min(1, dotAB)));
+  assert.ok(euclideanChordAB < sphericalArcAB, 'Euclidean straight chord must be strictly shorter than curved geodesic arc on S²');
+
+  // 2. Euclidean midpoint M = (A+B)/2 is strictly in the interior of the sphere
+  const M = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2, z: (A.z + B.z) / 2 };
+  const distOM = Math.hypot(M.x, M.y, M.z);
+  assert.ok(distOM < R, 'Euclidean midpoint M of chord AB must lie strictly inside the sphere interior (r < R)');
+  close(distOM, Math.sqrt(R * R - Math.pow(euclideanChordAB / 2, 2)), 1e-4);
+
+  // 3. Orthogonality: OM is strictly perpendicular to AB in R^3
+  const vecAB = { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z };
+  const dotOM_AB = M.x * vecAB.x + M.y * vecAB.y + M.z * vecAB.z;
+  close(dotOM_AB, 0, 1e-5);
+});
+
+test('Concyclic Wireframe Dynamic Alignment & Spatial Shading: alignCircleWireToPlane, computeConcyclicPlaneAndCircle, and full 3D mesh rendering across circle theorems', async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const rootDir = process.cwd();
+  const circle3DCode = fs.readFileSync(path.join(rootDir, 'js/circle-3d.js'), 'utf8');
+
+  // 1. alignCircleWireToPlane updates quaternion, position, and scale
+  class MockVec3 {
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x; this.y = y; this.z = z;
+    }
+    clone() { return new MockVec3(this.x, this.y, this.z); }
+    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+    lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+    normalize() {
+      const l = Math.sqrt(this.lengthSq()) || 1;
+      this.x /= l; this.y /= l; this.z /= l;
+      return this;
+    }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    crossVectors(a, b) {
+      this.x = a.y * b.z - a.z * b.y;
+      this.y = a.z * b.x - a.x * b.z;
+      this.z = a.x * b.y - a.y * b.x;
+      return this;
+    }
+    dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+  }
+  class MockQuat {
+    constructor() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; }
+    identity() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; return this; }
+    setFromUnitVectors(vFrom, vTo) {
+      this.x = vFrom.y * vTo.z - vFrom.z * vTo.y;
+      this.y = vFrom.z * vTo.x - vFrom.x * vTo.z;
+      this.z = vFrom.x * vTo.y - vFrom.y * vTo.x;
+      this.w = 1 + vFrom.dot(vTo);
+      const l = Math.hypot(this.x, this.y, this.z, this.w) || 1;
+      this.x /= l; this.y /= l; this.z /= l; this.w /= l;
+      return this;
+    }
+  }
+  const mockTHREE = { Vector3: MockVec3, Quaternion: MockQuat };
+
+  const mockWire = {
+    position: new MockVec3(0, 0, 0),
+    quaternion: new MockQuat(),
+    scale: { setScalar(s) { this.x = s; this.y = s; this.z = s; } },
+  };
+
+  const norm = new MockVec3(0, 0, 1);
+  const center = new MockVec3(1, 2, 3);
+  alignCircleWireToPlane(mockWire, norm, center, 8, mockTHREE);
+  close(mockWire.position.x, 1, 1e-5);
+  close(mockWire.position.y, 2, 1e-5);
+  close(mockWire.position.z, 3, 1e-5);
+  close(mockWire.scale.x, 8, 1e-5);
+
+  // 2. computeConcyclicPlaneAndCircle computes exact circumcircle on S²(O, R)
+  const R = 10;
+  const lat = Math.PI / 4;
+  const p1 = new MockVec3(R * Math.sin(lat) * Math.cos(0), R * Math.cos(lat), R * Math.sin(lat) * Math.sin(0));
+  const p2 = new MockVec3(R * Math.sin(lat) * Math.cos(Math.PI / 2), R * Math.cos(lat), R * Math.sin(lat) * Math.sin(Math.PI / 2));
+  const p3 = new MockVec3(R * Math.sin(lat) * Math.cos(Math.PI), R * Math.cos(lat), R * Math.sin(lat) * Math.sin(Math.PI));
+  const res = computeConcyclicPlaneAndCircle(p1, p2, p3, R, mockTHREE);
+  close(Math.abs(res.normal.y), 1.0, 1e-4);
+  close(Math.abs(res.h), R * Math.cos(lat), 1e-4);
+  close(res.radius, R * Math.sin(lat), 1e-4);
+  close(Math.abs(res.center.y), R * Math.cos(lat), 1e-4);
+
+  // 3. Static checks across all 7 views in circle-3d.js
+  // Dynamic alignment calls in 7 circle theorem views:
+  assert.ok(circle3DCode.includes('alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE)'), 'AngleAtCentre3DView / AnglesInSameSegment3DView must call alignCircleWireToPlane');
+  assert.ok(circle3DCode.includes('alignCircleWireToPlane(this.circleWire, primNormal, O, R, THREE)'), 'TangentRadius3DView must align circle wire to tangent plane');
+  assert.ok(circle3DCode.includes('alignCircleWireToPlane(this.circleWire, normal, new THREE.Vector3(0, 0, 0), R, THREE)'), 'AlternateSegment3DView must align circle wire to diameter TD plane');
+  assert.ok(circle3DCode.includes('alignCircleWireToPlane(this.circleWire, normal, O, R, THREE)'), 'ChordBisector3DView & TangentsFromPoint3DView must align circle wire');
+
+  // Complete 3D spatial shading restorations:
+  assert.ok(circle3DCode.includes('setTriVertices(this.sectorMesh.geometry, O, A, B)'), 'AngleAtCentre3DView must build central sector mesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, circleInfo.center, circleInfo.u, circleInfo.v, circleInfo.radius, segStart, segSweep, 32, THREE)'), 'AnglesInSameSegment3DView must build 3D segmentMesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Major segment mesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Minor segment mesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, O, u, v'), 'ChordBisector3DView must build 3D segmentMesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE)'), 'TangentRadius3DView must build 3D quadrant mesh in spatial mode');
+});
+
+test('Angles in Same Segment: 3D Spatial segment mapping invariant & geodesic arch primitive decoupling', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  class MockVec3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    clone() { return new MockVec3(this.x, this.y, this.z); }
+    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    crossVectors(a, b) {
+      const ax = a.x, ay = a.y, az = a.z, bx = b.x, by = b.y, bz = b.z;
+      this.x = ay * bz - az * by; this.y = az * bx - ax * bz; this.z = ax * by - ay * bx;
+      return this;
+    }
+    lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+    length() { return Math.sqrt(this.lengthSq()); }
+    normalize() { const l = this.length() || 1; this.x /= l; this.y /= l; this.z /= l; return this; }
+    dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+  }
+  const mockTHREE = { Vector3: MockVec3 };
+  const circle3DCode = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+  assert.ok(circle3DCode.includes('// Keep P2 strictly concyclic on the small circle wire on S² AND in the exact SAME segment as P1'), 'AnglesInSameSegment3DView must map P2 strictly into same segment as P1');
+  assert.ok(circle3DCode.includes('this.geodesicP1A = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber)'), 'AnglesInSameSegment3DView must use distinct PALETTE.amber token for geodesic arch primitives');
+
+  const derivCode = fs.readFileSync(path.join(rootDir, 'js', 'circle-derivations.js'), 'utf8');
+  assert.ok(derivCode.includes("'aiss-step-6'"), 'Derivations must include Step 6 decoupling Euclidean chord from spherical geodesic arch');
+
+  const model = AnglesInSameSegment;
+  const state = model.createInitialState();
+  assert.strictEqual(state.showGeodesicOverlay, false, 'Geodesic arch overlay must be false by default to prevent visual confusion');
+
+  const g = model.computeGeometry(state, 800, 600);
+  assert.ok(typeof g.chordLen === 'number' && g.chordLen > 0, 'Must compute Euclidean chord length');
+  assert.ok(typeof g.arcLen === 'number' && g.arcLen > 0, 'Must compute Geodesic arc length');
+  assert.ok(typeof g.sagitta === 'number' && g.sagitta > 0, 'Must compute Sagitta height');
+  assert.ok(typeof g.curvatureRatio === 'number' && g.curvatureRatio > 0 && g.curvatureRatio <= 1.0, 'Curvature ratio must be sinc(theta/2) <= 1');
+
+  // Verify in 3D spatial geometry that AP1B == AP2B identically
+  const R = 10;
+  const toRad = (d) => d * Math.PI / 180;
+  const latA = 1.31, latB = 1.83, latP1 = 0.84;
+  const angA = toRad(210), angB = toRad(330), angP1 = toRad(120), angP2 = toRad(60);
+
+  const A = new mockTHREE.Vector3(R * Math.sin(latA) * Math.cos(angA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(angA));
+  const B = new mockTHREE.Vector3(R * Math.sin(latB) * Math.cos(angB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(angB));
+  const P1 = new mockTHREE.Vector3(R * Math.sin(latP1) * Math.cos(angP1), R * Math.cos(latP1), R * Math.sin(latP1) * Math.sin(angP1));
+
+  const circleInfo = computeConcyclicPlaneAndCircle(A, B, P1, R, mockTHREE);
+
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+  const sweepCW2D = norm(angB - angA);
+  const p1Offset2D = norm(angP1 - angA);
+  const p1InCW2D = (p1Offset2D > 0 && p1Offset2D < sweepCW2D);
+  const segStart2D = p1InCW2D ? angA : angB;
+  const segSweep2D = p1InCW2D ? sweepCW2D : (TAU - sweepCW2D);
+  const t2 = norm(angP2 - segStart2D) / (segSweep2D || 1);
+
+  const toCircleAngle = (pt) => {
+    const d = new mockTHREE.Vector3().subVectors(pt, circleInfo.center);
+    return norm(Math.atan2(d.dot(circleInfo.v), d.dot(circleInfo.u)));
+  };
+  const psiA = toCircleAngle(A);
+  const psiB = toCircleAngle(B);
+  const psiP1 = toCircleAngle(P1);
+
+  const sweepCWSpatial = norm(psiB - psiA);
+  const p1OffsetSpatial = norm(psiP1 - psiA);
+  const p1InCWSpatial = (p1OffsetSpatial > 0 && p1OffsetSpatial < sweepCWSpatial);
+  const segStartSpatial = p1InCWSpatial ? psiA : psiB;
+  const segSweepSpatial = p1InCWSpatial ? sweepCWSpatial : (TAU - sweepCWSpatial);
+
+  const psiP2 = norm(segStartSpatial + t2 * segSweepSpatial);
+  const P2 = circleInfo.center.clone()
+    .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiP2))
+    .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiP2));
+
+  const deg = (V, P_A, P_B) => {
+    const v1 = new mockTHREE.Vector3().subVectors(P_A, V);
+    const v2 = new mockTHREE.Vector3().subVectors(P_B, V);
+    const dot = v1.dot(v2);
+    const mag = v1.length() * v2.length();
+    return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+  };
+
+  const a1 = deg(P1, A, B);
+  const a2 = deg(P2, A, B);
+  close(a1, a2, 1e-4);
+  assert.ok(Math.abs(a1 - a2) < 1e-4, 'Angles AP1B and AP2B in 3D spatial mode must be identical (same segment invariant)');
+});
+
+test('Alternate Segment: 3D Spatial concyclic circumplane invariant & 2D/3D telemetry coherence', () => {
+  const rootDir = process.cwd();
+  class MockVec3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    clone() { return new MockVec3(this.x, this.y, this.z); }
+    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
+    crossVectors(a, b) {
+      const ax = a.x, ay = a.y, az = a.z, bx = b.x, by = b.y, bz = b.z;
+      this.x = ay * bz - az * by; this.y = az * bx - ax * bz; this.z = ax * by - ay * bx;
+      return this;
+    }
+    cross(b) {
+      const x = this.y * b.z - this.z * b.y;
+      const y = this.z * b.x - this.x * b.z;
+      const z = this.x * b.y - this.y * b.x;
+      this.x = x; this.y = y; this.z = z;
+      return this;
+    }
+    lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+    length() { return Math.hypot(this.x, this.y, this.z); }
+    normalize() { const l = this.length() || 1; this.x /= l; this.y /= l; this.z /= l; return this; }
+    dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+    negate() { this.x = -this.x; this.y = -this.y; this.z = -this.z; return this; }
+  }
+  const mockTHREE = { Vector3: MockVec3 };
+
+  const deg = (V, P_A, P_B) => {
+    const v1 = new mockTHREE.Vector3().subVectors(P_A, V);
+    const v2 = new mockTHREE.Vector3().subVectors(P_B, V);
+    const dot = v1.dot(v2);
+    const mag = v1.length() * v2.length();
+    return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+  };
+
+  const R = 10;
+  const latT = 1.25, latB = 1.75;
+  const angT = 4.71, angA = 2.62, angB = 0.70;
+
+  const T = new mockTHREE.Vector3(
+    R * Math.sin(latT) * Math.cos(angT),
+    R * Math.cos(latT),
+    R * Math.sin(latT) * Math.sin(angT)
+  );
+  const D = T.clone().negate();
+  const rawB = new mockTHREE.Vector3(
+    R * Math.sin(latB) * Math.cos(angB),
+    R * Math.cos(latB),
+    R * Math.sin(latB) * Math.sin(angB)
+  );
+
+  const vTD = new mockTHREE.Vector3().subVectors(D, T);
+  const vTB = new mockTHREE.Vector3().subVectors(rawB, T);
+  let normal = new mockTHREE.Vector3().crossVectors(vTD, vTB).normalize();
+  const u = T.clone().normalize();
+  const v = normal.clone().cross(u).normalize();
+
+  const TAU = Math.PI * 2;
+  const dAngA = ((angA - angT) % TAU + TAU) % TAU;
+  const dAngB = ((angB - angT) % TAU + TAU) % TAU;
+
+  const A = new mockTHREE.Vector3().addScaledVector(u, R * Math.cos(dAngA)).addScaledVector(v, R * Math.sin(dAngA));
+  const B = new mockTHREE.Vector3().addScaledVector(u, R * Math.cos(dAngB)).addScaledVector(v, R * Math.sin(dAngB));
+
+  const tanDir = v.clone();
+  const tan1 = new mockTHREE.Vector3().addScaledVector(tanDir, -14).addVectors(T, tanDir.clone().multiplyScalar(-14));
+  const tan2 = new mockTHREE.Vector3().addScaledVector(tanDir, 14).addVectors(T, tanDir.clone().multiplyScalar(14));
+
+  const degB = deg(B, T, A);
+  const degTan1 = deg(T, tan1, A);
+  const degTan2 = deg(T, tan2, A);
+  const degTan = Math.abs(degTan1 - degB) <= Math.abs(degTan2 - degB) ? degTan1 : degTan2;
+  const degIntD = deg(D, T, A);
+  const thalesTBD = deg(B, T, D);
+  const thalesTAD = deg(A, T, D);
+
+  // Invariant verification: Alternate Segment Theorem holds to machine precision in 3D
+  close(degTan, degB, 1e-4);
+  close(degIntD, degB, 1e-4);
+  close(thalesTBD, 90.0, 1e-4);
+  close(thalesTAD, 90.0, 1e-4);
+
+  // Static checks that main.js and circle-3d.js store and synchronize 3D telemetry
+  const circle3DCode = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+  const matches = circle3DCode.match(/this\.lastComputed3D\s*=/g);
+  assert.equal(matches?.length, 7, 'All 7 Circle Theorem 3D scene views must populate this.lastComputed3D');
+  assert.ok(circle3DCode.includes('dAngA = ((state.angleA - state.angleT)'), 'AlternateSegment3DView must map A concyclically onto diameter TD circle plane');
+
+  const visualizers = [
+    'alternate-segment',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+  for (const v of visualizers) {
+    const mainJs = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', v, 'src', 'main.js'), 'utf8');
+    assert.ok(
+      mainJs.includes('scene3d.lastComputed3D') || mainJs.includes('scene3d?.lastComputed3D'),
+      `${v} main.js must read live 3D metrics from scene3d.lastComputed3D in spatial mode`
+    );
+  }
+
+  // 3D Spatial Segment and Sector Shading Alignment Invariants
+  assert.ok(
+    circle3DCode.includes('const arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);'),
+    'AlternateSegment3DView must compute arcRange relative to basis {u, v} so segments are bound by chord TA'
+  );
+  assert.ok(
+    circle3DCode.includes('const segStart = segStartSpatial;'),
+    'AnglesInSameSegment3DView must use segStartSpatial and segSweepSpatial in circleInfo {u, v} basis'
+  );
+  assert.ok(
+    circle3DCode.includes('let u = new THREE.Vector3(1, 0, 0).projectOnPlane(primNormal);'),
+    'TangentRadius3DView must align 3D quadrant sector shading to coordinate plane axes'
+  );
+});
+
+test('Cyclic Quadrilateral: 3D Spatial Mode concyclic arc parameterization, directional drag synchronization, and supplementary angle invariant', () => {
+  const R = 10;
+  const toRad = (d) => d * Math.PI / 180;
+  const TAU = Math.PI * 2;
+  const norm = (a) => ((a % TAU) + TAU) % TAU;
+
+  // 1. Initial 2D state angles
+  const angA = toRad(140);
+  const angB = toRad(40);
+  const angC = toRad(310);
+  const angD = toRad(230);
+  const latA = 1.25, latB = 1.75, latC = 1.45;
+
+  class Vec3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    clone() { return new Vec3(this.x, this.y, this.z); }
+    copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+    lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+    length() { return Math.sqrt(this.lengthSq()); }
+    normalize() { const l = this.length() || 1; this.x /= l; this.y /= l; this.z /= l; return this; }
+    subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+    crossVectors(a, b) {
+      this.x = a.y * b.z - a.z * b.y;
+      this.y = a.z * b.x - a.x * b.z;
+      this.z = a.x * b.y - a.y * b.x;
+      return this;
+    }
+    dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+    multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+    addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  }
+
+  const customTHREE = { Vector3: Vec3 };
+
+  const A = new Vec3(R * Math.sin(latA) * Math.cos(angA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(angA));
+  const B = new Vec3(R * Math.sin(latB) * Math.cos(angB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(angB));
+  const C = new Vec3(R * Math.sin(latC) * Math.cos(angC), R * Math.cos(latC), R * Math.sin(latC) * Math.sin(angC));
+
+  const circleInfo = computeConcyclicPlaneAndCircle(A, B, C, R, customTHREE);
+
+  // Canonical 2D arc containing D (between A and C, excluding B) with t in [0, 1] (0 = A, 1 = C)
+  const sweepPos2D = norm(angC - angA);
+  const bOffset2D = norm(angB - angA);
+  const bInPos2D = (bOffset2D > 0 && bOffset2D < sweepPos2D);
+  const sweepAC2D = bInPos2D ? -(TAU - sweepPos2D) : sweepPos2D;
+  const rawT = sweepAC2D > 0
+    ? norm(angD - angA) / sweepAC2D
+    : norm(angA - angD) / (-sweepAC2D);
+  const tD = Math.max(0.01, Math.min(0.99, rawT));
+
+  const toCircleAngle = (pt) => {
+    const d = new Vec3().subVectors(pt, circleInfo.center);
+    return norm(Math.atan2(d.dot(circleInfo.v), d.dot(circleInfo.u)));
+  };
+  const psiA = toCircleAngle(A);
+  const psiB = toCircleAngle(B);
+  const psiC = toCircleAngle(C);
+
+  const sweepPosSpatial = norm(psiC - psiA);
+  const bOffsetSpatial = norm(psiB - psiA);
+  const bInPosSpatial = (bOffsetSpatial > 0 && bOffsetSpatial < sweepPosSpatial);
+  const sweepACSpatial = bInPosSpatial ? -(TAU - sweepPosSpatial) : sweepPosSpatial;
+
+  const psiD = norm(psiA + tD * sweepACSpatial);
+  const D = circleInfo.center.clone()
+    .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiD))
+    .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiD));
+
+  // Invariant 1: D is concyclic with A, B, C (distance from center == radius)
+  const distDFromCenter = D.distanceTo(circleInfo.center);
+  assert.ok(Math.abs(distDFromCenter - circleInfo.radius) < 1e-4, 'D must lie strictly on the circle of A, B, C');
+
+  // Invariant 2: Euclidean opposite angle sums equal 180° on the cutting plane
+  const deg = (V, P_A, P_B) => {
+    const v1 = new Vec3().subVectors(P_A, V);
+    const v2 = new Vec3().subVectors(P_B, V);
+    const dot = v1.dot(v2);
+    const mag = v1.length() * v2.length();
+    return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+  };
+  const degA = deg(A, B, D);
+  const degB = deg(B, A, C);
+  const degC = deg(C, B, D);
+  const degD = deg(D, C, A);
+
+  assert.ok(Math.abs((degA + degC) - 180) < 1e-3, `Opposite angles A+C must sum to 180° on cutting plane (got ${degA + degC})`);
+  assert.ok(Math.abs((degB + degD) - 180) < 1e-3, `Opposite angles B+D must sum to 180° on cutting plane (got ${degB + degD})`);
+
+  // Invariant 3: Directional drag synchronization and bidirectional parity
+  // Case A: Dragging D towards C in 3D (t = 0.85) increases parameter t and moves 2D angle towards C
+  const tTowardC = 0.85;
+  const psiDTowardC = norm(psiA + tTowardC * sweepACSpatial);
+  const hitTowardC = circleInfo.center.clone()
+    .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiDTowardC))
+    .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiDTowardC));
+
+  const dHitC = new Vec3().subVectors(hitTowardC, circleInfo.center);
+  const psiHitC = norm(Math.atan2(dHitC.dot(circleInfo.v), dHitC.dot(circleInfo.u)));
+  const reconstructedTC = sweepACSpatial > 0
+    ? norm(psiHitC - psiA) / sweepACSpatial
+    : norm(psiA - psiHitC) / (-sweepACSpatial);
+  assert.ok(Math.abs(reconstructedTC - tTowardC) < 1e-4, 'Reconstructed arc parameter from 3D hit towards C must match 0.85');
+  const reconstructed2DAngleC = norm(angA + reconstructedTC * sweepAC2D);
+  assert.ok(norm(reconstructed2DAngleC - angA) > norm(angD - angA), 'Dragging D towards C in 3D must increase separation from A in 2D');
+  assert.ok(norm(angC - reconstructed2DAngleC) < norm(angC - angD), 'Dragging D towards C in 3D must decrease separation to C in 2D');
+
+  // Case B: Dragging D towards A in 3D (t = 0.25) decreases parameter t and moves 2D angle towards A
+  const tTowardA = 0.25;
+  const psiDTowardA = norm(psiA + tTowardA * sweepACSpatial);
+  const hitTowardA = circleInfo.center.clone()
+    .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiDTowardA))
+    .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiDTowardA));
+
+  const dHitA = new Vec3().subVectors(hitTowardA, circleInfo.center);
+  const psiHitA = norm(Math.atan2(dHitA.dot(circleInfo.v), dHitA.dot(circleInfo.u)));
+  const reconstructedTA = sweepACSpatial > 0
+    ? norm(psiHitA - psiA) / sweepACSpatial
+    : norm(psiA - psiHitA) / (-sweepACSpatial);
+  assert.ok(Math.abs(reconstructedTA - tTowardA) < 1e-4, 'Reconstructed arc parameter from 3D hit towards A must match 0.25');
+  const reconstructed2DAngleA = norm(angA + reconstructedTA * sweepAC2D);
+  assert.ok(norm(reconstructed2DAngleA - angA) < norm(angD - angA), 'Dragging D towards A in 3D must decrease separation to A in 2D');
+  assert.ok(norm(angC - reconstructed2DAngleA) > norm(angC - angD), 'Dragging D towards A in 3D must increase separation from C in 2D');
+});
+
+test('Perpendicular Chord Bisector: Decoupled telemetry, canvas, 3D, and derivation color grammar (Emerald, Teal, Cyan, Lavender)', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const htmlPath = path.join(rootDir, 'visuals/circle-theorems/perpendicular-chord-bisector/index.html');
+  const html = fs.readFileSync(htmlPath, 'utf8');
+
+  // 1. 2D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-emerald">Difference |AM − MB|:</span><strong class="color-emerald" id="tel-diff">'),
+    'Difference |AM - MB| in 2D telemetry must use color-emerald'
+  );
+  assert.ok(
+    html.includes('<span class="color-teal">Angle at M (∠OMA):</span><span class="color-teal" id="tel-angle-oma">'),
+    'Angle at M in 2D telemetry must use color-teal'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">Reflex Right Angle (M*):</span><strong class="color-cyan" id="tel-reflex-m">'),
+    'Reflex Right Angle in 2D telemetry must use color-cyan'
+  );
+  assert.ok(
+    html.includes('<span class="color-lavender">Perigon (90° + 270°):</span><strong class="color-lavender" id="tel-perigon-m">'),
+    'Perigon in 2D telemetry must use color-lavender'
+  );
+
+  // 2. 3D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-teal">3D Bisector Angle:</span><strong class="color-teal" id="val-3d-ang-m">'),
+    '3D Bisector Angle must use color-teal'
+  );
+  assert.ok(
+    html.includes('<span class="color-emerald">3D Invariant Δ:</span><strong class="color-emerald" id="val-3d-diff">'),
+    '3D Invariant Δ must use color-emerald'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">3D Reflex Angle M*:</span><strong class="color-cyan" id="val-3d-reflex-m">'),
+    '3D Reflex Angle M* must use color-cyan'
+  );
+  assert.ok(
+    html.includes('<span class="color-lavender">3D Perigon Invariant:</span><strong class="color-lavender" id="val-3d-perigon-m">'),
+    '3D Perigon Invariant must use color-lavender'
+  );
+
+  // 3. Canvas 2D reflex uses PALETTE.cyan
+  const canvasPath = path.join(rootDir, 'visuals/circle-theorems/perpendicular-chord-bisector/src/canvas.js');
+  const canvasSrc = fs.readFileSync(canvasPath, 'utf8');
+  assert.ok(
+    canvasSrc.includes("drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);"),
+    'CanvasView must render reflex wedge with PALETTE.cyan'
+  );
+  assert.ok(
+    canvasSrc.includes("drawTextBadge(ctx, '270.0° (M*)', g.M.x + 36 * uOMx, g.M.y + 36 * uOMy, PALETTE.cyan);"),
+    'CanvasView must label 270° reflex badge with PALETTE.cyan'
+  );
+
+  // 4. Scene 3D reflex mesh & label uses cyan
+  const scene3DPath = path.join(rootDir, 'js/circle-3d.js');
+  const scene3DSrc = fs.readFileSync(scene3DPath, 'utf8');
+  assert.ok(
+    scene3DSrc.includes('this.reflexRightMesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25);'),
+    'ChordBisector3DView must instantiate reflex wedge mesh with PALETTE.cyan'
+  );
+  assert.ok(
+    scene3DSrc.includes("key: 'reflexM'") && scene3DSrc.includes("color: 'color-cyan'"),
+    'ChordBisector3DView must render 3D reflexM label badge with color-cyan'
+  );
+
+  // 5. Live derivations grammar
+  const derivPath = path.join(rootDir, 'js/circle-derivations.js');
+  const derivSrc = fs.readFileSync(derivPath, 'utf8');
+  assert.ok(
+    derivSrc.includes("tag('emerald', `Δ = |AM - MB| = ${diff}`)"),
+    'Derivations Step 4 must render Invariant Difference with emerald tag'
+  );
+  assert.ok(
+    derivSrc.includes("tag('cyan', '270.0°')"),
+    'Derivations Step 5 title must render 270.0° with cyan tag'
+  );
+  assert.ok(
+    derivSrc.includes("tag('cyan', `Midpoint Reflex M* = ${fmtAngle(270, angUnit)}`)"),
+    'Derivations Step 5 evaluation highlight must render Midpoint Reflex M* with cyan tag'
+  );
+  assert.ok(
+    derivSrc.includes("tag('lavender', `(Perigon ${fmtAngle(360, angUnit)})`)"),
+    'Derivations Step 5 evaluation highlight must render Perigon with lavender tag'
+  );
+});
+
+test('Tangents from External Point: Decoupled telemetry, canvas, 3D, and derivation color grammar (Red, Violet, Cyan, Sky, Amber)', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const htmlPath = path.join(rootDir, 'visuals/circle-theorems/tangents-from-external-point/index.html');
+  const html = fs.readFileSync(htmlPath, 'utf8');
+
+  // 1. 2D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-violet">Diagonal Intersection ∠OKT₁:</span><strong class="color-violet">90.0°</strong>'),
+    'Diagonal Intersection in 2D telemetry must use color-violet matching node K'
+  );
+  assert.ok(
+    html.includes('<span class="color-red">Total Subtended ∠T₁PT₂ (2α):</span><strong class="color-red" id="tel-angle-tpt">'),
+    'Total Subtended ∠T₁PT₂ in 2D telemetry must use color-red matching apex P'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">Reflex Right Angles (T₁*, T₂*):</span><strong class="color-cyan" id="tel-reflex-tangent">'),
+    'Reflex Right Angles in 2D telemetry must use color-cyan'
+  );
+
+  // 2. 3D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-sky">Radius R:</span><span class="color-sky" id="val-3d-r">'),
+    '3D Radius R must use color-sky matching 2D radius and great circle wire'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">3D Reflex Angles (T₁*, T₂*):</span><strong class="color-cyan" id="val-3d-reflex-tangent">'),
+    '3D Reflex Angles in 3D telemetry must use color-cyan'
+  );
+
+  // 3. Canvas 2D reflex uses PALETTE.cyan
+  const canvasPath = path.join(rootDir, 'visuals/circle-theorems/tangents-from-external-point/src/canvas.js');
+  const canvasSrc = fs.readFileSync(canvasPath, 'utf8');
+  assert.ok(
+    canvasSrc.includes("drawReflexWedge(ctx, g.T1, angT1O, angT1P, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);"),
+    'CanvasView must render T1 reflex wedge with PALETTE.cyan'
+  );
+  assert.ok(
+    canvasSrc.includes("drawReflexWedge(ctx, g.T2, angT2O, angT2P, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);"),
+    'CanvasView must render T2 reflex wedge with PALETTE.cyan'
+  );
+  assert.ok(
+    canvasSrc.includes("drawTextBadge(ctx, '270.0° (T₁*)', g.T1.x - 38 * (bis1X / l1), g.T1.y - 38 * (bis1Y / l1), PALETTE.cyan);"),
+    'CanvasView must label T1 270° reflex badge with PALETTE.cyan'
+  );
+
+  // 4. Scene 3D reflex mesh & labels use cyan
+  const scene3DPath = path.join(rootDir, 'js/circle-3d.js');
+  const scene3DSrc = fs.readFileSync(scene3DPath, 'utf8');
+  assert.ok(
+    scene3DSrc.includes('this.reflexRight1Mesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25);'),
+    'TangentsFromPoint3DView must instantiate reflex1 wedge mesh with PALETTE.cyan'
+  );
+  assert.ok(
+    scene3DSrc.includes("key: 'reflex1'") && scene3DSrc.includes("color: 'color-cyan'"),
+    'TangentsFromPoint3DView must render 3D reflex1 label badge with color-cyan'
+  );
+
+  // 5. Live derivations grammar
+  const derivPath = path.join(rootDir, 'js/circle-derivations.js');
+  const derivSrc = fs.readFileSync(derivPath, 'utf8');
+  assert.ok(
+    derivSrc.includes("tag('amber', 'Area = r · √(d² - r²)')"),
+    'Derivations Step 3 card must render Kite Area formula with amber tag'
+  );
+  assert.ok(
+    derivSrc.includes("tag('cyan', '∠OT₁P* = 270.0°')"),
+    'Derivations Step 5 card must render 270.0° reflex with cyan tag'
+  );
+  assert.ok(
+    derivSrc.includes("tag('cyan', `T₁* = T₂* = ${fmtAngle(270, angUnit)}`)"),
+    'Derivations Step 5 evaluation highlight must render Contact Reflexes with cyan tag'
+  );
+
+  // 6. Responsive Telemetry Layout Checks (no clipping)
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css/circle-visual.css'), 'utf8');
+  assert.ok(
+    circleVisualCss.includes('max-height: calc(100% - 2rem) !important;') &&
+    circleVisualCss.includes('max-height: min(20rem, calc(100% - 2.8rem)) !important;'),
+    'css/circle-visual.css must enforce dynamic viewport containment on .stats-overlay and .stats-body'
+  );
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css/visual.css'), 'utf8');
+  assert.ok(
+    visualCss.includes('max-height: calc(100% - 2rem) !important;') &&
+    visualCss.includes('max-height: min(20rem, calc(100% - 2.8rem)) !important;'),
+    'css/visual.css must enforce dynamic viewport containment on .stats-overlay and .stats-body'
+  );
+  assert.ok(
+    !html.includes('style="max-height: 380px'),
+    'tangents-from-external-point/index.html must not contain static max-height: 380px'
+  );
+});
+
+test('Tangent-Radius: Decoupled telemetry, canvas, 3D, and derivation color grammar (Lime, Steel, Violet, Cyan, Lavender, Red)', () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const rootDir = path.resolve(__dirname, '..');
+  const htmlPath = path.join(rootDir, 'visuals/circle-theorems/tangent-radius/index.html');
+  const html = fs.readFileSync(htmlPath, 'utf8');
+
+  // 1. 2D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-lime">Tangent Vector (v_tan):</span><strong class="color-lime" id="tel-vtan">'),
+    'Tangent Vector in 2D telemetry must use color-lime'
+  );
+  assert.ok(
+    html.includes('<span class="color-steel">Vector Dot Product (r · t):</span><strong class="color-steel" id="tel-dot">'),
+    'Vector Dot Product in 2D telemetry must use color-steel'
+  );
+  assert.ok(
+    html.includes('<span class="color-violet">Secant Hypotenuse (|O Sx|):</span><strong class="color-violet" id="tel-trig-sec-span">'),
+    'Secant Hypotenuse in 2D telemetry must use color-violet'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">Reflex Right Angle (T*):</span><strong class="color-cyan" id="tel-reflex-tangent">'),
+    'Reflex Right Angle in 2D telemetry must use color-cyan'
+  );
+  assert.ok(
+    html.includes('<span class="color-lavender">Perigon Arc (90° + 270°):</span><strong class="color-lavender" id="tel-perigon-tangent">'),
+    'Perigon Arc in 2D telemetry must use color-lavender'
+  );
+
+  // 2. 3D Telemetry Decoupled Palette
+  assert.ok(
+    html.includes('<span class="color-red">Contact T (x, z):</span><span class="color-red" id="val-3d-t">'),
+    'Contact Point T in 3D telemetry must use color-red'
+  );
+  assert.ok(
+    html.includes('<span class="color-lime">Tangent Vector (v_tan):</span><strong class="color-lime" id="val-3d-vtan">'),
+    'Tangent Vector in 3D telemetry must use color-lime'
+  );
+  assert.ok(
+    html.includes('<span class="color-steel">3D Dot Product (r · t):</span><strong class="color-steel" id="val-3d-dot">'),
+    'Vector Dot Product in 3D telemetry must use color-steel'
+  );
+  assert.ok(
+    html.includes('<span class="color-violet">3D Secant Hypotenuse (|O Sx|):</span><strong class="color-violet" id="val-3d-trig-sec-span">'),
+    'Secant Hypotenuse in 3D telemetry must use color-violet'
+  );
+  assert.ok(
+    html.includes('<span class="color-cyan">3D Reflex Angle T*:</span><strong class="color-cyan" id="val-3d-reflex-tangent">'),
+    'Reflex Right Angle in 3D telemetry must use color-cyan'
+  );
+  assert.ok(
+    html.includes('<span class="color-lavender">3D Perigon Invariant:</span><strong class="color-lavender" id="val-3d-perigon-tangent">'),
+    'Perigon Invariant in 3D telemetry must use color-lavender'
+  );
+
+  // 3. Canvas 2D styles
+  const canvasPath = path.join(rootDir, 'visuals/circle-theorems/tangent-radius/src/canvas.js');
+  const canvasSrc = fs.readFileSync(canvasPath, 'utf8');
+  assert.ok(
+    canvasSrc.includes('drawDoubleArrow(ctx, t.T1, t.T2, PALETTE.lime, 3);'),
+    'CanvasView must render Tangent Line double arrow with PALETTE.lime'
+  );
+  assert.ok(
+    canvasSrc.includes("ctx.strokeStyle = 'rgba(168, 85, 247, 0.55)';"),
+    'CanvasView must render Secant Hypotenuse with violet rgba'
+  );
+  assert.ok(
+    canvasSrc.includes("drawReflexWedge(ctx, t.pt, angRad, angTan, 26, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);"),
+    'CanvasView must render reflex wedge with PALETTE.cyan'
+  );
+  assert.ok(
+    canvasSrc.includes('drawTextBadge(ctx, `${t.name}* = 270.0°`, rbx, rby, PALETTE.cyan);'),
+    'CanvasView must label 270.0° reflex badge with PALETTE.cyan'
+  );
+
+  // 4. 3D Scene Architecture & Labels
+  const scene3DPath = path.join(rootDir, 'js/circle-3d.js');
+  const scene3DSrc = fs.readFileSync(scene3DPath, 'utf8');
+  assert.ok(
+    scene3DSrc.includes('this.tangentDoubleArrow = makeDoubleArrowLine(THREE, PALETTE.lime);'),
+    'TangentRadius3DView must instantiate tangentDoubleArrow with PALETTE.lime'
+  );
+  assert.ok(
+    scene3DSrc.includes('this.lineSecantHypot = makeLine(THREE, PALETTE.violet, true);'),
+    'TangentRadius3DView must instantiate lineSecantHypot with PALETTE.violet'
+  );
+  assert.ok(
+    scene3DSrc.includes('makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25)'),
+    'TangentRadius3DView must instantiate reflex wedge meshes with PALETTE.cyan'
+  );
+  assert.ok(
+    scene3DSrc.includes("key: `reflex_${t.name}`") && scene3DSrc.includes("color: 'color-cyan'"),
+    'TangentRadius3DView must render reflex angle badge with color-cyan'
+  );
+
+  // 5. Live Math Derivations Grammar
+  const derivPath = path.join(rootDir, 'js/circle-derivations.js');
+  const derivSrc = fs.readFileSync(derivPath, 'utf8');
+  assert.ok(
+    derivSrc.includes("tag('lime', 'v_tan')"),
+    'TangentRadiusDerivations Step 2 must tag v_tan in lime'
+  );
+  assert.ok(
+    derivSrc.includes("tag('steel', '0')") && derivSrc.includes("tag('steel', '0.0000')"),
+    'TangentRadiusDerivations Step 3 must tag dot product in steel'
+  );
+  assert.ok(
+    derivSrc.includes("tag('cyan', '270.0°')") && derivSrc.includes("tag('lavender', '360°')"),
+    'TangentRadiusDerivations Step 7 must tag 270.0° reflex in cyan and 360° in lavender'
+  );
+  assert.ok(
+    derivSrc.includes("tag('violet', '|O S_x|²')") || derivSrc.includes("tag('violet', '|O S_x|"),
+    'TangentRadiusDerivations Step 8 must tag secant hypotenuse in violet'
+  );
 });

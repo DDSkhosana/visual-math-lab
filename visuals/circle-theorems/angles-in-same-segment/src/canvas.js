@@ -1,4 +1,4 @@
-import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, drawReflexWedge, getPointLabel } from '../../../../js/circle-core.js';
+import { PALETTE, draw2DCartesianGrid, drawLabelledPoint, drawRadialLabelledPoint, drawTextBadge, withShadow, drawSegmentContainingPoint, drawAngleWedge, drawReflexWedge, getPointLabel, isLabelVisible } from '../../../../js/circle-core.js';
 import { computeGeometry, generateSVG } from './model.js';
 
 export class CanvasView {
@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
 
     const g = computeGeometry(state, width, height);
@@ -46,8 +47,8 @@ export class CanvasView {
     // Relevant Area Shading (Same Circular Segment & Inscribed Triangles)
     const showArea = (state.vis2d?.area !== false) && (state.showArea !== false) && (state.showShading !== false);
     if (showArea) {
-      // The eponymous "Same Segment" on chord AB containing P1 and P2
-      drawSegmentContainingPoint(ctx, g.O, g.A, g.B, g.P1, g.r, 'rgba(56, 189, 248, 0.08)');
+      // The eponymous "Same Segment" on chord AB containing P1 and P2 (Distinct PALETTE.sky token)
+      drawSegmentContainingPoint(ctx, g.O, g.A, g.B, g.P1, g.r, 'rgba(56, 189, 248, 0.16)', PALETTE.sky);
 
       // Inscribed Triangles
       ctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
@@ -64,7 +65,13 @@ export class CanvasView {
     }
 
     // Optional center radii OA, OB & Central Angle AOB
-    if (state.showCenter) {
+    const showCenter = state.showCenter !== false;
+    const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
+    const showP1Angle = showAngles && isLabelVisible('θ₁', state.vis2d) && isLabelVisible('angP1', state.vis2d) && isLabelVisible('θ1', state.vis2d) && isLabelVisible('θ', state.vis2d);
+    const showP2Angle = showAngles && isLabelVisible('θ₂', state.vis2d) && isLabelVisible('angP2', state.vis2d) && isLabelVisible('θ2', state.vis2d) && isLabelVisible('θ', state.vis2d);
+    const showCentralAngle = showAngles && isLabelVisible('2θ', state.vis2d) && isLabelVisible('central', state.vis2d);
+
+    if (showCenter) {
       ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
       ctx.lineWidth = 1.75;
       ctx.setLineDash([4, 4]);
@@ -74,8 +81,7 @@ export class CanvasView {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
-      if (showAngles) {
+      if (showCentralAngle) {
         const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
         const angB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
         drawAngleWedge(ctx, g.O, angA, angB, 30, 'rgba(234, 179, 8, 0.25)', PALETTE.yellow);
@@ -105,14 +111,14 @@ export class CanvasView {
     ctx.moveTo(g.P2.x, g.P2.y); ctx.lineTo(g.B.x, g.B.y);
     ctx.stroke();
 
-    const showAngles = (state.vis2d?.angles !== false) && (state.showAngles !== false);
-
-    // Angle arc wedges at P1 and P2
-    if (showAngles) {
+    // Angle arc wedges at P1 and P2 (independent toggleable wedges)
+    if (showP1Angle) {
       const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
       const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
       drawAngleWedge(ctx, g.P1, angP1A, angP1B, 28, 'rgba(59, 130, 246, 0.25)', PALETTE.blue);
+    }
 
+    if (showP2Angle) {
       const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
       const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
       drawAngleWedge(ctx, g.P2, angP2A, angP2B, 28, 'rgba(16, 185, 129, 0.25)', PALETTE.emerald);
@@ -130,9 +136,9 @@ export class CanvasView {
 
     // Angle text annotations with protective badge pills inside angle cones
     const showLabels = state.vis2d?.labels !== false;
-    if (showAngles && showLabels) {
+    if (showLabels) {
       // Central Angle badge at O (along angle bisector outside central wedge)
-      if (state.showCenter) {
+      if (showCenter && showCentralAngle) {
         const angA = Math.atan2(g.A.y - g.O.y, g.A.x - g.O.x);
         const angB = Math.atan2(g.B.y - g.O.y, g.B.x - g.O.x);
         const uAx = Math.cos(angA), uAy = Math.sin(angA);
@@ -144,50 +150,60 @@ export class CanvasView {
         drawTextBadge(ctx, `2θ = ${g.centralDeg.toFixed(1)}°`, g.O.x + 50 * nbOX, g.O.y + 50 * nbOY, PALETTE.yellow);
       }
 
-      const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
-      const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
-      const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
-      const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
-      const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
-      const len1 = Math.hypot(bis1X, bis1Y);
-      const nb1X = len1 > 0.001 ? bis1X / len1 : 0;
-      const nb1Y = len1 > 0.001 ? bis1Y / len1 : 1;
-      drawTextBadge(ctx, `θ₁ = ${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 50 * nb1X, g.P1.y + 50 * nb1Y, PALETTE.blue);
+      if (showP1Angle) {
+        const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
+        const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
+        const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
+        const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
+        const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
+        const len1 = Math.hypot(bis1X, bis1Y);
+        const nb1X = len1 > 0.001 ? bis1X / len1 : 0;
+        const nb1Y = len1 > 0.001 ? bis1Y / len1 : 1;
+        drawTextBadge(ctx, `θ₁ = ${g.angleP1Deg.toFixed(1)}°`, g.P1.x + 50 * nb1X, g.P1.y + 50 * nb1Y, PALETTE.blue);
+      }
 
-      const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
-      const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
-      const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
-      const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
-      const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
-      const len2 = Math.hypot(bis2X, bis2Y);
-      const nb2X = len2 > 0.001 ? bis2X / len2 : 0;
-      const nb2Y = len2 > 0.001 ? bis2Y / len2 : 1;
-      drawTextBadge(ctx, `θ₂ = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 50 * nb2X, g.P2.y + 50 * nb2Y, PALETTE.emerald);
+      if (showP2Angle) {
+        const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
+        const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
+        const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
+        const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
+        const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
+        const len2 = Math.hypot(bis2X, bis2Y);
+        const nb2X = len2 > 0.001 ? bis2X / len2 : 0;
+        const nb2Y = len2 > 0.001 ? bis2Y / len2 : 1;
+        drawTextBadge(ctx, `θ₂ = ${g.angleP2Deg.toFixed(1)}°`, g.P2.x + 50 * nb2X, g.P2.y + 50 * nb2Y, PALETTE.emerald);
+      }
     }
 
     // Conjugate Reflex Angles (Perigon 360° - θ)
     const showReflex = Boolean(state.vis2d?.reflex);
     if (showReflex) {
-      const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
-      const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
-      drawReflexWedge(ctx, g.P1, angP1A, angP1B, 34, 'rgba(59, 130, 246, 0.15)', PALETTE.blue);
+      if (showP1Angle) {
+        const angP1A = Math.atan2(g.A.y - g.P1.y, g.A.x - g.P1.x);
+        const angP1B = Math.atan2(g.B.y - g.P1.y, g.B.x - g.P1.x);
+        drawReflexWedge(ctx, g.P1, angP1A, angP1B, 34, 'rgba(59, 130, 246, 0.15)', PALETTE.blue);
 
-      const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
-      const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
-      drawReflexWedge(ctx, g.P2, angP2A, angP2B, 34, 'rgba(16, 185, 129, 0.15)', PALETTE.emerald);
+        if (showLabels) {
+          const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
+          const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
+          const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
+          const len1 = Math.hypot(bis1X, bis1Y) || 1;
+          drawTextBadge(ctx, `θ₁* = ${(360 - g.angleP1Deg).toFixed(1)}°`, g.P1.x - 54 * (bis1X / len1), g.P1.y - 54 * (bis1Y / len1), PALETTE.blue);
+        }
+      }
 
-      if (showLabels) {
-        const uP1Ax = Math.cos(angP1A), uP1Ay = Math.sin(angP1A);
-        const uP1Bx = Math.cos(angP1B), uP1By = Math.sin(angP1B);
-        const bis1X = uP1Ax + uP1Bx, bis1Y = uP1Ay + uP1By;
-        const len1 = Math.hypot(bis1X, bis1Y) || 1;
-        drawTextBadge(ctx, `θ₁* = ${(360 - g.angleP1Deg).toFixed(1)}°`, g.P1.x - 54 * (bis1X / len1), g.P1.y - 54 * (bis1Y / len1), PALETTE.blue);
+      if (showP2Angle) {
+        const angP2A = Math.atan2(g.A.y - g.P2.y, g.A.x - g.P2.x);
+        const angP2B = Math.atan2(g.B.y - g.P2.y, g.B.x - g.P2.x);
+        drawReflexWedge(ctx, g.P2, angP2A, angP2B, 34, 'rgba(16, 185, 129, 0.15)', PALETTE.emerald);
 
-        const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
-        const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
-        const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
-        const len2 = Math.hypot(bis2X, bis2Y) || 1;
-        drawTextBadge(ctx, `θ₂* = ${(360 - g.angleP2Deg).toFixed(1)}°`, g.P2.x - 54 * (bis2X / len2), g.P2.y - 54 * (bis2Y / len2), PALETTE.emerald);
+        if (showLabels) {
+          const uP2Ax = Math.cos(angP2A), uP2Ay = Math.sin(angP2A);
+          const uP2Bx = Math.cos(angP2B), uP2By = Math.sin(angP2B);
+          const bis2X = uP2Ax + uP2Bx, bis2Y = uP2Ay + uP2By;
+          const len2 = Math.hypot(bis2X, bis2Y) || 1;
+          drawTextBadge(ctx, `θ₂* = ${(360 - g.angleP2Deg).toFixed(1)}°`, g.P2.x - 54 * (bis2X / len2), g.P2.y - 54 * (bis2Y / len2), PALETTE.emerald);
+        }
       }
     }
   }

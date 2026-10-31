@@ -1,4 +1,20 @@
-import { PALETTE, clamp, getSubtendedArcRange3D, getMinorArcRange3D } from './circle-core.js';
+import {
+  PALETTE,
+  clamp,
+  clampCyclicAngle,
+  clampAngleInArc,
+  clampAngleToArc,
+  clampMinAngleDistance,
+  getSubtendedArcRange3D,
+  getMinorArcRange3D,
+  isLabelVisible,
+  computeSagitta,
+  computeCurvatureRatio,
+  projectStereographicToEquator,
+  projectEquatorToSphere,
+  interpolateCurvatureHomotopy,
+  interpolateGeodesicChord,
+} from './circle-core.js';
 
 export function loadThree() {
   const THREE = window.THREE;
@@ -238,7 +254,7 @@ export class ArcballTrackballControls {
     this.enabled = true;
     this.mode = 'arcball'; // 'arcball' (unconstrained 360° 6-DOF) | 'orbit' (turntable)
     this.enableDamping = true;
-    this.dampingFactor = 0.05;
+    this.dampingFactor = 0.035;
     this.screenSpacePanning = true;
 
     this.rotateSpeed = 1.0;
@@ -305,7 +321,7 @@ export class ArcballTrackballControls {
     const cx = width / 2;
     const cy = height / 2;
     const u = (x - cx) / radius;
-    const v = (cy - y) / radius;
+    const v = -(y - cy) / radius;
     const dSq = u * u + v * v;
 
     // Holroyd's C1-continuous spherical-hyperbolic sheet projection:
@@ -476,8 +492,8 @@ export class ArcballTrackballControls {
       let deltaRoll = curAng - prevAng;
       if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
       if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
-      this.spinCameraRoll(deltaRoll * this.rotateSpeed);
-      this.rollVelocity = 0.65 * (deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
+      this.spinCameraRoll(-deltaRoll * this.rotateSpeed);
+      this.rollVelocity = 0.65 * (-deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
       this.lastMoveTime = now;
       this.prevPointer = { x: curX, y: curY };
     } else if (this.state === 'rotate' && this.pointers.size === 1) {
@@ -489,8 +505,8 @@ export class ArcballTrackballControls {
         let deltaRoll = curAng - prevAng;
         if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
         if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
-        this.spinCameraRoll(deltaRoll * this.rotateSpeed);
-        this.rollVelocity = 0.65 * (deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
+        this.spinCameraRoll(-deltaRoll * this.rotateSpeed);
+        this.rollVelocity = 0.65 * (-deltaRoll * this.rotateSpeed) + 0.35 * this.rollVelocity;
         this.lastMoveTime = now;
       } else if (this.isArcball) {
         const curSpherePoint = this.projectOnVirtualSphere(curX, curY, rect.width, rect.height);
@@ -524,7 +540,7 @@ export class ArcballTrackballControls {
           let deltaRoll = curAng - prevAng;
           if (deltaRoll > Math.PI) deltaRoll -= Math.PI * 2;
           if (deltaRoll < -Math.PI) deltaRoll += Math.PI * 2;
-          const appliedRoll = deltaRoll * rimBlend * 0.55;
+          const appliedRoll = -deltaRoll * rimBlend * 0.55;
           this.spinCameraRoll(appliedRoll);
           this.rollVelocity = 0.65 * appliedRoll + 0.35 * this.rollVelocity;
           this.lastMoveTime = now;
@@ -565,8 +581,8 @@ export class ArcballTrackballControls {
         if (deltaTwist > Math.PI) deltaTwist -= Math.PI * 2;
         if (deltaTwist < -Math.PI) deltaTwist += Math.PI * 2;
         if (Math.abs(deltaTwist) < 0.6) {
-          this.spinCameraRoll(deltaTwist);
-          this.rollVelocity = 0.65 * deltaTwist + 0.35 * this.rollVelocity;
+          this.spinCameraRoll(-deltaTwist);
+          this.rollVelocity = 0.65 * -deltaTwist + 0.35 * this.rollVelocity;
           this.lastMoveTime = now;
         }
         this.touchTwistAngle = angle;
@@ -591,8 +607,8 @@ export class ArcballTrackballControls {
       try { this.domElement.releasePointerCapture(event.pointerId); } catch (_) {}
     }
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    // If pointer held stationary > 100ms before release, clear flick momentum; otherwise preserve spin!
-    if (now - this.lastMoveTime > 100) {
+    // If pointer held stationary > 250ms before release, clear flick momentum; otherwise preserve spin!
+    if (now - this.lastMoveTime > 250) {
       this.angularVelocity.angle = 0;
       this.rollVelocity = 0;
     }
@@ -690,7 +706,7 @@ export class BaseScene3DView {
 
     this.controls = new ArcballTrackballControls(THREE, this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.035;
     this.controls.screenSpacePanning = true;
 
     // Lighting
@@ -914,7 +930,7 @@ export class BaseScene3DView {
       return raycaster;
     };
 
-    const pickSphere = (ray) => {
+    const pickSphere = (ray, targetPos = null) => {
       const r = this.R || 10;
       const rayObj = ray.ray || ray;
       const vOrigin = rayObj.origin;
@@ -927,8 +943,17 @@ export class BaseScene3DView {
       if (disc >= 0) {
         const sqrtDisc = Math.sqrt(disc);
         const t1 = -b - sqrtDisc;
-        if (t1 > 0) return vOrigin.clone().addScaledVector(vDir, t1);
         const t2 = -b + sqrtDisc;
+        if (targetPos) {
+          const p1 = t1 > 0 ? vOrigin.clone().addScaledVector(vDir, t1) : null;
+          const p2 = t2 > 0 ? vOrigin.clone().addScaledVector(vDir, t2) : null;
+          if (p1 && p2) {
+            return p1.distanceTo(targetPos) < p2.distanceTo(targetPos) ? p1 : p2;
+          }
+          if (p1) return p1;
+          if (p2) return p2;
+        }
+        if (t1 > 0) return vOrigin.clone().addScaledVector(vDir, t1);
         if (t2 > 0) return vOrigin.clone().addScaledVector(vDir, t2);
       }
 
@@ -1112,11 +1137,12 @@ export class BaseScene3DView {
 
         const isSpatialMode = store.get().dimensionMode === 'spatial';
         const targetY = activeTarget.mesh?.position?.y || 0;
+        const targetPos = activeTarget.mesh?.position || null;
         const hit = (!isSpatialMode && Math.abs(targetY) < 0.5)
-          ? (pickEquatorialPlane(ray, 0) || pickSphere(ray))
+          ? (pickEquatorialPlane(ray, 0) || pickSphere(ray, targetPos))
           : (!isSpatialMode && Math.abs(targetY) >= 0.5 && !activeTarget.latField)
-            ? (pickEquatorialPlane(ray, targetY) || pickSphere(ray))
-            : pickSphere(ray);
+            ? (pickEquatorialPlane(ray, targetY) || pickSphere(ray, targetPos))
+            : pickSphere(ray, targetPos);
         if (hit) {
           let angle = Math.atan2(hit.z, hit.x);
           if (angle < 0) angle += Math.PI * 2;
@@ -1271,7 +1297,12 @@ export class LabelOverlay3D {
       }
 
       let shouldShow = label.show !== false;
-      if (!showLabels && !showCoords) {
+      const isIndividualHidden = (label.name && !isLabelVisible(label.name, vis3d))
+        || (label.key && !isLabelVisible(label.key, vis3d))
+        || (label.text && !isLabelVisible(label.text, vis3d));
+      if (isIndividualHidden) {
+        shouldShow = false;
+      } else if (!showLabels && !showCoords) {
         shouldShow = false;
       } else if (label.isAngle) {
         if (!showLabels || !showAngles) shouldShow = false;
@@ -1593,6 +1624,147 @@ function setSegmentXZVertices(geom, cx, cz, radius, startAngle, sweepAngle, segm
   geom.computeVertexNormals();
 }
 
+/**
+ * Aligns a circle wireframe (originally on XZ plane with normal (0,1,0)) to any plane in 3D.
+ */
+export function alignCircleWireToPlane(circleWire, normal, center = null, radius = null, customTHREE = null) {
+  if (!circleWire) return;
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  const Vec3 = THREE?.Vector3 || circleWire.position.constructor;
+  const up = new Vec3(0, 1, 0);
+  if (normal) {
+    const lenSq = typeof normal.lengthSq === 'function'
+      ? normal.lengthSq()
+      : (normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    if (lenSq > 1e-7) {
+      const n = normal.clone ? normal.clone().normalize() : new Vec3(normal.x, normal.y, normal.z).normalize();
+      circleWire.quaternion.setFromUnitVectors(up, n);
+    } else {
+      circleWire.quaternion.identity();
+    }
+  } else {
+    circleWire.quaternion.identity();
+  }
+  if (center) {
+    circleWire.position.copy(center);
+  } else {
+    circleWire.position.set(0, 0, 0);
+  }
+  if (typeof radius === 'number' && Number.isFinite(radius) && radius > 0) {
+    circleWire.scale.setScalar(radius);
+  }
+}
+
+/**
+ * Computes the unique circumcircle and containing plane for any 3 points on sphere S²(O, R).
+ */
+export function computeConcyclicPlaneAndCircle(p1, p2, p3, R = 10, customTHREE = null) {
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  const Vec3 = THREE?.Vector3 || p1.constructor;
+  const v12 = new Vec3().subVectors(p2, p1);
+  const v13 = new Vec3().subVectors(p3, p1);
+  const normal = new Vec3().crossVectors(v12, v13);
+  const lenSq = normal.lengthSq();
+  if (lenSq < 1e-6) {
+    const fallbackN = new Vec3(0, 1, 0);
+    const u = new Vec3(1, 0, 0);
+    const v = new Vec3(0, 0, 1);
+    return {
+      normal: fallbackN,
+      center: new Vec3(0, 0, 0),
+      radius: R,
+      u,
+      v,
+      h: 0,
+    };
+  }
+  normal.normalize();
+  let h = p1.dot(normal);
+  if (h < -1e-5) {
+    if (typeof normal.negate === 'function') {
+      normal.negate();
+    } else if (typeof normal.multiplyScalar === 'function') {
+      normal.multiplyScalar(-1);
+    } else {
+      normal.x = -normal.x;
+      normal.y = -normal.y;
+      normal.z = -normal.z;
+    }
+    h = -h;
+  } else if (Math.abs(h) <= 1e-5) {
+    const refUp = new Vec3(0, 1, 0);
+    const dotUp = typeof normal.dot === 'function' ? normal.dot(refUp) : (normal.x * refUp.x + normal.y * refUp.y + normal.z * refUp.z);
+    if (dotUp < -1e-5 || (Math.abs(dotUp) <= 1e-5 && (normal.z < 0 || (normal.z === 0 && normal.x < 0)))) {
+      if (typeof normal.negate === 'function') {
+        normal.negate();
+      } else if (typeof normal.multiplyScalar === 'function') {
+        normal.multiplyScalar(-1);
+      } else {
+        normal.x = -normal.x;
+        normal.y = -normal.y;
+        normal.z = -normal.z;
+      }
+    }
+    h = 0;
+  }
+  const center = normal.clone().multiplyScalar(h);
+  const radius = Math.sqrt(Math.max(0.1, R * R - h * h));
+  const diff = new Vec3().subVectors(p1, center);
+  const u = diff.lengthSq() > 1e-6 ? diff.normalize() : new Vec3(1, 0, 0);
+  const v = new Vec3().crossVectors(normal, u).normalize();
+  return { normal, center, radius, u, v, h };
+}
+
+/**
+ * Generates a circular sector mesh in true 3D on any plane spanned by basis vectors u and v.
+ */
+export function setSector3DVertices(geom, center, u, v, radius, startAngle, sweepAngle, segments = 32, customTHREE = null) {
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  if (!THREE || !geom) return;
+  const positions = [];
+  const cx = center.x, cy = center.y, cz = center.z;
+  const ux = u.x, uy = u.y, uz = u.z;
+  const vx = v.x, vy = v.y, vz = v.z;
+  for (let i = 0; i < segments; i++) {
+    const a1 = startAngle + (sweepAngle * i) / segments;
+    const a2 = startAngle + (sweepAngle * (i + 1)) / segments;
+    const cos1 = Math.cos(a1), sin1 = Math.sin(a1);
+    const cos2 = Math.cos(a2), sin2 = Math.sin(a2);
+    positions.push(cx, cy, cz);
+    positions.push(cx + radius * (cos1 * ux + sin1 * vx), cy + radius * (cos1 * uy + sin1 * vy), cz + radius * (cos1 * uz + sin1 * vz));
+    positions.push(cx + radius * (cos2 * ux + sin2 * vx), cy + radius * (cos2 * uy + sin2 * vy), cz + radius * (cos2 * uz + sin2 * vz));
+  }
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geom.computeVertexNormals();
+}
+
+/**
+ * Generates a circular segment mesh in true 3D on any plane spanned by basis vectors u and v.
+ */
+export function setSegment3DVertices(geom, center, u, v, radius, startAngle, sweepAngle, segments = 32, customTHREE = null) {
+  const THREE = customTHREE || window?.THREE || globalThis?.THREE;
+  if (!THREE || !geom) return;
+  const cx = center.x, cy = center.y, cz = center.z;
+  const ux = u.x, uy = u.y, uz = u.z;
+  const vx = v.x, vy = v.y, vz = v.z;
+  const cos0 = Math.cos(startAngle), sin0 = Math.sin(startAngle);
+  const p0x = cx + radius * (cos0 * ux + sin0 * vx);
+  const p0y = cy + radius * (cos0 * uy + sin0 * vy);
+  const p0z = cz + radius * (cos0 * uz + sin0 * vz);
+  const positions = [];
+  for (let i = 1; i < segments; i++) {
+    const a1 = startAngle + (sweepAngle * i) / segments;
+    const a2 = startAngle + (sweepAngle * (i + 1)) / segments;
+    const cos1 = Math.cos(a1), sin1 = Math.sin(a1);
+    const cos2 = Math.cos(a2), sin2 = Math.sin(a2);
+    positions.push(p0x, p0y, p0z);
+    positions.push(cx + radius * (cos1 * ux + sin1 * vx), cy + radius * (cos1 * uy + sin1 * vy), cz + radius * (cos1 * uz + sin1 * vz));
+    positions.push(cx + radius * (cos2 * ux + sin2 * vx), cy + radius * (cos2 * uy + sin2 * vy), cz + radius * (cos2 * uz + sin2 * vz));
+  }
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geom.computeVertexNormals();
+}
+
 export function setRightAngle3DVertices(meshOrGeom, vertex, toward1, toward2, size = 1.3, customTHREE = null) {
   const THREE = customTHREE || window?.THREE || globalThis?.THREE;
   if (!THREE || !vertex || !toward1 || !toward2 || !meshOrGeom) return;
@@ -1723,8 +1895,9 @@ export function createGeodesicArc3D(THREE, ...args) {
 
 /**
  * Updates an existing geodesic arc line geometry in-place.
+ * Supports continuous curvature homotopy lambda in [0, 1] (0 = flat 1-simplex chord, 1 = spherical geodesic arc).
  */
-export function updateGeodesicArc3D(line, p1, p2, radius, numSegs = 36) {
+export function updateGeodesicArc3D(line, p1, p2, radius, numSegs = 36, curvatureLambda = 1) {
   if (!line || !line.geometry) return;
   const THREE = line.__THREE || (typeof window !== 'undefined' ? window.THREE : globalThis?.THREE);
   if (!THREE || !p1 || !p2) return;
@@ -1733,6 +1906,7 @@ export function updateGeodesicArc3D(line, p1, p2, radius, numSegs = 36) {
   const dotVal = Math.min(1, Math.max(-1, u1.dot(u2)));
   const theta = Math.acos(dotVal);
   const pts = [];
+  const lam = clamp(curvatureLambda ?? 1, 0, 1);
   if (theta < 1e-4) {
     pts.push(p1.clone(), p2.clone());
   } else {
@@ -1741,12 +1915,19 @@ export function updateGeodesicArc3D(line, p1, p2, radius, numSegs = 36) {
       const t = i / numSegs;
       const w1 = Math.sin((1 - t) * theta) / sinTh;
       const w2 = Math.sin(t * theta) / sinTh;
-      const p = new THREE.Vector3()
+      const sphPt = new THREE.Vector3()
         .addScaledVector(u1, w1)
         .addScaledVector(u2, w2)
         .normalize()
         .multiplyScalar(radius * 1.002);
-      pts.push(p);
+
+      if (lam >= 1) {
+        pts.push(sphPt);
+      } else {
+        const chordPt = new THREE.Vector3().lerpVectors(p1, p2, t);
+        const blended = new THREE.Vector3().lerpVectors(chordPt, sphPt, lam);
+        pts.push(blended);
+      }
     }
   }
   line.geometry.setFromPoints(pts);
@@ -1990,9 +2171,9 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.linePB = makeLine(THREE, PALETTE.orange);
 
     // Spherical Geodesic Great-Circle Arcs on S²
-    this.geodesicArcPA = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.blue);
-    this.geodesicArcPB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.orange);
-    this.geodesicArcAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.red);
+    this.geodesicArcPA = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicArcPB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicArcAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
     this.sphericalCapMesh = createSphericalTriangleMesh(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), R, PALETTE.sky, 0.22);
 
     this.sectorMesh = makeTriMesh(THREE, PALETTE.yellow, 0.16);
@@ -2018,10 +2199,48 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       this.angleAlphaAMesh, this.angleBetaBMesh
     );
 
+    const TAU_AAC = Math.PI * 2;
+    const normAAC = (a) => ((a % TAU_AAC) + TAU_AAC) % TAU_AAC;
+    const toCircleAngleAAC = (hit) => {
+      if (!this.circleInfo || !hit) return 0;
+      const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center);
+      return normAAC(Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u)));
+    };
+
     this.draggableTargets = [
-      { id: 'P', mesh: this.markerP, field: 'angleP', latField: 'latP' },
-      { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
-      { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
+      {
+        id: 'P',
+        mesh: this.markerP,
+        field: 'angleP',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampAngleInArc(targetAng, st.angleB, st.angleA, 0.15);
+          store.set({ angleP: clamped });
+        },
+      },
+      {
+        id: 'A',
+        mesh: this.markerA,
+        field: 'angleA',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampAngleInArc(targetAng, st.angleP, st.angleB, 0.2);
+          store.set({ angleA: clamped });
+        },
+      },
+      {
+        id: 'B',
+        mesh: this.markerB,
+        field: 'angleB',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampAngleInArc(targetAng, st.angleA, st.angleP, 0.2);
+          store.set({ angleB: clamped });
+        },
+      },
     ];
   }
 
@@ -2031,13 +2250,11 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const latP = state.latP ?? (Math.PI / 2);
     const latA = state.latA ?? (Math.PI / 2);
     const latB = state.latB ?? (Math.PI / 2);
-    const O = new THREE.Vector3(0, 0, 0);
     const A = new THREE.Vector3(
       R * Math.sin(latA) * Math.cos(state.angleA),
       R * Math.cos(latA),
@@ -2053,6 +2270,16 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       R * Math.cos(latP),
       R * Math.sin(latP) * Math.sin(state.angleP)
     );
+
+    const circleInfo = isSpatial
+      ? computeConcyclicPlaneAndCircle(A, B, P, R, THREE)
+      : { normal: new THREE.Vector3(0, 1, 0), center: new THREE.Vector3(0, 0, 0), radius: R, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
+
+    const O = new THREE.Vector3(0, 0, 0);
+    circleInfo.center = O;
+    circleInfo.radius = R;
+
+    alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
 
     this.markerO.position.copy(O);
     this.markerA.position.copy(A);
@@ -2070,65 +2297,71 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
     const showReflex = Boolean(state.vis3d?.reflex);
+    const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
 
     let sExcess = null;
     let capCenter = null;
 
+    // Straight Euclidean chords cutting through the interior of the translucent sphere
+    this.linePA.geometry.setFromPoints([P, A]);
+    this.linePB.geometry.setFromPoints([P, B]);
+    this.linePA.visible = true;
+    this.linePB.visible = true;
+
+    // Flat Euclidean triangles in R^3
+    setTriVertices(this.triOPAMesh.geometry, O, P, A);
+    setTriVertices(this.triOPBMesh.geometry, O, P, B);
+    this.triOPAMesh.visible = showArea;
+    this.triOPBMesh.visible = showArea;
+
     if (isSpatial) {
-      this.linePA.visible = false;
-      this.linePB.visible = false;
-      this.sectorMesh.visible = false;
+      setTriVertices(this.sectorMesh.geometry, O, A, B);
+      this.sectorMesh.visible = showArea;
 
-      updateGeodesicArc3D(this.geodesicArcPA, P, A, R);
-      updateGeodesicArc3D(this.geodesicArcPB, P, B, R);
+      // Curved subtended arc on the sphere surface S² (distinct PALETTE.amber token)
       updateGeodesicArc3D(this.geodesicArcAB, A, B, R);
-      this.geodesicArcPA.visible = true;
-      this.geodesicArcPB.visible = true;
-      this.geodesicArcAB.visible = true;
+      const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+      this.geodesicArcAB.visible = showGeodesic;
 
-      updateSphericalTriangleMesh(this.sphericalCapMesh, A, B, P, R);
-      this.sphericalCapMesh.visible = showArea;
+      // Geodesic chord overlays on S² (optional dual overlay)
+      if (showGeodesicOverlay) {
+        updateGeodesicArc3D(this.geodesicArcPA, P, A, R);
+        updateGeodesicArc3D(this.geodesicArcPB, P, B, R);
+        this.geodesicArcPA.visible = true;
+        this.geodesicArcPB.visible = true;
+      } else {
+        this.geodesicArcPA.visible = false;
+        this.geodesicArcPB.visible = false;
+      }
 
-      setTriVertices(this.triOPAMesh.geometry, O, P, A);
-      setTriVertices(this.triOPBMesh.geometry, O, P, B);
-      this.triOPAMesh.visible = showArea;
-      this.triOPBMesh.visible = showArea;
-
-      sExcess = computeSphericalTriangleExcess(A, B, P, R, THREE);
-      const cX = (A.x + B.x + P.x) / 3;
-      const cY = (A.y + B.y + P.y) / 3;
-      const cZ = (A.z + B.z + P.z) / 3;
-      const cLen = Math.hypot(cX, cY, cZ) || 1;
-      capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
-
-      // Tangent direction vectors at vertices along geodesics
-      const tPA = getGeodesicTangent(P, A, THREE);
-      const tPB = getGeodesicTangent(P, B, THREE);
-      setAngleWedgeVertices3D(this.inscribedAngleMesh, P, P.clone().addScaledVector(tPA, 2.5), P.clone().addScaledVector(tPB, 2.5), 2.4);
-      setAngleWedgeVertices3D(this.inscribedReflexMesh, P, P.clone().addScaledVector(tPA, 2.5), P.clone().addScaledVector(tPB, 2.5), 3.0, 32, THREE, true);
+      // Spherical triangle cap on S² (optional dual overlay)
+      if (showSphericalCap) {
+        updateSphericalTriangleMesh(this.sphericalCapMesh, A, B, P, R);
+        this.sphericalCapMesh.visible = showArea;
+        sExcess = computeSphericalTriangleExcess(A, B, P, R, THREE);
+        const cX = (A.x + B.x + P.x) / 3;
+        const cY = (A.y + B.y + P.y) / 3;
+        const cZ = (A.z + B.z + P.z) / 3;
+        const cLen = Math.hypot(cX, cY, cZ) || 1;
+        capCenter = new THREE.Vector3((cX / cLen) * (R * 1.08), (cY / cLen) * (R * 1.08), (cZ / cLen) * (R * 1.08));
+      } else {
+        this.sphericalCapMesh.visible = false;
+      }
     } else {
       this.geodesicArcPA.visible = false;
       this.geodesicArcPB.visible = false;
       this.geodesicArcAB.visible = false;
       this.sphericalCapMesh.visible = false;
 
-      this.linePA.geometry.setFromPoints([P, A]);
-      this.linePB.geometry.setFromPoints([P, B]);
-      this.linePA.visible = true;
-      this.linePB.visible = true;
-
       const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
       setSectorXZVertices(this.sectorMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
-      setTriVertices(this.triOPAMesh.geometry, O, P, A);
-      setTriVertices(this.triOPBMesh.geometry, O, P, B);
-
       this.sectorMesh.visible = showArea;
-      this.triOPAMesh.visible = showArea;
-      this.triOPBMesh.visible = showArea;
-
-      setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4);
-      setAngleWedgeVertices3D(this.inscribedReflexMesh, P, A, B, 3.0, 32, THREE, true);
     }
+
+    // Inscribed angle wedge measures the true Euclidean angle between straight chords PA and PB
+    setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4);
+    setAngleWedgeVertices3D(this.inscribedReflexMesh, P, A, B, 3.0, 32, THREE, true);
 
     const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
     const isReflexSubtended = arcRange.sweep > Math.PI;
@@ -2164,7 +2397,7 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const A_pos = A.clone().multiplyScalar(1.15);
     const B_pos = B.clone().multiplyScalar(1.15);
     const P_pos = P.clone().multiplyScalar(1.15);
-    const O_pos = new THREE.Vector3(0, 0.8, 0);
+    const O_pos = isSpatial ? O.clone().add(new THREE.Vector3(0, 0.8, 0)) : new THREE.Vector3(0, 0.8, 0);
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -2191,9 +2424,27 @@ export class AngleAtCentre3DView extends BaseScene3DView {
         show: true,
       });
     }
+    this.lastComputed3D = {
+      degCentral: degCent,
+      degInscribed: degInsc,
+      degAlpha,
+      degBeta,
+      ratio: degInsc > 1e-4 ? degCent / degInsc : 2.0,
+      reflexCentral: 360 - degCent,
+      reflexInscribed: 360 - degInsc,
+      perigon: 360,
+      excessDeg: sExcess ? sExcess.excessDeg : 0,
+      sphArea: sExcess ? sExcess.area : 0,
+      O, A, B, P,
+      R3D: R,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 2. Angles in Same Segment 3D Scene View
@@ -2220,12 +2471,12 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     this.lineP2A = makeLine(THREE, PALETTE.emerald);
     this.lineP2B = makeLine(THREE, PALETTE.emerald);
 
-    // Spherical Great-Circle Geodesic Arcs & Mesh Caps on S²
-    this.geodesicChordAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.red);
-    this.geodesicP1A = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.blue);
-    this.geodesicP1B = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.blue);
-    this.geodesicP2A = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.emerald);
-    this.geodesicP2B = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.emerald);
+    // Spherical Great-Circle Geodesic Arcs & Mesh Caps on S² (Distinct PALETTE.amber token for boundary arc primitive)
+    this.geodesicChordAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicP1A = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicP1B = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicP2A = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicP2B = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
     this.sphericalCap1 = createSphericalTriangleMesh(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), R, PALETTE.blue, 0.16);
     this.sphericalCap2 = createSphericalTriangleMesh(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), R, PALETTE.emerald, 0.16);
 
@@ -2249,11 +2500,118 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       this.reflexP1Mesh, this.reflexP2Mesh
     );
 
+    const TAU = Math.PI * 2;
+    const norm = (a) => ((a % TAU) + TAU) % TAU;
+    const clampAngleToSeg = (targetAng, aA, aB, refAng, margin = 0.08) => {
+      const t = norm(targetAng);
+      const a = norm(aA);
+      const b = norm(aB);
+      const ref = norm(refAng);
+      const sweepCW = norm(b - a);
+      const refOffset = norm(ref - a);
+      const refInCW = (refOffset > 0 && refOffset < sweepCW);
+      const start = refInCW ? a : b;
+      const sweep = refInCW ? sweepCW : (TAU - sweepCW);
+      const effectiveMargin = Math.min(margin, sweep * 0.1);
+      const offset = norm(t - start);
+      if (offset >= effectiveMargin && offset <= sweep - effectiveMargin) {
+        return t;
+      }
+      if (offset < effectiveMargin) {
+        return norm(start + effectiveMargin);
+      }
+      if (offset <= sweep) {
+        return norm(start + sweep - effectiveMargin);
+      }
+      const distFromEnd = offset - sweep;
+      const distFromStart = TAU - offset;
+      return distFromEnd < distFromStart
+        ? norm(start + sweep - effectiveMargin)
+        : norm(start + effectiveMargin);
+    };
+
     this.draggableTargets = [
-      { id: 'P1', mesh: this.markerP1, field: 'angleP1', latField: 'latP1' },
-      { id: 'P2', mesh: this.markerP2, field: 'angleP2', latField: 'latP2' },
-      { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
-      { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
+      {
+        id: 'P1',
+        mesh: this.markerP1,
+        field: 'angleP1',
+        latField: 'latP1',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const p1 = clampAngleToSeg(angle, st.angleA, st.angleB, st.angleP1);
+          const sep1 = clampMinAngleDistance(p1, st.angleP2, 0.12);
+          store.set({ angleP1: clampAngleToSeg(sep1, st.angleA, st.angleB, st.angleP1) });
+        },
+      },
+      {
+        id: 'P2',
+        mesh: this.markerP2,
+        field: 'angleP2',
+        latField: 'latP2',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          if (st.dimensionMode === 'spatial' && this.circleInfo && hit) {
+            const d = hit.clone().sub(this.circleInfo.center);
+            let psi = Math.atan2(d.dot(this.circleInfo.v), d.dot(this.circleInfo.u));
+            if (psi < 0) psi += Math.PI * 2;
+            const TAU = Math.PI * 2;
+            const norm = (a) => ((a % TAU) + TAU) % TAU;
+            const sweepCW2D = norm(st.angleB - st.angleA);
+            const p1Offset2D = norm(st.angleP1 - st.angleA);
+            const p1InCW2D = (p1Offset2D > 0 && p1Offset2D < sweepCW2D);
+            const segStart2D = p1InCW2D ? st.angleA : st.angleB;
+            const segSweep2D = p1InCW2D ? sweepCW2D : (TAU - sweepCW2D);
+
+            const toCircleAngle = (pt) => {
+              const dPt = new this.THREE.Vector3().subVectors(pt, this.circleInfo.center);
+              return norm(Math.atan2(dPt.dot(this.circleInfo.v), dPt.dot(this.circleInfo.u)));
+            };
+            const psiA = toCircleAngle(this.markerA.position);
+            const psiB = toCircleAngle(this.markerB.position);
+            const psiP1 = toCircleAngle(this.markerP1.position);
+            const sweepCWSpatial = norm(psiB - psiA);
+            const p1OffsetSpatial = norm(psiP1 - psiA);
+            const p1InCWSpatial = (p1OffsetSpatial > 0 && p1OffsetSpatial < sweepCWSpatial);
+            const segStartSpatial = p1InCWSpatial ? psiA : psiB;
+            const segSweepSpatial = p1InCWSpatial ? sweepCWSpatial : (TAU - sweepCWSpatial);
+
+            const rawT = norm(psi - segStartSpatial) / (segSweepSpatial || 1);
+            const tClamped = Math.max(0.01, Math.min(0.99, rawT));
+            const newAngleP2 = norm(segStart2D + tClamped * segSweep2D);
+            store.set({ angleP2: newAngleP2 });
+            return;
+          }
+          // Always constrain P2 to P1's segment so both remain strictly in the SAME segment
+          const p2 = clampAngleToSeg(angle, st.angleA, st.angleB, st.angleP1);
+          store.set({ angleP2: p2 });
+        },
+      },
+      {
+        id: 'A',
+        mesh: this.markerA,
+        field: 'angleA',
+        latField: 'latA',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const nextA = clampMinAngleDistance(angle, st.angleB, 0.25);
+          const p1 = clampAngleToSeg(st.angleP1, nextA, st.angleB, st.angleP1);
+          const p2 = clampAngleToSeg(st.angleP2, nextA, st.angleB, st.angleP1);
+          store.set({ angleA: nextA, angleP1: p1, angleP2: p2 });
+        },
+      },
+      {
+        id: 'B',
+        mesh: this.markerB,
+        field: 'angleB',
+        latField: 'latB',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const nextB = clampMinAngleDistance(angle, st.angleA, 0.25);
+          const p1 = clampAngleToSeg(st.angleP1, st.angleA, nextB, st.angleP1);
+          const p2 = clampAngleToSeg(st.angleP2, st.angleA, nextB, st.angleP1);
+          store.set({ angleB: nextB, angleP1: p1, angleP2: p2 });
+        },
+      },
     ];
   }
 
@@ -2263,7 +2621,6 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
@@ -2285,11 +2642,58 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       R * Math.cos(latP1),
       R * Math.sin(latP1) * Math.sin(state.angleP1)
     );
-    const P2 = new THREE.Vector3(
+    let P2 = new THREE.Vector3(
       R * Math.sin(latP2) * Math.cos(state.angleP2),
       R * Math.cos(latP2),
       R * Math.sin(latP2) * Math.sin(state.angleP2)
     );
+
+    const circleInfo = isSpatial
+      ? computeConcyclicPlaneAndCircle(A, B, P1, R, THREE)
+      : { normal: new THREE.Vector3(0, 1, 0), center: new THREE.Vector3(0, 0, 0), radius: R, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
+    const O = isSpatial ? circleInfo.center : new THREE.Vector3(0, 0, 0);
+    this.circleInfo = circleInfo;
+
+    alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
+
+    let segStartSpatial = 0;
+    let segSweepSpatial = Math.PI * 2;
+    if (isSpatial) {
+      // Keep P2 strictly concyclic on the small circle wire on S² AND in the exact SAME segment as P1
+      const TAU = Math.PI * 2;
+      const norm = (a) => ((a % TAU) + TAU) % TAU;
+
+      // 2D relative position of P2 within the active segment arc
+      const sweepCW2D = norm(state.angleB - state.angleA);
+      const p1Offset2D = norm(state.angleP1 - state.angleA);
+      const p1InCW2D = (p1Offset2D > 0 && p1Offset2D < sweepCW2D);
+      const segStart2D = p1InCW2D ? state.angleA : state.angleB;
+      const segSweep2D = p1InCW2D ? sweepCW2D : (TAU - sweepCW2D);
+      const rawT = norm(state.angleP2 - segStart2D) / (segSweep2D || 1);
+      const t2 = Math.max(0.01, Math.min(0.99, rawT));
+
+      // Circle plane local angular coordinates for A, B, P1
+      const toCircleAngle = (pt) => {
+        const d = new THREE.Vector3().subVectors(pt, circleInfo.center);
+        return norm(Math.atan2(d.dot(circleInfo.v), d.dot(circleInfo.u)));
+      };
+      const psiA = toCircleAngle(A);
+      const psiB = toCircleAngle(B);
+      const psiP1 = toCircleAngle(P1);
+
+      // In the circle wire plane, identify the arc between A and B containing P1
+      const sweepCWSpatial = norm(psiB - psiA);
+      const p1OffsetSpatial = norm(psiP1 - psiA);
+      const p1InCWSpatial = (p1OffsetSpatial > 0 && p1OffsetSpatial < sweepCWSpatial);
+      segStartSpatial = p1InCWSpatial ? psiA : psiB;
+      segSweepSpatial = p1InCWSpatial ? sweepCWSpatial : (TAU - sweepCWSpatial);
+
+      // Map P2 into the identical segment arc so ∠AP1B ≡ ∠AP2B exactly
+      const psiP2 = norm(segStartSpatial + t2 * segSweepSpatial);
+      P2 = circleInfo.center.clone()
+        .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiP2))
+        .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiP2));
+    }
 
     this.markerA.position.copy(A);
     this.markerB.position.copy(B);
@@ -2299,51 +2703,73 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false) && (state.showShading !== false);
     const showAngles = (state.vis3d?.angles !== false) && (state.showAngles !== false);
     const showReflex = Boolean(state.vis3d?.reflex);
+    const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
 
     let ex1 = null;
     let capCenter1 = null;
 
+    // Straight Euclidean chords cutting through the interior of the translucent sphere
+    this.chordAB.geometry.setFromPoints([A, B]);
+    this.lineP1A.geometry.setFromPoints([P1, A]);
+    this.lineP1B.geometry.setFromPoints([P1, B]);
+    this.lineP2A.geometry.setFromPoints([P2, A]);
+    this.lineP2B.geometry.setFromPoints([P2, B]);
+    this.chordAB.visible = true;
+    this.lineP1A.visible = true;
+    this.lineP1B.visible = true;
+    this.lineP2A.visible = true;
+    this.lineP2B.visible = true;
+
+    // Flat Euclidean triangles in R^3
+    setTriVertices(this.tri1Mesh.geometry, P1, A, B);
+    setTriVertices(this.tri2Mesh.geometry, P2, A, B);
+    this.tri1Mesh.visible = showArea;
+    this.tri2Mesh.visible = showArea;
+
     if (isSpatial) {
-      this.chordAB.visible = false;
-      this.lineP1A.visible = false;
-      this.lineP1B.visible = false;
-      this.lineP2A.visible = false;
-      this.lineP2B.visible = false;
-      this.segmentMesh.visible = false;
-      this.tri1Mesh.visible = false;
-      this.tri2Mesh.visible = false;
+      const segStart = segStartSpatial;
+      const segSweep = segSweepSpatial;
+      setSegment3DVertices(this.segmentMesh.geometry, circleInfo.center, circleInfo.u, circleInfo.v, circleInfo.radius, segStart, segSweep, 32, THREE);
+      this.segmentMesh.visible = showArea;
 
+      // Curved subtended arc on the sphere surface S² (distinct PALETTE.amber primitive)
       updateGeodesicArc3D(this.geodesicChordAB, A, B, R);
-      updateGeodesicArc3D(this.geodesicP1A, P1, A, R);
-      updateGeodesicArc3D(this.geodesicP1B, P1, B, R);
-      updateGeodesicArc3D(this.geodesicP2A, P2, A, R);
-      updateGeodesicArc3D(this.geodesicP2B, P2, B, R);
-      this.geodesicChordAB.visible = true;
-      this.geodesicP1A.visible = true;
-      this.geodesicP1B.visible = true;
-      this.geodesicP2A.visible = true;
-      this.geodesicP2B.visible = true;
+      const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+      this.geodesicChordAB.visible = showGeodesic;
 
-      updateSphericalTriangleMesh(this.sphericalCap1, A, B, P1, R);
-      updateSphericalTriangleMesh(this.sphericalCap2, A, B, P2, R);
-      this.sphericalCap1.visible = showArea;
-      this.sphericalCap2.visible = showArea;
+      // Geodesic chord overlays on S² (optional dual overlay)
+      if (showGeodesicOverlay) {
+        updateGeodesicArc3D(this.geodesicP1A, P1, A, R);
+        updateGeodesicArc3D(this.geodesicP1B, P1, B, R);
+        updateGeodesicArc3D(this.geodesicP2A, P2, A, R);
+        updateGeodesicArc3D(this.geodesicP2B, P2, B, R);
+        this.geodesicP1A.visible = true;
+        this.geodesicP1B.visible = true;
+        this.geodesicP2A.visible = true;
+        this.geodesicP2B.visible = true;
+      } else {
+        this.geodesicP1A.visible = false;
+        this.geodesicP1B.visible = false;
+        this.geodesicP2A.visible = false;
+        this.geodesicP2B.visible = false;
+      }
 
-      ex1 = computeSphericalTriangleExcess(A, B, P1, R, THREE);
-      const c1X = (A.x + B.x + P1.x) / 3, c1Y = (A.y + B.y + P1.y) / 3, c1Z = (A.z + B.z + P1.z) / 3;
-      const c1Len = Math.hypot(c1X, c1Y, c1Z) || 1;
-      capCenter1 = new THREE.Vector3((c1X / c1Len) * (R * 1.08), (c1Y / c1Len) * (R * 1.08), (c1Z / c1Len) * (R * 1.08));
+      // Spherical triangle caps on S² (optional dual overlay)
+      if (showSphericalCap) {
+        updateSphericalTriangleMesh(this.sphericalCap1, A, B, P1, R);
+        updateSphericalTriangleMesh(this.sphericalCap2, A, B, P2, R);
+        this.sphericalCap1.visible = showArea;
+        this.sphericalCap2.visible = showArea;
 
-      // Tangent direction vectors at vertices along geodesics
-      const t1A = getGeodesicTangent(P1, A, THREE);
-      const t1B = getGeodesicTangent(P1, B, THREE);
-      setAngleWedgeVertices3D(this.angleP1Mesh, P1, P1.clone().addScaledVector(t1A, 2.5), P1.clone().addScaledVector(t1B, 2.5), 2.4);
-      setAngleWedgeVertices3D(this.reflexP1Mesh, P1, P1.clone().addScaledVector(t1A, 2.5), P1.clone().addScaledVector(t1B, 2.5), 3.0, 32, THREE, true);
-
-      const t2A = getGeodesicTangent(P2, A, THREE);
-      const t2B = getGeodesicTangent(P2, B, THREE);
-      setAngleWedgeVertices3D(this.angleP2Mesh, P2, P2.clone().addScaledVector(t2A, 2.5), P2.clone().addScaledVector(t2B, 2.5), 2.4);
-      setAngleWedgeVertices3D(this.reflexP2Mesh, P2, P2.clone().addScaledVector(t2A, 2.5), P2.clone().addScaledVector(t2B, 2.5), 3.0, 32, THREE, true);
+        ex1 = computeSphericalTriangleExcess(A, B, P1, R, THREE);
+        const c1X = (A.x + B.x + P1.x) / 3, c1Y = (A.y + B.y + P1.y) / 3, c1Z = (A.z + B.z + P1.z) / 3;
+        const c1Len = Math.hypot(c1X, c1Y, c1Z) || 1;
+        capCenter1 = new THREE.Vector3((c1X / c1Len) * (R * 1.08), (c1Y / c1Len) * (R * 1.08), (c1Z / c1Len) * (R * 1.08));
+      } else {
+        this.sphericalCap1.visible = false;
+        this.sphericalCap2.visible = false;
+      }
     } else {
       this.geodesicChordAB.visible = false;
       this.geodesicP1A.visible = false;
@@ -2353,37 +2779,20 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       this.sphericalCap1.visible = false;
       this.sphericalCap2.visible = false;
 
-      this.chordAB.geometry.setFromPoints([A, B]);
-      this.lineP1A.geometry.setFromPoints([P1, A]);
-      this.lineP1B.geometry.setFromPoints([P1, B]);
-      this.lineP2A.geometry.setFromPoints([P2, A]);
-      this.lineP2B.geometry.setFromPoints([P2, B]);
-      this.chordAB.visible = true;
-      this.lineP1A.visible = true;
-      this.lineP1B.visible = true;
-      this.lineP2A.visible = true;
-      this.lineP2B.visible = true;
-
-      setTriVertices(this.tri1Mesh.geometry, P1, A, B);
-      setTriVertices(this.tri2Mesh.geometry, P2, A, B);
-
       const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP1);
       const TAU = Math.PI * 2;
       const segStart = (arcRange.start + arcRange.sweep) % TAU;
       const segSweep = TAU - arcRange.sweep;
       setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, segStart, segSweep, 32);
-
       this.segmentMesh.visible = showArea;
-      this.tri1Mesh.visible = showArea;
-      this.tri2Mesh.visible = showArea;
-
-      setAngleWedgeVertices3D(this.angleP1Mesh, P1, A, B, 2.4);
-      setAngleWedgeVertices3D(this.angleP2Mesh, P2, A, B, 2.4);
-      setAngleWedgeVertices3D(this.reflexP1Mesh, P1, A, B, 3.0, 32, THREE, true);
-      setAngleWedgeVertices3D(this.reflexP2Mesh, P2, A, B, 3.0, 32, THREE, true);
     }
 
-    const O = new THREE.Vector3(0, 0, 0);
+    // Inscribed angle wedges measure the true Euclidean angles between straight chords
+    setAngleWedgeVertices3D(this.angleP1Mesh, P1, A, B, 2.4);
+    setAngleWedgeVertices3D(this.angleP2Mesh, P2, A, B, 2.4);
+    setAngleWedgeVertices3D(this.reflexP1Mesh, P1, A, B, 3.0, 32, THREE, true);
+    setAngleWedgeVertices3D(this.reflexP2Mesh, P2, A, B, 3.0, 32, THREE, true);
+
     this.markerO.position.copy(O);
     this.lineOA.geometry.setFromPoints([O, A]);
     this.lineOB.geometry.setFromPoints([O, B]);
@@ -2393,11 +2802,17 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     const showCenter = state.showCenter !== false;
     this.markerO.visible = this.lineOA.visible = this.lineOB.visible = showCenter;
 
-    this.angleP1Mesh.visible = this.angleP2Mesh.visible = showAngles;
-    this.reflexP1Mesh.visible = this.reflexP2Mesh.visible = showReflex;
+    const isP1AngleVisible = showAngles && isLabelVisible('θ₁', state.vis3d) && isLabelVisible('angP1', state.vis3d) && isLabelVisible('θ1', state.vis3d) && isLabelVisible('θ', state.vis3d);
+    const isP2AngleVisible = showAngles && isLabelVisible('θ₂', state.vis3d) && isLabelVisible('angP2', state.vis3d) && isLabelVisible('θ2', state.vis3d) && isLabelVisible('θ', state.vis3d);
+    const isCentralVisible = showCenter && showAngles && isLabelVisible('2θ', state.vis3d) && isLabelVisible('central', state.vis3d);
+
+    this.angleP1Mesh.visible = isP1AngleVisible;
+    this.angleP2Mesh.visible = isP2AngleVisible;
+    this.reflexP1Mesh.visible = showReflex && isP1AngleVisible;
+    this.reflexP2Mesh.visible = showReflex && isP2AngleVisible;
 
     setAngleWedgeVertices3D(this.centralAngleMesh, O, A, B, 2.6);
-    this.centralAngleMesh.visible = showCenter && showAngles;
+    this.centralAngleMesh.visible = isCentralVisible;
 
     const degP1 = get3DAngleDegrees(P1, A, B, THREE);
     const degP2 = get3DAngleDegrees(P2, A, B, THREE);
@@ -2417,16 +2832,33 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-red' },
       { key: 'P1', at: P1_pos, name: 'P₁', text: 'P₁', coords: P1, color: 'color-blue' },
       { key: 'P2', at: P2_pos, name: 'P₂', text: 'P₂', coords: P2, color: 'color-emerald' },
-      { key: 'angP1', at: p1LabelPos, text: `θ₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
-      { key: 'angP2', at: p2LabelPos, text: `θ₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showAngles },
-      { key: 'reflexP1', at: get3DReflexBisector(P1, A, B, 4.0, THREE), text: `θ₁* = ${(360 - degP1).toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexP2', at: get3DReflexBisector(P2, A, B, 4.0, THREE), text: `θ₂* = ${(360 - degP2).toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'angP1', name: 'θ₁', at: p1LabelPos, text: `θ₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: isP1AngleVisible },
+      { key: 'angP2', name: 'θ₂', at: p2LabelPos, text: `θ₂ = ${degP2.toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: isP2AngleVisible },
+      { key: 'reflexP1', name: 'θ₁*', at: get3DReflexBisector(P1, A, B, 4.0, THREE), text: `θ₁* = ${(360 - degP1).toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showReflex && isP1AngleVisible && (state.vis3d?.labels !== false) },
+      { key: 'reflexP2', name: 'θ₂*', at: get3DReflexBisector(P2, A, B, 4.0, THREE), text: `θ₂* = ${(360 - degP2).toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showReflex && isP2AngleVisible && (state.vis3d?.labels !== false) },
     ];
     if (showCenter) {
+      const oPos = isSpatial ? O.clone().add(circleInfo.normal.clone().multiplyScalar(0.8)) : new THREE.Vector3(0, 0.8, 0);
       this.currentLabels.push(
-        { key: 'O', at: new THREE.Vector3(0, 0.8, 0), name: 'O', text: 'O', coords: O, color: 'color-indigo' },
-        { key: 'central', at: centLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles }
+        { key: 'O', at: oPos, name: 'O', text: 'O', coords: O, color: 'color-indigo' },
+        { key: 'central', name: '2θ', at: centLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: isCentralVisible }
       );
+    }
+    if (isSpatial && showGeodesic) {
+      const midArc = new THREE.Vector3().addVectors(A, B).normalize().multiplyScalar(R * 1.08);
+      const uA = A.clone().normalize();
+      const uB = B.clone().normalize();
+      const dotAB = Math.max(-1, Math.min(1, uA.dot(uB)));
+      const dCent = Math.acos(dotAB);
+      const arcLen3D = R * dCent;
+      this.currentLabels.push({
+        key: 'arcAB',
+        at: midArc,
+        text: `Arc AB = ${arcLen3D.toFixed(1)}`,
+        isAngle: true,
+        color: 'color-amber',
+        show: true,
+      });
     }
     if (isSpatial && capCenter1 && ex1) {
       this.currentLabels.push({
@@ -2438,9 +2870,25 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
         show: true,
       });
     }
+    this.lastComputed3D = {
+      degP1,
+      degP2,
+      diffDeg: Math.abs(degP1 - degP2),
+      degCent,
+      reflexP1: 360 - degP1,
+      reflexP2: 360 - degP2,
+      P1, P2, A, B, O,
+      R3D: R,
+      chordAB: A.distanceTo(B),
+      arcAB: isSpatial ? R * Math.acos(Math.max(-1, Math.min(1, A.clone().normalize().dot(B.clone().normalize())))) : R * Math.abs(state.angleB - state.angleA),
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 3. Cyclic Quadrilateral 3D Scene View
@@ -2468,12 +2916,12 @@ export class CyclicQuad3DView extends BaseScene3DView {
     this.rayExteriorArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 4.5, PALETTE.rose, 0.7, 0.35);
 
     // Spherical Geodesic Great-Circle Arcs & Mesh Caps on S²
-    this.geodesicAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.indigo);
-    this.geodesicBC = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.indigo);
-    this.geodesicCD = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.indigo);
-    this.geodesicDA = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.indigo);
-    this.geodesicDiagAC = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.lavender, 36, true);
-    this.geodesicDiagBD = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.sky, 36, true);
+    this.geodesicAB = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicBC = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicCD = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicDA = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber);
+    this.geodesicDiagAC = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber, 36, true);
+    this.geodesicDiagBD = createGeodesicArc3D(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), R, PALETTE.amber, 36, true);
     this.sphQuadMesh1 = createSphericalTriangleMesh(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), R, PALETTE.indigo, 0.16);
     this.sphQuadMesh2 = createSphericalTriangleMesh(THREE, new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), R, PALETTE.indigo, 0.16);
 
@@ -2501,11 +2949,95 @@ export class CyclicQuad3DView extends BaseScene3DView {
       this.reflexAMesh, this.reflexBMesh, this.reflexCMesh, this.reflexDMesh
     );
 
+    const TAU_CQ = Math.PI * 2;
+    const normCQ = (a) => ((a % TAU_CQ) + TAU_CQ) % TAU_CQ;
+    const toCircleAngleCQ = (hit) => {
+      if (!this.circleInfo || !hit) return 0;
+      const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center);
+      return normCQ(Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u)));
+    };
+
     this.draggableTargets = [
-      { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
-      { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
-      { id: 'C', mesh: this.markerC, field: 'angleC', latField: 'latC' },
-      { id: 'D', mesh: this.markerD, field: 'angleD', latField: 'latD' },
+      {
+        id: 'A',
+        mesh: this.markerA,
+        field: 'angleA',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampCyclicAngle(targetAng, st.angleB, st.angleD, st.angleC, 0.2);
+          store.set({ angleA: clamped });
+        },
+      },
+      {
+        id: 'B',
+        mesh: this.markerB,
+        field: 'angleB',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampCyclicAngle(targetAng, st.angleA, st.angleC, st.angleD, 0.2);
+          store.set({ angleB: clamped });
+        },
+      },
+      {
+        id: 'C',
+        mesh: this.markerC,
+        field: 'angleC',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const targetAng = angle;
+          const clamped = clampCyclicAngle(targetAng, st.angleD, st.angleB, st.angleA, 0.2);
+          store.set({ angleC: clamped });
+        },
+      },
+      {
+        id: 'D',
+        mesh: this.markerD,
+        field: 'angleD',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          if (st.dimensionMode === 'spatial' && this.circleInfo && hit) {
+            const TAU = Math.PI * 2;
+            const norm = (a) => ((a % TAU) + TAU) % TAU;
+
+            // Canonical 2D arc containing D (between A and C, excluding B) with t in [0, 1] (0 = A, 1 = C)
+            const sweepPos2D = norm(st.angleC - st.angleA);
+            const bOffset2D = norm(st.angleB - st.angleA);
+            const bInPos2D = (bOffset2D > 0 && bOffset2D < sweepPos2D);
+            const sweepAC2D = bInPos2D ? -(TAU - sweepPos2D) : sweepPos2D;
+
+            // 3D circle plane local angular coordinates for A, B, C
+            const toCircleAngle = (pt) => {
+              const dPt = new this.THREE.Vector3().subVectors(pt, this.circleInfo.center);
+              return norm(Math.atan2(dPt.dot(this.circleInfo.v), dPt.dot(this.circleInfo.u)));
+            };
+            const psiA = toCircleAngle(this.markerA.position);
+            const psiB = toCircleAngle(this.markerB.position);
+            const psiC = toCircleAngle(this.markerC.position);
+
+            const sweepPosSpatial = norm(psiC - psiA);
+            const bOffsetSpatial = norm(psiB - psiA);
+            const bInPosSpatial = (bOffsetSpatial > 0 && bOffsetSpatial < sweepPosSpatial);
+            const sweepACSpatial = bInPosSpatial ? -(TAU - sweepPosSpatial) : sweepPosSpatial;
+
+            // Hit point's angular coordinate on 3D circle plane
+            const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center);
+            const psiHit = norm(Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u)));
+
+            const rawT = sweepACSpatial > 0
+              ? norm(psiHit - psiA) / sweepACSpatial
+              : norm(psiA - psiHit) / (-sweepACSpatial);
+            const tClamped = Math.max(0.01, Math.min(0.99, rawT));
+            const newAngleD = norm(st.angleA + tClamped * sweepAC2D);
+            const clamped = clampCyclicAngle(newAngleD, st.angleC, st.angleA, st.angleB, 0.2);
+            store.set({ angleD: clamped });
+            return;
+          }
+          const clamped = clampCyclicAngle(angle, st.angleC, st.angleA, st.angleB, 0.2);
+          store.set({ angleD: clamped });
+        },
+      },
     ];
   }
 
@@ -2515,7 +3047,6 @@ export class CyclicQuad3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
@@ -2525,7 +3056,53 @@ export class CyclicQuad3DView extends BaseScene3DView {
     const A = new THREE.Vector3(R * Math.sin(latA) * Math.cos(state.angleA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(state.angleA));
     const B = new THREE.Vector3(R * Math.sin(latB) * Math.cos(state.angleB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(state.angleB));
     const C = new THREE.Vector3(R * Math.sin(latC) * Math.cos(state.angleC), R * Math.cos(latC), R * Math.sin(latC) * Math.sin(state.angleC));
-    const D = new THREE.Vector3(R * Math.sin(latD) * Math.cos(state.angleD), R * Math.cos(latD), R * Math.sin(latD) * Math.sin(state.angleD));
+    let D = new THREE.Vector3(R * Math.sin(latD) * Math.cos(state.angleD), R * Math.cos(latD), R * Math.sin(latD) * Math.sin(state.angleD));
+
+    const circleInfo = isSpatial
+      ? computeConcyclicPlaneAndCircle(A, B, C, R, THREE)
+      : { normal: new THREE.Vector3(0, 1, 0), center: new THREE.Vector3(0, 0, 0), radius: R, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
+    const O = new THREE.Vector3(0, 0, 0);
+    circleInfo.center = O;
+    circleInfo.radius = R;
+    this.circleInfo = circleInfo;
+
+    alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
+
+    if (isSpatial) {
+      // Keep D strictly concyclic on the small circle wire on S² between A and C, preserving 2D cyclic ordering
+      const TAU = Math.PI * 2;
+      const norm = (a) => ((a % TAU) + TAU) % TAU;
+
+      // Canonical 2D arc containing D (between A and C, excluding B) with t in [0, 1] (0 = A, 1 = C)
+      const sweepPos2D = norm(state.angleC - state.angleA);
+      const bOffset2D = norm(state.angleB - state.angleA);
+      const bInPos2D = (bOffset2D > 0 && bOffset2D < sweepPos2D);
+      const sweepAC2D = bInPos2D ? -(TAU - sweepPos2D) : sweepPos2D;
+      const rawT = sweepAC2D > 0
+        ? norm(state.angleD - state.angleA) / sweepAC2D
+        : norm(state.angleA - state.angleD) / (-sweepAC2D);
+      const tD = Math.max(0.01, Math.min(0.99, rawT));
+
+      // 3D circle plane local angular coordinates for A, B, C
+      const toCircleAngle = (pt) => {
+        const d = new THREE.Vector3().subVectors(pt, circleInfo.center);
+        return norm(Math.atan2(d.dot(circleInfo.v), d.dot(circleInfo.u)));
+      };
+      const psiA = toCircleAngle(A);
+      const psiB = toCircleAngle(B);
+      const psiC = toCircleAngle(C);
+
+      const sweepPosSpatial = norm(psiC - psiA);
+      const bOffsetSpatial = norm(psiB - psiA);
+      const bInPosSpatial = (bOffsetSpatial > 0 && bOffsetSpatial < sweepPosSpatial);
+      const sweepACSpatial = bInPosSpatial ? -(TAU - sweepPosSpatial) : sweepPosSpatial;
+
+      // Position D concyclically along the identical canonical spatial arc between A and C
+      const psiD = norm(psiA + tD * sweepACSpatial);
+      D = circleInfo.center.clone()
+        .addScaledVector(circleInfo.u, circleInfo.radius * Math.cos(psiD))
+        .addScaledVector(circleInfo.v, circleInfo.radius * Math.sin(psiD));
+    }
 
     this.markerA.position.copy(A);
     this.markerB.position.copy(B);
@@ -2534,75 +3111,70 @@ export class CyclicQuad3DView extends BaseScene3DView {
 
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     const showDiagonals = state.showDiagonals !== false;
+    const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
     let excessQuad = 0;
     let quadCenter = null;
 
-    if (isSpatial) {
-      this.edgeAB.visible = false;
-      this.edgeBC.visible = false;
-      this.edgeCD.visible = false;
-      this.edgeDA.visible = false;
-      this.quadMesh1.visible = false;
-      this.quadMesh2.visible = false;
+    // Straight Euclidean cyclic quadrilateral edges cutting through the interior of the translucent sphere
+    this.edgeAB.geometry.setFromPoints([A, B]);
+    this.edgeBC.geometry.setFromPoints([B, C]);
+    this.edgeCD.geometry.setFromPoints([C, D]);
+    this.edgeDA.geometry.setFromPoints([D, A]);
+    this.edgeAB.visible = this.edgeBC.visible = this.edgeCD.visible = this.edgeDA.visible = true;
 
+    // Straight Euclidean diagonals in R^3
+    this.diagAC.geometry.setFromPoints([A, C]);
+    this.diagAC.computeLineDistances();
+    this.diagBD.geometry.setFromPoints([B, D]);
+    this.diagBD.computeLineDistances();
+    this.diagAC.visible = this.diagBD.visible = showDiagonals;
+
+    // Flat Euclidean triangles in R^3 (secant plane triangulation of cyclic quad)
+    setTriVertices(this.quadMesh1.geometry, A, B, C);
+    setTriVertices(this.quadMesh2.geometry, A, C, D);
+    this.quadMesh1.visible = this.quadMesh2.visible = showArea;
+
+    const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay || state.vis3d?.geodesic);
+    if (isSpatial) {
+      // Curved quadrilateral boundary arcs on the sphere surface S²
       updateGeodesicArc3D(this.geodesicAB, A, B, R);
       updateGeodesicArc3D(this.geodesicBC, B, C, R);
       updateGeodesicArc3D(this.geodesicCD, C, D, R);
       updateGeodesicArc3D(this.geodesicDA, D, A, R);
-      this.geodesicAB.visible = true;
-      this.geodesicBC.visible = true;
-      this.geodesicCD.visible = true;
-      this.geodesicDA.visible = true;
+      this.geodesicAB.visible = this.geodesicBC.visible = this.geodesicCD.visible = this.geodesicDA.visible = showGeodesic;
 
-      if (showDiagonals) {
+      // Geodesic diagonal overlays on S² (optional dual overlay)
+      if (showGeodesic && showDiagonals) {
         updateGeodesicArc3D(this.geodesicDiagAC, A, C, R);
         updateGeodesicArc3D(this.geodesicDiagBD, B, D, R);
         this.geodesicDiagAC.visible = true;
         this.geodesicDiagBD.visible = true;
-        this.diagAC.geometry.setFromPoints([A, C]);
-        this.diagAC.computeLineDistances();
-        this.diagBD.geometry.setFromPoints([B, D]);
-        this.diagBD.computeLineDistances();
-        this.diagAC.visible = true;
-        this.diagBD.visible = true;
       } else {
         this.geodesicDiagAC.visible = false;
         this.geodesicDiagBD.visible = false;
-        this.diagAC.visible = false;
-        this.diagBD.visible = false;
       }
 
-      updateSphericalTriangleMesh(this.sphQuadMesh1, A, B, C, R);
-      updateSphericalTriangleMesh(this.sphQuadMesh2, A, C, D, R);
-      this.sphQuadMesh1.visible = showArea;
-      this.sphQuadMesh2.visible = showArea;
+      // Spherical quadrilateral caps on S² (optional dual overlay)
+      if (showSphericalCap) {
+        updateSphericalTriangleMesh(this.sphQuadMesh1, A, B, C, R);
+        updateSphericalTriangleMesh(this.sphQuadMesh2, A, C, D, R);
+        this.sphQuadMesh1.visible = showArea;
+        this.sphQuadMesh2.visible = showArea;
 
-      const ex1 = computeSphericalTriangleExcess(A, B, C, R, THREE);
-      const ex2 = computeSphericalTriangleExcess(A, C, D, R, THREE);
-      excessQuad = ex1.excessDeg + ex2.excessDeg;
+        const ex1 = computeSphericalTriangleExcess(A, B, C, R, THREE);
+        const ex2 = computeSphericalTriangleExcess(A, C, D, R, THREE);
+        excessQuad = ex1.excessDeg + ex2.excessDeg;
 
-      const qX = (A.x + B.x + C.x + D.x) / 4;
-      const qY = (A.y + B.y + C.y + D.y) / 4;
-      const qZ = (A.z + B.z + C.z + D.z) / 4;
-      const qLen = Math.hypot(qX, qY, qZ) || 1;
-      quadCenter = new THREE.Vector3((qX / qLen) * (R * 1.08), (qY / qLen) * (R * 1.08), (qZ / qLen) * (R * 1.08));
-
-      // Tangent direction vectors at vertices along geodesics
-      const tAB = getGeodesicTangent(A, B, THREE);
-      const tAD = getGeodesicTangent(A, D, THREE);
-      setAngleWedgeVertices3D(this.angleAMesh, A, A.clone().addScaledVector(tAB, 2.2), A.clone().addScaledVector(tAD, 2.2), 2.2);
-
-      const tBA = getGeodesicTangent(B, A, THREE);
-      const tBC = getGeodesicTangent(B, C, THREE);
-      setAngleWedgeVertices3D(this.angleBMesh, B, B.clone().addScaledVector(tBA, 2.2), B.clone().addScaledVector(tBC, 2.2), 2.2);
-
-      const tCB = getGeodesicTangent(C, B, THREE);
-      const tCD = getGeodesicTangent(C, D, THREE);
-      setAngleWedgeVertices3D(this.angleCMesh, C, C.clone().addScaledVector(tCB, 2.2), C.clone().addScaledVector(tCD, 2.2), 2.2);
-
-      const tDC = getGeodesicTangent(D, C, THREE);
-      const tDA = getGeodesicTangent(D, A, THREE);
-      setAngleWedgeVertices3D(this.angleDMesh, D, D.clone().addScaledVector(tDC, 2.2), D.clone().addScaledVector(tDA, 2.2), 2.2);
+        const qX = (A.x + B.x + C.x + D.x) / 4;
+        const qY = (A.y + B.y + C.y + D.y) / 4;
+        const qZ = (A.z + B.z + C.z + D.z) / 4;
+        const qLen = Math.hypot(qX, qY, qZ) || 1;
+        quadCenter = new THREE.Vector3((qX / qLen) * (R * 1.08), (qY / qLen) * (R * 1.08), (qZ / qLen) * (R * 1.08));
+      } else {
+        this.sphQuadMesh1.visible = false;
+        this.sphQuadMesh2.visible = false;
+      }
     } else {
       this.geodesicAB.visible = false;
       this.geodesicBC.visible = false;
@@ -2612,31 +3184,13 @@ export class CyclicQuad3DView extends BaseScene3DView {
       this.geodesicDiagBD.visible = false;
       this.sphQuadMesh1.visible = false;
       this.sphQuadMesh2.visible = false;
-
-      this.edgeAB.geometry.setFromPoints([A, B]);
-      this.edgeBC.geometry.setFromPoints([B, C]);
-      this.edgeCD.geometry.setFromPoints([C, D]);
-      this.edgeDA.geometry.setFromPoints([D, A]);
-      this.edgeAB.visible = true;
-      this.edgeBC.visible = true;
-      this.edgeCD.visible = true;
-      this.edgeDA.visible = true;
-
-      this.diagAC.geometry.setFromPoints([A, C]);
-      this.diagAC.computeLineDistances();
-      this.diagBD.geometry.setFromPoints([B, D]);
-      this.diagBD.computeLineDistances();
-      this.diagAC.visible = this.diagBD.visible = showDiagonals;
-
-      setTriVertices(this.quadMesh1.geometry, A, B, C);
-      setTriVertices(this.quadMesh2.geometry, A, C, D);
-      this.quadMesh1.visible = this.quadMesh2.visible = showArea;
-
-      setAngleWedgeVertices3D(this.angleAMesh, A, B, D, 2.2);
-      setAngleWedgeVertices3D(this.angleBMesh, B, A, C, 2.2);
-      setAngleWedgeVertices3D(this.angleCMesh, C, B, D, 2.2);
-      setAngleWedgeVertices3D(this.angleDMesh, D, C, A, 2.2);
     }
+
+    // Inscribed angle wedges measure the true Euclidean angles between straight chords
+    setAngleWedgeVertices3D(this.angleAMesh, A, B, D, 2.2);
+    setAngleWedgeVertices3D(this.angleBMesh, B, A, C, 2.2);
+    setAngleWedgeVertices3D(this.angleCMesh, C, B, D, 2.2);
+    setAngleWedgeVertices3D(this.angleDMesh, D, C, A, 2.2);
 
     // Exterior ray past C along DC with crisp arrow head (no sphere glob)
     const dirDC = new THREE.Vector3().subVectors(C, D).normalize();
@@ -2710,9 +3264,9 @@ export class CyclicQuad3DView extends BaseScene3DView {
         show: true,
       });
     }
+    const extPt = new THREE.Vector3().addVectors(C, dirDC.clone().multiplyScalar(4));
+    const degExt = get3DAngleDegrees(C, B, extPt, THREE);
     if (state.showExterior) {
-      const extPt = new THREE.Vector3().addVectors(C, dirDC.clone().multiplyScalar(4));
-      const degExt = get3DAngleDegrees(C, B, extPt, THREE);
       const angExtPos = get3DAngleBisector(C, B, extPt, 2.7, THREE);
       this.currentLabels.push({
         key: 'Ext',
@@ -2723,9 +3277,31 @@ export class CyclicQuad3DView extends BaseScene3DView {
         show: showAngles,
       });
     }
+    this.lastComputed3D = {
+      degA,
+      degB,
+      degC,
+      degD,
+      degExt,
+      sumAC: degA + degC,
+      sumBD: degB + degD,
+      reflexA: 360 - degA,
+      reflexB: 360 - degB,
+      reflexC: 360 - degC,
+      reflexD: 360 - degD,
+      reflexSum: (360 - degA) + (360 - degB) + (360 - degC) + (360 - degD),
+      diagAC: A.distanceTo(C),
+      diagBD: B.distanceTo(D),
+      A, B, C, D,
+      R3D: R,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 4. Tangent-Radius 3D Scene View
@@ -2742,12 +3318,12 @@ export class TangentRadius3DView extends BaseScene3DView {
     this.markerT = makeMarker(THREE, PALETTE.red, 0.18);
 
     this.lineOT = makeLine(THREE, PALETTE.blue);
-    this.tangentDoubleArrow = makeDoubleArrowLine(THREE, PALETTE.emerald);
+    this.tangentDoubleArrow = makeDoubleArrowLine(THREE, PALETTE.lime);
     this.rightAngleMarker = makeLine(THREE, PALETTE.teal);
     this.rightAngleMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
 
     // Dynamic Quadrant Sector Mesh on XZ Plane
-    this.quadrantMesh = makeTriMesh(THREE, PALETTE.indigo, 0.16);
+    this.quadrantMesh = makeTriMesh(THREE, PALETTE.yellow, 0.20);
 
     // Multi-tangent elements (indices 0..3 for up to 4 tangents)
     this.tangentMarkers = [
@@ -2764,9 +3340,9 @@ export class TangentRadius3DView extends BaseScene3DView {
     ];
     this.tangentDoubleArrows = [
       this.tangentDoubleArrow,
-      makeDoubleArrowLine(THREE, PALETTE.emerald),
-      makeDoubleArrowLine(THREE, PALETTE.emerald),
-      makeDoubleArrowLine(THREE, PALETTE.emerald),
+      makeDoubleArrowLine(THREE, PALETTE.lime),
+      makeDoubleArrowLine(THREE, PALETTE.lime),
+      makeDoubleArrowLine(THREE, PALETTE.lime),
     ];
     this.rightAngleMarkers = [
       this.rightAngleMarker,
@@ -2781,10 +3357,10 @@ export class TangentRadius3DView extends BaseScene3DView {
       makeRightAngleMesh(THREE, PALETTE.teal, 0.75),
     ];
     this.reflexRightAngleMeshes = [
-      makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25),
-      makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25),
-      makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25),
-      makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25),
+      makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25),
+      makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25),
+      makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25),
+      makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25),
     ];
 
     // Chords connecting adjacent tangents
@@ -2815,10 +3391,10 @@ export class TangentRadius3DView extends BaseScene3DView {
 
     // Geodesic Chords and Spherical Cap Meshes for 3D Spatial Mode
     this.geodesicChords = [
-      createGeodesicArc3D(THREE, PALETTE.violet),
-      createGeodesicArc3D(THREE, PALETTE.rose),
-      createGeodesicArc3D(THREE, PALETTE.cyan),
-      createGeodesicArc3D(THREE, PALETTE.fuchsia),
+      createGeodesicArc3D(THREE, PALETTE.amber),
+      createGeodesicArc3D(THREE, PALETTE.amber),
+      createGeodesicArc3D(THREE, PALETTE.amber),
+      createGeodesicArc3D(THREE, PALETTE.amber),
     ];
     this.sphChordMeshes = [
       createSphericalTriangleMesh(THREE, PALETTE.violet, 0.28),
@@ -2826,6 +3402,17 @@ export class TangentRadius3DView extends BaseScene3DView {
       createSphericalTriangleMesh(THREE, PALETTE.cyan, 0.28),
       createSphericalTriangleMesh(THREE, PALETTE.fuchsia, 0.28),
     ];
+
+    // Trigonometric Wedges & Projections (Exclusively for Primary Tangent)
+    this.lineCos = makeLine(THREE, PALETTE.sky);
+    this.lineSin = makeLine(THREE, PALETTE.emerald, true);
+    this.lineTan = makeLine(THREE, PALETTE.rose);
+    this.lineSecantHypot = makeLine(THREE, PALETTE.violet, true);
+    this.trigAngleWedgeMesh = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.25);
+    this.trigTriMesh = makeTriMesh(THREE, PALETTE.sky, 0.14);
+    this.secantTriMesh = makeTriMesh(THREE, PALETTE.rose, 0.12);
+    this.markerTx = makeMarker(THREE, PALETTE.sky, 0.16);
+    this.markerSx = makeMarker(THREE, PALETTE.rose, 0.16);
 
     this.scene.add(
       this.markerO,
@@ -2843,7 +3430,16 @@ export class TangentRadius3DView extends BaseScene3DView {
       this.markerQ,
       this.lineTQ,
       this.secantMesh,
-      this.tangentPlaneMesh
+      this.tangentPlaneMesh,
+      this.lineCos,
+      this.lineSin,
+      this.lineTan,
+      this.lineSecantHypot,
+      this.trigAngleWedgeMesh,
+      this.trigTriMesh,
+      this.secantTriMesh,
+      this.markerTx,
+      this.markerSx
     );
 
     this.draggableTargets = [
@@ -2860,8 +3456,8 @@ export class TangentRadius3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
+    const isSpatial = state.dimensionMode === 'spatial';
 
     const O = new THREE.Vector3(0, 0, 0);
     this.markerO.position.copy(O);
@@ -2896,9 +3492,36 @@ export class TangentRadius3DView extends BaseScene3DView {
     const quadIndex = Math.floor(primaryAng / (Math.PI / 2));
     const quadStart = quadIndex * (Math.PI / 2);
 
+    const primLat = lats[0];
+    const primT = new THREE.Vector3(
+      R * Math.sin(primLat) * Math.cos(primaryAng),
+      R * Math.cos(primLat),
+      R * Math.sin(primLat) * Math.sin(primaryAng)
+    );
+    let primTanDir = new THREE.Vector3(-Math.sin(primaryAng), 0, Math.cos(primaryAng));
+    if (Math.abs(Math.sin(primLat)) < 0.99) {
+      const radDir = primT.clone().normalize();
+      primTanDir = new THREE.Vector3(0, 1, 0).cross(radDir).normalize();
+      if (primTanDir.lengthSq() < 0.01) primTanDir = new THREE.Vector3(1, 0, 0).cross(radDir).normalize();
+    }
+    const primNormal = isSpatial ? new THREE.Vector3().crossVectors(primT, primTanDir).normalize() : new THREE.Vector3(0, 1, 0);
+    alignCircleWireToPlane(this.circleWire, primNormal, O, R, THREE);
+
     // 1. Dynamic Quadrant Shading in 3D
     if (showQuadrant) {
-      setSectorXZVertices(this.quadrantMesh.geometry, 0, 0, R, quadStart, Math.PI / 2, 32);
+      if (isSpatial) {
+        let u = new THREE.Vector3(1, 0, 0).projectOnPlane(primNormal);
+        if (u.lengthSq() < 1e-4) u = new THREE.Vector3(0, 0, 1).projectOnPlane(primNormal);
+        u.normalize();
+        let v = new THREE.Vector3().crossVectors(u, primNormal).negate().normalize();
+        if (Math.abs(primNormal.y - 1) < 1e-4) {
+          u = new THREE.Vector3(1, 0, 0);
+          v = new THREE.Vector3(0, 0, 1);
+        }
+        setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE);
+      } else {
+        setSectorXZVertices(this.quadrantMesh.geometry, 0, 0, R, quadStart, Math.PI / 2, 32);
+      }
       this.quadrantMesh.visible = true;
     } else {
       this.quadrantMesh.visible = false;
@@ -2966,7 +3589,6 @@ export class TangentRadius3DView extends BaseScene3DView {
       }
     }
 
-    const isSpatial = state.dimensionMode === 'spatial';
     if (isSpatial && activeTangents.length > 0) {
       const primaryT = activeTangents[0].pos;
       const n = primaryT.clone().normalize();
@@ -2979,6 +3601,7 @@ export class TangentRadius3DView extends BaseScene3DView {
     }
 
     // 2. Chords and Subtended Areas in 3D
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
     const chordLabels = [];
     if (count >= 2) {
       const sorted = [...activeTangents].sort((a, b) => a.angle - b.angle);
@@ -2989,19 +3612,31 @@ export class TangentRadius3DView extends BaseScene3DView {
           let sweep = p2.angle - p1.angle;
           if (sweep <= 0) sweep += Math.PI * 2;
 
+          // Straight Euclidean chord cutting through interior of sphere
+          this.chordLines[k].geometry.setFromPoints([p1.pos, p2.pos]);
+          this.chordLines[k].computeLineDistances();
+          this.chordLines[k].visible = showChords;
+
           if (isSpatial) {
-            this.chordLines[k].visible = false;
-            this.chordAreaMeshes[k].visible = false;
+            // Curved surface arc on S² (distinct PALETTE.amber token)
             updateGeodesicArc3D(this.geodesicChords[k], p1.pos, p2.pos, R * 1.002, 32);
-            this.geodesicChords[k].visible = showChords;
-            updateSphericalTriangleMesh(this.sphChordMeshes[k], O, p1.pos, p2.pos, R * 1.002, 2);
-            this.sphChordMeshes[k].visible = showArea && showChords;
+            const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay || state.vis3d?.geodesic);
+            this.geodesicChords[k].visible = showChords && showGeodesic;
+
+            // Flat Euclidean planar triangle inside sphere
+            setTriVertices(this.chordAreaMeshes[k].geometry, O, p1.pos, p2.pos);
+            this.chordAreaMeshes[k].visible = showArea && showChords;
+
+            // Optional spherical cap overlay
+            if (showSphericalCap) {
+              updateSphericalTriangleMesh(this.sphChordMeshes[k], O, p1.pos, p2.pos, R * 1.002, 2);
+              this.sphChordMeshes[k].visible = showArea && showChords;
+            } else {
+              this.sphChordMeshes[k].visible = false;
+            }
           } else {
             this.geodesicChords[k].visible = false;
             this.sphChordMeshes[k].visible = false;
-            this.chordLines[k].geometry.setFromPoints([p1.pos, p2.pos]);
-            this.chordLines[k].computeLineDistances();
-            this.chordLines[k].visible = showChords;
 
             if (state.chordAreaMode === 'sector') {
               setSectorXZVertices(this.chordAreaMeshes[k].geometry, 0, 0, R, p1.angle, sweep, 32);
@@ -3059,17 +3694,30 @@ export class TangentRadius3DView extends BaseScene3DView {
     ];
 
     if (showQuadrant) {
-      const midQuad = quadStart + Math.PI / 4;
-      const qPos = new THREE.Vector3(0.65 * R * Math.cos(midQuad), 0.2, 0.65 * R * Math.sin(midQuad));
-      const roman = ['I', 'II', 'III', 'IV'][quadIndex];
-      const sign = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'][quadIndex];
-      this.currentLabels.push({
-        key: 'quadrant',
-        at: qPos,
-        text: `Q-${roman} ${sign}`,
-        color: 'color-indigo',
-        show: true,
-      });
+      const romans = ['I', 'II', 'III', 'IV'];
+      const signs = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'];
+      for (let q = 0; q < 4; q++) {
+        const midQuad = q * (Math.PI / 2) + Math.PI / 4;
+        const qPos = new THREE.Vector3(0.65 * R * Math.cos(midQuad), 0.2, 0.65 * R * Math.sin(midQuad));
+        const isActive = q === quadIndex;
+        if (isActive) {
+          this.currentLabels.push({
+            key: 'quadrant',
+            at: qPos,
+            text: `Quadrant ${q + 1} (${romans[q]}) ${signs[q]}`,
+            color: 'color-yellow',
+            show: true,
+          });
+        } else {
+          this.currentLabels.push({
+            key: `quadrant_inactive_${q}`,
+            at: qPos,
+            text: `Q${q + 1} (${romans[q]})`,
+            color: 'color-steel',
+            show: true,
+          });
+        }
+      }
     }
 
     const showReflex = Boolean(state.vis3d?.reflex);
@@ -3099,7 +3747,7 @@ export class TangentRadius3DView extends BaseScene3DView {
           at: t.reflexAngleAt,
           text: `270.0° (${t.name}*)`,
           isAngle: true,
-          color: 'color-teal',
+          color: 'color-cyan',
           show: state.vis3d?.labels !== false,
         });
       }
@@ -3116,6 +3764,122 @@ export class TangentRadius3DView extends BaseScene3DView {
       });
     }
 
+    // 3D Trigonometric Wedges & Projections (Exclusively for Primary Tangent T)
+    const showTrig = (state.vis3d?.trigWedges !== false) && (state.showTrigWedges !== false);
+    if (showTrig && activeTangents.length > 0) {
+      const prim = activeTangents[0];
+      const cosVal = Math.cos(primaryAng);
+      const sinVal = Math.sin(primaryAng);
+      const Tx = new THREE.Vector3(R * cosVal, 0, 0);
+
+      // Horizontal line O to Tx (cos θ)
+      this.lineCos.geometry.setFromPoints([O, Tx]);
+      this.lineCos.visible = true;
+
+      // Vertical altitude drop Tx to T (sin θ)
+      this.lineSin.geometry.setFromPoints([Tx, prim.pos]);
+      this.lineSin.computeLineDistances();
+      this.lineSin.visible = true;
+
+      // Inscribed right triangle Δ O Tx T
+      setTriVertices(this.trigTriMesh.geometry, O, Tx, prim.pos);
+      this.trigTriMesh.visible = true;
+
+      this.markerTx.position.copy(Tx);
+      this.markerTx.visible = true;
+
+      // Angle θ wedge at O subtended from +X axis to primary radius OT
+      const refX = new THREE.Vector3(R * 0.35, 0, 0);
+      setAngleWedgeVertices3D(this.trigAngleWedgeMesh, O, refX, prim.pos, R * 0.35, 32, THREE, false);
+      this.trigAngleWedgeMesh.visible = true;
+
+      // Secant point Sx along X-axis
+      const isSecantFinite = Math.abs(cosVal) > 0.02;
+      if (isSecantFinite) {
+        const secVal = 1 / cosVal;
+        const clampedSecX = Math.min(Math.max(R * secVal, -3.5 * R), 3.5 * R);
+        const Sx = new THREE.Vector3(clampedSecX, 0, 0);
+
+        this.markerSx.position.copy(Sx);
+        this.markerSx.visible = true;
+
+        this.lineTan.geometry.setFromPoints([prim.pos, Sx]);
+        this.lineTan.visible = true;
+
+        this.lineSecantHypot.geometry.setFromPoints([O, Sx]);
+        this.lineSecantHypot.computeLineDistances();
+        this.lineSecantHypot.visible = true;
+
+        setTriVertices(this.secantTriMesh.geometry, O, prim.pos, Sx);
+        this.secantTriMesh.visible = true;
+
+        this.currentLabels.push({
+          key: 'Sx',
+          at: Sx.clone().add(new THREE.Vector3(0, 0.4, 0)),
+          name: 'Sx',
+          text: 'Sx',
+          color: 'color-rose',
+          show: true,
+        });
+        const midTan = new THREE.Vector3().addVectors(prim.pos, Sx).multiplyScalar(0.5);
+        this.currentLabels.push({
+          key: 'tan_label',
+          at: midTan.clone().add(new THREE.Vector3(0, 0.4, 0)),
+          text: `|R tan θ| = ${(R * Math.abs(Math.tan(primaryAng))).toFixed(1)}u`,
+          color: 'color-rose',
+          show: state.vis3d?.lengths !== false,
+        });
+      } else {
+        this.markerSx.visible = false;
+        this.lineTan.visible = false;
+        this.lineSecantHypot.visible = false;
+        this.secantTriMesh.visible = false;
+      }
+
+      this.currentLabels.push({
+        key: 'Tx',
+        at: Tx.clone().add(new THREE.Vector3(0, 0.4, 0)),
+        name: 'Tx',
+        text: 'Tx',
+        color: 'color-sky',
+        show: true,
+      });
+      const midCos = Tx.clone().multiplyScalar(0.5);
+      this.currentLabels.push({
+        key: 'cos_label',
+        at: midCos.clone().add(new THREE.Vector3(0, 0.3, 0)),
+        text: `cos θ = ${cosVal.toFixed(2)}`,
+        color: 'color-sky',
+        show: state.vis3d?.lengths !== false,
+      });
+      const midSin = new THREE.Vector3().addVectors(Tx, prim.pos).multiplyScalar(0.5);
+      this.currentLabels.push({
+        key: 'sin_label',
+        at: midSin.clone().add(new THREE.Vector3(0, 0.3, 0)),
+        text: `sin θ = ${sinVal.toFixed(2)}`,
+        color: 'color-emerald',
+        show: state.vis3d?.lengths !== false,
+      });
+      const wedgeBisector = get3DAngleBisector(O, new THREE.Vector3(R * 0.35, 0, 0), prim.pos, R * 0.45, THREE);
+      this.currentLabels.push({
+        key: 'theta_label',
+        at: wedgeBisector,
+        text: `θ = ${(primaryAng * 180 / Math.PI).toFixed(1)}°`,
+        color: 'color-amber',
+        show: true,
+      });
+    } else {
+      this.lineCos.visible = false;
+      this.lineSin.visible = false;
+      this.lineTan.visible = false;
+      this.lineSecantHypot.visible = false;
+      this.trigTriMesh.visible = false;
+      this.secantTriMesh.visible = false;
+      this.trigAngleWedgeMesh.visible = false;
+      this.markerTx.visible = false;
+      this.markerSx.visible = false;
+    }
+
     if (isSpatial && activeTangents.length > 0) {
       const primaryT = activeTangents[0].pos;
       const n = primaryT.clone().normalize();
@@ -3130,9 +3894,22 @@ export class TangentRadius3DView extends BaseScene3DView {
 
     this.currentLabels.push(...chordLabels);
 
+    this.lastComputed3D = {
+      T: primT,
+      tanDir: primTanDir,
+      O,
+      R3D: R,
+      dotProduct: primT.clone().normalize().dot(primTanDir.clone().normalize()),
+      angleT: primaryAng,
+      activeTangents,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 5. Alternate Segment 3D Scene View
@@ -3169,12 +3946,12 @@ export class AlternateSegment3DView extends BaseScene3DView {
     this.triABDMesh = makeTriMesh(THREE, PALETTE.rose, 0.14);
 
     // Geodesic Arcs and Spherical Meshes on S² for 3D Spatial Mode
-    this.geodesicTA = createGeodesicArc3D(THREE, PALETTE.blue);
-    this.geodesicAB = createGeodesicArc3D(THREE, PALETTE.orange);
-    this.geodesicBT = createGeodesicArc3D(THREE, PALETTE.cyan);
-    this.geodesicTD = createGeodesicArc3D(THREE, PALETTE.indigo, true);
-    this.geodesicDB = createGeodesicArc3D(THREE, PALETTE.cyan, true);
-    this.geodesicDA = createGeodesicArc3D(THREE, PALETTE.rose, true);
+    this.geodesicTA = createGeodesicArc3D(THREE, PALETTE.amber);
+    this.geodesicAB = createGeodesicArc3D(THREE, PALETTE.amber);
+    this.geodesicBT = createGeodesicArc3D(THREE, PALETTE.amber);
+    this.geodesicTD = createGeodesicArc3D(THREE, PALETTE.amber, true);
+    this.geodesicDB = createGeodesicArc3D(THREE, PALETTE.amber, true);
+    this.geodesicDA = createGeodesicArc3D(THREE, PALETTE.amber, true);
 
     this.sphTriMesh = createSphericalTriangleMesh(THREE, PALETTE.cyan, 0.22);
     this.sphProofTriMesh = createSphericalTriangleMesh(THREE, PALETTE.indigo, 0.20);
@@ -3207,9 +3984,36 @@ export class AlternateSegment3DView extends BaseScene3DView {
     );
 
     this.draggableTargets = [
-      { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
-      { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
-      { id: 'T', mesh: this.markerT, field: 'angleT', latField: 'latT' },
+      {
+        id: 'A',
+        mesh: this.markerA,
+        field: 'angleA',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const clampedA = clampAngleInArc(angle, st.angleB, st.angleT, 0.2);
+          store.set({ angleA: clampedA });
+        },
+      },
+      {
+        id: 'B',
+        mesh: this.markerB,
+        field: 'angleB',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const clampedB = clampAngleInArc(angle, st.angleT, st.angleA, 0.15);
+          store.set({ angleB: clampedB });
+        },
+      },
+      {
+        id: 'T',
+        mesh: this.markerT,
+        field: 'angleT',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const clampedT = clampAngleInArc(angle, st.angleA, st.angleB, 0.2);
+          store.set({ angleT: clampedT });
+        },
+      },
       {
         id: 'D',
         mesh: this.markerD,
@@ -3261,8 +4065,8 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
+    const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
     const latB = state.latB ?? (Math.PI / 2);
     const latT = state.latT ?? (Math.PI / 2);
@@ -3271,25 +4075,60 @@ export class AlternateSegment3DView extends BaseScene3DView {
       R * Math.cos(latT),
       R * Math.sin(latT) * Math.sin(state.angleT)
     );
-    const A = new THREE.Vector3(
-      R * Math.sin(latA) * Math.cos(state.angleA),
-      R * Math.cos(latA),
-      R * Math.sin(latA) * Math.sin(state.angleA)
-    );
-    const B = new THREE.Vector3(
-      R * Math.sin(latB) * Math.cos(state.angleB),
-      R * Math.cos(latB),
-      R * Math.sin(latB) * Math.sin(state.angleB)
-    );
     const D = T.clone().negate();
     const Dext = D.clone().add(D.clone().normalize().multiplyScalar(3.2));
+
+    let normal;
+    let tanDir;
+    let u, v;
+    let A, B;
+    if (isSpatial) {
+      const rawB = new THREE.Vector3(
+        R * Math.sin(latB) * Math.cos(state.angleB),
+        R * Math.cos(latB),
+        R * Math.sin(latB) * Math.sin(state.angleB)
+      );
+      const vTD = new THREE.Vector3().subVectors(D, T);
+      const vTB = new THREE.Vector3().subVectors(rawB, T);
+      normal = new THREE.Vector3().crossVectors(vTD, vTB);
+      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3().crossVectors(vTD, new THREE.Vector3(0, 1, 0));
+      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
+      normal.normalize();
+
+      u = T.clone().normalize();
+      v = normal.clone().cross(u).normalize();
+      alignCircleWireToPlane(this.circleWire, normal, new THREE.Vector3(0, 0, 0), R, THREE);
+      tanDir = v.clone();
+
+      // Ensure A and B are strictly concyclic on this great circle containing diameter TD
+      const TAU = Math.PI * 2;
+      const dAngA = ((state.angleA - state.angleT) % TAU + TAU) % TAU;
+      const dAngB = ((state.angleB - state.angleT) % TAU + TAU) % TAU;
+      A = new THREE.Vector3().addScaledVector(u, R * Math.cos(dAngA)).addScaledVector(v, R * Math.sin(dAngA));
+      B = new THREE.Vector3().addScaledVector(u, R * Math.cos(dAngB)).addScaledVector(v, R * Math.sin(dAngB));
+    } else {
+      normal = new THREE.Vector3(0, 1, 0);
+      u = new THREE.Vector3(1, 0, 0);
+      v = new THREE.Vector3(0, 0, 1);
+      alignCircleWireToPlane(this.circleWire, normal, new THREE.Vector3(0, 0, 0), R, THREE);
+      tanDir = new THREE.Vector3(-Math.sin(state.angleT), 0, Math.cos(state.angleT));
+      A = new THREE.Vector3(
+        R * Math.cos(state.angleA),
+        0,
+        R * Math.sin(state.angleA)
+      );
+      B = new THREE.Vector3(
+        R * Math.cos(state.angleB),
+        0,
+        R * Math.sin(state.angleB)
+      );
+    }
 
     this.markerT.position.copy(T);
     this.markerA.position.copy(A);
     this.markerB.position.copy(B);
     this.markerD.position.copy(D);
 
-    const tanDir = new THREE.Vector3(-Math.sin(state.angleT), 0, Math.cos(state.angleT));
     const L = 14;
     const tan1 = new THREE.Vector3().addVectors(T, tanDir.clone().multiplyScalar(-L));
     const tan2 = new THREE.Vector3().addVectors(T, tanDir.clone().multiplyScalar(L));
@@ -3311,12 +4150,24 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const showProof = Boolean(state.showProofConstruction || state.showThalesOverlay);
     this.markerD.visible = this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = this.rayDext.visible = showProof;
 
-    const arcRange = getSubtendedArcRange3D(state.angleT, state.angleA, state.angleB);
     const TAU = Math.PI * 2;
-    const segStart = (arcRange.start + arcRange.sweep) % TAU;
-    const segSweep = TAU - arcRange.sweep;
-    setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, segStart, segSweep, 32);
-    setSegmentXZVertices(this.minorSegmentMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
+    if (isSpatial) {
+      const u = T.clone().normalize();
+      const v = normal.clone().cross(u).normalize();
+      const dAngA = ((state.angleA - state.angleT) % TAU + TAU) % TAU;
+      const dAngB = ((state.angleB - state.angleT) % TAU + TAU) % TAU;
+      const arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);
+      const segStart = (arcRange.start + arcRange.sweep) % TAU;
+      const segSweep = TAU - arcRange.sweep;
+      setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE);
+      setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE);
+    } else {
+      const arcRange = getSubtendedArcRange3D(state.angleT, state.angleA, state.angleB);
+      const segStart = (arcRange.start + arcRange.sweep) % TAU;
+      const segSweep = TAU - arcRange.sweep;
+      setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, segStart, segSweep, 32);
+      setSegmentXZVertices(this.minorSegmentMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
+    }
 
     setTriVertices(this.triMesh.geometry, T, A, B);
     if (showProof) {
@@ -3327,51 +4178,73 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     const showTriangles = showArea && Boolean(state.showTriangleShading || state.showTriangles);
 
-    const isSpatial = state.dimensionMode === 'spatial';
+    this.segmentMesh.visible = showArea;
+    this.minorSegmentMesh.visible = showArea;
+
+    const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
+
+    // Straight Euclidean chords cutting through the interior of the translucent sphere
+    this.chordTA.geometry.setFromPoints([T, A]);
+    this.chordAB.geometry.setFromPoints([A, B]);
+    this.chordBT.geometry.setFromPoints([B, T]);
+    this.chordTA.visible = this.chordAB.visible = this.chordBT.visible = true;
+
+    if (showProof) {
+      this.diameterTD.geometry.setFromPoints([T, D]);
+      this.diameterTD.computeLineDistances();
+      this.chordDB.geometry.setFromPoints([D, B]);
+      this.chordDA.geometry.setFromPoints([D, A]);
+      this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = true;
+    } else {
+      this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = false;
+    }
+
+    // Flat Euclidean triangles in R^3
+    setTriVertices(this.triMesh.geometry, T, A, B);
+    this.triMesh.visible = showTriangles;
+    if (showProof) {
+      setTriVertices(this.proofTriMesh.geometry, T, B, D);
+      setTriVertices(this.triABDMesh.geometry, A, B, D);
+      this.proofTriMesh.visible = this.triABDMesh.visible = showTriangles;
+    } else {
+      this.proofTriMesh.visible = this.triABDMesh.visible = false;
+    }
+
+    const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay || state.vis3d?.geodesic);
     if (isSpatial) {
-      this.chordTA.visible = this.chordAB.visible = this.chordBT.visible = false;
+      // Curved subtended arcs on the sphere surface S²
       updateGeodesicArc3D(this.geodesicTA, T, A, R * 1.002, 32);
       updateGeodesicArc3D(this.geodesicAB, A, B, R * 1.002, 32);
       updateGeodesicArc3D(this.geodesicBT, B, T, R * 1.002, 32);
-      this.geodesicTA.visible = this.geodesicAB.visible = this.geodesicBT.visible = true;
+      this.geodesicTA.visible = this.geodesicAB.visible = this.geodesicBT.visible = showGeodesic;
 
-      if (showProof) {
-        this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = false;
+      if (showGeodesic && showProof) {
         updateGeodesicArc3D(this.geodesicTD, T, D, R * 1.002, 32);
         updateGeodesicArc3D(this.geodesicDB, D, B, R * 1.002, 32);
         updateGeodesicArc3D(this.geodesicDA, D, A, R * 1.002, 32);
         this.geodesicTD.visible = this.geodesicDB.visible = this.geodesicDA.visible = true;
-        updateSphericalTriangleMesh(this.sphProofTriMesh, T, B, D, R * 1.002, 2);
-        updateSphericalTriangleMesh(this.sphTriABDMesh, A, B, D, R * 1.002, 2);
-        this.sphProofTriMesh.visible = showTriangles;
-        this.sphTriABDMesh.visible = showTriangles;
       } else {
         this.geodesicTD.visible = this.geodesicDB.visible = this.geodesicDA.visible = false;
-        this.sphProofTriMesh.visible = false;
-        this.sphTriABDMesh.visible = false;
       }
 
-      this.triMesh.visible = false;
-      this.proofTriMesh.visible = false;
-      this.triABDMesh.visible = false;
-      this.segmentMesh.visible = this.minorSegmentMesh.visible = false;
-
-      updateSphericalTriangleMesh(this.sphTriMesh, T, A, B, R * 1.002, 2);
-      this.sphTriMesh.visible = showTriangles;
+      if (showSphericalCap) {
+        updateSphericalTriangleMesh(this.sphTriMesh, T, A, B, R * 1.002, 2);
+        this.sphTriMesh.visible = showTriangles;
+        if (showProof) {
+          updateSphericalTriangleMesh(this.sphProofTriMesh, T, B, D, R * 1.002, 2);
+          updateSphericalTriangleMesh(this.sphTriABDMesh, A, B, D, R * 1.002, 2);
+          this.sphProofTriMesh.visible = this.sphTriABDMesh.visible = showTriangles;
+        } else {
+          this.sphProofTriMesh.visible = this.sphTriABDMesh.visible = false;
+        }
+      } else {
+        this.sphTriMesh.visible = this.sphProofTriMesh.visible = this.sphTriABDMesh.visible = false;
+      }
     } else {
       this.geodesicTA.visible = this.geodesicAB.visible = this.geodesicBT.visible = false;
       this.geodesicTD.visible = this.geodesicDB.visible = this.geodesicDA.visible = false;
-      this.sphTriMesh.visible = false;
-      this.sphProofTriMesh.visible = false;
-      this.sphTriABDMesh.visible = false;
-
-      this.chordTA.visible = this.chordAB.visible = this.chordBT.visible = true;
-      this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = showProof;
-      this.segmentMesh.visible = showArea;
-      this.minorSegmentMesh.visible = showArea;
-      this.triMesh.visible = showTriangles;
-      this.proofTriMesh.visible = showProof && showTriangles;
-      this.triABDMesh.visible = showProof && showTriangles;
+      this.sphTriMesh.visible = this.sphProofTriMesh.visible = this.sphTriABDMesh.visible = false;
     }
 
     // 3D Angle Wedges & Spatial Bisectors
@@ -3384,12 +4257,13 @@ export class AlternateSegment3DView extends BaseScene3DView {
 
     setAngleWedgeVertices3D(this.angleTanMesh, T, activeTan, A, 2.5);
     setAngleWedgeVertices3D(this.angleBMesh, B, T, A, 2.4);
-    this.angleTanMesh.visible = this.angleBMesh.visible = showAngles;
+    const isAlphaVisible = showAngles && isLabelVisible('α', state.vis3d) && isLabelVisible('a', state.vis3d);
+    this.angleTanMesh.visible = this.angleBMesh.visible = isAlphaVisible;
 
     const showReflex = Boolean(state.vis3d?.reflex);
     setAngleWedgeVertices3D(this.reflexTanMesh, T, activeTan, A, 3.2, 32, THREE, true);
     setAngleWedgeVertices3D(this.reflexBMesh, B, T, A, 3.0, 32, THREE, true);
-    this.reflexTanMesh.visible = this.reflexBMesh.visible = showReflex;
+    this.reflexTanMesh.visible = this.reflexBMesh.visible = showReflex && isAlphaVisible;
 
     let degIntD = 0;
     let degExtD = 0;
@@ -3402,16 +4276,16 @@ export class AlternateSegment3DView extends BaseScene3DView {
       setAngleWedgeVertices3D(this.angleIntDMesh, D, T, A, 2.4);
       setAngleWedgeVertices3D(this.angleExtDMesh, D, A, Dext, 2.2);
       setAngleWedgeVertices3D(this.reflexDMesh, D, T, A, 3.0, 32, THREE, true);
-      this.reflexDMesh.visible = showReflex && (state.showDAngles !== false);
+      this.reflexDMesh.visible = showReflex && (state.showDAngles !== false) && isAlphaVisible;
     } else {
       this.reflexDMesh.visible = false;
     }
-    this.rightAngleBMesh.visible = showProof && showAngles;
-    this.rightAngleAMesh.visible = showProof && showAngles;
-    this.rightAngleTMesh.visible = showProof && showAngles;
+    this.rightAngleBMesh.visible = showProof && showAngles && isLabelVisible('90°', state.vis3d);
+    this.rightAngleAMesh.visible = showProof && showAngles && isLabelVisible('90°', state.vis3d);
+    this.rightAngleTMesh.visible = showProof && showAngles && isLabelVisible('90°', state.vis3d);
     const showDAngles = showProof && showAngles && (state.showDAngles !== false);
-    this.angleIntDMesh.visible = showDAngles;
-    this.angleExtDMesh.visible = showDAngles;
+    this.angleIntDMesh.visible = showDAngles && isAlphaVisible;
+    this.angleExtDMesh.visible = showDAngles && isLabelVisible('Ext D', state.vis3d) && isLabelVisible('D', state.vis3d);
 
     const angTPos = get3DAngleBisector(T, activeTan, A, 3.2, THREE);
     const angBPos = get3DAngleBisector(B, T, A, 3.2, THREE);
@@ -3422,11 +4296,15 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const B_pos = B.clone().multiplyScalar(1.15);
     const D_pos = D.clone().multiplyScalar(1.15);
 
-    // Alternate segment centroid label positions (both in color-sky)
+    // Alternate segment centroid label positions (Maj in color-sky, Min in color-violet)
     const majorMidAng = (segStart + segSweep / 2) % TAU;
     const minorMidAng = (arcRange.start + arcRange.sweep / 2) % TAU;
-    const majorLabelPos = new THREE.Vector3(R * 0.62 * Math.cos(majorMidAng), 0, R * 0.62 * Math.sin(majorMidAng));
-    const minorLabelPos = new THREE.Vector3(R * 0.82 * Math.cos(minorMidAng), 0, R * 0.82 * Math.sin(minorMidAng));
+    const majorLabelPos = isSpatial
+      ? new THREE.Vector3().addScaledVector(u, R * 0.62 * Math.cos(majorMidAng)).addScaledVector(v, R * 0.62 * Math.sin(majorMidAng))
+      : new THREE.Vector3(R * 0.62 * Math.cos(majorMidAng), 0, R * 0.62 * Math.sin(majorMidAng));
+    const minorLabelPos = isSpatial
+      ? new THREE.Vector3().addScaledVector(u, R * 0.82 * Math.cos(minorMidAng)).addScaledVector(v, R * 0.82 * Math.sin(minorMidAng))
+      : new THREE.Vector3(R * 0.82 * Math.cos(minorMidAng), 0, R * 0.82 * Math.sin(minorMidAng));
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -3434,12 +4312,12 @@ export class AlternateSegment3DView extends BaseScene3DView {
       { key: 'A', at: A_pos, name: 'A', text: 'A', coords: A, color: 'color-blue' },
       { key: 'B', at: B_pos, name: 'B', text: 'B', coords: B, color: 'color-orange' },
       { key: 'tangent', at: tanLabelPos, name: 'Tangent', text: 'Tangent', color: 'color-emerald' },
-      { key: 'angTan', at: angTPos, text: `α = ${degTan.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-      { key: 'angB', at: angBPos, text: `α = ${degB.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showAngles },
-      { key: 'reflexTan', at: get3DReflexBisector(T, activeTan, A, 4.0, THREE), text: `α* = ${(360 - degTan).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflexB', at: get3DReflexBisector(B, T, A, 4.0, THREE), text: `α* = ${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'segMajor', at: majorLabelPos, text: 'Alt Seg (Maj)', color: 'color-sky', show: showArea },
-      { key: 'segMinor', at: minorLabelPos, text: 'Alt Seg (Min)', color: 'color-violet', show: showArea },
+      { key: 'angTan', name: 'α', at: angTPos, text: `α = ${degTan.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: isAlphaVisible },
+      { key: 'angB', name: 'α', at: angBPos, text: `α = ${degB.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: isAlphaVisible },
+      { key: 'reflexTan', name: 'α*', at: get3DReflexBisector(T, activeTan, A, 4.0, THREE), text: `α* = ${(360 - degTan).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && isAlphaVisible && (state.vis3d?.labels !== false) },
+      { key: 'reflexB', name: 'α*', at: get3DReflexBisector(B, T, A, 4.0, THREE), text: `α* = ${(360 - degB).toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showReflex && isAlphaVisible && (state.vis3d?.labels !== false) },
+      { key: 'segMajor', name: 'Alt Seg (Maj)', at: majorLabelPos, text: 'Alt Seg (Maj)', color: 'color-sky', show: showArea },
+      { key: 'segMinor', name: 'Alt Seg (Min)', at: minorLabelPos, text: 'Alt Seg (Min)', color: 'color-violet', show: showArea },
     ];
     if (isSpatial) {
       const excessInfo = computeSphericalTriangleExcess(T, A, B, R);
@@ -3449,7 +4327,7 @@ export class AlternateSegment3DView extends BaseScene3DView {
         at: centroid,
         text: `E = ${excessInfo.excessDeg.toFixed(1)}° (Area = ${excessInfo.area.toFixed(1)}u²)`,
         color: 'color-cyan',
-        show: showTriangles,
+        show: state.vis3d?.labels !== false,
       });
     }
     if (showProof) {
@@ -3461,17 +4339,32 @@ export class AlternateSegment3DView extends BaseScene3DView {
       const extDAt = get3DAngleBisector(D, A, Dext, 3.2, THREE);
       const showDLabels = showAngles && (state.showDAngles !== false);
       this.currentLabels.push(
-        { key: 'rightB', at: rightAngleBAt, text: '∠TBD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'rightA', at: rightAngleAAt, text: '∠TAD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'rightT', at: rightAngleTAt, text: 'TD ⊥ Tan = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
-        { key: 'angIntD', at: intDAt, text: `∠TDA = ${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showDLabels },
-        { key: 'angExtD', at: extDAt, text: `Ext D = ${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showDLabels },
-        { key: 'reflexD', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D* = ${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false) },
+        { key: 'rightB', name: '90°', at: rightAngleBAt, text: '∠TBD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'rightA', name: '90°', at: rightAngleAAt, text: '∠TAD = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'rightT', name: '90°', at: rightAngleTAt, text: 'TD ⊥ Tan = 90.0°', isAngle: true, color: 'color-teal', show: showAngles },
+        { key: 'angIntD', name: 'α', at: intDAt, text: `∠TDA = ${degIntD.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: showDLabels && isAlphaVisible },
+        { key: 'angExtD', name: 'Ext D', at: extDAt, text: `Ext D = ${degExtD.toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showDLabels },
+        { key: 'reflexD', name: 'D*', at: get3DReflexBisector(D, T, A, 4.0, THREE), text: `D* = ${(360 - degIntD).toFixed(1)}°`, isAngle: true, color: 'color-rose', show: showReflex && (state.vis3d?.labels !== false) && (state.showDAngles !== false) && isAlphaVisible },
       );
     }
+    this.lastComputed3D = {
+      degTan,
+      degB,
+      diffDeg: Math.abs(degTan - degB),
+      degIntD,
+      degExtD,
+      thalesTBD: get3DAngleDegrees(B, T, D, THREE),
+      thalesTAD: get3DAngleDegrees(A, T, D, THREE),
+      T, A, B, D,
+      R3D: R,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 6. Tangents from External Point 3D Scene View
@@ -3506,8 +4399,8 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     this.anglePMesh2 = makeAngleWedgeMesh(THREE, PALETTE.fuchsia, 0.28);
     this.angleOMesh1 = makeAngleWedgeMesh(THREE, PALETTE.amber, 0.28);
     this.angleOMesh2 = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.28);
-    this.reflexRight1Mesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
-    this.reflexRight2Mesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
+    this.reflexRight1Mesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25);
+    this.reflexRight2Mesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25);
 
     // 3D Right Circular Tangent Cone and Spherical Geodesics on S²
     this.tangentConeMesh = new THREE.Mesh(
@@ -3525,7 +4418,7 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       new THREE.LineBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.8 })
     );
 
-    this.geodesicChordT1T2 = createGeodesicArc3D(THREE, PALETTE.violet);
+    this.geodesicChordT1T2 = createGeodesicArc3D(THREE, PALETTE.amber);
 
     this.scene.add(
       this.markerO, this.markerP, this.markerT1, this.markerT2, this.markerK,
@@ -3582,8 +4475,8 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const R = ((state?.radius || baseR) / baseR) * 8;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
+    const isSpatial = state.dimensionMode === 'spatial';
     const O = new THREE.Vector3(0, 0, 0);
     const distRatio = Math.max(1.15, (state.pointDist || 260) / (state.radius || 120));
     const d = R * distRatio;
@@ -3604,6 +4497,9 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     if (v.lengthSq() < 0.01) v = new THREE.Vector3(1, 0, 0).cross(u);
     v.normalize();
 
+    const normal = isSpatial ? new THREE.Vector3().crossVectors(u, v).normalize() : new THREE.Vector3(0, 1, 0);
+    alignCircleWireToPlane(this.circleWire, normal, O, R, THREE);
+
     // Tangent contact points on sphere
     const T1 = u.clone().multiplyScalar(R * Math.cos(alpha)).add(v.clone().multiplyScalar(R * Math.sin(alpha)));
     const T2 = u.clone().multiplyScalar(R * Math.cos(alpha)).sub(v.clone().multiplyScalar(R * Math.sin(alpha)));
@@ -3621,8 +4517,11 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     this.radiusOT2.geometry.setFromPoints([O, T2]);
     this.tangentPT1.geometry.setFromPoints([P, T1]);
     this.tangentPT2.geometry.setFromPoints([P, T2]);
+    // Straight Euclidean chord cutting through the interior of the translucent sphere
     this.chordT1T2.geometry.setFromPoints([T1, T2]);
+    this.chordT1T2.visible = true;
 
+    // Flat Euclidean right triangles in R^3
     setTriVertices(this.tri1Mesh.geometry, O, T1, P);
     setTriVertices(this.tri2Mesh.geometry, O, T2, P);
     setRightAngle3DVertices(this.rightAngle1Mesh, T1, O, P, 1.3);
@@ -3632,7 +4531,7 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
     this.tri1Mesh.visible = this.tri2Mesh.visible = (state.showCongruence !== false) && showArea;
 
-    const isSpatial = state.dimensionMode === 'spatial';
+    const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
     if (isSpatial) {
       const h = (R * R) / d;
       const rc = Math.sqrt(Math.max(0, R * R - h * h));
@@ -3650,14 +4549,17 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       this.contactCircleLine.scale.set(rc, rc, rc);
       this.contactCircleLine.visible = true;
 
-      this.chordT1T2.visible = false;
-      updateGeodesicArc3D(this.geodesicChordT1T2, T1, T2, R * 1.002, 32);
-      this.geodesicChordT1T2.visible = true;
+      // Optional geodesic chord overlay on S²
+      if (showGeodesicOverlay) {
+        updateGeodesicArc3D(this.geodesicChordT1T2, T1, T2, R * 1.002, 32);
+        this.geodesicChordT1T2.visible = true;
+      } else {
+        this.geodesicChordT1T2.visible = false;
+      }
     } else {
       this.tangentConeMesh.visible = false;
       this.contactCircleLine.visible = false;
       this.geodesicChordT1T2.visible = false;
-      this.chordT1T2.visible = true;
     }
 
     // 3D Angle Shading & Spatial Bisectors
@@ -3706,8 +4608,8 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       { key: 'd', at: midOP, text: `d = ${d.toFixed(1)}`, isAngle: false, color: 'color-yellow' },
       { key: 'right1', at: right1Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
       { key: 'right2', at: right2Pos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
-      { key: 'reflex1', at: get3DReflexBisector(T1, O, P, 3.8, THREE), text: '270.0° (T₁*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
-      { key: 'reflex2', at: get3DReflexBisector(T2, O, P, 3.8, THREE), text: '270.0° (T₂*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflex1', at: get3DReflexBisector(T1, O, P, 3.8, THREE), text: '270.0° (T₁*)', isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflex2', at: get3DReflexBisector(T2, O, P, 3.8, THREE), text: '270.0° (T₂*)', isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
       { key: 'angO1', at: angO1Pos, text: `β₁ = ${degO1.toFixed(1)}°`, isAngle: true, color: 'color-amber', show: showAngles },
       { key: 'angO2', at: angO2Pos, text: `β₂ = ${degO2.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
       { key: 'angP1', at: angP1Pos, text: `α₁ = ${degP1.toFixed(1)}°`, isAngle: true, color: 'color-lime', show: showAngles },
@@ -3725,9 +4627,23 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
         { key: 'cone_gen', at: midGen, text: `Cone L = ${genLen.toFixed(1)}`, color: 'color-sky', show: true }
       );
     }
+    this.lastComputed3D = {
+      P, T1, T2, K, O,
+      d: P.distanceTo(O),
+      len1: P.distanceTo(T1),
+      len2: P.distanceTo(T2),
+      chord: T1.distanceTo(T2),
+      degP1, degP2, degO1, degO2,
+      diffLen: Math.abs(P.distanceTo(T1) - P.distanceTo(T2)),
+      R3D: R,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+
+
+
 
 /**
  * 7. Perpendicular Chord Bisector 3D Scene View
@@ -3758,10 +4674,10 @@ export class ChordBisector3DView extends BaseScene3DView {
     this.rightAngleMesh = makeRightAngleMesh(THREE, PALETTE.teal, 0.75);
     this.angleAOMMesh = makeAngleWedgeMesh(THREE, PALETTE.blue, 0.28);
     this.angleBOMMesh = makeAngleWedgeMesh(THREE, PALETTE.orange, 0.28);
-    this.reflexRightMesh = makeAngleWedgeMesh(THREE, PALETTE.teal, 0.25);
+    this.reflexRightMesh = makeAngleWedgeMesh(THREE, PALETTE.cyan, 0.25);
 
     // Geodesic Arcs, Spherical Triangles, and Bisector Plane for 3D Spatial Mode
-    this.geodesicChordAB = createGeodesicArc3D(THREE, PALETTE.cyan);
+    this.geodesicChordAB = createGeodesicArc3D(THREE, PALETTE.amber);
     this.sphTriangleAOM = createSphericalTriangleMesh(THREE, PALETTE.blue, 0.22);
     this.sphTriangleBOM = createSphericalTriangleMesh(THREE, PALETTE.orange, 0.22);
 
@@ -3791,8 +4707,26 @@ export class ChordBisector3DView extends BaseScene3DView {
     );
 
     this.draggableTargets = [
-      { id: 'A', mesh: this.markerA, field: 'angleA', latField: 'latA' },
-      { id: 'B', mesh: this.markerB, field: 'angleB', latField: 'latB' },
+      {
+        id: 'A',
+        mesh: this.markerA,
+        field: 'angleA',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const clampedA = clampMinAngleDistance(angle, st.angleB, 0.2);
+          store.set({ angleA: clampedA });
+        },
+      },
+      {
+        id: 'B',
+        mesh: this.markerB,
+        field: 'angleB',
+        onDrag: (angle, hit, store) => {
+          const st = store.get();
+          const clampedB = clampMinAngleDistance(angle, st.angleA, 0.2);
+          store.set({ angleB: clampedB });
+        },
+      },
       {
         id: 'M',
         mesh: this.markerM,
@@ -3814,8 +4748,8 @@ export class ChordBisector3DView extends BaseScene3DView {
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
     this.sphere.scale.setScalar(R);
-    this.circleWire.scale.setScalar(R);
     const { THREE } = this;
+    const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
     const latB = state.latB ?? (Math.PI / 2);
     const O = new THREE.Vector3(0, 0, 0);
@@ -3831,14 +4765,22 @@ export class ChordBisector3DView extends BaseScene3DView {
     );
     const M = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
 
+    let normal = isSpatial ? new THREE.Vector3().crossVectors(A, B) : new THREE.Vector3(0, 1, 0);
+    if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
+    normal.normalize();
+    alignCircleWireToPlane(this.circleWire, normal, O, R, THREE);
+
     this.markerO.position.copy(O);
     this.markerA.position.copy(A);
     this.markerB.position.copy(B);
     this.markerM.position.copy(M);
 
+    // Straight Euclidean segments forming chord AB and bisector OM
     this.lineAM.geometry.setFromPoints([A, M]);
     this.lineMB.geometry.setFromPoints([M, B]);
     this.perpOM.geometry.setFromPoints([O, M]);
+    this.lineAM.visible = this.lineMB.visible = true;
+    this.perpOM.visible = true;
 
     this.lineOA.geometry.setFromPoints([O, A]);
     this.lineOB.geometry.setFromPoints([O, B]);
@@ -3850,23 +4792,20 @@ export class ChordBisector3DView extends BaseScene3DView {
     this.bisectorExtArrow.setPoints(ext1, ext2);
     this.bisectorExtArrow.group.visible = state.showExtendedBisector !== false;
 
+    const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
+    // Flat Euclidean right triangles in R^3
     setTriVertices(this.tri1Mesh.geometry, O, A, M);
     setTriVertices(this.tri2Mesh.geometry, O, B, M);
     setRightAngle3DVertices(this.rightAngleMesh, M, O, A, 1.4);
+    this.tri1Mesh.visible = this.tri2Mesh.visible = showArea;
 
-    const { start, sweep } = getMinorArcRange3D(state.angleA, state.angleB);
-    setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, start, sweep);
-
-    const showArea = (state.vis3d?.area !== false) && (state.showArea !== false);
-    const isSpatial = state.dimensionMode === 'spatial';
+    const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
 
     if (isSpatial) {
-      this.lineAM.visible = this.lineMB.visible = false;
+      // Curved subtended arc on the sphere surface S² (distinct PALETTE.amber token)
       updateGeodesicArc3D(this.geodesicChordAB, A, B, R * 1.002, 32);
-      this.geodesicChordAB.visible = true;
-
-      const Msph = new THREE.Vector3().addVectors(A, B).normalize().multiplyScalar(R);
-      this.markerM.position.copy(Msph);
+      const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay || state.vis3d?.geodesic);
+      this.geodesicChordAB.visible = showGeodesic;
 
       const chordDir = new THREE.Vector3().subVectors(B, A).normalize();
       this.bisectorPlaneMesh.position.set(0, 0, 0);
@@ -3879,20 +4818,35 @@ export class ChordBisector3DView extends BaseScene3DView {
       this.bisectorGreatCircle.scale.setScalar(R * 1.002);
       this.bisectorGreatCircle.visible = (state.showExtendedBisector !== false);
 
-      updateSphericalTriangleMesh(this.sphTriangleAOM, O, A, Msph, R * 1.002, 2);
-      updateSphericalTriangleMesh(this.sphTriangleBOM, O, B, Msph, R * 1.002, 2);
-      this.sphTriangleAOM.visible = this.sphTriangleBOM.visible = showArea;
-      this.tri1Mesh.visible = this.tri2Mesh.visible = false;
-      this.segmentMesh.visible = false;
+      // Optional spherical triangle overlays on S²
+      if (showSphericalCap) {
+        const Msph = new THREE.Vector3().addVectors(A, B).normalize().multiplyScalar(R);
+        updateSphericalTriangleMesh(this.sphTriangleAOM, O, A, Msph, R * 1.002, 2);
+        updateSphericalTriangleMesh(this.sphTriangleBOM, O, B, Msph, R * 1.002, 2);
+        this.sphTriangleAOM.visible = this.sphTriangleBOM.visible = showArea;
+      } else {
+        this.sphTriangleAOM.visible = this.sphTriangleBOM.visible = false;
+      }
+      const u = A.clone().normalize();
+      const v = normal.clone().cross(u).normalize();
+      let sweep = Math.atan2(B.dot(v), B.dot(u));
+      if (sweep < 0) sweep += Math.PI * 2;
+      if (sweep > Math.PI) {
+        sweep = Math.PI * 2 - sweep;
+        setSegment3DVertices(this.segmentMesh.geometry, O, u, v.clone().negate(), R, 0, sweep, 32, THREE);
+      } else {
+        setSegment3DVertices(this.segmentMesh.geometry, O, u, v, R, 0, sweep, 32, THREE);
+      }
+      this.segmentMesh.visible = showArea;
     } else {
       this.geodesicChordAB.visible = false;
       this.sphTriangleAOM.visible = false;
       this.sphTriangleBOM.visible = false;
       this.bisectorPlaneMesh.visible = false;
       this.bisectorGreatCircle.visible = false;
-      this.lineAM.visible = this.lineMB.visible = true;
-      this.markerM.position.copy(M);
-      this.tri1Mesh.visible = this.tri2Mesh.visible = showArea;
+
+      const { start, sweep } = getMinorArcRange3D(state.angleA, state.angleB);
+      setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, start, sweep);
       this.segmentMesh.visible = showArea;
     }
 
@@ -3927,7 +4881,7 @@ export class ChordBisector3DView extends BaseScene3DView {
       { key: 'angAOM', at: aomLabelPos, text: `∠AOM = ${degAOM.toFixed(1)}°`, isAngle: true, color: 'color-blue', show: showAngles },
       { key: 'angBOM', at: bomLabelPos, text: `∠BOM = ${degBOM.toFixed(1)}°`, isAngle: true, color: 'color-orange', show: showAngles },
       { key: 'right', at: rightPos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
-      { key: 'reflexM', at: get3DReflexBisector(M, O, A, 3.2, THREE), text: '270.0° (M*)', isAngle: true, color: 'color-teal', show: showReflex && (state.vis3d?.labels !== false) },
+      { key: 'reflexM', at: get3DReflexBisector(M, O, A, 3.2, THREE), text: '270.0° (M*)', isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
     ];
     if (isSpatial) {
       const Msph = new THREE.Vector3().addVectors(A, B).normalize().multiplyScalar(R);
@@ -3939,8 +4893,31 @@ export class ChordBisector3DView extends BaseScene3DView {
         show: true,
       });
     }
+    this.lastComputed3D = {
+      A, B, M, O,
+      lenAM: A.distanceTo(M),
+      lenMB: B.distanceTo(M),
+      diffLen: Math.abs(A.distanceTo(M) - B.distanceTo(M)),
+      degAOM,
+      degBOM,
+      R3D: R,
+    };
     this.overlay.render(this.currentLabels, state.vis3d);
   }
 }
+
+export {
+  computeSagitta,
+  computeCurvatureRatio,
+  projectStereographicToEquator,
+  projectEquatorToSphere,
+  interpolateCurvatureHomotopy,
+  interpolateGeodesicChord,
+};
+
+
+
+
+
 
 

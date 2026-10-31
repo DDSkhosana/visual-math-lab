@@ -29,6 +29,7 @@ export class CanvasView {
     const { ctx, width, height } = this;
     if (!width || !height) return;
 
+    ctx.__vis = state.vis2d;
     ctx.clearRect(0, 0, width, height);
     const g = computeGeometry(state, width, height);
 
@@ -193,10 +194,10 @@ export class CanvasView {
     if (showReflex) {
       const angMA = Math.atan2(g.A.y - g.M.y, g.A.x - g.M.x);
       const angMO = Math.atan2(g.cy - g.M.y, g.cx - g.M.x);
-      drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(20, 184, 166, 0.18)', PALETTE.teal);
+      drawReflexWedge(ctx, g.M, angMA, angMO, 28, 'rgba(6, 182, 212, 0.18)', PALETTE.cyan);
 
       if (showLabels) {
-        drawTextBadge(ctx, '270.0° (M*)', g.M.x + 36 * uOMx, g.M.y + 36 * uOMy, PALETTE.teal);
+        drawTextBadge(ctx, '270.0° (M*)', g.M.x + 36 * uOMx, g.M.y + 36 * uOMy, PALETTE.cyan);
       }
     }
   }

@@ -48,6 +48,7 @@ export class WorkspaceDockManager {
     this.activePanelId = null;
     this.activeSectionHeader = null;
     this.breadcrumbBar = null;
+    this.defaultDeckMode = options.deckMode || options.defaultDeckMode || 'deck';
 
     if (this.root && this.doc) {
       this.#initContainers();
@@ -322,10 +323,28 @@ export class WorkspaceDockManager {
         }
       });
 
-      this.doc?.addEventListener('click', (e) => {
-        if (!this.dockElement.contains(e.target)) {
+      const closeTray = () => {
+        if (this.trayDropdown && !this.trayDropdown.hidden) {
           this.trayDropdown.hidden = true;
-          this.trayBtn.setAttribute('aria-expanded', 'false');
+          this.trayBtn?.setAttribute('aria-expanded', 'false');
+        }
+      };
+
+      const handleOutside = (e) => {
+        if (!this.trayDropdown || this.trayDropdown.hidden) return;
+        const target = e.target;
+        const isInsideTray = (this.trayDropdown.contains && this.trayDropdown.contains(target)) ||
+                             (this.trayBtn && this.trayBtn.contains && this.trayBtn.contains(target));
+        if (!isInsideTray) {
+          closeTray();
+        }
+      };
+
+      this.doc?.addEventListener?.('pointerdown', handleOutside, true);
+      this.doc?.addEventListener?.('click', handleOutside);
+      this.doc?.addEventListener?.('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          closeTray();
         }
       });
     }
@@ -643,6 +662,12 @@ export class WorkspaceDockManager {
     };
 
     this.panels.set(id, record);
+    if (this.defaultDeckMode && this.defaultDeckMode !== 'deck') {
+      const b = panelElement.querySelector?.('.panel-body');
+      if (b && !b.hasAttribute?.('data-deck-mode')) {
+        b.setAttribute?.('data-deck-mode', this.defaultDeckMode);
+      }
+    }
     this.#enhancePanelHeader(record);
     this.#attachOmniResizeHandles(record);
     this.#enableFloatingDrag(record);
@@ -788,6 +813,22 @@ export class WorkspaceDockManager {
 
       syncPanelElevationTurn(panel);
     });
+  }
+
+  setPanelDeckMode(panelId, mode) {
+    const record = this.panels.get(panelId);
+    if (!record) return;
+    const body = record.element.querySelector ? record.element.querySelector('.panel-body') : null;
+    if (!body) return;
+    body.setAttribute?.('data-deck-mode', mode);
+    syncPanelElevationTurn(record.element);
+  }
+
+  getPanelDeckMode(panelId) {
+    const record = this.panels.get(panelId);
+    if (!record) return null;
+    const body = record.element.querySelector ? record.element.querySelector('.panel-body') : null;
+    return body?.getAttribute?.('data-deck-mode') || 'deck';
   }
 
   #enhancePanelHeader(record) {
@@ -1648,6 +1689,70 @@ export class WorkspaceDockManager {
       }
     });
 
+    // Automatic Horizontal Scroll on Top/Bottom Docks (Zero-Effort mouse wheel navigation)
+    if (this.dockBody && !this.dockBody._horizontalWheelBound) {
+      this.dockBody._horizontalWheelBound = true;
+      this.dockBody.addEventListener?.('wheel', (e) => {
+        if (this.dockEdge === 'top' || this.dockEdge === 'bottom') {
+          // If the cursor is over an inner vertically-scrollable container that has room to scroll, let it scroll
+          const innerScrollable = e.target?.closest?.('.collapsible-content, .derivation-card-content, .panel-body');
+          if (innerScrollable && innerScrollable !== this.dockBody) {
+            const hasVert = (innerScrollable.scrollHeight || 0) > (innerScrollable.clientHeight || 0) + 2;
+            const canScrollDown = e.deltaY > 0 && ((innerScrollable.scrollTop || 0) + (innerScrollable.clientHeight || 0) < (innerScrollable.scrollHeight || 0) - 2);
+            const canScrollUp = e.deltaY < 0 && (innerScrollable.scrollTop || 0) > 2;
+            if (hasVert && (canScrollDown || canScrollUp)) {
+              return; // Allow the inner content to scroll vertically
+            }
+          }
+          const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+          if (delta) {
+            this.dockBody.scrollLeft += delta;
+            e.preventDefault?.();
+          }
+        }
+      }, { passive: false });
+    }
+
+    // Derivation Card Navigation Buttons delegation (Prev / Next Step)
+    const handleCardNav = (e) => {
+      const navBtn = e.target?.closest?.('[data-card-nav]');
+      if (!navBtn) return;
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      const direction = navBtn.getAttribute('data-card-nav') === 'prev' ? 'backward' : 'forward';
+      const panel = navBtn.closest?.('.ui-panel');
+      if (panel) {
+        cyclePanelSubpanel(panel, direction);
+        return;
+      }
+      const card = navBtn.closest?.('.derivation-card');
+      const container = card?.parentElement;
+      if (!container) return;
+      const cards = Array.from(container.querySelectorAll?.('.derivation-card') || []);
+      if (cards.length <= 1) return;
+      const curIdx = Math.max(0, cards.indexOf(card));
+      const nextIdx = direction === 'forward' ? (curIdx + 1) % cards.length : (curIdx - 1 + cards.length) % cards.length;
+      const targetCard = cards[nextIdx];
+      cards.forEach((c) => {
+        const isTarget = c === targetCard;
+        c.classList?.toggle('open', isTarget);
+        const h = c.querySelector?.('.derivation-card-header');
+        if (h) {
+          h.classList?.toggle('open', isTarget);
+          h.setAttribute?.('aria-expanded', isTarget ? 'true' : 'false');
+          const icon = h.querySelector('.icon');
+          if (icon) icon.textContent = isTarget ? '▼' : '▶';
+        }
+        const content = c.querySelector?.('.derivation-card-content');
+        if (content) {
+          content.classList?.toggle('open', isTarget);
+          if (content.style) content.style.display = isTarget ? 'block' : 'none';
+        }
+      });
+    };
+    this.root?.addEventListener?.('click', handleCardNav);
+    this.dockBody?.addEventListener?.('click', handleCardNav);
+
     // 1. Hierarchical Focus & Click Tracking for Breadcrumbs
     const handleHierarchyTrack = (e) => {
       const panel = e.target?.closest?.('.ui-panel');
@@ -1854,21 +1959,33 @@ export class WorkspaceDockManager {
     this.doc?.addEventListener?.('keydown', (e) => {
       if (['INPUT', 'TEXTAREA'].includes(this.doc.activeElement?.tagName)) return;
       if (e.key === '[' || e.key === ']') {
-        const panels = this.dockBody?.querySelectorAll?.('.ui-panel') || [];
-        for (const panel of panels) {
-          const deck = panel.querySelector?.('.panel-elevation-deck');
-          if (deck && deck.style.display !== 'none') {
-            const navBtn = deck.querySelector?.(`.elevation-deck-nav-btn.${e.key === '[' ? 'prev' : 'next'}`);
-            if (navBtn) {
-              e.preventDefault?.();
-              if (typeof navBtn.click === 'function') {
-                navBtn.click();
-              } else {
-                navBtn.dispatchEvent?.({ type: 'click' });
-              }
+        const panels = Array.from(this.dockBody?.querySelectorAll?.('.ui-panel') || []);
+        let targetPanel = null;
+        if (this.activePanelId) {
+          targetPanel = this.panels.get(this.activePanelId)?.element || null;
+        }
+        if (!targetPanel && panels.length > 0) {
+          for (const panel of panels) {
+            const deck = panel.querySelector?.('.panel-elevation-deck');
+            if (deck && deck.style.display !== 'none') {
+              targetPanel = panel;
               break;
             }
           }
+          if (!targetPanel) {
+            for (const panel of panels) {
+              const subs = panel.querySelectorAll?.('.collapsible-section, .derivation-card') || [];
+              if (subs.length > 1) {
+                targetPanel = panel;
+                break;
+              }
+            }
+          }
+          if (!targetPanel) targetPanel = panels[0];
+        }
+        if (targetPanel) {
+          e.preventDefault?.();
+          cyclePanelSubpanel(targetPanel, e.key === '[' ? 'backward' : 'forward');
         }
       }
     });
@@ -1939,15 +2056,160 @@ export function initWorkspaceDock(root = null, options = {}) {
 }
 
 /**
+ * Helper to open/close an individual collapsible section or derivation card cleanly.
+ */
+export function setSubpanelOpen(sub, shouldOpen) {
+  if (!sub) return;
+  if (sub.classList.contains('collapsible-section')) {
+    sub.classList.toggle('collapsed', !shouldOpen);
+    const h = sub.querySelector ? sub.querySelector('.collapsible-header') : null;
+    if (h) {
+      h.setAttribute('aria-expanded', String(shouldOpen));
+      h.classList.toggle('open', shouldOpen);
+      const icon = h.querySelector ? h.querySelector('.icon') : null;
+      if (icon) icon.textContent = shouldOpen ? '▼' : '▶';
+    }
+    const c = sub.querySelector ? sub.querySelector('.collapsible-content') : null;
+    if (c) {
+      c.classList.toggle('open', shouldOpen);
+      c.classList.toggle('collapsed', !shouldOpen);
+    }
+  } else if (sub.classList.contains('derivation-card')) {
+    sub.classList.toggle('open', shouldOpen);
+    const h = sub.querySelector ? sub.querySelector('.derivation-card-header') : null;
+    if (h) {
+      h.setAttribute('aria-expanded', String(shouldOpen));
+      h.classList.toggle('open', shouldOpen);
+      const icon = h.querySelector ? h.querySelector('.icon') : null;
+      if (icon) icon.textContent = shouldOpen ? '▼' : '▶';
+    }
+    const c = sub.querySelector ? sub.querySelector('.derivation-card-content') : null;
+    if (c) {
+      c.classList.toggle('open', shouldOpen);
+    }
+  }
+}
+
+/**
+ * Cycles between subpanels of a panel without having to expand that panel first.
+ * If the panel is shaded, it un-shades it, expands the target subpanel, and synchronizes elevation.
+ */
+export function cyclePanelSubpanel(panel, direction = 'forward') {
+  if (!panel) return;
+  const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+  if (!body) return;
+
+  const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
+  const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
+  const allSubpanels = [...sections, ...cards];
+  if (allSubpanels.length <= 1) return;
+
+  const isOpen = (sub) => {
+    if (sub.classList.contains('collapsible-section')) {
+      return !sub.classList.contains('collapsed');
+    }
+    const h = sub.querySelector ? sub.querySelector('.derivation-card-header') : null;
+    return sub.classList.contains('open') || Boolean(h?.classList.contains('open'));
+  };
+
+  // If panel is shaded/minimized, restore it so user sees the newly cycled content
+  if (panel.classList.contains('is-shaded')) {
+    panel.classList.remove('is-shaded');
+    const shadeBtn = panel.querySelector('.panel-shade-btn');
+    if (shadeBtn) {
+      shadeBtn.innerHTML = '─';
+      shadeBtn.title = 'Roll up / restore window';
+      shadeBtn.setAttribute('aria-expanded', 'true');
+    }
+    const minBtn = panel.querySelector('.panel-minimize-btn');
+    if (minBtn) {
+      minBtn.setAttribute('aria-expanded', 'true');
+      minBtn.title = 'Minimize Panel';
+      const icon = minBtn.querySelector('.panel-minimize-icon');
+      const upSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+      if (icon) icon.innerHTML = upSvg;
+    }
+    if (body.classList.contains('hidden')) body.classList.remove('hidden');
+    if (body.style) body.style.display = '';
+  }
+
+  // Find currently elevated or open subpanel across all subpanels
+  let curSub = allSubpanels.find((s) => s.getAttribute('data-elevation-turn') === 'top' || s.classList.contains('is-elevated-top'));
+  if (!curSub) {
+    curSub = allSubpanels.find((s) => isOpen(s));
+  }
+  const curIdx = curSub ? allSubpanels.indexOf(curSub) : -1;
+  let nextIdx = 0;
+  if (curIdx === -1) {
+    nextIdx = direction === 'backward' ? allSubpanels.length - 1 : 0;
+  } else if (direction === 'forward') {
+    nextIdx = (curIdx + 1) % allSubpanels.length;
+  } else {
+    nextIdx = (curIdx - 1 + allSubpanels.length) % allSubpanels.length;
+  }
+  const targetSub = allSubpanels[nextIdx];
+
+  // Open target subpanel if not open without requiring prior manual expansion
+  const curMode = body.getAttribute?.('data-deck-mode') || 'deck';
+  if (curMode === 'tabs') {
+    activateTabSubpanel(targetSub, allSubpanels);
+  } else if (!isOpen(targetSub)) {
+    setSubpanelOpen(targetSub, true);
+  }
+
+  // Sync elevation turn
+  syncPanelElevationTurn(panel, targetSub, { direction });
+
+  // Update header stepper indicator if present
+  updateHeaderStepper(panel, nextIdx, allSubpanels.length);
+}
+
+/**
+ * Updates the compact subpanel stepper in the panel header if present.
+ */
+export function updateHeaderStepper(panel, activeIdx, totalCount) {
+  if (!panel) return;
+  const stepper = panel.querySelector?.('.panel-subpanel-stepper');
+  if (stepper) {
+    const indicator = stepper.querySelector('.subpanel-step-indicator');
+    if (indicator) {
+      indicator.textContent = `${activeIdx + 1}/${totalCount}`;
+    }
+  }
+}
+
+/**
+ * Activates a single tab in Tab Bar mode by expanding the selected subpanel and closing others.
+ */
+export function activateTabSubpanel(targetSub, allSubpanels = []) {
+  if (!targetSub) return;
+  allSubpanels.forEach((sub) => {
+    const isTarget = sub === targetSub;
+    setSubpanelOpen(sub, isTarget);
+  });
+  const panel = targetSub?.closest ? targetSub.closest('.ui-panel') : null;
+  if (panel) {
+    panel.classList.add('has-expanded-subpanel');
+    panel.classList.remove('is-shaded');
+    const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+    if (body) {
+      body.classList.remove('hidden');
+      if (body.style) body.style.display = '';
+    }
+  }
+}
+
+/**
  * Synchronizes elevation levels and turn-taking deck when panels have bounded dock height.
- * - Level 1: Base panel surface (.ui-panel).
- * - Level 2: Subpanels (.collapsible-section, .derivation-card). When multiple subpanels are
- *            expanded, they take turns being at the top ([data-elevation-turn="top"] / .is-elevated-top),
- *            with an interactive Elevation Deck Bar (.panel-elevation-deck) displaying navigation pills.
- * - Level 3: Nested controls and components inside an elevated subpanel.
+ * Supports three navigation modes via [data-deck-mode]:
+ * - 'tabs' / 'deck': Tab Bar mode (single-turn tabs). Pills for all subpanels are always visible
+ *                    allowing 1-click tab switching. Non-active sections are parked in the deck.
+ * - 'accordion': Accordion mode (nested collapsible headers). Independent collapsibles without deck parking.
+ * - 'stack': Stack mode (continuous vertical scroll). All open sections expanded in full vertical flow.
  *
  * @param {HTMLElement} panel - The .ui-panel container.
  * @param {HTMLElement|null} preferredActiveElement - Optional subpanel or child requesting the top turn.
+ * @param {Object} options - { direction, mode }
  */
 export function syncPanelElevationTurn(panel, preferredActiveElement = null, options = {}) {
   if (!panel) return;
@@ -1974,17 +2236,38 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
   // Deck container inside the panel body
   let deck = body.querySelector ? body.querySelector('.panel-elevation-deck') : null;
 
-  if (totalOpen <= 1) {
+  if (allSubpanels.length <= 1) {
     if (deck) {
       deck.style.display = 'none';
-      if (Array.isArray(deck.children)) {
-        deck.children.length = 0;
+      if (Array.isArray(deck.children)) deck.children.length = 0;
+      if (typeof deck.replaceChildren === 'function') deck.replaceChildren();
+      else if (deck.innerHTML !== undefined) deck.innerHTML = '';
+    }
+    allSubpanels.forEach((sub) => {
+      sub.removeAttribute?.('data-elevation-turn');
+      sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
+      if (totalOpen === 1 && isOpen(sub)) {
+        sub.setAttribute?.('data-elevation-level', '2');
+      } else {
+        sub.removeAttribute?.('data-elevation-level');
       }
-      if (typeof deck.replaceChildren === 'function') {
-        deck.replaceChildren();
-      } else if (deck.innerHTML !== undefined) {
-        deck.innerHTML = '';
-      }
+    });
+    return;
+  }
+
+  const currentMode = body.getAttribute?.('data-deck-mode') || options?.mode || 'deck';
+  const isTabsMode = currentMode === 'tabs';
+  const isAccordionMode = currentMode === 'accordion';
+  const isStackMode = currentMode === 'stack';
+  const isDeckMode = currentMode === 'deck';
+
+  // In default dynamic deck mode, hide deck when totalOpen <= 1 unless forceDeck is requested
+  if (isDeckMode && totalOpen <= 1 && !options?.forceDeck) {
+    if (deck) {
+      deck.style.display = 'none';
+      if (Array.isArray(deck.children)) deck.children.length = 0;
+      if (typeof deck.replaceChildren === 'function') deck.replaceChildren();
+      else if (deck.innerHTML !== undefined) deck.innerHTML = '';
     }
     allSubpanels.forEach((sub) => {
       sub.removeAttribute?.('data-elevation-turn');
@@ -2007,37 +2290,48 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     return;
   }
 
-  // Multi-expand mode (totalOpen > 1): Elevation Turn-Taking Deck is active
+  // Active subpanel determination
   let activeSubpanel = null;
+  const pool = (isTabsMode || isAccordionMode) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+
   if (preferredActiveElement) {
     const target = preferredActiveElement.closest
       ? preferredActiveElement.closest('.collapsible-section, .derivation-card')
       : preferredActiveElement;
-    if (target && openSubpanels.includes(target)) {
+    if (target && allSubpanels.includes(target)) {
+      if (!isOpen(target)) {
+        setSubpanelOpen(target, true);
+      }
       activeSubpanel = target;
     }
   }
 
   if (!activeSubpanel) {
-    activeSubpanel = openSubpanels.find(
+    activeSubpanel = pool.find(
       (s) => s.getAttribute?.('data-elevation-turn') === 'top' || s.classList?.contains('is-elevated-top')
     );
   }
 
   if (!activeSubpanel) {
-    activeSubpanel = openSubpanels[0];
+    activeSubpanel = (openSubpanels.length > 0) ? openSubpanels[0] : allSubpanels[0];
   }
 
+  if (isTabsMode && activeSubpanel && !isOpen(activeSubpanel)) {
+    setSubpanelOpen(activeSubpanel, true);
+  }
+
+  const subsToRender = (isTabsMode || isAccordionMode) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+
   const prevActiveSubpanel = deck?._activeSubpanel || null;
-  const prevActiveIdx = prevActiveSubpanel ? openSubpanels.indexOf(prevActiveSubpanel) : -1;
-  const activeIdx = openSubpanels.indexOf(activeSubpanel);
+  const prevActiveIdx = prevActiveSubpanel ? subsToRender.indexOf(prevActiveSubpanel) : -1;
+  const activeIdx = Math.max(0, subsToRender.indexOf(activeSubpanel));
 
   // Compute turn animation direction (forward vs backward)
   let direction = options?.direction || null;
   if (!direction && prevActiveIdx !== -1 && activeIdx !== -1 && prevActiveIdx !== activeIdx) {
-    if (prevActiveIdx === openSubpanels.length - 1 && activeIdx === 0) {
+    if (prevActiveIdx === subsToRender.length - 1 && activeIdx === 0) {
       direction = 'forward';
-    } else if (prevActiveIdx === 0 && activeIdx === openSubpanels.length - 1) {
+    } else if (prevActiveIdx === 0 && activeIdx === subsToRender.length - 1) {
       direction = 'backward';
     } else {
       direction = activeIdx > prevActiveIdx ? 'forward' : 'backward';
@@ -2060,7 +2354,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
 
   if (deck) {
     deck._panel = panel;
-    deck._openSubpanels = openSubpanels;
+    deck._openSubpanels = subsToRender;
     deck._activeSubpanel = activeSubpanel;
 
     if (!deck._wheelBound) {
@@ -2079,10 +2373,20 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         const delta = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
         if (delta > 0) {
           const nextIdx = (curIdx + 1) % subs.length;
-          syncPanelElevationTurn(deck._panel, subs[nextIdx], { direction: 'forward' });
+          const targetSub = subs[nextIdx];
+          const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
+          if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
+          if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+          else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward' });
         } else if (delta < 0) {
           const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-          syncPanelElevationTurn(deck._panel, subs[prevIdx], { direction: 'backward' });
+          const targetSub = subs[prevIdx];
+          const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
+          if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
+          if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+          else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward' });
         }
       }, { passive: false });
 
@@ -2105,12 +2409,20 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
           tEv.preventDefault?.();
           const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
+          const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
+          if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
           if (dx < 0) {
             const nextIdx = (curIdx + 1) % subs.length;
-            syncPanelElevationTurn(deck._panel, subs[nextIdx], { direction: 'forward' });
+            const targetSub = subs[nextIdx];
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward' });
           } else {
             const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-            syncPanelElevationTurn(deck._panel, subs[prevIdx], { direction: 'backward' });
+            const targetSub = subs[prevIdx];
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward' });
           }
         }
       }, { passive: false });
@@ -2129,28 +2441,38 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     if (doc && doc.createElement) {
       const badge = doc.createElement('span');
       badge.className = 'elevation-deck-label';
-      badge.textContent = `Deck (${activeIdx + 1}/${openSubpanels.length})`;
-      badge.title = 'Subpanels elevation deck: click any pill or scroll mousewheel to cycle turns';
+      if (isTabsMode) {
+        badge.textContent = `Tabs (${activeIdx + 1}/${subsToRender.length})`;
+        badge.title = 'Tab bar mode: 1-click tab switching between all sections';
+      } else if (isAccordionMode) {
+        badge.textContent = `Accordion (${openSubpanels.length}/${allSubpanels.length})`;
+        badge.title = 'Accordion mode: independent collapsible sections';
+      } else if (isStackMode) {
+        badge.textContent = `Stack (${openSubpanels.length}/${allSubpanels.length})`;
+        badge.title = 'Stack mode: continuous vertical scrolling';
+      } else {
+        badge.textContent = `Deck (${activeIdx + 1}/${subsToRender.length})`;
+        badge.title = 'Subpanels elevation deck: click any pill or scroll mousewheel to cycle turns';
+      }
       deck.appendChild(badge);
 
       // Previous Turn Button
       const prevBtn = doc.createElement('button');
       prevBtn.type = 'button';
       prevBtn.className = 'elevation-deck-nav-btn prev';
-      prevBtn.title = 'Previous elevated subpanel (Shortcut: [ or Wheel Up)';
-      prevBtn.setAttribute('aria-label', 'Previous subpanel');
+      prevBtn.title = 'Previous section (Shortcut: [ or Wheel Up)';
+      prevBtn.setAttribute('aria-label', 'Previous section');
       prevBtn.textContent = '◀';
       prevBtn.addEventListener('click', (e) => {
         e.stopPropagation?.();
-        const prevIdx = (activeIdx - 1 + openSubpanels.length) % openSubpanels.length;
-        syncPanelElevationTurn(panel, openSubpanels[prevIdx], { direction: 'backward' });
+        cyclePanelSubpanel(panel, 'backward');
       });
       deck.appendChild(prevBtn);
 
       const pillsContainer = doc.createElement('div');
       pillsContainer.className = 'elevation-deck-pills';
 
-      openSubpanels.forEach((sub, i) => {
+      subsToRender.forEach((sub, i) => {
         const pill = doc.createElement('button');
         pill.type = 'button';
         const isCurrent = sub === activeSubpanel;
@@ -2164,7 +2486,11 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         const displayTitle = fullTitle.length > 24 ? fullTitle.slice(0, 22) + '…' : fullTitle;
 
         pill.textContent = `${i + 1}. ${displayTitle}${isCurrent ? ' ★' : ''}`;
-        pill.title = `Bring "${fullTitle}" to top elevation`;
+        pill.title = isTabsMode
+          ? `Switch tab to "${fullTitle}"`
+          : isAccordionMode
+            ? `Toggle "${fullTitle}"`
+            : `Bring "${fullTitle}" to top elevation`;
 
         if (isCurrent && typeof pill.scrollIntoView === 'function') {
           try {
@@ -2175,23 +2501,48 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         pill.addEventListener?.('click', (e) => {
           e.stopPropagation?.();
           const pDir = i > activeIdx ? 'forward' : 'backward';
-          syncPanelElevationTurn(panel, sub, { direction: pDir });
+          const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
+          if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
+          if (curMode === 'tabs') {
+            activateTabSubpanel(sub, allSubpanels);
+            syncPanelElevationTurn(panel, sub, { direction: pDir });
+          } else if (curMode === 'accordion') {
+            const currentlyOpen = isOpen(sub);
+            setSubpanelOpen(sub, !currentlyOpen);
+            syncPanelElevationTurn(panel, sub, { direction: pDir });
+          } else if (curMode === 'stack') {
+            if (!isOpen(sub)) setSubpanelOpen(sub, true);
+            sub.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+            syncPanelElevationTurn(panel, sub);
+          } else {
+            if (!isOpen(sub)) setSubpanelOpen(sub, true);
+            syncPanelElevationTurn(panel, sub, { direction: pDir });
+          }
         });
 
         pill.addEventListener?.('keydown', (e) => {
+          const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
           if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             e.preventDefault?.();
             e.stopPropagation?.();
-            const nextIdx = (i + 1) % openSubpanels.length;
-            syncPanelElevationTurn(panel, openSubpanels[nextIdx], { direction: 'forward' });
+            const nextIdx = (i + 1) % subsToRender.length;
+            const targetSub = subsToRender[nextIdx];
+            if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+            syncPanelElevationTurn(panel, targetSub, { direction: 'forward' });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[nextIdx]?.focus?.();
           } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
             e.preventDefault?.();
             e.stopPropagation?.();
-            const prevIdx = (i - 1 + openSubpanels.length) % openSubpanels.length;
-            syncPanelElevationTurn(panel, openSubpanels[prevIdx], { direction: 'backward' });
+            const prevIdx = (i - 1 + subsToRender.length) % subsToRender.length;
+            const targetSub = subsToRender[prevIdx];
+            if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
+            syncPanelElevationTurn(panel, targetSub, { direction: 'backward' });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[prevIdx]?.focus?.();
@@ -2207,95 +2558,97 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
       const nextBtn = doc.createElement('button');
       nextBtn.type = 'button';
       nextBtn.className = 'elevation-deck-nav-btn next';
-      nextBtn.title = 'Next elevated subpanel (Shortcut: ] or Wheel Down)';
-      nextBtn.setAttribute('aria-label', 'Next subpanel');
+      nextBtn.title = 'Next section (Shortcut: ] or Wheel Down)';
+      nextBtn.setAttribute('aria-label', 'Next section');
       nextBtn.textContent = '▶';
       nextBtn.addEventListener('click', (e) => {
         e.stopPropagation?.();
-        const nextIdx = (activeIdx + 1) % openSubpanels.length;
-        syncPanelElevationTurn(panel, openSubpanels[nextIdx], { direction: 'forward' });
+        cyclePanelSubpanel(panel, 'forward');
       });
       deck.appendChild(nextBtn);
 
-      // Mode Toggle Button (Deck / Stack)
-      const isStackMode = body.getAttribute?.('data-deck-mode') === 'stack';
+      // Mode Toggle Button (Focus Step / Scroll All / Accordion)
       const modeBtn = doc.createElement('button');
       modeBtn.type = 'button';
-      modeBtn.className = `elevation-deck-mode-toggle${isStackMode ? ' is-stack' : ''}`;
-      modeBtn.title = isStackMode ? 'Switch to Deck mode (strict height turns)' : 'Switch to Stack mode (scroll all sections)';
-      modeBtn.textContent = isStackMode ? 'Stack ↕' : 'Deck ☵';
+      let modeClass = 'is-deck';
+      let modeText = 'Focus Step';
+      let modeTitle = 'Current: Focus Step mode (1 step at a time). Click to switch to Scroll All mode.';
+
+      if (isTabsMode) {
+        modeClass = 'is-tabs';
+        modeText = 'Focus Step';
+        modeTitle = 'Current: Focus Tab mode (1 tab at a time). Click to switch to Scroll All mode.';
+      } else if (isStackMode) {
+        modeClass = 'is-stack';
+        modeText = 'Scroll All';
+        modeTitle = 'Current: Scroll All mode (all steps visible in continuous flow). Click to switch to Accordion mode.';
+      } else if (isAccordionMode) {
+        modeClass = 'is-accordion';
+        modeText = 'Accordion';
+        modeTitle = 'Current: Accordion mode (independent sections). Click to switch to Focus Step mode.';
+      }
+
+      modeBtn.className = `elevation-deck-mode-toggle ${modeClass}`;
+      modeBtn.title = modeTitle;
+      modeBtn.textContent = modeText;
       modeBtn.addEventListener('click', (e) => {
         e.stopPropagation?.();
-        const nextMode = body.getAttribute?.('data-deck-mode') === 'stack' ? 'deck' : 'stack';
+        let nextMode = 'stack';
+        const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
+        if (curMode === 'tabs' || curMode === 'deck') {
+          nextMode = 'stack';
+        } else if (curMode === 'stack') {
+          nextMode = 'accordion';
+        } else if (curMode === 'accordion') {
+          nextMode = 'tabs';
+        }
         body.setAttribute?.('data-deck-mode', nextMode);
+        if (nextMode === 'stack') {
+          allSubpanels.forEach((s) => {
+            if (!isOpen(s)) setSubpanelOpen(s, true);
+          });
+        } else if (nextMode === 'tabs') {
+          activateTabSubpanel(activeSubpanel || allSubpanels[0], allSubpanels);
+        }
         syncPanelElevationTurn(panel, activeSubpanel);
       });
       deck.appendChild(modeBtn);
     }
   }
 
-  const isStackMode = body.getAttribute?.('data-deck-mode') === 'stack';
-  openSubpanels.forEach((sub) => {
-    sub.setAttribute?.('data-elevation-level', '2');
-    const isTop = sub === activeSubpanel;
-    if (isTop) {
-      sub.setAttribute?.('data-elevation-turn', 'top');
-      sub.classList?.add('is-elevated-top');
-      sub.classList?.remove('is-in-deck');
-      sub.classList?.remove('slide-forward', 'slide-backward');
-      if (direction === 'forward') {
-        sub.classList?.add('slide-forward');
-      } else if (direction === 'backward') {
-        sub.classList?.add('slide-backward');
-      }
-
-      if (!isStackMode && openSubpanels.length > 1) {
-        const activeContent = sub.querySelector?.('.collapsible-content, .derivation-card-content') || sub;
-        if (activeContent && !activeContent._overscrollBound) {
-          activeContent._overscrollBound = true;
-          activeContent.addEventListener?.('wheel', (e) => {
-            if (body.getAttribute?.('data-deck-mode') === 'stack') return;
-            const subs = deck?._openSubpanels || openSubpanels || [];
-            if (subs.length <= 1) return;
-
-            const isScrollable = activeContent.scrollHeight > (activeContent.clientHeight || 0) + 4;
-            const atBottom = !isScrollable || (activeContent.scrollTop + (activeContent.clientHeight || 0) >= activeContent.scrollHeight - 3);
-            const atTop = !isScrollable || (activeContent.scrollTop || 0) <= 2;
-
-            if (e.deltaY > 0 && atBottom) {
-              const now = Date.now();
-              if (activeContent._lastTurnTime && (now - activeContent._lastTurnTime < 240)) return;
-              activeContent._lastTurnTime = now;
-              e.preventDefault?.();
-              e.stopPropagation?.();
-              const curIdx = Math.max(0, subs.indexOf(sub));
-              const nextIdx = (curIdx + 1) % subs.length;
-              syncPanelElevationTurn(panel, subs[nextIdx], { direction: 'forward' });
-            } else if (e.deltaY < 0 && atTop) {
-              const now = Date.now();
-              if (activeContent._lastTurnTime && (now - activeContent._lastTurnTime < 240)) return;
-              activeContent._lastTurnTime = now;
-              e.preventDefault?.();
-              e.stopPropagation?.();
-              const curIdx = Math.max(0, subs.indexOf(sub));
-              const prevIdx = (curIdx - 1 + subs.length) % subs.length;
-              syncPanelElevationTurn(panel, subs[prevIdx], { direction: 'backward' });
-            }
-          }, { passive: false });
+  if (isTabsMode || isDeckMode) {
+    allSubpanels.forEach((sub) => {
+      sub.setAttribute?.('data-elevation-level', '2');
+      const isTop = sub === activeSubpanel;
+      if (isTop) {
+        sub.setAttribute?.('data-elevation-turn', 'top');
+        sub.classList?.add('is-elevated-top');
+        sub.classList?.remove('is-in-deck', 'slide-forward', 'slide-backward');
+        if (direction === 'forward') {
+          sub.classList?.add('slide-forward');
+        } else if (direction === 'backward') {
+          sub.classList?.add('slide-backward');
         }
-      }
-    } else {
-      sub.setAttribute?.('data-elevation-turn', 'deck');
-      sub.classList?.remove('is-elevated-top', 'slide-forward', 'slide-backward');
-      if (isStackMode) {
-        sub.classList?.remove('is-in-deck');
       } else {
+        sub.setAttribute?.('data-elevation-turn', 'deck');
+        sub.classList?.remove('is-elevated-top', 'slide-forward', 'slide-backward');
         sub.classList?.add('is-in-deck');
       }
-    }
-  });
+    });
+  } else {
+    // Stack or Accordion mode: no subpanel is forced into 'is-in-deck'
+    allSubpanels.forEach((sub) => {
+      sub.removeAttribute?.('data-elevation-turn');
+      sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
+      if (isOpen(sub)) {
+        sub.setAttribute?.('data-elevation-level', '2');
+      } else {
+        sub.removeAttribute?.('data-elevation-level');
+      }
+    });
+  }
 
-  allSubpanels.filter((s) => !isOpen(s)).forEach((sub) => {
+  allSubpanels.filter((s) => !isOpen(s) && !isTabsMode && !isDeckMode).forEach((sub) => {
     sub.removeAttribute?.('data-elevation-turn');
     sub.removeAttribute?.('data-elevation-level');
     sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');

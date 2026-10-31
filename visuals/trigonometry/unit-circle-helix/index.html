@@ -35,9 +35,12 @@
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountTrigVisual } from '../js/trig-core.js';
-    window.addEventListener('DOMContentLoaded', () => {
-      mountTrigVisual({ visualId: 'unit-circle-helix' });
-    });
+    const init = () => mountTrigVisual({ visualId: 'unit-circle-helix' });
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </head>
 <body data-root="../../.." class="visual-page-body">
@@ -202,6 +205,69 @@
                 <div class="slider-container">
                   <label for="slider-pitch"><span class="color-violet">3D Helix Pitch k:</span><span id="label-pitch" class="color-violet font-bold">0.35</span></label>
                   <input type="range" id="slider-pitch" min="0.1" max="0.7" step="0.05" value="0.35">
+                </div>
+              </div>
+            </div>
+            <!-- Section: Trigonometric Functions & Shading Toggles -->
+            <div class="collapsible-section collapsed" id="section-trig-functions">
+              <div class="collapsible-header" id="header-trig-functions" aria-expanded="false">
+                <span>Trigonometric Functions &amp; Shading</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                  <span class="text-xs font-bold uppercase tracking-wider" style="font-size:0.7rem; color:#94a3b8; border-bottom:1px solid #334155; padding-bottom:3px; margin-bottom:2px;">Individual Function Toggles</span>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-sin" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-emerald">Sine (sin θ)</strong> &mdash; Vertical Leg &amp; Y-Wave</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-cos" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-amber">Cosine (cos θ)</strong> &mdash; Horizontal Leg &amp; X-Wave</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-tan" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-rose">Tangent (tan θ)</strong> &mdash; Vertical Exterior Tangent</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-csc" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-fuchsia">Cosecant (csc θ)</strong> &mdash; Y-Axis Tangent Intercept</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-sec" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-violet">Secant (sec θ)</strong> &mdash; X-Axis Tangent Intercept</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-func-cot" checked>
+                    <span class="checkmark"></span>
+                    <span><strong class="color-orange">Cotangent (cot θ)</strong> &mdash; Horizontal Exterior Cotangent</span>
+                  </label>
+
+                  <span class="text-xs font-bold uppercase tracking-wider" style="font-size:0.7rem; color:#94a3b8; border-bottom:1px solid #334155; padding-bottom:3px; margin-top:6px; margin-bottom:2px;">Dedicated Area &amp; Projection Shading</span>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-shading-sin" checked>
+                    <span class="checkmark"></span>
+                    <span><span class="color-emerald font-semibold">Sine Area Shading</span> (Vertical Leg &amp; Projection)</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-shading-cos" checked>
+                    <span class="checkmark"></span>
+                    <span><span class="color-amber font-semibold">Cosine Area Shading</span> (Horizontal Leg &amp; Projection)</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-shading-tan-sec" checked>
+                    <span class="checkmark"></span>
+                    <span><span class="color-rose font-semibold">Tangent &amp; Secant Shading</span> (△OT₀T Right Triangle)</span>
+                  </label>
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="check-shading-cot-csc" checked>
+                    <span class="checkmark"></span>
+                    <span><span class="color-fuchsia font-semibold">Cotangent &amp; Cosecant Shading</span> (△OC₀C &amp; △OP-Csc)</span>
+                  </label>
                 </div>
               </div>
             </div>
