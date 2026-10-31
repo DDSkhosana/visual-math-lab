@@ -383,7 +383,7 @@ test('Workspace Windowing System: Core Exports & Class API Contract', () => {
 test('Workspace Windowing System: CSS Architecture & Zero-Overflow Guarantees', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
   assert.ok(fs.existsSync(cssPath), 'css/workspace-dock.css must exist');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // Verify visual.css imports workspace-dock.css
   const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
@@ -557,7 +557,7 @@ test('WorkspaceDockManager: Panels Visibility Tray and Restore Mechanism', () =>
 
 test('WorkspaceDockManager: Strict Zero Canvas Displacement Invariant', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // Verify view-container overlay rules: pinned to 100% width and 100% height with zero reflow
   assert.ok(css.includes('position: absolute !important'), 'Canvas container must have position: absolute !important');
@@ -643,7 +643,7 @@ test('WorkspaceDockManager: Freely Draggable Collapsed Capsule Pill with Pointer
 test('WorkspaceDockManager: Edge-Adaptive Docking Orientations & Detached Floating Panels', () => {
   globalThis.localStorage?.clear?.();
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // Verify horizontal body rules for top/bottom margins
   assert.ok(css.includes('[data-dock-edge="top"] .workspace-dock-body'), 'CSS must define horizontal shelf for top margin');
@@ -765,7 +765,7 @@ test('WorkspaceDockManager: Nested Sub Components Collapsed By Default in Dock P
 
   // Verify CSS rule in workspace-dock.css
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
   assert.ok(css.includes('.workspace-dock-body .collapsible-section.collapsed .collapsible-content'), 'CSS must define rule for collapsed section in dock');
   assert.ok(css.includes('.workspace-dock-body .derivation-card-content:not(.open)'), 'CSS must define rule for unopened derivation card in dock');
 
@@ -791,7 +791,7 @@ test('WorkspaceDockManager: Nested Sub Components Collapsed By Default in Dock P
 
 test('WorkspaceDockManager: Top/Bottom Dock Sub-Panel Overlay & Internal Scrolling Contract', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // Verify CSS contracts for top/bottom dock sub-panel overlay
   assert.ok(css.includes('[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body'), 'CSS must define relative container for top dock panel-body');
@@ -871,7 +871,7 @@ test('WorkspaceDockManager: Top/Bottom Dock Sub-Panel Overlay & Internal Scrolli
 
 test('WorkspaceDockManager: Elevation Hierarchy & Turn-Taking Deck Contract', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // 1. Verify CSS architecture for Level 1, Level 2, and Level 3 Elevation
   assert.ok(css.includes('.panel-elevation-deck'), 'CSS must define .panel-elevation-deck container');
@@ -996,7 +996,7 @@ test('WorkspaceDockManager: Elevation Hierarchy & Turn-Taking Deck Contract', ()
 
 test('WorkspaceDockManager: Advanced Docking Refinements (Shade, Tray Float, Magnetic Snapping, Deck Navigation & Stack Mode)', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // 1. Verify CSS rules for refined capabilities
   assert.ok(css.includes('.dock-drag-handle'), 'CSS must define .dock-drag-handle');
@@ -1897,7 +1897,7 @@ test('WorkspaceDockManager: Cross-Level Hierarchical Navigation & Peer Roving Pi
 
 test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling Contract', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // 1. Zero Overlap In-Flow CSS Contracts
   assert.ok(
@@ -2022,7 +2022,7 @@ test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling
 
 test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Dock Height Adjustment & Responsive Reflow Pipeline', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // 1. Verify Responsive Reflow & Non-Dead-Space CSS Contracts
   assert.ok(css.includes('flex-wrap: wrap !important'), 'Top/bottom dock body must flex-wrap to reflow panels across viewports');
@@ -2199,7 +2199,7 @@ test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Do
 test('WorkspaceDockManager: Tear-Off Drag From Dock & Smart Floating Placement Pipeline', () => {
   globalThis.localStorage?.clear?.();
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
 
   // Verify CSS touch-action and grab cursor guarantees
   assert.ok(css.includes('.panel-header {\n  display: flex !important;\n  justify-content: space-between !important;\n  align-items: center !important;\n  min-width: 0 !important;\n  gap: 0.5rem !important;\n  touch-action: none !important;'), 'panel-header must enforce touch-action: none');

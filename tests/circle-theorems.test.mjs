@@ -1183,7 +1183,7 @@ test('Touch Display Fluidity: scrollable panels, docks, and telemetry containers
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const rootDir = path.resolve(__dirname, '..');
   const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
   const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
   const thalesPanels = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'panels.css'), 'utf8');
   const thalesOverlays = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'overlays.css'), 'utf8');
@@ -1950,7 +1950,7 @@ test('Modes Panel & Dock Layout: Collapsed by default and left margin aligned on
   }
 
   // 2. Verify CSS rules enforce left margin alignment for .viewport-header-toolbar and .workspace-dock.is-collapsed
-  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8').replace(/\r\n/g, '\n');
   assert.ok(circleVisualCss.includes('left: 1rem;'), 'circle-visual.css must align .viewport-header-toolbar to left: 1rem');
   assert.ok(circleVisualCss.includes('transform: none;'), 'circle-visual.css must set transform: none for left alignment');
   assert.ok(
@@ -1958,7 +1958,7 @@ test('Modes Panel & Dock Layout: Collapsed by default and left margin aligned on
     'circle-visual.css must offset toolbar when left dock is expanded'
   );
 
-  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
   assert.ok(dockCss.includes('.workspace-dock.is-collapsed'), 'workspace-dock.css must define .workspace-dock.is-collapsed');
   assert.ok(dockCss.includes('left: 1rem;'), 'workspace-dock.css must align collapsed dock to left: 1rem');
   assert.ok(dockCss.includes('top: 3.5rem;'), 'workspace-dock.css must position collapsed dock at top: 3.5rem below modes panel');
@@ -2151,9 +2151,9 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
   assert.strictEqual(mockRoot.getAttribute('data-viewport'), 'compact', 'Dock must mark root as compact viewport');
 
   // 4. CSS Media Query Verification across circle-visual.css, thales responsive.css, and workspace-dock.css
-  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
-  const thalesResponsiveCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'responsive.css'), 'utf8');
-  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8').replace(/\r\n/g, '\n');
+  const thalesResponsiveCss = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', 'thales-theorem', 'styles', 'responsive.css'), 'utf8').replace(/\r\n/g, '\n');
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
 
   // Canvases guaranteed positive height on mobile
   assert.ok(circleVisualCss.includes('min-height: 24rem !important;'), 'circle-visual.css must guarantee min-height: 24rem !important');

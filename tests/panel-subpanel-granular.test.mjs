@@ -2258,7 +2258,7 @@ test('Refinements A, B, and C: Thales phi floor projection & omega symbol, unive
   assert.ok(circle3dSrc.includes('this.isARActive ? false : (state?.vis3d?.gridXZ !== false)'), 'BaseScene3DView must keep synthetic grids suppressed while AR is active');
 
   // Dock & Deck Scrollbar vs Resize Handle Separation
-  const workspaceDockCss = fs.readFileSync(path.join(rootDir, 'css/workspace-dock.css'), 'utf8');
+  const workspaceDockCss = fs.readFileSync(path.join(rootDir, 'css/workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
   assert.ok(workspaceDockCss.includes('[data-dock-edge="left"] .workspace-dock-body {\n  margin-right: 4px;\n}'), 'workspace-dock.css must inset dock body away from resizer border');
   assert.ok(workspaceDockCss.includes('right: -8px;\n  width: 8px;'), 'workspace-dock.css must position resizer and omni-e strictly outside the border so scrollbars are never overlapped');
   assert.ok(workspaceDockCss.includes('width: 10px;\n  height: 10px;'), 'workspace-dock.css must provide a 10px grabbable scrollbar track');

@@ -317,7 +317,7 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
 
         for (const slug of trigSlugs) {
             const htmlPath = path.join(ROOT_DIR, 'visuals/trigonometry', slug, 'index.html');
-            const html = fs.readFileSync(htmlPath, 'utf8');
+            const html = fs.readFileSync(htmlPath, 'utf8').replace(/\r\n/g, '\n');
             for (const marker of requiredMarkers) {
                 assert.equal(
                     html.includes(marker),
@@ -337,7 +337,7 @@ describe('Suite Folder Architecture — visuals/circle-theorems/ & visuals/trigo
 
 
 describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle Theorems', () => {
-    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8').replace(/\r\n/g, '\n');
 
     test('reuses shared Circle Theorems 3D angle, right-angle and bisector helpers', () => {
         for (const sym of [
@@ -406,7 +406,7 @@ describe('Trigonometry Suite — 2D/3D Drawing Conventions aligned with Circle T
 });
 
 describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified Colour Grammar', () => {
-    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8').replace(/\r\n/g, '\n');
 
     test('model radius getModelRadius(state) synchronizes 2D scale, 3D scene, telemetry, and derivations', () => {
         assert.ok(src.includes('export function getModelRadius('));
@@ -1033,7 +1033,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         // 1. All 4 HTML entry points must use resilient readyState guard (never bare DOMContentLoaded inside module)
         for (const slug of trigSlugs) {
             const htmlPath = path.join(ROOT_DIR, 'visuals/trigonometry', slug, 'index.html');
-            const html = fs.readFileSync(htmlPath, 'utf8');
+            const html = fs.readFileSync(htmlPath, 'utf8').replace(/\r\n/g, '\n');
             assert.ok(
                 html.includes("if (document.readyState === 'loading')"),
                 `${slug}/index.html must check document.readyState === 'loading'`
@@ -1096,7 +1096,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.equal(view.canvas.width >= 480, true, 'canvas width must be initialized');
 
         // 3. trig-core.js mountTrigVisual queues a secondary requestAnimationFrame resize pass
-        const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+        const src = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8').replace(/\r\n/g, '\n');
         assert.ok(
             src.includes("requestAnimationFrame(() => {\n      view2d.resize();\n      scene3d.resize();\n    });"),
             'mountTrigVisual must queue dual-pass resize on requestAnimationFrame to guarantee layout reflow paint'
