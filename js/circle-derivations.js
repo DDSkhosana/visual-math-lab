@@ -18,9 +18,18 @@ export function cardTemplate(id, badge, title, symbolicLines, hasHighlight = fal
           <span class="derivation-badge">${localizedBadge}</span>
           <span class="derivation-title">${localizedTitle}</span>
         </div>
-        <span class="icon">▶</span>
+        <div class="derivation-card-header-actions">
+          <button type="button" class="btn btn-card-nav-quick prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}" aria-label="Previous Step">◀</button>
+          <button type="button" class="btn btn-card-nav-quick next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}" aria-label="Next Step">▶</button>
+          <span class="icon">▶</span>
+        </div>
       </div>
       <div class="derivation-card-content collapsible-content">
+        <div class="card-step-nav-bar top">
+          <button type="button" class="btn btn-card-nav prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}">◀ ${t('derivations.prev_step', {}, 'Prev Step')}</button>
+          <span class="card-step-indicator">${localizedBadge}</span>
+          <button type="button" class="btn btn-card-nav next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}">${t('derivations.next_step', {}, 'Next Step')} ▶</button>
+        </div>
         <div class="derivation-math-row">${symbolicLines}</div>
         <div class="derivation-sub-row" data-sub></div>
         ${hasHighlight ? '<div class="derivation-eval-highlight" data-eval></div>' : ''}
@@ -32,6 +41,30 @@ export function cardTemplate(id, badge, title, symbolicLines, hasHighlight = fal
       </div>
     </div>
   `;
+}
+
+export function ensureFirstDerivationCardOpen(container) {
+  if (!container) return;
+  const cards = Array.from(container.querySelectorAll ? container.querySelectorAll('.derivation-card') : []);
+  if (cards.length > 0 && !cards.some((c) => c?.classList?.contains?.('open'))) {
+    const first = cards[0];
+    first?.classList?.add?.('open');
+    const h = first?.querySelector ? first.querySelector('.derivation-card-header') : null;
+    if (h) {
+      h?.classList?.add?.('open');
+      h?.setAttribute?.('aria-expanded', 'true');
+      const icon = h?.querySelector ? h.querySelector('.icon') : null;
+      if (icon) icon.textContent = '▼';
+    }
+    const c = first?.querySelector ? first.querySelector('.derivation-card-content') : null;
+    if (c) c?.classList?.add?.('open');
+  }
+  try {
+    const evt = typeof CustomEvent !== 'undefined'
+      ? new CustomEvent('vml:derivations-rendered', { bubbles: true })
+      : { type: 'vml:derivations-rendered', bubbles: true };
+    container?.dispatchEvent?.(evt);
+  } catch (_) {}
 }
 
 // -----------------------------------------------------------------------------
@@ -120,6 +153,7 @@ export class AngleAtCentreDerivations {
       s6: this.container.querySelector('#aac-step-6 [data-sub]'),
       s6e: this.container.querySelector('#aac-step-6 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -311,6 +345,7 @@ export class AnglesInSameSegmentDerivations {
       s6: this.container.querySelector('#aiss-step-6 [data-sub]'),
       s6e: this.container.querySelector('#aiss-step-6 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -494,6 +529,7 @@ export class CyclicQuadDerivations {
       s7: this.container.querySelector('#cq-step-7 [data-sub]'),
       s7e: this.container.querySelector('#cq-step-7 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -714,6 +750,7 @@ export class TangentRadiusDerivations {
       s8: this.container.querySelector('#tr-step-8 [data-sub]'),
       s8e: this.container.querySelector('#tr-step-8 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -923,6 +960,7 @@ export class AlternateSegmentDerivations {
       s6: this.container.querySelector('#as-step-6 [data-sub]'),
       s6e: this.container.querySelector('#as-step-6 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -1071,6 +1109,7 @@ export class TangentsFromPointDerivations {
       s5: this.container.querySelector('#tfp-step-5 [data-sub]'),
       s5e: this.container.querySelector('#tfp-step-5 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 
@@ -1221,6 +1260,7 @@ export class ChordBisectorDerivations {
       s5: this.container.querySelector('#cb-step-5 [data-sub]'),
       s5e: this.container.querySelector('#cb-step-5 [data-eval]'),
     };
+    ensureFirstDerivationCardOpen(this.container);
     this.initialized = true;
   }
 

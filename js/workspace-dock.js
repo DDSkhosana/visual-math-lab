@@ -662,6 +662,9 @@ export class WorkspaceDockManager {
     };
 
     this.panels.set(id, record);
+    if (id.includes('deriv') || id === 'live-derivation-panel') {
+      panelElement.setAttribute?.('data-force-deck', 'true');
+    }
     if (this.defaultDeckMode && this.defaultDeckMode !== 'deck') {
       const b = panelElement.querySelector?.('.panel-body');
       if (b && !b.hasAttribute?.('data-deck-mode')) {
@@ -1689,6 +1692,42 @@ export class WorkspaceDockManager {
       }
     });
 
+    // Auto-sync subpanel state when derivations are dynamically mounted
+    if (typeof this.win?.addEventListener === 'function') {
+      this.win.addEventListener('vml:derivations-rendered', () => {
+        setTimeout(() => this.syncSubpanelOverlayState(), 0);
+      });
+    }
+    if (typeof this.doc?.addEventListener === 'function') {
+      this.doc.addEventListener('vml:derivations-rendered', () => {
+        setTimeout(() => this.syncSubpanelOverlayState(), 0);
+      });
+    }
+
+    if (typeof MutationObserver !== 'undefined' && this.dockBody) {
+      try {
+        const observer = new MutationObserver((mutations) => {
+          let hasCards = false;
+          for (const m of mutations) {
+            if (m.addedNodes && m.addedNodes.length > 0) {
+              for (const n of m.addedNodes) {
+                if (n.nodeType === 1 && (n.matches?.('.derivation-card, .collapsible-section, #live-derivations-content') || n.querySelector?.('.derivation-card'))) {
+                  hasCards = true;
+                  break;
+                }
+              }
+            }
+            if (hasCards) break;
+          }
+          if (hasCards) {
+            this.syncSubpanelOverlayState();
+          }
+        });
+        observer.observe(this.dockBody, { childList: true, subtree: true });
+        this._dockMutationObserver = observer;
+      } catch (_) {}
+    }
+
     // Automatic Horizontal Scroll on Top/Bottom Docks (Zero-Effort mouse wheel navigation)
     if (this.dockBody && !this.dockBody._horizontalWheelBound) {
       this.dockBody._horizontalWheelBound = true;
@@ -2261,8 +2300,16 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
   const isStackMode = currentMode === 'stack';
   const isDeckMode = currentMode === 'deck';
 
+  const isDerivPanel = panel?.id?.includes('deriv') || panel?.id === 'live-derivation-panel';
+  const forceDeck = Boolean(
+    options?.forceDeck ||
+    panel?.hasAttribute?.('data-force-deck') ||
+    body?.hasAttribute?.('data-force-deck') ||
+    (isDerivPanel && allSubpanels.length > 1)
+  );
+
   // In default dynamic deck mode, hide deck when totalOpen <= 1 unless forceDeck is requested
-  if (isDeckMode && totalOpen <= 1 && !options?.forceDeck) {
+  if (isDeckMode && totalOpen <= 1 && !forceDeck) {
     if (deck) {
       deck.style.display = 'none';
       if (Array.isArray(deck.children)) deck.children.length = 0;
@@ -2292,7 +2339,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
 
   // Active subpanel determination
   let activeSubpanel = null;
-  const pool = (isTabsMode || isAccordionMode) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+  const pool = (isTabsMode || isAccordionMode || forceDeck) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
 
   if (preferredActiveElement) {
     const target = preferredActiveElement.closest
@@ -2316,11 +2363,11 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     activeSubpanel = (openSubpanels.length > 0) ? openSubpanels[0] : allSubpanels[0];
   }
 
-  if (isTabsMode && activeSubpanel && !isOpen(activeSubpanel)) {
+  if ((isTabsMode || forceDeck) && activeSubpanel && !isOpen(activeSubpanel)) {
     setSubpanelOpen(activeSubpanel, true);
   }
 
-  const subsToRender = (isTabsMode || isAccordionMode) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+  const subsToRender = (isTabsMode || isAccordionMode || forceDeck) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
 
   const prevActiveSubpanel = deck?._activeSubpanel || null;
   const prevActiveIdx = prevActiveSubpanel ? subsToRender.indexOf(prevActiveSubpanel) : -1;

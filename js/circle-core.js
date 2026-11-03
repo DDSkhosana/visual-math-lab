@@ -1,7 +1,7 @@
 /**
  * Shared core utilities, math helpers, and UI widgets for Circle Geometry Visualisations.
  */
-import { syncPanelElevationTurn } from './workspace-dock.js';
+import { syncPanelElevationTurn, cyclePanelSubpanel } from './workspace-dock.js';
 import { ARManager } from './ar-manager.js';
 import { t } from './i18n.js';
 

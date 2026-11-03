@@ -14,12 +14,26 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
           <span class="derivation-badge">${localizedBadge}</span>
           <span class="derivation-title">${localizedTitle}</span>
         </div>
-        <span class="icon">▶</span>
+        <div class="derivation-card-header-actions">
+          <button type="button" class="btn btn-card-nav-quick prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}" aria-label="Previous Step">◀</button>
+          <button type="button" class="btn btn-card-nav-quick next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}" aria-label="Next Step">▶</button>
+          <span class="icon">▶</span>
+        </div>
       </div>
       <div class="derivation-card-content collapsible-content">
+        <div class="card-step-nav-bar top">
+          <button type="button" class="btn btn-card-nav prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}">◀ ${t('derivations.prev_step', {}, 'Prev Step')}</button>
+          <span class="card-step-indicator">${localizedBadge}</span>
+          <button type="button" class="btn btn-card-nav next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}">${t('derivations.next_step', {}, 'Next Step')} ▶</button>
+        </div>
         <div class="derivation-math-row">${symbolicLines}</div>
         <div class="derivation-sub-row" data-sub></div>
         ${hasHighlight ? '<div class="derivation-eval-highlight" data-eval></div>' : ''}
+        <div class="derivation-card-footer">
+          <button type="button" class="btn btn-card-nav prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}">◀ ${t('derivations.prev_step', {}, 'Prev Step')}</button>
+          <span class="card-step-indicator">${localizedBadge}</span>
+          <button type="button" class="btn btn-card-nav next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}">${t('derivations.next_step', {}, 'Next Step')} ▶</button>
+        </div>
       </div>
     </div>
   `;
@@ -195,6 +209,35 @@ export class DerivationView {
       step4Eval: this.solidElement.querySelector('#deriv-3d-step-4 [data-eval]'),
     };
 
+    const sec2d = this.flatElement?.closest ? this.flatElement.closest('.collapsible-section') : null;
+    if (sec2d) {
+      sec2d.classList?.remove?.('collapsed');
+      const h = sec2d.querySelector ? sec2d.querySelector('.collapsible-header') : null;
+      if (h) {
+        h.classList?.add?.('open');
+        h.setAttribute?.('aria-expanded', 'true');
+        const icon = h.querySelector ? h.querySelector('.icon') : null;
+        if (icon) icon.textContent = '▼';
+      }
+      const c = sec2d.querySelector ? sec2d.querySelector('.collapsible-content') : null;
+      if (c) c.classList?.remove?.('collapsed');
+    }
+    const firstCard = this.flatElement?.querySelector ? this.flatElement.querySelector('.derivation-card') : null;
+    if (firstCard) {
+      firstCard.classList?.add?.('open');
+      const h = firstCard.querySelector ? firstCard.querySelector('.derivation-card-header') : null;
+      if (h) {
+        h.classList?.add?.('open');
+        h.setAttribute?.('aria-expanded', 'true');
+        const icon = h.querySelector ? h.querySelector('.icon') : null;
+        if (icon) icon.textContent = '▼';
+      }
+      const c = firstCard.querySelector ? firstCard.querySelector('.derivation-card-content') : null;
+      if (c) c.classList?.add?.('open');
+    }
+    try {
+      this.flatElement?.dispatchEvent?.(new CustomEvent('vml:derivations-rendered', { bubbles: true }));
+    } catch (_) {}
     this.initialized = true;
   }
 

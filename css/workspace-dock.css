@@ -594,9 +594,9 @@
   padding: 0.35rem 0.5rem !important;
   background: rgba(15, 23, 42, 0.98) !important;
   border-bottom: 1px solid rgba(56, 189, 248, 0.28) !important;
-  z-index: 10 !important;
-  position: relative !important;
-  top: auto !important;
+  z-index: 20 !important;
+  position: sticky !important;
+  top: 0 !important;
   flex-shrink: 0 !important;
   min-height: 2.25rem !important;
   box-sizing: border-box !important;
@@ -744,6 +744,45 @@
   color: #94a3b8 !important;
 }
 
+
+/* Derivation Card Top Step Nav Bar */
+.card-step-nav-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.65rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15) !important;
+}
+
+.derivation-card-header-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  margin-left: auto !important;
+}
+
+.btn-card-nav-quick {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  font-size: 0.65rem !important;
+  padding: 0 !important;
+  border-radius: 0.25rem !important;
+  background: rgba(30, 41, 59, 0.6) !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  color: #38bdf8 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+}
+
+.btn-card-nav-quick:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
+}
 /* Derivation Card Navigation Footer in Dock & Floating Panels */
 .derivation-card-footer {
   display: flex !important;
@@ -1663,13 +1702,19 @@
 
 /* Math, Badges, and Table Zero-Overflow Wrapping */
 .panel-body table,
-.panel-body .katex-display,
+.panel-body .katex-display {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
 .panel-body .derivation-card,
 .panel-body .collapsible-section {
   min-width: 0 !important;
   max-width: 100% !important;
   overflow-x: auto !important;
-  overflow-y: hidden !important;
+  overflow-y: visible !important;
 }
 
 /* Collapsed Nested Subcomponents inside Dock Panel */

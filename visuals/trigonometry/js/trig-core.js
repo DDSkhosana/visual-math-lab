@@ -66,7 +66,7 @@ import {
   get3DAngleDegrees,
 } from '../../../js/circle-3d.js';
 
-import { cardTemplate, tag, fmtAngle, fmtLength } from '../../../js/circle-derivations.js';
+import { cardTemplate, tag, fmtAngle, fmtLength, ensureFirstDerivationCardOpen } from '../../../js/circle-derivations.js';
 
 import {
   TAU,
@@ -4465,6 +4465,7 @@ export class TrigDerivationsView {
     const isModeChanged = this.currentMode !== (state.dimensionMode || 'planar');
     if (!this.initialized || !this.container.firstElementChild || isModeChanged) {
       this.#initDOM(state.dimensionMode || 'planar');
+      ensureFirstDerivationCardOpen(this.container);
       this.initialized = true;
     }
 
