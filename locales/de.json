@@ -291,6 +291,12 @@
     "status_granted": "Status: Analytik Erlaubt",
     "status_denied": "Status: Analytik Blockiert",
     "status_unset": "Status: Noch Nicht Gewählt",
-    "policy_link": "Datenschutzrichtlinie"
+    "policy_link": "Datenschutzrichtlinie",
+    "essential_title": "Erforderlich",
+    "essential_desc": "Erforderlich für mathematisches Rendering, Statuserhaltung und Spracheinstellungen. Immer aktiv.",
+    "always_active": "Immer Aktiv",
+    "analytics_title": "Technische Analytik",
+    "analytics_desc": "Aggregierte, datenschutzfreundliche Leistungsüberwachung. Standardmäßig aktiv; Abmeldung hier möglich.",
+    "close": "Schließen"
   }
 }

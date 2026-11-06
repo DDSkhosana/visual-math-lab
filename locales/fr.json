@@ -291,6 +291,12 @@
     "status_granted": "Statut: Analyses Autorisées",
     "status_denied": "Statut: Analyses Bloquées",
     "status_unset": "Statut: Non Défini",
-    "policy_link": "Politique de Confidentialité"
+    "policy_link": "Politique de Confidentialité",
+    "essential_title": "Strictement Nécessaires",
+    "essential_desc": "Indispensables au rendu mathématique, à la conservation de l'état et au choix de la langue. Toujours actifs.",
+    "always_active": "Toujours Actif",
+    "analytics_title": "Analyses Techniques",
+    "analytics_desc": "Télémétrie de performance agrégée et respectueuse de la vie privée. Active par défaut ; vous pouvez vous désinscrire ici.",
+    "close": "Fermer"
   }
 }

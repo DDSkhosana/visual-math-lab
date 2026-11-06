@@ -291,6 +291,12 @@
     "status_granted": "Ubujamo: I-Analytics Ivunyelwe",
     "status_denied": "Ubujamo: I-Analytics Ivaliwe",
     "status_unset": "Ubujamo: Akukakhethwa",
-    "policy_link": "Umgomo we-Privacy"
+    "policy_link": "Umgomo we-Privacy",
+    "essential_title": "Eqakatheke Khulu",
+    "essential_desc": "Kudingeka ekuhlelweni kwezibalo, ukubulunga ubujamo, nokukhetha ilimi. Kuhlala kusebenza.",
+    "always_active": "Kuhlala Kusebenza",
+    "analytics_title": "I-Analytics Yezobuthekniki",
+    "analytics_desc": "I-telemetry ehlanganisiweko evikela i-privacy yokuqinisekisa ukusebenza kuhle. Iyasebenza ngokwendalo; ungaphuma lapha.",
+    "close": "Vala"
   }
 }

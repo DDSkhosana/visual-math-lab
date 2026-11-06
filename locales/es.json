@@ -291,6 +291,12 @@
     "status_granted": "Estado: Analítica Permitida",
     "status_denied": "Estado: Analítica Bloqueada",
     "status_unset": "Estado: No Seleccionado",
-    "policy_link": "Política de Privacidad"
+    "policy_link": "Política de Privacidad",
+    "essential_title": "Estrictamente Necesarias",
+    "essential_desc": "Necesarias para la representación matemática, conservación de estado y preferencias de idioma. Siempre activas.",
+    "always_active": "Siempre Activo",
+    "analytics_title": "Analítica Técnica",
+    "analytics_desc": "Telemetría agregada y privada para verificar la fiabilidad de visualización. Activa por defecto; puede optar por salir aquí.",
+    "close": "Cerrar"
   }
 }

@@ -211,3 +211,27 @@ test('Security & Privacy: Google Analytics Essential / Opt-out default behavior 
   assert.ok(privacyHtml.includes('Technical analytics are active by default as a necessary operational feature'), 'privacy.html must declare analytics active by default as necessary');
   assert.ok(privacyHtml.includes('opt out at any time'), 'privacy.html must document right to opt out at any time');
 });
+
+test('Security & Privacy: User can only opt out of analytics when explicitly in Cookie Settings', () => {
+  const cookiePath = path.join(rootDir, 'js', 'cookie-consent.js');
+  const code = fs.readFileSync(cookiePath, 'utf8');
+
+  // Verify renderCookieNotice and renderCookieSettings separation
+  assert.ok(code.includes('function renderCookieNotice'), 'cookie-consent.js must define renderCookieNotice');
+  assert.ok(code.includes('function renderCookieSettings'), 'cookie-consent.js must define renderCookieSettings');
+
+  // Extract function bodies to verify button presence
+  const noticeBody = code.slice(code.indexOf('function renderCookieNotice'), code.indexOf('function renderCookieSettings'));
+  const settingsBody = code.slice(code.indexOf('function renderCookieSettings'), code.indexOf('export function mountCookieBanner'));
+
+  // Notice banner must NOT provide direct opt-out button
+  assert.ok(!noticeBody.includes('id="btn-cookie-decline"'), 'Notice banner must NOT permit opting out directly');
+  assert.ok(noticeBody.includes('id="btn-cookie-settings"'), 'Notice banner must direct user to Cookie Settings');
+  assert.ok(noticeBody.includes('id="btn-cookie-accept"'), 'Notice banner must allow accepting analytics');
+
+  // Cookie Settings view MUST provide opt-out and category management
+  assert.ok(settingsBody.includes('id="btn-cookie-decline"'), 'Cookie Settings must provide the decline / opt-out button');
+  assert.ok(settingsBody.includes('id="btn-cookie-accept"'), 'Cookie Settings must provide the accept button');
+  assert.ok(settingsBody.includes('cookie-settings__categories'), 'Cookie Settings must list categorized cookie controls');
+  assert.ok(settingsBody.includes('cookie-settings-status'), 'Cookie Settings must display active consent status badge');
+});

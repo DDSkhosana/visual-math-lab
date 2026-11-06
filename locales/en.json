@@ -291,6 +291,12 @@
     "status_granted": "Status: Analytics Allowed",
     "status_denied": "Status: Analytics Blocked",
     "status_unset": "Status: Not Yet Chosen",
-    "policy_link": "Privacy Policy"
+    "policy_link": "Privacy Policy",
+    "essential_title": "Strictly Necessary",
+    "essential_desc": "Required for mathematical rendering, interaction state, and language selection. Always active.",
+    "always_active": "Always Active",
+    "analytics_title": "Technical Analytics",
+    "analytics_desc": "Aggregated, privacy-preserving performance telemetry used to monitor visualizer reliability. Active by default; you can opt out here.",
+    "close": "Close"
   }
 }

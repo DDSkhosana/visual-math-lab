@@ -897,3 +897,99 @@ h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 3rem); }
   margin-left: 0;
   margin-right: auto;
 }
+
+.cookie-banner--settings {
+  max-width: 44rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.cookie-banner__close-icon {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.cookie-banner__close-icon:hover {
+  color: var(--ink);
+  background: var(--line);
+}
+
+.cookie-settings__categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.cookie-settings__category {
+  padding: 0.75rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.cookie-settings__category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.cookie-settings__category-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cookie-settings__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cookie-settings__badge--active {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #16a34a;
+}
+
+.cookie-settings__badge--denied {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #e11d48;
+}
+
+.button--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text-muted);
+}
+
+.button--ghost:hover {
+  background: var(--line);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+[dir="rtl"] .cookie-banner__close-icon {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .cookie-settings__category-header {
+  flex-direction: row-reverse;
+}
