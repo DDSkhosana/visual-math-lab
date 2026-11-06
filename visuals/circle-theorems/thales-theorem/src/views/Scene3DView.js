@@ -129,18 +129,43 @@ export class Scene3DView {
     o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
     o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
 
-    const { psi } = point3DToGreatCircle(raw, r);
-    if (o.greatCircleWire) {
-      o.greatCircleWire.rotation.order = 'ZYX';
-      o.greatCircleWire.rotation.z = rot;
-      o.greatCircleWire.rotation.x = psi;
-      o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
-      o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
-    }
+    if (isSolid) {
+      const frame = getSolidOrientationFrame(state, 'z', THREE);
+      const { u, v, normal } = frame;
+      const cosR_val = Math.cos(rot);
+      const sinR_val = Math.sin(rot);
+      const uRot = new THREE.Vector3().addScaledVector(u, cosR_val).addScaledVector(v, sinR_val);
+      const vRot = new THREE.Vector3().addScaledVector(u, -sinR_val).addScaledVector(v, cosR_val);
 
-    o.pointP.position.set(x * scaleX, y * scaleY, z * scaleZ);
-    o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
-    o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
+      const posA = new THREE.Vector3().addScaledVector(uRot, -r * scaleX);
+      const posB = new THREE.Vector3().addScaledVector(uRot, r * scaleX);
+      const posP = new THREE.Vector3()
+        .addScaledVector(uRot, r * scaleX * Math.cos(state.angle2D ?? Math.PI / 4))
+        .addScaledVector(vRot, r * scaleY * Math.sin(state.angle2D ?? Math.PI / 4));
+
+      o.pointA.position.copy(posA);
+      o.pointB.position.copy(posB);
+      o.pointP.position.copy(posP);
+
+      if (o.greatCircleWire) {
+        o.greatCircleWire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+        o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
+        o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : true;
+      }
+    } else {
+      const { psi } = point3DToGreatCircle(raw, r);
+      if (o.greatCircleWire) {
+        o.greatCircleWire.rotation.order = 'ZYX';
+        o.greatCircleWire.rotation.z = rot;
+        o.greatCircleWire.rotation.x = psi;
+        o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
+        o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
+      }
+
+      o.pointP.position.set(x * scaleX, y * scaleY, z * scaleZ);
+      o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
+      o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
+    }
     o.pointP.material = state.hoverP3D ? o.materials.markerHover : (o.materials.markerP || o.materials.markerHidden);
     o.pointA.material = state.hoverA3D ? o.materials.markerHover : (o.materials.markerA || o.materials.markerHidden);
     o.pointB.material = state.hoverB3D ? o.materials.markerHover : (o.materials.markerB || o.materials.markerHidden);
@@ -181,11 +206,20 @@ export class Scene3DView {
     o.areaTriangle.visible = false;
 
     if (o.altitudeLine) {
-      const proj = x * cosR + y * sinR;
-      const foot = new THREE.Vector3(proj * cosR, proj * sinR, 0);
-      o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
-      o.altitudeLine.computeLineDistances();
-      o.altitudeLine.visible = showArea;
+      if (isSolid) {
+        const abDir = new THREE.Vector3().subVectors(o.pointB.position, o.pointA.position).normalize();
+        const aToP = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
+        const foot = new THREE.Vector3().addVectors(o.pointA.position, abDir.clone().multiplyScalar(aToP.dot(abDir)));
+        o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
+        o.altitudeLine.computeLineDistances();
+        o.altitudeLine.visible = showArea;
+      } else {
+        const proj = x * cosR + y * sinR;
+        const foot = new THREE.Vector3(proj * cosR, proj * sinR, 0);
+        o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
+        o.altitudeLine.computeLineDistances();
+        o.altitudeLine.visible = showArea;
+      }
     }
 
     const origin = new THREE.Vector3();
@@ -206,8 +240,12 @@ export class Scene3DView {
       o.rightAngle.visible = false;
     }
 
-    const towardBFromA = new THREE.Vector3(cosR, sinR, 0);
-    const towardAFromB = new THREE.Vector3(-cosR, -sinR, 0);
+    const towardBFromA = isSolid
+      ? new THREE.Vector3().subVectors(o.pointB.position, o.pointA.position).normalize()
+      : new THREE.Vector3(cosR, sinR, 0);
+    const towardAFromB = isSolid
+      ? new THREE.Vector3().subVectors(o.pointA.position, o.pointB.position).normalize()
+      : new THREE.Vector3(-cosR, -sinR, 0);
     const toPFromA = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
     const toPFromB = new THREE.Vector3().subVectors(o.pointP.position, o.pointB.position);
 

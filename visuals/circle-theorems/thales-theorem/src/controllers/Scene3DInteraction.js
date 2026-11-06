@@ -59,7 +59,17 @@ export class Scene3DInteraction {
     } else if (this.scene.hitsPointB()) {
       this.activeTarget = 'B';
     } else if (event.pointerType !== 'touch' && this.scene.hitsCircumference?.(this.store.get().radius, event)) {
-      this.activeTarget = 'radius';
+      const st = this.store.get();
+      if (st.dimensionMode === 'solid' && !(event.ctrlKey || event.metaKey)) {
+        this.activeTarget = 'solidSpin';
+        const hit = this.scene.pickBaselinePlane?.();
+        const u = this.scene.circleInfo?.u;
+        const v = this.scene.circleInfo?.v;
+        this.spinStartAngle = (hit && u && v) ? Math.atan2(hit.dot(v), hit.dot(u)) : 0;
+        this.spinInitial = st.solidSpin || 0;
+      } else {
+        this.activeTarget = 'radius';
+      }
     } else {
       return;
     }
@@ -114,9 +124,38 @@ export class Scene3DInteraction {
       if (newRadius) {
         this.store.set(setRadius(newRadius));
       }
+    } else if (this.activeTarget === 'solidSpin') {
+      const hit = this.scene.pickBaselinePlane?.();
+      const u = this.scene.circleInfo?.u;
+      const v = this.scene.circleInfo?.v;
+      if (hit && u && v) {
+        const curAngle = Math.atan2(hit.dot(v), hit.dot(u));
+        const delta = curAngle - this.spinStartAngle;
+        let nextSpin = (this.spinInitial + delta) % (Math.PI * 2);
+        if (nextSpin < 0) nextSpin += Math.PI * 2;
+        this.store.set({ solidSpin: nextSpin });
+      }
+      if (this.scene.domElement) this.scene.domElement.style.cursor = 'grabbing';
+      event.stopPropagation();
+      return;
     } else if (this.activeTarget === 'P') {
       const st = this.store.get();
-      if (st.dimensionMode !== 'spatial') {
+      if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
+        const hit = this.scene.pickBaselinePlane?.();
+        if (hit) {
+          const u = this.scene.circleInfo.u;
+          const v = this.scene.circleInfo.v;
+          const rot = st.baselineRotation || 0;
+          const cosR = Math.cos(rot);
+          const sinR = Math.sin(rot);
+          const uRot = new this.scene.THREE.Vector3().addScaledVector(u, cosR).addScaledVector(v, sinR);
+          const vRot = new this.scene.THREE.Vector3().addScaledVector(u, -sinR).addScaledVector(v, cosR);
+          const rawAngle = Math.atan2(hit.dot(vRot), hit.dot(uRot));
+          const TAU = Math.PI * 2;
+          const angle2D = ((rawAngle % TAU) + TAU) % TAU;
+          this.store.set({ angle2D });
+        }
+      } else if (st.dimensionMode !== 'spatial') {
         const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(st.baselineRotation || 0);
         if (hit) {
           const rot = st.baselineRotation || 0;
@@ -139,7 +178,15 @@ export class Scene3DInteraction {
     } else if (this.activeTarget === 'A' || this.activeTarget === 'B') {
       const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(0);
       if (hit) {
-        let ang = Math.atan2(hit.y, hit.x);
+        const st = this.store.get();
+        let ang;
+        if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
+          const u = this.scene.circleInfo.u;
+          const v = this.scene.circleInfo.v;
+          ang = Math.atan2(hit.dot(v), hit.dot(u));
+        } else {
+          ang = Math.atan2(hit.y, hit.x);
+        }
         if (this.activeTarget === 'A') ang += Math.PI;
         const TAU = Math.PI * 2;
         const baselineRotation = ((ang % TAU) + TAU) % TAU;
