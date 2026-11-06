@@ -305,7 +305,13 @@ async function initializeVisualPage() {
     }
     const spatialBtn = document.getElementById("btn-mode-spatial");
     if (spatialBtn) {
-      spatialBtn.textContent = t("controls.spatial", {}, "Spatial S²");
+      spatialBtn.textContent = spatialBtn.dataset?.dimensionMode === "solid"
+        ? t("controls.solid", {}, "Solid 3D")
+        : t("controls.spatial", {}, "Spatial S²");
+    }
+    const solidBtn = document.getElementById("btn-mode-solid");
+    if (solidBtn) {
+      solidBtn.textContent = t("controls.solid", {}, "Solid 3D");
     }
 
     // Synchronize Camera Presets

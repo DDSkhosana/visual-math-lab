@@ -2173,7 +2173,7 @@ test('Dynamic Viewport Deduction: Adaptive layout for canvases, dock, and modes 
 
   // Workspace dock on mobile: absolute overlay bottom sheet (Strict Zero Displacement)
   assert.ok(dockCss.includes('.workspace-dock:not(.is-collapsed) {\n    bottom: 0 !important;'), 'dock must pin to bottom as bottom sheet overlay on mobile');
-  assert.ok(dockCss.includes('max-height: min(58vh, 420px) !important;'), 'dock must bound height to bottom sheet on mobile');
+  assert.ok(dockCss.includes('height: var(--dock-size) !important;\n    max-height: 65% !important;'), 'resizable bottom sheet must leave at least 35% of the viewport for the canvas');
   assert.ok(dockCss.includes('border-radius: 1rem 1rem 0 0 !important;'), 'dock must have rounded top corners on mobile');
   assert.ok(dockCss.includes('.circle-explorer.has-workspace-dock,\n  .thales-explorer.has-workspace-dock {\n    position: relative !important;\n    width: 100% !important;\n    height: calc(100vh - 3rem) !important;'), 'workspace-dock.css must maintain full viewport height on mobile');
 });
@@ -2911,6 +2911,10 @@ test('Concyclic Wireframe Dynamic Alignment & Spatial Shading: alignCircleWireTo
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, circleInfo.center, circleInfo.u, circleInfo.v, circleInfo.radius, segStart, segSweep, 32, THREE)'), 'AnglesInSameSegment3DView must build 3D segmentMesh in spatial mode');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Major segment mesh in spatial mode');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Minor segment mesh in spatial mode');
+  const alternateViewStart = circle3DCode.indexOf('export class AlternateSegment3DView');
+  const tangentsViewStart = circle3DCode.indexOf('export class TangentsFromPoint3DView', alternateViewStart);
+  const alternateViewCode = circle3DCode.slice(alternateViewStart, tangentsViewStart);
+  assert.match(alternateViewCode, /let arcRange;\s+let segStart;\s+let segSweep;\s+if \(isSpatial\)/, 'AlternateSegment3DView must retain segment geometry values for label placement in both dimensions');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, O, u, v'), 'ChordBisector3DView must build 3D segmentMesh in spatial mode');
   assert.ok(circle3DCode.includes('setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE)'), 'TangentRadius3DView must build 3D quadrant mesh in spatial mode');
 });
@@ -3117,7 +3121,7 @@ test('Alternate Segment: 3D Spatial concyclic circumplane invariant & 2D/3D tele
 
   // 3D Spatial Segment and Sector Shading Alignment Invariants
   assert.ok(
-    circle3DCode.includes('const arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);'),
+    circle3DCode.includes('arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);'),
     'AlternateSegment3DView must compute arcRange relative to basis {u, v} so segments are bound by chord TA'
   );
   assert.ok(

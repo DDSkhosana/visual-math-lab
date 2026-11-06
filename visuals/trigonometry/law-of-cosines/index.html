@@ -149,6 +149,7 @@
             <div class="viewmode-segmented-group" role="group" aria-label="3D Geometry Model">
               <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar Euclidean Projection (Y = 0)">Planar</button>
               <button type="button" class="btn" id="btn-mode-spatial-pill" title="Spherical Law of Cosines on S²">Spatial S²</button>
+              <button type="button" class="btn" id="btn-mode-solid-pill" title="Solid 3D: triangle and edge squares extruded along the triangle plane's normal into prisms">Solid 3D</button>
             </div>
           </div>
           <div class="camera-presets-bar">
@@ -331,9 +332,10 @@
             <div class="collapsible-section collapsed" id="section-dimension-mode">
               <div class="collapsible-header" aria-expanded="false"><span>3D Geometry Model</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
-                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <button type="button" class="btn active" id="btn-mode-planar">Planar (Y = 0)</button>
                   <button type="button" class="btn" id="btn-mode-spatial">Spatial S²</button>
+                  <button type="button" class="btn" id="btn-mode-solid">Solid 3D</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
                   Planar Euclidean embedding with orthogonal projection and −2ab cos C interaction rectangle.

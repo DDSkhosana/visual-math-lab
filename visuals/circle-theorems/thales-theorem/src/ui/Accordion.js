@@ -91,23 +91,29 @@ export class Accordion {
 
         const isSingle = totalOpen === 1;
         headers.forEach((h) => {
-          const sec = h.closest('.collapsible-section');
+          const sec = this.#owner(h);
           if (sec) {
             sec.classList.toggle('is-subpanel-overlay', isSingle && h.classList.contains('open'));
           }
         });
-        syncPanelElevationTurn(panel, header.closest('.collapsible-section'));
+        syncPanelElevationTurn(panel, this.#owner(header));
       }
     }
     return true;
   }
 
+  /** A derivation card owns its own header; any other header belongs to its collapsible section. */
+  #owner(header) {
+    return header.closest('.derivation-card') || header.closest('.collapsible-section');
+  }
+
   setOpen(header, open) {
     header.classList.toggle('open', open);
     header.setAttribute('aria-expanded', String(open));
-    const section = header.closest('.collapsible-section');
-    if (section) section.classList.toggle('collapsed', !open);
-    const content = header.nextElementSibling || section?.querySelector('.collapsible-content');
+    const owner = this.#owner(header);
+    if (owner?.classList.contains('derivation-card')) owner.classList.toggle('open', open);
+    else if (owner) owner.classList.toggle('collapsed', !open);
+    const content = header.nextElementSibling || owner?.querySelector('.collapsible-content');
     if (content) {
       content.classList.toggle('open', open);
       content.classList.toggle('collapsed', !open);
@@ -138,7 +144,7 @@ export class Accordion {
       scope.classList.toggle('is-all-expanded', totalOpen > 1);
       const isSingle = totalOpen === 1;
       headers.forEach((h) => {
-        const sec = h.closest('.collapsible-section');
+        const sec = this.#owner(h);
         if (sec) {
           sec.classList.toggle('is-subpanel-overlay', isSingle && h.classList.contains('open'));
         }

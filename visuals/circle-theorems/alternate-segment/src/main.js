@@ -375,7 +375,8 @@ function bootstrap() {
     // Sync 3D View Title mode badge
     const title3d = document.querySelector('#canvas-3d-container .view-title');
     if (title3d) {
-      title3d.innerHTML = `3D: Great-Circle Tangent &amp; Alternate Triangle <span class="${isSpatial ? 'color-violet' : 'color-sky'} font-bold">[${isSpatial ? 'Spatial S² Spherical' : 'Planar Equatorial y=0'}]</span>`;
+      const modeBadge = isSpatial ? 'Spatial S² Spherical' : state.dimensionMode === 'solid' ? 'Solid 3D Cylinder' : 'Planar Equatorial y=0';
+      title3d.innerHTML = `3D: Great-Circle Tangent &amp; Alternate Triangle <span class="${isSpatial ? 'color-violet' : 'color-sky'} font-bold">[${modeBadge}]</span>`;
     }
 
     // Sync Play button state

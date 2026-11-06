@@ -30,6 +30,33 @@ function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
 
+const SUBPANEL_SELECTOR = '.collapsible-section, .derivation-card';
+
+function getChildSubpanels(container) {
+  return Array.from(container?.querySelectorAll?.(SUBPANEL_SELECTOR) || []).filter((sub) => {
+    const parent = sub.parentElement?.closest?.(SUBPANEL_SELECTOR);
+    return parent === container || !parent || !container.contains(parent);
+  });
+}
+
+function subpanelTitle(sub) {
+  return sub?.querySelector?.('.collapsible-header, .derivation-card-header')
+    ?.textContent?.replace(/[▶▼◀▲]/g, '').replace(/\s+/g, ' ').trim() || '';
+}
+
+function elevationContext(panel, preferred = null) {
+  const body = panel?.querySelector?.('.panel-body');
+  const groups = getChildSubpanels(body);
+  const deck = body?.querySelector?.('.panel-elevation-deck');
+  const grouped = groups.some((group) => getChildSubpanels(group).length > 0);
+  const group = grouped
+    ? groups.find((candidate) => candidate === preferred || candidate.contains(preferred)) ||
+      (groups.includes(deck?._activeGroup) ? deck._activeGroup : groups[0])
+    : null;
+  const children = group ? getChildSubpanels(group) : groups;
+  return { body, groups, group, subpanels: children.length ? children : [group].filter(Boolean) };
+}
+
 export class WorkspaceDockManager {
   constructor(rootContainer = null, options = {}) {
     const defaultDoc = typeof document !== 'undefined' ? document : null;
@@ -43,6 +70,7 @@ export class WorkspaceDockManager {
     this.dockSizeVertical = 380; // px
     this.dockSizeHorizontal = 340; // px
     this.dockSize = 380; // px
+    this.dockSizeCustomized = { vertical: false, horizontal: false };
     this.panels = new Map(); // id -> { element, header, title, isFloating, isHidden, lastPos, handles }
     this.topZIndex = 40;
     this.activePanelId = null;
@@ -53,6 +81,7 @@ export class WorkspaceDockManager {
     if (this.root && this.doc) {
       this.#initContainers();
       this.#loadPersistedState();
+      this.deduceViewport();
       this.#discoverAndRegisterPanels();
       this.collapseAllSubComponents();
       this.#setupGlobalListeners();
@@ -206,6 +235,10 @@ export class WorkspaceDockManager {
       dockResizer.className = 'dock-resizer';
       dockResizer.id = 'workspace-dock-resizer';
       dockResizer.title = 'Drag to resize dock';
+      dockResizer.setAttribute('role', 'separator');
+      dockResizer.setAttribute('tabindex', '0');
+      dockResizer.setAttribute('aria-label', 'Resize workspace dock');
+      dockResizer.setAttribute('aria-controls', 'workspace-dock-body');
       this.dockElement.appendChild(dockResizer);
 
       // Insert dock into explorer layout
@@ -288,11 +321,28 @@ export class WorkspaceDockManager {
     sectionCrumb.style.display = 'none';
     sectionCrumb.addEventListener('click', (e) => {
       e?.stopPropagation?.();
+      const groupSelect = this.panels.get(this.activePanelId)?.element.querySelector('.elevation-deck-group-select');
+      if (groupSelect) {
+        groupSelect.focus();
+        return;
+      }
       if (this.activeSectionHeader) {
         this.activeSectionHeader.focus?.();
       }
     });
     breadcrumbBar.appendChild(sectionCrumb);
+
+    const sep3 = this.doc.createElement('span');
+    sep3.className = 'breadcrumb-sep sep-step';
+    sep3.textContent = '▸';
+    sep3.style.display = 'none';
+    breadcrumbBar.appendChild(sep3);
+    const stepCrumb = this.doc.createElement('button');
+    stepCrumb.type = 'button';
+    stepCrumb.className = 'breadcrumb-item breadcrumb-step';
+    stepCrumb.style.display = 'none';
+    stepCrumb.addEventListener('click', () => this.activeSectionHeader?.focus?.());
+    breadcrumbBar.appendChild(stepCrumb);
 
     return breadcrumbBar;
   }
@@ -474,6 +524,17 @@ export class WorkspaceDockManager {
 
   #bindDockResizer() {
     if (!this.dockResizer) return;
+    this.dockResizer.addEventListener('keydown', (e) => {
+      const { edge, min, max } = this.#dockBounds();
+      const horizontal = edge === 'top' || edge === 'bottom';
+      const keys = horizontal ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight'];
+      if (![...keys, 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      const sign = edge === 'right' || edge === 'bottom' ? -1 : 1;
+      const delta = (e.key === keys[0] ? -1 : 1) * sign * (e.shiftKey ? 40 : 10);
+      this.#applyDockSize(e.key === 'Home' ? min : e.key === 'End' ? max : this.dockSize + delta);
+      this.#persistState();
+    });
     this.dockResizer.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       try {
@@ -481,38 +542,15 @@ export class WorkspaceDockManager {
       } catch (_) {}
       this.dockResizer.classList.add('active');
 
-      const isHorizontalEdge = this.dockEdge === 'left' || this.dockEdge === 'right';
-      const rootRect = this.root.getBoundingClientRect();
+      const { edge } = this.#dockBounds();
       const startX = e.clientX;
       const startY = e.clientY;
       const startSize = this.dockSize;
 
       const onMove = (moveEv) => {
-        let newSize = startSize;
-        if (this.dockEdge === 'left') {
-          newSize = startSize + (moveEv.clientX - startX);
-          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.65));
-          this.dockSizeVertical = newSize;
-        } else if (this.dockEdge === 'right') {
-          newSize = startSize - (moveEv.clientX - startX);
-          newSize = clamp(newSize, 280, Math.floor(rootRect.width * 0.65));
-          this.dockSizeVertical = newSize;
-        } else if (this.dockEdge === 'top') {
-          newSize = startSize + (moveEv.clientY - startY);
-          const maxDockH = Math.max(220, Math.floor((rootRect.height || this.win?.innerHeight || 800) * 0.85));
-          newSize = clamp(newSize, 160, maxDockH);
-          this.dockSizeHorizontal = newSize;
-          this.dockElement.style.height = `${newSize}px`;
-        } else if (this.dockEdge === 'bottom') {
-          newSize = startSize - (moveEv.clientY - startY);
-          const maxDockH = Math.max(220, Math.floor((rootRect.height || this.win?.innerHeight || 800) * 0.85));
-          newSize = clamp(newSize, 160, maxDockH);
-          this.dockSizeHorizontal = newSize;
-          this.dockElement.style.height = `${newSize}px`;
-        }
-
-        this.dockSize = newSize;
-        this.dockElement.style.setProperty('--dock-size', `${newSize}px`);
+        const delta = edge === 'left' || edge === 'right'
+          ? moveEv.clientX - startX : moveEv.clientY - startY;
+        this.#applyDockSize(startSize + delta * (edge === 'right' || edge === 'bottom' ? -1 : 1));
       };
 
       const onUp = (upEv) => {
@@ -535,28 +573,54 @@ export class WorkspaceDockManager {
     });
   }
 
+  #dockBounds() {
+    const rect = this.root.getBoundingClientRect();
+    const width = Math.min(rect.width || 1200, this.win?.innerWidth || 1200);
+    const height = Math.min(rect.height || 800,
+      (this.win?.innerHeight || 800) - Math.max(0, rect.top || 0));
+    const edge = (this.win?.innerWidth || width) <= 768 ? 'bottom' : this.dockEdge;
+    const horizontal = edge === 'top' || edge === 'bottom';
+    const extent = Math.max(0, horizontal ? height : width);
+    const max = Math.floor(extent * 0.65);
+    return { edge, horizontal, extent, max, min: Math.min(horizontal ? 160 : 240, max) };
+  }
+
+  #applyDockSize(requested = null) {
+    if (!this.dockElement) return;
+    const { edge, horizontal, extent, min, max } = this.#dockBounds();
+    const axis = horizontal ? 'horizontal' : 'vertical';
+    const key = horizontal ? 'dockSizeHorizontal' : 'dockSizeVertical';
+    if (requested !== null) {
+      this[key] = clamp(requested, min, max);
+      this.dockSizeCustomized[axis] = true;
+    }
+    const preferred = this.dockSizeCustomized[axis] ? this[key] :
+      Math.min(horizontal ? 340 : 380, Math.floor(extent * (horizontal ? 0.45 : 0.35)));
+    this.dockSize = clamp(preferred, min, max);
+    this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
+    if (!this.isCollapsed) {
+      this.dockElement.style.width = horizontal ? '100%' : `${this.dockSize}px`;
+      this.dockElement.style.height = horizontal ? `${this.dockSize}px` : '100%';
+    }
+    this.dockResizer?.setAttribute('aria-orientation', horizontal ? 'horizontal' : 'vertical');
+    this.dockResizer?.setAttribute('aria-valuemin', String(min));
+    this.dockResizer?.setAttribute('aria-valuemax', String(max));
+    this.dockResizer?.setAttribute('aria-valuenow', String(this.dockSize));
+    this.dockResizer?.setAttribute('data-resize-edge', edge);
+  }
+
   setDockEdge(edge) {
     if (!['left', 'right', 'top', 'bottom'].includes(edge)) return;
     this.dockEdge = edge;
     this.root.setAttribute('data-dock-edge', edge);
-
-    const isHorizontal = edge === 'top' || edge === 'bottom';
-    this.dockSize = isHorizontal ? this.dockSizeHorizontal : this.dockSizeVertical;
-    this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
 
     if (!this.isCollapsed) {
       this.dockElement.style.left = '';
       this.dockElement.style.top = '';
       this.dockElement.style.right = '';
       this.dockElement.style.bottom = '';
-      if (isHorizontal) {
-        this.dockElement.style.width = '100%';
-        this.dockElement.style.height = `${this.dockSize}px`;
-      } else {
-        this.dockElement.style.width = `${this.dockSize}px`;
-        this.dockElement.style.height = '100%';
-      }
     }
+    this.#applyDockSize();
 
     // Update active button state
     this.dockElement.querySelectorAll('.dock-edge-btn').forEach((btn) => {
@@ -753,13 +817,17 @@ export class WorkspaceDockManager {
       }
     });
 
-    // 3. Panel expand all buttons & body classes
-    const panels = container.querySelectorAll ? container.querySelectorAll('.ui-panel') : [];
+    // 3. Panel expand all buttons & body classes. A re-docked panel is itself the container,
+    // so it must resync too or its deck keeps reporting the sections that were just collapsed.
+    const nestedPanels = Array.from(container.querySelectorAll ? container.querySelectorAll('.ui-panel') : []);
+    const panels = container.classList?.contains('ui-panel') ? [container, ...nestedPanels] : nestedPanels;
     panels.forEach((p) => {
       p.classList.remove('has-expanded-subpanel');
       const b = p.querySelector ? p.querySelector('.panel-body') : null;
       if (b) b.classList.remove('is-all-expanded');
-      syncPanelElevationTurn(p);
+      // A panel collapsed on its own (registration, re-dock) announces its turn as before; when a whole
+      // container is collapsed only the panel in use does, so the [ ] key target stays where it was.
+      syncPanelElevationTurn(p, null, { silent: p !== container && p.id !== this.activePanelId });
     });
 
     const expandBtns = container.querySelectorAll ? container.querySelectorAll('.panel-expand-btn, [id$="-expand"]') : [];
@@ -814,7 +882,9 @@ export class WorkspaceDockManager {
         c.classList.toggle('is-subpanel-overlay', isSingle && isOpen);
       });
 
-      syncPanelElevationTurn(panel);
+      // Background resync: only the panel in use announces its turn, so the [ ] key target and the
+      // breadcrumb do not jump to whichever docked panel happens to be synced last.
+      syncPanelElevationTurn(panel, null, { silent: panel.id !== this.activePanelId });
     });
   }
 
@@ -1499,6 +1569,20 @@ export class WorkspaceDockManager {
     const panelCrumb = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.breadcrumb-panel') : null;
     const sep2 = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.sep-section') : null;
     const sectionCrumb = breadcrumbBar.querySelector ? breadcrumbBar.querySelector('.breadcrumb-section') : null;
+    const stepCrumb = breadcrumbBar.querySelector?.('.breadcrumb-step');
+    const stepSeparator = breadcrumbBar.querySelector?.('.sep-step');
+    const activePanel = this.panels.get(panelId)?.element;
+    const group = activePanel?.querySelector('.panel-elevation-deck')?._activeGroup;
+    const activeSubpanel = this.activeSectionHeader?.closest?.(SUBPANEL_SELECTOR);
+    const stepTitle = sectionTitle && group && activeSubpanel !== group && group.contains(activeSubpanel)
+      ? sectionTitle : null;
+    if (stepTitle) sectionTitle = subpanelTitle(group);
+    if (stepCrumb) {
+      stepCrumb.textContent = stepTitle || '';
+      stepCrumb.title = stepTitle ? `Focus "${stepTitle}"` : '';
+      stepCrumb.style.display = stepTitle ? '' : 'none';
+    }
+    if (stepSeparator) stepSeparator.style.display = stepTitle ? '' : 'none';
 
     if (panelId && this.panels.has(panelId)) {
       this.activePanelId = panelId;
@@ -1752,46 +1836,6 @@ export class WorkspaceDockManager {
       }, { passive: false });
     }
 
-    // Derivation Card Navigation Buttons delegation (Prev / Next Step)
-    const handleCardNav = (e) => {
-      const navBtn = e.target?.closest?.('[data-card-nav]');
-      if (!navBtn) return;
-      e.preventDefault?.();
-      e.stopPropagation?.();
-      const direction = navBtn.getAttribute('data-card-nav') === 'prev' ? 'backward' : 'forward';
-      const panel = navBtn.closest?.('.ui-panel');
-      if (panel) {
-        cyclePanelSubpanel(panel, direction);
-        return;
-      }
-      const card = navBtn.closest?.('.derivation-card');
-      const container = card?.parentElement;
-      if (!container) return;
-      const cards = Array.from(container.querySelectorAll?.('.derivation-card') || []);
-      if (cards.length <= 1) return;
-      const curIdx = Math.max(0, cards.indexOf(card));
-      const nextIdx = direction === 'forward' ? (curIdx + 1) % cards.length : (curIdx - 1 + cards.length) % cards.length;
-      const targetCard = cards[nextIdx];
-      cards.forEach((c) => {
-        const isTarget = c === targetCard;
-        c.classList?.toggle('open', isTarget);
-        const h = c.querySelector?.('.derivation-card-header');
-        if (h) {
-          h.classList?.toggle('open', isTarget);
-          h.setAttribute?.('aria-expanded', isTarget ? 'true' : 'false');
-          const icon = h.querySelector('.icon');
-          if (icon) icon.textContent = isTarget ? '▼' : '▶';
-        }
-        const content = c.querySelector?.('.derivation-card-content');
-        if (content) {
-          content.classList?.toggle('open', isTarget);
-          if (content.style) content.style.display = isTarget ? 'block' : 'none';
-        }
-      });
-    };
-    this.root?.addEventListener?.('click', handleCardNav);
-    this.dockBody?.addEventListener?.('click', handleCardNav);
-
     // 1. Hierarchical Focus & Click Tracking for Breadcrumbs
     const handleHierarchyTrack = (e) => {
       const panel = e.target?.closest?.('.ui-panel');
@@ -1881,36 +1925,42 @@ export class WorkspaceDockManager {
       const panel = header.closest?.('.ui-panel');
       if (!panel) return;
 
-      const allHeaders = Array.from(
-        panel.querySelectorAll?.('.collapsible-header, .derivation-card-header') || []
-      );
+      const section = header.closest(SUBPANEL_SELECTOR);
+      const parentGroup = section.parentElement?.closest?.(SUBPANEL_SELECTOR);
+      const allHeaders = getChildSubpanels(parentGroup || panel.querySelector('.panel-body'))
+        .map((sub) => sub.querySelector('.collapsible-header, .derivation-card-header')).filter(Boolean);
       const currIdx = allHeaders.indexOf(header);
       if (currIdx === -1) return;
+      const focusHeader = (target) => {
+        const sub = target?.closest?.(SUBPANEL_SELECTOR);
+        if (sub?.classList.contains('is-in-deck')) syncPanelElevationTurn(panel, sub, { reveal: true });
+        target?.focus?.();
+      };
 
       if (e.key === 'ArrowDown') {
         e.preventDefault?.();
         e.stopPropagation?.();
         const nextIdx = (currIdx + 1) % allHeaders.length;
-        allHeaders[nextIdx]?.focus?.();
+        focusHeader(allHeaders[nextIdx]);
         this.activeSectionHeader = allHeaders[nextIdx];
         this.updateBreadcrumb(panel.id, allHeaders[nextIdx]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
       } else if (e.key === 'ArrowUp') {
         e.preventDefault?.();
         e.stopPropagation?.();
         const prevIdx = (currIdx - 1 + allHeaders.length) % allHeaders.length;
-        allHeaders[prevIdx]?.focus?.();
+        focusHeader(allHeaders[prevIdx]);
         this.activeSectionHeader = allHeaders[prevIdx];
         this.updateBreadcrumb(panel.id, allHeaders[prevIdx]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
       } else if (e.key === 'Home') {
         e.preventDefault?.();
         e.stopPropagation?.();
-        allHeaders[0]?.focus?.();
+        focusHeader(allHeaders[0]);
         this.activeSectionHeader = allHeaders[0];
         this.updateBreadcrumb(panel.id, allHeaders[0]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
       } else if (e.key === 'End') {
         e.preventDefault?.();
         e.stopPropagation?.();
-        allHeaders[allHeaders.length - 1]?.focus?.();
+        focusHeader(allHeaders[allHeaders.length - 1]);
         this.activeSectionHeader = allHeaders[allHeaders.length - 1];
         this.updateBreadcrumb(panel.id, allHeaders[allHeaders.length - 1]?.textContent?.replace(/[▶▼◀▲]/g, '')?.trim());
       } else if (e.key === 'ArrowRight') {
@@ -1936,6 +1986,23 @@ export class WorkspaceDockManager {
 
       const activeEl = this.doc.activeElement;
       if (!activeEl || activeEl === this.doc.body) return;
+
+      const panel = activeEl.closest?.('.ui-panel');
+      const nestedHeader = activeEl.closest?.('.collapsible-header, .derivation-card-header');
+      const nestedSubpanel = nestedHeader?.closest?.(SUBPANEL_SELECTOR);
+      const group = panel?.querySelector('.panel-elevation-deck')?._activeGroup;
+      if (group && nestedSubpanel && nestedSubpanel !== group && group.contains(nestedSubpanel)) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        panel.querySelector('.elevation-deck-group-select')?.focus?.();
+        return;
+      }
+      if (activeEl.classList?.contains('elevation-deck-group-select')) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        panel?.querySelector('.panel-header')?.focus?.();
+        return;
+      }
 
       // Case 1: Inside a Level 3 section content (slider, input, button)
       const content = activeEl.closest?.('.collapsible-content, .derivation-card-content');
@@ -1996,7 +2063,7 @@ export class WorkspaceDockManager {
 
     // 6. Keyboard navigation for Elevation Turns ([ and ])
     this.doc?.addEventListener?.('keydown', (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(this.doc.activeElement?.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(this.doc.activeElement?.tagName)) return;
       if (e.key === '[' || e.key === ']') {
         const panels = Array.from(this.dockBody?.querySelectorAll?.('.ui-panel') || []);
         let targetPanel = null;
@@ -2036,6 +2103,7 @@ export class WorkspaceDockManager {
     const isCompact = w <= 768;
     this.root.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
     this.dockElement?.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
+    this.#applyDockSize();
   }
 
   #persistState() {
@@ -2056,6 +2124,7 @@ export class WorkspaceDockManager {
         dockSize: this.dockSize,
         dockSizeVertical: this.dockSizeVertical,
         dockSizeHorizontal: this.dockSizeHorizontal,
+        dockSizeCustomized: this.dockSizeCustomized,
         collapsedPos: this.collapsedPos,
         panels: panelStates,
       };
@@ -2070,16 +2139,18 @@ export class WorkspaceDockManager {
       const raw = storage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (data.dockSizeVertical) this.dockSizeVertical = data.dockSizeVertical;
-      if (data.dockSizeHorizontal) this.dockSizeHorizontal = data.dockSizeHorizontal;
-      if (data.dockEdge) this.setDockEdge(data.dockEdge);
-      if (data.dockSize) {
-        this.dockSize = data.dockSize;
-        const isHorizontal = this.dockEdge === 'top' || this.dockEdge === 'bottom';
-        if (isHorizontal) this.dockSizeHorizontal = data.dockSize;
-        else this.dockSizeVertical = data.dockSize;
-        this.dockElement.style.setProperty('--dock-size', `${data.dockSize}px`);
+      if (Number.isFinite(data.dockSizeVertical)) this.dockSizeVertical = data.dockSizeVertical;
+      if (Number.isFinite(data.dockSizeHorizontal)) this.dockSizeHorizontal = data.dockSizeHorizontal;
+      this.dockSizeCustomized = {
+        vertical: data.dockSizeCustomized?.vertical ?? Number.isFinite(data.dockSizeVertical),
+        horizontal: data.dockSizeCustomized?.horizontal ?? Number.isFinite(data.dockSizeHorizontal),
+      };
+      if (Number.isFinite(data.dockSize) && !Number.isFinite(data.dockSizeVertical) && !Number.isFinite(data.dockSizeHorizontal)) {
+        const horizontal = data.dockEdge === 'top' || data.dockEdge === 'bottom';
+        this[horizontal ? 'dockSizeHorizontal' : 'dockSizeVertical'] = data.dockSize;
+        this.dockSizeCustomized[horizontal ? 'horizontal' : 'vertical'] = true;
       }
+      if (data.dockEdge) this.setDockEdge(data.dockEdge);
       if (data.collapsedPos) this.collapsedPos = data.collapsedPos;
       if (data.isCollapsed !== undefined) this.setDockCollapsed(data.isCollapsed);
       this.savedPanelStates = data.panels || {};
@@ -2125,6 +2196,8 @@ export function setSubpanelOpen(sub, shouldOpen) {
     const c = sub.querySelector ? sub.querySelector('.derivation-card-content') : null;
     if (c) {
       c.classList.toggle('open', shouldOpen);
+      // Thales' Accordion hides card content with .collapsed; opening must clear it or the card opens empty.
+      if (shouldOpen) c.classList.remove('collapsed');
     }
   }
 }
@@ -2135,12 +2208,9 @@ export function setSubpanelOpen(sub, shouldOpen) {
  */
 export function cyclePanelSubpanel(panel, direction = 'forward') {
   if (!panel) return;
-  const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+  const { body, subpanels: allSubpanels } = elevationContext(panel);
   if (!body) return;
 
-  const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
-  const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
-  const allSubpanels = [...sections, ...cards];
   if (allSubpanels.length <= 1) return;
 
   const isOpen = (sub) => {
@@ -2175,6 +2245,12 @@ export function cyclePanelSubpanel(panel, direction = 'forward') {
   // Find currently elevated or open subpanel across all subpanels
   let curSub = allSubpanels.find((s) => s.getAttribute('data-elevation-turn') === 'top' || s.classList.contains('is-elevated-top'));
   if (!curSub) {
+    // Accordion and Scroll All carry no turn markers, so continue from the visible deck cursor.
+    const deck = body.querySelector ? body.querySelector('.panel-elevation-deck') : null;
+    const cursor = deck && deck.style?.display !== 'none' ? deck._activeSubpanel : null;
+    if (cursor && allSubpanels.includes(cursor)) curSub = cursor;
+  }
+  if (!curSub) {
     curSub = allSubpanels.find((s) => isOpen(s));
   }
   const curIdx = curSub ? allSubpanels.indexOf(curSub) : -1;
@@ -2197,24 +2273,7 @@ export function cyclePanelSubpanel(panel, direction = 'forward') {
   }
 
   // Sync elevation turn
-  syncPanelElevationTurn(panel, targetSub, { direction });
-
-  // Update header stepper indicator if present
-  updateHeaderStepper(panel, nextIdx, allSubpanels.length);
-}
-
-/**
- * Updates the compact subpanel stepper in the panel header if present.
- */
-export function updateHeaderStepper(panel, activeIdx, totalCount) {
-  if (!panel) return;
-  const stepper = panel.querySelector?.('.panel-subpanel-stepper');
-  if (stepper) {
-    const indicator = stepper.querySelector('.subpanel-step-indicator');
-    if (indicator) {
-      indicator.textContent = `${activeIdx + 1}/${totalCount}`;
-    }
-  }
+  syncPanelElevationTurn(panel, targetSub, { direction, reveal: true });
 }
 
 /**
@@ -2243,21 +2302,50 @@ export function activateTabSubpanel(targetSub, allSubpanels = []) {
  * Supports three navigation modes via [data-deck-mode]:
  * - 'tabs' / 'deck': Tab Bar mode (single-turn tabs). Pills for all subpanels are always visible
  *                    allowing 1-click tab switching. Non-active sections are parked in the deck.
- * - 'accordion': Accordion mode (nested collapsible headers). Independent collapsibles without deck parking.
+ * - 'accordion': Accordion mode (nested collapsible headers). Independent collapsibles without deck parking;
+ *                 sections are never auto-opened, so header/pill toggles stick.
  * - 'stack': Stack mode (continuous vertical scroll). All open sections expanded in full vertical flow.
  *
  * @param {HTMLElement} panel - The .ui-panel container.
  * @param {HTMLElement|null} preferredActiveElement - Optional subpanel or child requesting the top turn.
- * @param {Object} options - { direction, mode }
+ * @param {Object} options - { direction, mode, forceDeck, reveal, silent }; silent skips the
+ *                            panelelevationturn event (background resyncs of panels not in use).
  */
 export function syncPanelElevationTurn(panel, preferredActiveElement = null, options = {}) {
   if (!panel) return;
-  const body = panel.querySelector ? panel.querySelector('.panel-body') : null;
+  const { body, groups, group, subpanels: allSubpanels } = elevationContext(panel, preferredActiveElement);
   if (!body) return;
 
-  const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
-  const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
-  const allSubpanels = [...sections, ...cards];
+  body.classList.toggle('has-elevation-groups', Boolean(group));
+  // True when the target is the group's remembered step rather than one the caller (e.g. a header) passed.
+  let rememberedTarget = false;
+  if (group) {
+    const requested = preferredActiveElement?.closest?.(SUBPANEL_SELECTOR);
+    rememberedTarget = !allSubpanels.includes(requested);
+    preferredActiveElement = allSubpanels.includes(requested) ? requested :
+      (allSubpanels.includes(group._activeElevationSubpanel) ? group._activeElevationSubpanel : null);
+    for (const sub of body.querySelectorAll(SUBPANEL_SELECTOR)) {
+      sub.classList.remove('is-subpanel-overlay');
+      if (!allSubpanels.includes(sub)) {
+        sub.removeAttribute('data-elevation-turn');
+        sub.removeAttribute('data-elevation-level');
+        sub.classList.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
+      }
+    }
+    for (const candidate of groups) {
+      candidate.setAttribute('data-elevation-group', candidate === group ? 'active' : 'inactive');
+      candidate.classList.toggle('is-elevation-group', getChildSubpanels(candidate).length > 0);
+      candidate.setAttribute('data-elevation-level', '2');
+    }
+    if (!allSubpanels.includes(group)) setSubpanelOpen(group, true);
+    body.classList.add('is-all-expanded');
+    panel.classList.add('has-expanded-subpanel');
+  } else {
+    for (const candidate of groups) {
+      candidate.removeAttribute('data-elevation-group');
+      candidate.classList.remove('is-elevation-group');
+    }
+  }
 
   const isOpen = (sub) => {
     if (sub.classList.contains('collapsible-section')) {
@@ -2269,13 +2357,14 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
 
   const openSubpanels = allSubpanels.filter(isOpen);
   const totalOpen = openSubpanels.length;
+  body.classList.toggle('is-all-expanded', Boolean(group) || totalOpen > 1);
 
   panel.setAttribute?.('data-elevation-level', '1');
 
   // Deck container inside the panel body
   let deck = body.querySelector ? body.querySelector('.panel-elevation-deck') : null;
 
-  if (allSubpanels.length <= 1) {
+  if (allSubpanels.length <= 1 && !group) {
     if (deck) {
       deck.style.display = 'none';
       if (Array.isArray(deck.children)) deck.children.length = 0;
@@ -2302,6 +2391,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
 
   const isDerivPanel = panel?.id?.includes('deriv') || panel?.id === 'live-derivation-panel';
   const forceDeck = Boolean(
+    group ||
     options?.forceDeck ||
     panel?.hasAttribute?.('data-force-deck') ||
     body?.hasAttribute?.('data-force-deck') ||
@@ -2332,26 +2422,49 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
       const evt = typeof CustomEvent !== 'undefined'
         ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel: activeSingle, title } })
         : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel: activeSingle, title } };
-      panel.dispatchEvent?.(evt);
+      if (!options?.silent) panel.dispatchEvent?.(evt);
     } catch (_) {}
     return;
   }
 
   // Active subpanel determination
   let activeSubpanel = null;
-  const pool = (isTabsMode || isAccordionMode || forceDeck) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+  const pillsAll = isTabsMode || isAccordionMode || forceDeck;
+  const pool = pillsAll ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+
+  // Deck controls navigate (reveal/direction) and always open their target. A header that folds the step
+  // holding the turn (any step in Scroll All, where nothing is parked) leaves it resting on its shelf.
+  const navigating = Boolean(options?.reveal || options?.direction);
+  const currentTop = allSubpanels.find(
+    (s) => s.getAttribute?.('data-elevation-turn') === 'top' || s.classList?.contains('is-elevated-top')
+  ) || null;
+  let restedSubpanel = !navigating && allSubpanels.includes(deck?._restedSubpanel) ? deck._restedSubpanel : null;
+  let restedNow = false;
 
   if (preferredActiveElement) {
     const target = preferredActiveElement.closest
       ? preferredActiveElement.closest('.collapsible-section, .derivation-card')
       : preferredActiveElement;
     if (target && allSubpanels.includes(target)) {
-      if (!isOpen(target)) {
-        setSubpanelOpen(target, true);
+      const folded = !navigating && !rememberedTarget && !isOpen(target) && (isStackMode || target === currentTop);
+      if (folded && !pillsAll) {
+        // Pills list open sections only here, so the turn passes to the next open one.
+        const from = allSubpanels.indexOf(target);
+        activeSubpanel = [...allSubpanels.slice(from + 1), ...allSubpanels.slice(0, from)].find(isOpen) || null;
+      } else {
+        if (folded) {
+          restedSubpanel = target;
+          restedNow = true;
+        } else if (!isAccordionMode && target !== restedSubpanel && !isOpen(target)) {
+          // A parked shelf whose header was clicked is raised, so it opens. Accordion sections are independent
+          // (a header or pill that just closed one must not reopen it), and a rested step stays folded.
+          setSubpanelOpen(target, true);
+        }
+        activeSubpanel = target;
       }
-      activeSubpanel = target;
     }
   }
+  if (restedSubpanel && isOpen(restedSubpanel)) restedSubpanel = null;
 
   if (!activeSubpanel) {
     activeSubpanel = pool.find(
@@ -2359,15 +2472,21 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     );
   }
 
-  if (!activeSubpanel) {
-    activeSubpanel = (openSubpanels.length > 0) ? openSubpanels[0] : allSubpanels[0];
+  // Modes without turn markers keep the visible deck cursor instead of jumping to the first open section.
+  const deckCursor = deck && deck.style?.display !== 'none' ? deck._activeSubpanel : null;
+  if (!activeSubpanel && deckCursor && pool.includes(deckCursor)) {
+    activeSubpanel = deckCursor;
   }
 
-  if ((isTabsMode || forceDeck) && activeSubpanel && !isOpen(activeSubpanel)) {
+  if (!activeSubpanel) {
+    activeSubpanel = openSubpanels[0] || (isAccordionMode ? null : allSubpanels[0]);
+  }
+
+  if (!isAccordionMode && (isTabsMode || forceDeck) && activeSubpanel && activeSubpanel !== restedSubpanel && !isOpen(activeSubpanel)) {
     setSubpanelOpen(activeSubpanel, true);
   }
 
-  const subsToRender = (isTabsMode || isAccordionMode || forceDeck) ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
+  const subsToRender = pillsAll ? allSubpanels : (openSubpanels.length > 0 ? openSubpanels : allSubpanels);
 
   const prevActiveSubpanel = deck?._activeSubpanel || null;
   const prevActiveIdx = prevActiveSubpanel ? subsToRender.indexOf(prevActiveSubpanel) : -1;
@@ -2400,13 +2519,19 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
   }
 
   if (deck) {
+    body.classList.add('is-all-expanded');
     deck._panel = panel;
+    deck._activeGroup = group;
+    deck._allSubpanels = allSubpanels;
     deck._openSubpanels = subsToRender;
     deck._activeSubpanel = activeSubpanel;
+    deck._restedSubpanel = restedSubpanel;
+    if (group) group._activeElevationSubpanel = activeSubpanel;
 
     if (!deck._wheelBound) {
       deck._wheelBound = true;
       deck.addEventListener?.('wheel', (wheelEv) => {
+        if (wheelEv.target?.closest?.('select')) return;
         const subs = deck._openSubpanels || [];
         if (subs.length <= 1) return;
         wheelEv.preventDefault?.();
@@ -2414,7 +2539,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         const now = Date.now();
         if (deck._lastWheelTime && (now - deck._lastWheelTime < 180)) return;
         deck._lastWheelTime = now;
-        const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
+        const curIdx = subs.indexOf(deck._activeSubpanel);
         const dy = wheelEv.deltaY || 0;
         const dx = wheelEv.deltaX || 0;
         const delta = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
@@ -2423,17 +2548,17 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
           const targetSub = subs[nextIdx];
           const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
           if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
-          if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+          if (curMode === 'tabs') activateTabSubpanel(targetSub, deck._allSubpanels);
           else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward' });
+          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward', reveal: true });
         } else if (delta < 0) {
-          const prevIdx = (curIdx - 1 + subs.length) % subs.length;
+          const prevIdx = (Math.max(curIdx, 0) - 1 + subs.length) % subs.length;
           const targetSub = subs[prevIdx];
           const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
           if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
-          if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+          if (curMode === 'tabs') activateTabSubpanel(targetSub, deck._allSubpanels);
           else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward' });
+          syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward', reveal: true });
         }
       }, { passive: false });
 
@@ -2455,27 +2580,27 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         const dy = t.clientY - touchStartY;
         if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
           tEv.preventDefault?.();
-          const curIdx = Math.max(0, subs.indexOf(deck._activeSubpanel));
+          const curIdx = subs.indexOf(deck._activeSubpanel);
           const curMode = body.getAttribute?.('data-deck-mode') || currentMode;
           if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
           if (dx < 0) {
             const nextIdx = (curIdx + 1) % subs.length;
             const targetSub = subs[nextIdx];
-            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, deck._allSubpanels);
             else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward' });
+            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'forward', reveal: true });
           } else {
-            const prevIdx = (curIdx - 1 + subs.length) % subs.length;
+            const prevIdx = (Math.max(curIdx, 0) - 1 + subs.length) % subs.length;
             const targetSub = subs[prevIdx];
-            if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
+            if (curMode === 'tabs') activateTabSubpanel(targetSub, deck._allSubpanels);
             else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward' });
+            syncPanelElevationTurn(deck._panel, targetSub, { direction: 'backward', reveal: true });
           }
         }
       }, { passive: false });
     }
 
-    deck.style.display = 'flex';
+    deck.style.display = 'grid';
     if (Array.isArray(deck.children)) {
       deck.children.length = 0;
     }
@@ -2486,6 +2611,33 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     }
 
     if (doc && doc.createElement) {
+      if (group) {
+        const groupLabel = doc.createElement('label');
+        groupLabel.className = 'elevation-deck-group';
+        const caption = doc.createElement('span');
+        caption.textContent = 'Group';
+        groupLabel.appendChild(caption);
+        const select = doc.createElement('select');
+        select.className = 'elevation-deck-group-select';
+        select.setAttribute('aria-label', 'Section group');
+        groups.forEach((candidate, index) => {
+          const option = doc.createElement('option');
+          option.value = String(index);
+          option.textContent = subpanelTitle(candidate) || `Group ${index + 1}`;
+          option.selected = candidate === group;
+          select.appendChild(option);
+        });
+        select.value = String(groups.indexOf(group));
+        select.addEventListener('change', () => {
+          const target = groups[Number(select.value)];
+          if (target) {
+            syncPanelElevationTurn(panel, target, { reveal: true });
+            body.querySelector('.elevation-deck-group-select')?.focus?.();
+          }
+        });
+        groupLabel.appendChild(select);
+        deck.appendChild(groupLabel);
+      }
       const badge = doc.createElement('span');
       badge.className = 'elevation-deck-label';
       if (isTabsMode) {
@@ -2518,6 +2670,8 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
 
       const pillsContainer = doc.createElement('div');
       pillsContainer.className = 'elevation-deck-pills';
+      pillsContainer.setAttribute('role', 'tablist');
+      pillsContainer.setAttribute('aria-label', group ? 'Steps in selected group' : 'Sections');
 
       subsToRender.forEach((sub, i) => {
         const pill = doc.createElement('button');
@@ -2532,18 +2686,13 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         fullTitle = fullTitle.replace(/\s+/g, ' ');
         const displayTitle = fullTitle.length > 24 ? fullTitle.slice(0, 22) + '…' : fullTitle;
 
-        pill.textContent = `${i + 1}. ${displayTitle}${isCurrent ? ' ★' : ''}`;
+        const prefix = /^(?:\d+[.)]\s|Step\s+\d+\b)/i.test(fullTitle) ? '' : `${i + 1}. `;
+        pill.textContent = `${prefix}${displayTitle}${isCurrent ? ' ★' : ''}`;
         pill.title = isTabsMode
           ? `Switch tab to "${fullTitle}"`
           : isAccordionMode
             ? `Toggle "${fullTitle}"`
             : `Bring "${fullTitle}" to top elevation`;
-
-        if (isCurrent && typeof pill.scrollIntoView === 'function') {
-          try {
-            pill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-          } catch (_) {}
-        }
 
         pill.addEventListener?.('click', (e) => {
           e.stopPropagation?.();
@@ -2552,18 +2701,17 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
           if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
           if (curMode === 'tabs') {
             activateTabSubpanel(sub, allSubpanels);
-            syncPanelElevationTurn(panel, sub, { direction: pDir });
+            syncPanelElevationTurn(panel, sub, { direction: pDir, reveal: true });
           } else if (curMode === 'accordion') {
             const currentlyOpen = isOpen(sub);
             setSubpanelOpen(sub, !currentlyOpen);
-            syncPanelElevationTurn(panel, sub, { direction: pDir });
+            syncPanelElevationTurn(panel, sub, { direction: pDir, reveal: true });
           } else if (curMode === 'stack') {
             if (!isOpen(sub)) setSubpanelOpen(sub, true);
-            sub.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
-            syncPanelElevationTurn(panel, sub);
+            syncPanelElevationTurn(panel, sub, { reveal: true });
           } else {
             if (!isOpen(sub)) setSubpanelOpen(sub, true);
-            syncPanelElevationTurn(panel, sub, { direction: pDir });
+            syncPanelElevationTurn(panel, sub, { direction: pDir, reveal: true });
           }
         });
 
@@ -2577,7 +2725,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
             if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
             if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
             else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-            syncPanelElevationTurn(panel, targetSub, { direction: 'forward' });
+            syncPanelElevationTurn(panel, targetSub, { direction: 'forward', reveal: true });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[nextIdx]?.focus?.();
@@ -2589,7 +2737,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
             if (panel.classList.contains('is-shaded')) panel.classList.remove('is-shaded');
             if (curMode === 'tabs') activateTabSubpanel(targetSub, allSubpanels);
             else if (!isOpen(targetSub)) setSubpanelOpen(targetSub, true);
-            syncPanelElevationTurn(panel, targetSub, { direction: 'backward' });
+            syncPanelElevationTurn(panel, targetSub, { direction: 'backward', reveal: true });
             const newDeck = body.querySelector?.('.panel-elevation-deck');
             const newPills = newDeck?.querySelectorAll?.('.elevation-deck-pill') || [];
             newPills[prevIdx]?.focus?.();
@@ -2660,14 +2808,34 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         syncPanelElevationTurn(panel, activeSubpanel);
       });
       deck.appendChild(modeBtn);
+      const activePill = pillsContainer.querySelector('.active');
+      if (activePill && Number.isFinite(activePill.offsetLeft)) {
+        pillsContainer.scrollLeft = Math.max(0,
+          activePill.offsetLeft - pillsContainer.offsetLeft -
+          (pillsContainer.clientWidth - activePill.offsetWidth) / 2);
+      }
     }
+  }
+
+  // While the turn rests (its step folded), nothing is raised, so nothing is parked: every step lies on its
+  // shelf under the deck. In the parking modes, folding the raised step also folds the steps left open behind it.
+  const resting = Boolean(restedSubpanel) && activeSubpanel === restedSubpanel;
+  if (resting && restedNow && (isTabsMode || isDeckMode)) {
+    allSubpanels.forEach((sub) => {
+      if (sub !== restedSubpanel && isOpen(sub)) setSubpanelOpen(sub, false);
+    });
   }
 
   if (isTabsMode || isDeckMode) {
     allSubpanels.forEach((sub) => {
-      sub.setAttribute?.('data-elevation-level', '2');
+      sub.setAttribute?.('data-elevation-level', group && sub !== group ? '3' : '2');
       const isTop = sub === activeSubpanel;
-      if (isTop) {
+      // Only steps the pills can reach are parked; a closed section that plain Deck pills leave out stays on its shelf.
+      if (!isTop && (resting || (!pillsAll && !isOpen(sub)))) {
+        sub.removeAttribute?.('data-elevation-turn');
+        sub.removeAttribute?.('data-elevation-level');
+        sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
+      } else if (isTop) {
         sub.setAttribute?.('data-elevation-turn', 'top');
         sub.classList?.add('is-elevated-top');
         sub.classList?.remove('is-in-deck', 'slide-forward', 'slide-backward');
@@ -2688,7 +2856,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
       sub.removeAttribute?.('data-elevation-turn');
       sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
       if (isOpen(sub)) {
-        sub.setAttribute?.('data-elevation-level', '2');
+        sub.setAttribute?.('data-elevation-level', group && sub !== group ? '3' : '2');
       } else {
         sub.removeAttribute?.('data-elevation-level');
       }
@@ -2701,15 +2869,18 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     sub.classList?.remove('is-elevated-top', 'is-in-deck', 'slide-forward', 'slide-backward');
   });
 
+  // Accordion and Scroll All keep sections in flow, so deck navigation scrolls the chosen one into view.
+  if (options?.reveal && (isAccordionMode || isStackMode) && activeSubpanel && isOpen(activeSubpanel)) {
+    activeSubpanel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }
+
   try {
-    const h = activeSubpanel?.querySelector?.('.collapsible-header, .derivation-card-header');
-    const title = h?.textContent ? h.textContent.replace(/[▶▼◀▲]/g, '').trim() : null;
+    const title = subpanelTitle(activeSubpanel) || null;
     const evt = typeof CustomEvent !== 'undefined'
       ? new CustomEvent('panelelevationturn', { bubbles: true, detail: { panel, activeSubpanel, title, direction } })
       : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel, title, direction } };
-    panel.dispatchEvent?.(evt);
+    if (!options?.silent) panel.dispatchEvent?.(evt);
   } catch (_) {}
 }
 
 export { stepSpring, VelocityTracker, computeEdgeSnapTarget } from './motion-physics.js';
-

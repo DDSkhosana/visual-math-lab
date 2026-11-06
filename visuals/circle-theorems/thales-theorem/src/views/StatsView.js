@@ -56,7 +56,7 @@ export class StatsView {
       alpha3d: solid.alphaDeg, beta3d: solid.betaDeg, sumAB3d: solid.alphaDeg + solid.betaDeg,
       alphaReflex3d: solid.alphaReflexDeg, betaReflex3d: solid.betaReflexDeg, reflexSum3d: solid.reflexSumDeg,
       surf: solid.surfaceArea, volume: solid.volume,
-      mode3d: isSpatial ? 'Spatial S²' : 'Planar (Y = 0)',
+      mode3d: isSpatial ? 'Spatial S²' : state.dimensionMode === 'solid' ? 'Solid 3D (prism)' : 'Planar (Y = 0)',
       excess3d: solid.excessDeg || 0,
       sphArea3d: solid.sphericalArea || 0,
       affineInv: flat.affine ? flat.affine.apolloniusConjugacy : 0,

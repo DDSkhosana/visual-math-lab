@@ -15,6 +15,7 @@ import {
   interpolateCurvatureHomotopy,
   interpolateGeodesicChord,
 } from './circle-core.js';
+import { SolidMorph, IdleParallax, addSolidLighting, isSolidMode } from './solid-morph.js';
 
 export function loadThree() {
   const THREE = window.THREE;
@@ -709,11 +710,12 @@ export class BaseScene3DView {
     this.controls.dampingFactor = 0.035;
     this.controls.screenSpacePanning = true;
 
-    // Lighting
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    // Lighting: a weaker ambient plus a hemisphere fill gives lit solids distinct wall shading
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const sun = new THREE.DirectionalLight(0xffffff, 0.85);
     sun.position.set(20, 30, 20);
     this.scene.add(sun);
+    addSolidLighting(THREE, this.scene);
 
     // Grid on XZ plane
     this.grid = new THREE.GridHelper(40, 40, PALETTE.slate600, PALETTE.slate700);
@@ -783,9 +785,11 @@ export class BaseScene3DView {
     // Render loop
     this.animating = true;
     this.latestVis3d = {};
+    this.dimensionMode = 'planar';
     const loop = () => {
       if (!this.animating) return;
       this.controls.update();
+      this.updateDepthCues();
       if (this.currentLabels && this.currentLabels.length) {
         this.overlay.render(this.currentLabels, this.latestVis3d);
       }
@@ -830,11 +834,28 @@ export class BaseScene3DView {
     }
     return dataUrl;
   }
+  /** Per-frame depth cues: the solid prism morph and idle parallax. */
+  updateDepthCues(now = performance.now()) {
+    const solid = isSolidMode(this.dimensionMode);
+    if (solid && !this.solidMorph) {
+      this.solidMorph = new SolidMorph(this.THREE, this.scene, {
+        axis: 'y',
+        exclude: () => [this.grid, this.axes, this.sphere],
+        emphasis: () => [this.circleWire],
+        halfHeight: () => 0.3 * Math.abs(this.circleWire?.scale?.x || 10),
+      });
+    }
+    this.solidMorph?.update(solid, now);
+    if (!this.parallax) this.parallax = new IdleParallax(this.controls, this.renderer.domElement);
+    this.parallax.update(!this.isARActive && !this.camAnim, now);
+  }
+
   applyCommonVis(state) {
     this.latestVis3d = state?.vis3d || {};
+    this.dimensionMode = state?.dimensionMode || 'planar';
     if (this.grid) this.grid.visible = this.isARActive ? false : (state?.vis3d?.gridXZ !== false);
     if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
-    if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
+    if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false && !isSolidMode(this.dimensionMode);
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     const scaleX = state?.affineMode ? (state?.affineStretch ?? 1.35) : 1.0;
     if (this.scene?.scale?.set) {
@@ -876,6 +897,7 @@ export class BaseScene3DView {
 
   setCameraPreset(preset) {
     if (this.controls?.angularVelocity) this.controls.angularVelocity.angle = 0;
+    this.parallax?.poke();
     const d = 36;
     let targetPos;
     const targetUp = new this.THREE.Vector3(0, 1, 0);
@@ -4165,20 +4187,23 @@ export class AlternateSegment3DView extends BaseScene3DView {
     this.markerD.visible = this.diameterTD.visible = this.chordDB.visible = this.chordDA.visible = this.rayDext.visible = showProof;
 
     const TAU = Math.PI * 2;
+    let arcRange;
+    let segStart;
+    let segSweep;
     if (isSpatial) {
       const u = T.clone().normalize();
       const v = normal.clone().cross(u).normalize();
       const dAngA = ((state.angleA - state.angleT) % TAU + TAU) % TAU;
       const dAngB = ((state.angleB - state.angleT) % TAU + TAU) % TAU;
-      const arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);
-      const segStart = (arcRange.start + arcRange.sweep) % TAU;
-      const segSweep = TAU - arcRange.sweep;
+      arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);
+      segStart = (arcRange.start + arcRange.sweep) % TAU;
+      segSweep = TAU - arcRange.sweep;
       setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE);
       setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE);
     } else {
-      const arcRange = getSubtendedArcRange3D(state.angleT, state.angleA, state.angleB);
-      const segStart = (arcRange.start + arcRange.sweep) % TAU;
-      const segSweep = TAU - arcRange.sweep;
+      arcRange = getSubtendedArcRange3D(state.angleT, state.angleA, state.angleB);
+      segStart = (arcRange.start + arcRange.sweep) % TAU;
+      segSweep = TAU - arcRange.sweep;
       setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, segStart, segSweep, 32);
       setSegmentXZVertices(this.minorSegmentMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
     }
@@ -4928,7 +4953,6 @@ export {
   interpolateCurvatureHomotopy,
   interpolateGeodesicChord,
 };
-
 
 
 

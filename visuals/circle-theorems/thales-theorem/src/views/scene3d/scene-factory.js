@@ -38,7 +38,7 @@ export function createThalesScene(THREE) {
     yz: createGrid(THREE, scene, (g) => { g.rotation.z = Math.PI / 2; g.position.x = -0.01; }),
   };
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   const sun = new THREE.DirectionalLight(0xffffff, 0.8);
   sun.position.set(20, 30, 20);
   scene.add(sun);

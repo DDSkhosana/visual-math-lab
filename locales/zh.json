@@ -45,6 +45,7 @@
     "dimension_mode": "空间维度模式",
     "planar": "平面 (2D)",
     "spatial": "三维球面 (S²)",
+    "solid": "三维实体",
     "ar_view": "增强现实 (AR)",
     "reset_view": "重置为默认",
     "recenter": "居中视角",

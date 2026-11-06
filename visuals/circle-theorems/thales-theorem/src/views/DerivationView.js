@@ -15,25 +15,13 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
           <span class="derivation-title">${localizedTitle}</span>
         </div>
         <div class="derivation-card-header-actions">
-          <button type="button" class="btn btn-card-nav-quick prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}" aria-label="Previous Step">◀</button>
-          <button type="button" class="btn btn-card-nav-quick next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}" aria-label="Next Step">▶</button>
           <span class="icon">▶</span>
         </div>
       </div>
       <div class="derivation-card-content collapsible-content">
-        <div class="card-step-nav-bar top">
-          <button type="button" class="btn btn-card-nav prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}">◀ ${t('derivations.prev_step', {}, 'Prev Step')}</button>
-          <span class="card-step-indicator">${localizedBadge}</span>
-          <button type="button" class="btn btn-card-nav next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}">${t('derivations.next_step', {}, 'Next Step')} ▶</button>
-        </div>
         <div class="derivation-math-row">${symbolicLines}</div>
         <div class="derivation-sub-row" data-sub></div>
         ${hasHighlight ? '<div class="derivation-eval-highlight" data-eval></div>' : ''}
-        <div class="derivation-card-footer">
-          <button type="button" class="btn btn-card-nav prev" data-card-nav="prev" title="${t('derivations.prev_step', {}, 'Previous Step')}">◀ ${t('derivations.prev_step', {}, 'Prev Step')}</button>
-          <span class="card-step-indicator">${localizedBadge}</span>
-          <button type="button" class="btn btn-card-nav next" data-card-nav="next" title="${t('derivations.next_step', {}, 'Next Step')}">${t('derivations.next_step', {}, 'Next Step')} ▶</button>
-        </div>
       </div>
     </div>
   `;
@@ -461,5 +449,3 @@ export class DerivationView {
     }
   }
 }
-
-

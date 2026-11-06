@@ -945,7 +945,7 @@ test('WorkspaceDockManager: Elevation Hierarchy & Turn-Taking Deck Contract', ()
   assert.strictEqual(panelBody.classList.contains('is-all-expanded'), true);
   const deckEl = panelBody.querySelector('.panel-elevation-deck');
   assert.ok(deckEl, '.panel-elevation-deck must be created in panelBody');
-  assert.strictEqual(deckEl.style.display, 'flex');
+  assert.strictEqual(deckEl.style.display, 'grid');
 
   // Verify pills generated for all 3 open sections
   const pills = deckEl.querySelectorAll('.elevation-deck-pill');
@@ -1263,7 +1263,7 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
 
   // Drag below minimum threshold: clientX moves to 100 -> clamped to 280
   mockWin.dispatchEvent({ type: 'pointermove', clientX: 100, clientY: 200 });
-  assert.strictEqual(dock.dockSize, 280, 'Resizer must clamp vertical dock size to minimum 280px');
+  assert.strictEqual(dock.dockSize, 240, 'Resizer must allow a compact 240px dock without exceeding the viewport');
 
   // Pointerup releases capture
   mockWin.dispatchEvent({ type: 'pointerup', pointerId: 2 });
@@ -1531,7 +1531,7 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
 
   const deckEl = p1Body.querySelector('.panel-elevation-deck');
   assert.ok(deckEl, 'Elevation deck must appear when multiple subpanels are expanded');
-  assert.strictEqual(deckEl.style.display, 'flex');
+  assert.strictEqual(deckEl.style.display, 'grid');
 
   const deckLabel = deckEl.querySelector('.elevation-deck-label');
   assert.strictEqual(deckLabel.textContent, 'Deck (1/2)');
@@ -1988,7 +1988,7 @@ test('WorkspaceDockManager: Zero-Overlap Deck Layout & Responsive Pill Scrolling
 
   deck = panelBody.querySelector('.panel-elevation-deck');
   assert.ok(deck, 'Deck bar must be created on multi-expand');
-  assert.strictEqual(deck.style.display, 'flex', 'Deck bar must be visible with display: flex');
+  assert.strictEqual(deck.style.display, 'grid', 'Deck bar must keep its navigation rows visible');
 
   const pills = deck.querySelectorAll('.elevation-deck-pill');
   assert.strictEqual(pills.length, 2, 'Must have 2 pills for 2 open sections');
@@ -2029,10 +2029,12 @@ test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Do
   assert.ok(css.includes('flex: 1 1 320px !important'), 'Panels must use flex: 1 1 320px to grow and eliminate dead space');
   assert.ok(css.includes('min-width: 280px !important'), 'Panels must enforce min-width: 280px');
   assert.ok(css.includes('max-width: 620px !important'), 'Panels must enforce max-width: 620px on standard screens');
-  assert.ok(css.includes('@media (max-width: 768px)'), 'CSS must define mobile breakpoint for docked panels');
-  assert.ok(css.includes('flex: 1 1 100% !important'), 'Panels on compact screens must reflow to full 100% width');
-  assert.ok(css.includes('@media (min-width: 1400px)'), 'CSS must define wide viewport breakpoint for docked panels');
-  assert.ok(css.includes('max-width: 720px !important'), 'Panels on wide viewports can expand up to 720px to eliminate dead space');
+  assert.ok(css.includes('container: workspace-dock / inline-size;'), 'The dock body must be the size container its docked panels reflow against');
+  assert.ok(css.includes('@container workspace-dock (max-width: 40rem)'), 'Docked panels must reflow by the dock width, not the viewport width');
+  assert.ok(!css.includes('@media (max-width: 768px)'), 'Docked panel reflow must not be driven by the viewport width');
+  assert.ok(css.includes('flex: 1 1 100% !important'), 'Panels in a narrow dock must reflow to full 100% width');
+  assert.ok(css.includes('@container workspace-dock (min-width: 84rem)'), 'CSS must define a wide-dock breakpoint for docked panels');
+  assert.ok(css.includes('max-width: 720px !important'), 'Panels in a wide dock can expand up to 720px to eliminate dead space');
 
   // 2. Setup mock DOM with Top Dock and multi-section panel with expand button
   globalThis.localStorage?.clear?.();
@@ -2135,7 +2137,7 @@ test('WorkspaceDockManager: Top/Bottom Expand All, Elevation Wheel Scrolling, Do
 
   const deckEl = panelBody.querySelector('.panel-elevation-deck');
   assert.ok(deckEl, 'Elevation deck must be generated when Expand All is activated');
-  assert.strictEqual(deckEl.style.display, 'flex');
+  assert.strictEqual(deckEl.style.display, 'grid');
 
   // Verify pills generated
   const pills = deckEl.querySelectorAll('.elevation-deck-pill');
@@ -2418,28 +2420,12 @@ test('WorkspaceDockManager: 4 Radical Usability Simplifications Pipeline', () =>
   const card1 = new MockDOMElement('div', 'derivation-card open', 'step-1-card');
   const h1 = new MockDOMElement('div', 'derivation-card-header collapsible-header open');
   const c1 = new MockDOMElement('div', 'derivation-card-content collapsible-content open');
-  const footer1 = new MockDOMElement('div', 'derivation-card-footer');
-  const prevBtn1 = new MockDOMElement('button', 'btn-card-nav prev');
-  prevBtn1.setAttribute('data-card-nav', 'prev');
-  const nextBtn1 = new MockDOMElement('button', 'btn-card-nav next');
-  nextBtn1.setAttribute('data-card-nav', 'next');
-  footer1.appendChild(prevBtn1);
-  footer1.appendChild(nextBtn1);
-  c1.appendChild(footer1);
   card1.appendChild(h1);
   card1.appendChild(c1);
 
   const card2 = new MockDOMElement('div', 'derivation-card open', 'step-2-card');
   const h2 = new MockDOMElement('div', 'derivation-card-header collapsible-header open');
   const c2 = new MockDOMElement('div', 'derivation-card-content collapsible-content open');
-  const footer2 = new MockDOMElement('div', 'derivation-card-footer');
-  const prevBtn2 = new MockDOMElement('button', 'btn-card-nav prev');
-  prevBtn2.setAttribute('data-card-nav', 'prev');
-  const nextBtn2 = new MockDOMElement('button', 'btn-card-nav next');
-  nextBtn2.setAttribute('data-card-nav', 'next');
-  footer2.appendChild(prevBtn2);
-  footer2.appendChild(nextBtn2);
-  c2.appendChild(footer2);
   card2.appendChild(h2);
   card2.appendChild(c2);
 
@@ -2456,20 +2442,18 @@ test('WorkspaceDockManager: 4 Radical Usability Simplifications Pipeline', () =>
   assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Wheel inside card content strictly scrolls text and does not hijack turn');
   assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
 
-  // 3. Obvious Visual Navigation Buttons on Derivation Cards
-  // Clicking nextBtn1 triggers cyclePanelSubpanel -> advances to card2
-  nextBtn1.click();
-  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'top', 'Clicking Next Step button advances to Card 2');
+  // 3. Obvious Visual Navigation Buttons in the Deck Bar (the panel's only step navigation)
+  const deckEl = panelBody.querySelector('.panel-elevation-deck');
+  assert.ok(deckEl, 'Elevation deck pill bar exists');
+  deckEl.querySelector('.elevation-deck-nav-btn.next').click();
+  assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'top', 'Clicking the deck Next button advances to Card 2');
   assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'deck');
 
-  // Clicking prevBtn2 retreats to card1
-  prevBtn2.click();
-  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Clicking Prev Step button retreats back to Card 1');
+  deckEl.querySelector('.elevation-deck-nav-btn.prev').click();
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Clicking the deck Prev button retreats back to Card 1');
   assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
 
   // 4. Self-Explanatory Mode Toggle Labels & Stack Unrolling
-  const deckEl = panelBody.querySelector('.panel-elevation-deck');
-  assert.ok(deckEl, 'Elevation deck pill bar exists');
   const modeBtn = deckEl.querySelector('.elevation-deck-mode-toggle');
   assert.ok(modeBtn, 'Mode toggle button exists');
   assert.strictEqual(modeBtn.textContent, 'Focus Step');
@@ -2499,7 +2483,7 @@ test('WorkspaceDockManager: 4 Radical Usability Simplifications Pipeline', () =>
   const modeBtnDeck = deckEl.querySelector('.elevation-deck-mode-toggle');
   assert.strictEqual(modeBtnDeck.textContent, 'Focus Step');
 });
-test('WorkspaceDockManager: Instant Derivations Turnstile, Top Step Navigation & Zero-Clipping Contracts', () => {
+test('WorkspaceDockManager: Derivation Deck Is the Only Step Navigation Panel', () => {
   const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
   const css = fs.readFileSync(cssPath, 'utf8');
 
@@ -2517,9 +2501,9 @@ test('WorkspaceDockManager: Instant Derivations Turnstile, Top Step Navigation &
     'Elevation deck bar must be position: sticky !important with top: 0 to remain visible during scroll'
   );
 
-  // 3. Top step nav bar and quick nav header buttons
-  assert.ok(css.includes('.card-step-nav-bar'), 'CSS must define .card-step-nav-bar for top-level step navigation');
-  assert.ok(css.includes('.btn-card-nav-quick'), 'CSS must define .btn-card-nav-quick for header step navigation');
+  // The deck is the only step-navigation control surface.
+  assert.ok(!css.includes('.card-step-nav-bar'), 'Obsolete content navigation styling must be removed');
+  assert.ok(!css.includes('.btn-card-nav-quick'), 'Per-card step navigation styling must be removed');
 
   // 4. Instant turnstile deck for derivations panel without requiring 2 open subpanels
   const mockDoc = new MockDocument();
@@ -2538,11 +2522,6 @@ test('WorkspaceDockManager: Instant Derivations Turnstile, Top Step Navigation &
   const card1 = new MockDOMElement('div', 'derivation-card open', 'aac-step-1');
   const h1 = new MockDOMElement('div', 'derivation-card-header collapsible-header open');
   const c1 = new MockDOMElement('div', 'derivation-card-content collapsible-content open');
-  const topNav1 = new MockDOMElement('div', 'card-step-nav-bar top');
-  const topNext1 = new MockDOMElement('button', 'btn-card-nav next');
-  topNext1.setAttribute('data-card-nav', 'next');
-  topNav1.appendChild(topNext1);
-  c1.appendChild(topNav1);
   card1.appendChild(h1);
   card1.appendChild(c1);
 
@@ -2569,17 +2548,930 @@ test('WorkspaceDockManager: Instant Derivations Turnstile, Top Step Navigation &
   // Only 1 card is open (card1), but because it is a derivation panel, forceDeck ensures turnstile deck is immediately active
   syncPanelElevationTurn(derivPanel, card1);
   const deck = panelBody.querySelector('.panel-elevation-deck');
-  assert.ok(deck, 'Turnstile elevation deck must exist');
-  assert.strictEqual(deck.style.display, 'flex', 'Deck bar must be active and visible even with 1 open card');
-
-  const pills = deck.querySelectorAll('.elevation-deck-pill');
-  assert.strictEqual(pills.length, 3, 'Must render pills for all 3 steps');
+  assert.ok(deck, 'Header arrows must not suppress the elevation deck');
+  assert.strictEqual(deck.style.display, 'grid', 'Deck remains available with a single open step');
+  assert.equal(panelBody.classList.contains('is-all-expanded'), true, 'An active deck must not enter the top/bottom lone-card overlay layout');
+  assert.strictEqual(deck.querySelectorAll('.elevation-deck-pill').length, 3, 'All steps remain directly selectable');
   assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top');
   assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'deck');
   assert.strictEqual(card3.getAttribute('data-elevation-turn'), 'deck');
 
-  // 5. Clicking top nav button immediately cycles to card2 without needing to scroll to footer
-  topNext1.click();
+  // 5. Deck arrows and pills control step navigation.
+  deck.querySelector('.elevation-deck-nav-btn.next').click();
   assert.strictEqual(card2.getAttribute('data-elevation-turn'), 'top', 'Top nav Next button cycles turn to Step 2');
   assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'deck');
+  cyclePanelSubpanel(derivPanel, 'backward');
+  assert.strictEqual(card1.getAttribute('data-elevation-turn'), 'top', 'Keyboard cycling must still work alongside the deck');
+  deck.querySelectorAll('.elevation-deck-pill')[2].click();
+  assert.strictEqual(card3.getAttribute('data-elevation-turn'), 'top', 'Deck selection must reach a non-adjacent step');
+  deck.querySelector('.elevation-deck-mode-toggle').click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'stack', 'Scroll All mode must remain available');
+  assert.ok([card1, card2, card3].every((card) => !card.classList.contains('is-in-deck')), 'Scroll All must expose all steps');
+  deck.querySelector('.elevation-deck-mode-toggle').click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'accordion', 'Accordion mode must remain available');
+  deck.querySelector('.elevation-deck-mode-toggle').click();
+  assert.strictEqual(panelBody.getAttribute('data-deck-mode'), 'tabs', 'Focus Step mode must remain available');
+  assert.strictEqual([card1, card2, card3].filter((card) => card.classList.contains('open')).length, 1, 'Focus Step must select exactly one step');
+  for (const relativePath of [
+    'js/circle-derivations.js',
+    'visuals/circle-theorems/thales-theorem/src/views/DerivationView.js',
+  ]) {
+    const source = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
+    assert.strictEqual((source.match(/data-card-nav=/g) || []).length, 0, 'Card templates must not emit duplicate step controls');
+    assert.ok(!source.includes('btn-card-nav-quick'), 'Card headers must not contain step navigation buttons');
+    assert.ok(!source.includes('card-step-nav-bar') && !source.includes('derivation-card-footer'), 'Card content must not repeat header navigation');
+  }
+});
+test('WorkspaceDockManager: Collapsed Headers Form Shelves with Groove Spacing Between Them', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
+
+  const start = css.indexOf('Collapsed Header Shelves with Recessed Spacing');
+  assert.ok(start !== -1, 'Shelf spacing block must exist in workspace-dock.css');
+  const block = css.slice(start);
+
+  // 1. Scoped strictly to collapsed headers inside parent containers
+  assert.ok(block.includes('.panel-body .collapsible-section.collapsed > .collapsible-header'), 'Collapsed collapsible headers inside .panel-body must be targeted');
+  assert.ok(block.includes('.panel-body .derivation-card:not(.open) > .derivation-card-header:not(.open)'), 'Collapsed derivation card headers inside .panel-body must be targeted');
+  const shadedSelector = '.workspace-dock-body > .ui-panel:is(.is-shaded, :has(> .panel-content > .panel-body.hidden), :has(> .panel-body.hidden))';
+  assert.ok(block.includes(`${shadedSelector} .panel-header`), 'Shaded and hidden-body docked panel headers must be targeted');
+
+  const rules = [...block.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const grooveRule = rules.find(([, , declarations]) => declarations.includes('padding-block-end:'));
+  assert.ok(grooveRule, 'Recessed separation must be real container padding');
+  assert.ok(grooveRule[1].includes('.panel-body .collapsible-section.collapsed'), 'Collapsed section containers provide grooves');
+  assert.ok(grooveRule[1].includes('.derivation-card:not(.open):not(:has(> .derivation-card-header.open))'), 'Both card open-state conventions must exclude groove padding');
+  assert.ok(grooveRule[1].includes(shadedSelector), 'Shaded docked containers provide grooves');
+  assert.ok(!grooveRule[1].includes('> .collapsible-header'), 'Groove padding must not be applied to header faces');
+  assert.ok(grooveRule[2].includes('padding-block-end: 3px !important'), 'Groove padding must be 3px');
+  assert.ok(grooveRule[2].includes('background: #020617 !important'), 'Inter-shelf padding must have a recessed dark background');
+  assert.ok(!block.includes('gradient('), 'Shelves must not have fluted or grooved surface textures');
+  assert.ok(!block.includes('--slat-'), 'Machined-face accents must not remain');
+  for (const header of [
+    '.panel-body .collapsible-section.collapsed > .collapsible-header',
+    '.panel-body .derivation-card:not(.open) > .derivation-card-header:not(.open)',
+    `${shadedSelector} .panel-header`,
+  ]) {
+    for (const state of [':hover', ':focus-visible']) {
+      assert.ok(block.includes(`${header}${state}`), `Collapsed header requires ${state} feedback`);
+    }
+  }
+  const circleCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+  assert.ok(!circleCss.includes('--slat-'), 'Base circle headers must not reintroduce the removed face texture');
+
+  // 3. Zero regression: no layout/interaction properties are overridden on headers
+  for (const [, selector, declarations] of rules.filter(([, selector]) => selector.includes('.panel-header') || selector.includes('> .collapsible-header') || selector.includes('> .derivation-card-header:not(.open)'))) {
+    for (const prop of ['display:', 'padding:', 'padding-block-end:', 'cursor:', 'pointer-events:', 'touch-action:', 'position:', 'height:']) {
+      assert.ok(!declarations.includes(prop), `Header rule "${selector.trim()}" must not override "${prop}"`);
+    }
+  }
+
+  // 4. Open/expanded states are never styled as slats
+  assert.ok(!block.includes('.collapsible-section:not(.collapsed) > .collapsible-header'), 'Expanded sections must not receive slat styling');
+
+  // 5. Accessibility fallbacks
+  assert.ok(!block.includes('transition:'), 'Shelf spacing must not introduce motion');
+  assert.ok(block.includes('@media (forced-colors: active)'), 'Forced-colors (High Contrast) fallback required');
+  assert.ok(block.includes('outline-color: Highlight !important'), 'High Contrast must retain a visible system focus outline');
+  assert.ok(block.includes('border-color: CanvasText !important'), 'High Contrast must preserve collapsed slat boundaries');
+  assert.ok(css.includes('.collapsible-header:focus-visible'), 'Existing keyboard focus outline must remain');
+
+  // 6. Behaviour unchanged: collapsed header click still toggles via dock manager
+  const mockDoc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+  const panel = new MockDOMElement('div', 'ui-panel', 'controls-panel');
+  panel.ownerDocument = mockDoc;
+  panel.appendChild(new MockDOMElement('div', 'panel-header'));
+  const body = new MockDOMElement('div', 'panel-body');
+  panel.appendChild(body);
+  const sec = new MockDOMElement('div', 'collapsible-section collapsed', 'slat-sec');
+  const hdr = new MockDOMElement('div', 'collapsible-header');
+  const cnt = new MockDOMElement('div', 'collapsible-content collapsed');
+  sec.appendChild(hdr);
+  sec.appendChild(cnt);
+  body.appendChild(sec);
+  root.appendChild(panel);
+
+  setSubpanelOpen(sec, true);
+  assert.strictEqual(sec.classList.contains('collapsed'), false, 'Collapsed shelf section must still expand');
+  assert.strictEqual(hdr.getAttribute('aria-expanded'), 'true');
+  setSubpanelOpen(sec, false);
+  assert.strictEqual(sec.classList.contains('collapsed'), true, 'Section must collapse back into a shelf');
+  assert.strictEqual(hdr.getAttribute('aria-expanded'), 'false');
+});
+
+test('WorkspaceDockManager: Default Elevation Turn-Taking, Re-dock Resync & Accordion Cursor Navigation', async () => {
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
+  assert.ok(
+    css.includes('.workspace-dock-body > .ui-panel .panel-header .panel-expand-btn {\n  display: none !important;\n}'),
+    'Expand All must be hidden only for docked panels, which navigate through the deck'
+  );
+  assert.ok(
+    css.includes('.panel-body[data-deck-mode] .collapsible-section,\n.panel-body[data-deck-mode] .derivation-card {\n  scroll-margin-top: 3.75rem;\n}'),
+    'Sections revealed by deck navigation must clear the sticky deck bar'
+  );
+
+  const doc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = doc;
+  doc.body.appendChild(root);
+
+  const reveals = [];
+  const makeSub = (kind, id, title) => {
+    const isCard = kind === 'card';
+    const sub = new MockDOMElement('div', isCard ? 'derivation-card' : 'collapsible-section', id);
+    const subHeader = new MockDOMElement('div', isCard ? 'derivation-card-header' : 'collapsible-header');
+    subHeader.textContent = title;
+    sub.appendChild(subHeader);
+    sub.appendChild(new MockDOMElement('div', isCard ? 'derivation-card-content' : 'collapsible-content'));
+    sub.scrollIntoView = () => reveals.push(id);
+    return sub;
+  };
+  const makePanel = (id, subs, parent = root) => {
+    const panel = new MockDOMElement('div', 'ui-panel', id);
+    panel.ownerDocument = parent.ownerDocument;
+    panel.appendChild(new MockDOMElement('div', 'panel-header'));
+    const body = new MockDOMElement('div', 'panel-body');
+    subs.forEach((sub) => body.appendChild(sub));
+    panel.appendChild(body);
+    parent.appendChild(panel);
+    return { panel, body, subs };
+  };
+
+  const controls = makePanel('controls-panel', [
+    makeSub('section', 'geom', 'Geometry Parameters'),
+    makeSub('section', 'units', 'Unit System Conversion'),
+    makeSub('section', 'conic', 'Affine Conic Mode'),
+  ]);
+  const toolbar = makePanel('toolbar-2d-panel', [
+    makeSub('section', 'measure', 'Measurements'),
+    makeSub('section', 'grid', 'Grid'),
+    makeSub('section', 'labels', 'Labels'),
+  ]);
+  const derivs = makePanel('derivations-panel', [
+    makeSub('card', 'step-1', 'Step 1'),
+    makeSub('card', 'step-2', 'Step 2'),
+    makeSub('card', 'step-3', 'Step 3'),
+  ]);
+  const [geom, units, conic] = controls.subs;
+  const [measure, grid, labels] = toolbar.subs;
+
+  const header = (sub) => sub.querySelector('.collapsible-header, .derivation-card-header');
+  const deckOf = (p) => p.body.querySelector('.panel-elevation-deck');
+  const deckHidden = (p) => !deckOf(p) || deckOf(p).style.display === 'none';
+  const label = (p) => deckOf(p).querySelector('.elevation-deck-label').textContent;
+  const pills = (p) => deckOf(p).querySelectorAll('.elevation-deck-pill');
+  const star = (p) => pills(p).findIndex((pill) => pill.textContent.endsWith('★'));
+  const deckButton = (p, selector) => deckOf(p).querySelector(selector);
+  const turns = (p) => p.subs.map((s) => s.getAttribute('data-elevation-turn'));
+  const isOpen = (sub) => (sub.classList.contains('collapsible-section') ? !sub.classList.contains('collapsed') : sub.classList.contains('open'));
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  initCollapsibleSections(root);
+  const dock = new WorkspaceDockManager(root);
+
+  // 1. Turn-taking is the default: docked sections start collapsed, and once a second section opens
+  //    one section holds the top turn while the others are parked behind the deck.
+  assert.strictEqual(controls.body.hasAttribute('data-deck-mode'), false, 'No other deck mode may be imposed by default');
+  assert.strictEqual(dock.getPanelDeckMode('controls-panel'), 'deck');
+  assert.ok(controls.subs.every((s) => !isOpen(s)), 'Docked sections start collapsed');
+  assert.ok(deckHidden(controls), 'No deck while nothing is open');
+
+  header(geom).click();
+  assert.ok(deckHidden(controls), 'A single open section needs no turn-taking');
+  header(units).click();
+  assert.strictEqual(deckOf(controls).style.display, 'grid', 'A second open section engages turn-taking');
+  assert.strictEqual(label(controls), 'Deck (2/2)');
+  assert.deepStrictEqual(pills(controls).map((pill) => pill.textContent), ['1. Geometry Parameters', '2. Unit System Conversion ★']);
+  assert.deepStrictEqual(turns(controls), ['deck', 'top', null], 'The last opened section takes the top turn');
+  assert.ok(units.classList.contains('is-elevated-top'));
+  assert.ok(geom.classList.contains('is-in-deck'), 'The other open section waits in the deck');
+  assert.ok(!conic.classList.contains('is-in-deck'), 'A closed section the pills do not list stays on its shelf');
+
+  doc.dispatchEvent({ type: 'keydown', key: ']' });
+  assert.deepStrictEqual(turns(controls), ['deck', 'deck', 'top'], '] passes the turn on, opening the next section');
+  assert.ok(isOpen(conic) && conic.classList.contains('slide-forward'));
+  assert.strictEqual(label(controls), 'Deck (3/3)');
+  deckButton(controls, '.elevation-deck-nav-btn.prev').click();
+  assert.deepStrictEqual(turns(controls), ['deck', 'top', 'deck'], '◀ hands the turn back');
+  assert.ok(units.classList.contains('slide-backward'));
+  assert.deepStrictEqual(reveals, [], 'Deck mode parks sections instead of scrolling to them');
+
+  assert.strictEqual(deckOf(derivs).style.display, 'grid', 'Derivation steps take turns even with one step open');
+  assert.strictEqual(label(derivs), 'Deck (1/3)');
+  assert.deepStrictEqual(turns(derivs), ['top', 'deck', 'deck']);
+  assert.deepStrictEqual(derivs.subs.map(isOpen), [true, false, false]);
+
+  // 2. Re-docking resyncs the panel's own deck instead of reporting the sections it just collapsed.
+  dock.floatPanel('toolbar-2d-panel');
+  header(measure).click();
+  header(grid).click();
+  assert.strictEqual(label(toolbar), 'Deck (2/2)');
+  assert.ok(toolbar.panel.classList.contains('has-expanded-subpanel') && toolbar.body.classList.contains('is-all-expanded'));
+
+  dock.dockPanel('toolbar-2d-panel');
+  assert.strictEqual(toolbar.panel.parentElement, dock.dockBody);
+  assert.ok(toolbar.subs.every((s) => !isOpen(s)), 'Re-docked sections return collapsed');
+  assert.ok(deckHidden(toolbar), 'A stale deck must not survive re-docking');
+  assert.deepStrictEqual(turns(toolbar), [null, null, null]);
+  assert.ok(toolbar.subs.every((s) => !s.classList.contains('is-in-deck') && !s.classList.contains('is-elevated-top')));
+  assert.strictEqual(toolbar.panel.classList.contains('has-expanded-subpanel'), false);
+  assert.strictEqual(toolbar.body.classList.contains('is-all-expanded'), false);
+  header(labels).click();
+  header(measure).click();
+  assert.deepStrictEqual(turns(toolbar), ['top', null, 'deck'], 'Turn-taking resumes after re-docking; the closed section stays on its shelf');
+
+  dock.floatPanel('derivations-panel');
+  deckButton(derivs, '.elevation-deck-nav-btn.next').click();
+  assert.deepStrictEqual(turns(derivs), ['deck', 'top', 'deck']);
+  dock.dockPanel('derivations-panel');
+  assert.deepStrictEqual(derivs.subs.map(isOpen), [false, true, false], 'Re-docked derivations keep only the step holding the turn open');
+  assert.deepStrictEqual(turns(derivs), ['deck', 'top', 'deck']);
+  assert.strictEqual(label(derivs), 'Deck (2/3)');
+
+  // 3. Accordion, chosen from the deck's mode button: nothing is parked, toggles stick, and
+  //    ◀/▶, [/] continue from the ★ cursor, scrolling the chosen section into view.
+  await tick();
+  deckButton(controls, '.elevation-deck-mode-toggle').click();
+  assert.strictEqual(controls.body.getAttribute('data-deck-mode'), 'stack');
+  deckButton(controls, '.elevation-deck-mode-toggle').click();
+  assert.strictEqual(controls.body.getAttribute('data-deck-mode'), 'accordion');
+  assert.strictEqual(label(controls), 'Accordion (3/3)');
+  assert.deepStrictEqual(turns(controls), [null, null, null], 'Accordion parks nothing');
+  assert.ok(controls.subs.every((s) => !s.classList.contains('is-in-deck')));
+  assert.strictEqual(star(controls), 1);
+
+  deckButton(controls, '.elevation-deck-nav-btn.next').click();
+  assert.strictEqual(star(controls), 2, '▶ continues from the ★ cursor, not from the first open section');
+  deckButton(controls, '.elevation-deck-nav-btn.next').click();
+  assert.strictEqual(star(controls), 0, '▶ wraps around');
+  assert.deepStrictEqual(reveals, ['conic', 'geom'], 'Deck navigation scrolls the chosen section into view');
+
+  header(geom).click();
+  await tick();
+  assert.ok(!isOpen(geom), 'Closing a section from its header must stick in Accordion mode');
+  assert.strictEqual(label(controls), 'Accordion (2/3)');
+  assert.strictEqual(star(controls), 0, 'The ★ cursor stays on the section that was just closed');
+
+  deckButton(controls, '.elevation-deck-nav-btn.next').click();
+  assert.strictEqual(star(controls), 1, '▶ from a closed cursor moves to the next section');
+  assert.ok(!isOpen(geom), 'Navigating away must not reopen the closed section');
+  doc.dispatchEvent({ type: 'keydown', key: ']' });
+  assert.strictEqual(star(controls), 2, '] follows the same cursor');
+  doc.dispatchEvent({ type: 'keydown', key: '[' });
+  assert.strictEqual(star(controls), 1, '[ follows the same cursor');
+  assert.deepStrictEqual(reveals, ['conic', 'geom', 'units', 'conic', 'units']);
+
+  pills(controls)[2].click();
+  assert.ok(!isOpen(conic), 'An Accordion pill closes an open section');
+  assert.strictEqual(label(controls), 'Accordion (1/3)');
+  pills(controls)[2].click();
+  assert.ok(isOpen(conic), 'and opens it again');
+  assert.strictEqual(star(controls), 2);
+
+  header(geom).click();
+  await tick();
+  assert.ok(isOpen(geom), 'Header clicks still reopen Accordion sections');
+  assert.deepStrictEqual(turns(controls), [null, null, null]);
+
+  // 4. Another starting mode stays opt-in.
+  const optDoc = new MockDocument();
+  const optRoot = new MockDOMElement('div', 'circle-explorer', 'opt-root');
+  optRoot.ownerDocument = optDoc;
+  optDoc.body.appendChild(optRoot);
+  const optIn = makePanel('opt-in-panel', [makeSub('section', 'opt-a', 'A'), makeSub('section', 'opt-b', 'B')], optRoot);
+  initWorkspaceDock(optRoot, { deckMode: 'accordion' });
+  assert.strictEqual(optIn.body.getAttribute('data-deck-mode'), 'accordion', 'initWorkspaceDock(root, { deckMode }) opts docked panels into another mode');
+});
+
+test('WorkspaceDockManager: Deck Bar Disappears Once Turn-Taking Ends & Panel Body Scrolls Instead of Squeezing Sections', () => {
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
+  const ruleBody = (selector) => {
+    const start = css.indexOf(`\n${selector} {\n`);
+    assert.ok(start >= 0, `${selector} rule must exist`);
+    return css.slice(start, css.indexOf('\n}', start));
+  };
+
+  // The deck hides itself with an inline display:none once fewer than two sections take turns.
+  // An !important display in the stylesheet beats that and leaves an empty sticky strip behind.
+  const deckRule = ruleBody('.panel-elevation-deck');
+  assert.match(deckRule, /\n  display: grid;\n/, 'The deck keeps pills on a full-width navigation row');
+  assert.doesNotMatch(deckRule, /display:[^;]*!important/, 'The stylesheet must not override the inline display:none that hides the deck');
+
+  // Sections are scroll containers (overflow-x:auto), so as flex items they can be squeezed to nothing: HEAD squeezed
+  // the shelves below their header height, and rigid shelves alone crushed the open section to its header instead.
+  // Everything but the deck's top card keeps its height and the panel body scrolls.
+  assert.ok(
+    css.includes('.panel-body .collapsible-section:not(.is-elevated-top),\n.panel-body .derivation-card:not(.is-elevated-top) {\n  flex-shrink: 0 !important;\n}'),
+    'Shelves and a lone open section must keep their full height inside the flex panel body'
+  );
+
+  // Top/bottom docks lay the lone open section over the panel body; the shelves it covers may shrink so the body
+  // cannot scroll underneath the overlay and shift it out of place.
+  const coveredShelves = ['top', 'bottom']
+    .map((edge) => `[data-dock-edge="${edge}"] .workspace-dock-body > .ui-panel .panel-body:has(.is-subpanel-overlay) :is(.collapsible-section, .derivation-card):not(.is-subpanel-overlay)`)
+    .join(',\n');
+  assert.ok(
+    css.includes(`${coveredShelves} {\n  flex-shrink: 1 !important;\n}`),
+    'Shelves covered by a top/bottom open-section overlay must fall back to shrinking'
+  );
+});
+
+test('WorkspaceDockManager: Background Resyncs Keep the [ ] Key Target and Breadcrumb on the Panel in Use', async () => {
+  // Node's CustomEvent has a read-only target that the mock dispatcher cannot set, so turn events never
+  // reached the dock in these tests. A plain event lets them bubble to the dock as they do in the browser.
+  const NodeCustomEvent = globalThis.CustomEvent;
+  globalThis.CustomEvent = class {
+    constructor(type, init = {}) {
+      this.type = type;
+      this.bubbles = Boolean(init.bubbles);
+      this.detail = init.detail ?? null;
+    }
+  };
+  try {
+    const doc = new MockDocument();
+    const root = new MockDOMElement('div', 'circle-explorer', 'root');
+    root.ownerDocument = doc;
+    doc.body.appendChild(root);
+
+    const makePanel = (id, title, sectionTitles) => {
+      const panel = new MockDOMElement('div', 'ui-panel', id);
+      panel.ownerDocument = doc;
+      const panelHeader = new MockDOMElement('div', 'panel-header');
+      panelHeader.textContent = title;
+      panel.appendChild(panelHeader);
+      const body = new MockDOMElement('div', 'panel-body');
+      const subs = sectionTitles.map((sectionTitle, i) => {
+        const sub = new MockDOMElement('div', 'collapsible-section', `${id}-section-${i + 1}`);
+        const subHeader = new MockDOMElement('div', 'collapsible-header');
+        subHeader.textContent = sectionTitle;
+        sub.appendChild(subHeader);
+        sub.appendChild(new MockDOMElement('div', 'collapsible-content'));
+        body.appendChild(sub);
+        return sub;
+      });
+      panel.appendChild(body);
+      root.appendChild(panel);
+      return { panel, body, subs };
+    };
+
+    const controls = makePanel('controls-panel', 'Interactive Controls', ['Geometry Parameters', 'Unit System Conversion', 'Affine Conic Mode']);
+    // Every background resync used to hand the key target to the last docked panel.
+    const toolbar = makePanel('toolbar-3d-panel', '3D Toolbar', ['Camera', 'Lighting', 'Labels']);
+
+    const header = (sub) => sub.querySelector('.collapsible-header');
+    const isOpen = (sub) => !sub.classList.contains('collapsed');
+    const turns = (p) => p.subs.map((s) => s.getAttribute('data-elevation-turn'));
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    initCollapsibleSections(root);
+    const dock = new WorkspaceDockManager(root);
+    const panelCrumb = () => dock.breadcrumbBar.querySelector('.breadcrumb-panel').textContent;
+
+    header(controls.subs[0]).click();
+    header(controls.subs[1]).click();
+    await tick(); // the dock resyncs every docked panel after a header click
+    assert.strictEqual(dock.activePanelId, 'controls-panel', 'The resync after a header click must not hand the key target to the last docked panel');
+    assert.strictEqual(panelCrumb(), 'Interactive Controls', 'The breadcrumb stays on the panel in use');
+    assert.deepStrictEqual(turns(controls), ['deck', 'top', null]);
+
+    // The other background resyncs: rendered derivations, DOM mutations, shading and dock edge changes.
+    dock.syncSubpanelOverlayState();
+    dock.setPanelShaded('toolbar-3d-panel', true);
+    dock.setPanelShaded('toolbar-3d-panel', false);
+    dock.setDockEdge('right');
+    assert.strictEqual(dock.activePanelId, 'controls-panel');
+
+    doc.dispatchEvent({ type: 'keydown', key: ']' });
+    assert.deepStrictEqual(turns(controls), ['deck', 'deck', 'top'], '] keeps stepping the panel in use');
+    assert.ok(isOpen(controls.subs[2]));
+    assert.ok(toolbar.subs.every((s) => !isOpen(s)), '] must not open sections in another docked panel');
+    assert.strictEqual(panelCrumb(), 'Interactive Controls');
+
+    // Collapse All resyncs every docked panel, so only the panel in use announces its turn.
+    dock.collapseAllSubComponents();
+    assert.ok(controls.subs.every((s) => !isOpen(s)));
+    assert.strictEqual(dock.activePanelId, 'controls-panel', 'Collapse All must not hand the key target to the last docked panel');
+
+    // Operations on one specific panel still announce it, as before: a re-docked panel becomes the key target.
+    dock.floatPanel('toolbar-3d-panel');
+    assert.strictEqual(dock.activePanelId, 'controls-panel');
+    dock.dockPanel('toolbar-3d-panel');
+    assert.strictEqual(dock.activePanelId, 'toolbar-3d-panel', 'A re-docked panel still becomes the key target');
+    assert.strictEqual(panelCrumb(), '3D Toolbar');
+  } finally {
+    globalThis.CustomEvent = NodeCustomEvent;
+  }
+});
+
+test('WorkspaceDockManager: Hierarchical groups keep parent categories out of step turns', (t) => {
+  const NodeCustomEvent = globalThis.CustomEvent;
+  globalThis.CustomEvent = class {
+    constructor(type, init = {}) { this.type = type; this.detail = init.detail; this.bubbles = init.bubbles; }
+  };
+  t.after(() => { globalThis.CustomEvent = NodeCustomEvent; });
+  const doc = new MockDocument();
+  const root = doc.createElement('div');
+  root.className = 'circle-explorer';
+  doc.body.appendChild(root);
+  const panel = doc.createElement('div');
+  panel.className = 'ui-panel';
+  panel.id = 'hierarchy-derivations';
+  const header = doc.createElement('div');
+  header.className = 'panel-header';
+  panel.appendChild(header);
+  const body = doc.createElement('div');
+  body.className = 'panel-body';
+  panel.appendChild(body);
+  root.appendChild(panel);
+  const groups = ['Planar', 'Spatial'].map((title, groupIndex) => {
+    const group = doc.createElement('div');
+    group.className = 'collapsible-section collapsed';
+    const groupHeader = doc.createElement('div');
+    groupHeader.className = 'collapsible-header';
+    groupHeader.textContent = title;
+    group.appendChild(groupHeader);
+    const content = doc.createElement('div');
+    content.className = 'collapsible-content';
+    group.appendChild(content);
+    const wrapper = doc.createElement('div');
+    content.appendChild(wrapper);
+    const steps = [1, 2].map((number) => {
+      const step = doc.createElement('div');
+      step.className = 'derivation-card';
+      step.id = `group-${groupIndex}-step-${number}`;
+      const h = doc.createElement('div');
+      h.className = 'derivation-card-header';
+      h.textContent = `Step ${number} Proof`;
+      step.appendChild(h);
+      const c = doc.createElement('div');
+      c.className = 'derivation-card-content';
+      c.appendChild(doc.createElement('input'));
+      step.appendChild(c);
+      wrapper.appendChild(step);
+      return step;
+    });
+    body.appendChild(group);
+    return { group, steps };
+  });
+  const dock = new WorkspaceDockManager(root, { document: doc, win: mockWin });
+  const deck = body.querySelector('.panel-elevation-deck');
+  const [planar, spatial] = groups;
+  const changeGroup = (index) => {
+    const select = deck.querySelector('.elevation-deck-group-select');
+    select.value = String(index);
+    select.dispatchEvent({ type: 'change' });
+  };
+  assert.equal(panel.querySelectorAll('.panel-elevation-deck').length, 1, 'All levels share one navigation panel');
+  assert.equal(deck.querySelectorAll('.elevation-deck-pill').length, 2, 'Parents and other groups are not sibling steps');
+  assert.equal(planar.group.getAttribute('data-elevation-turn'), null);
+  assert.equal(planar.steps[0].getAttribute('data-elevation-level'), '3');
+  assert.equal(planar.steps[0].getAttribute('data-elevation-turn'), 'top');
+  assert.equal(planar.group.classList.contains('collapsed'), false, 'The active step has a visible parent');
+  assert.equal(spatial.group.getAttribute('data-elevation-group'), 'inactive');
+  assert.match(deck.querySelector('.elevation-deck-pill').textContent, /^Step 1/, 'Existing numbering is not duplicated');
+
+  cyclePanelSubpanel(panel, 'forward');
+  assert.equal(deck._activeSubpanel, planar.steps[1]);
+  changeGroup(1);
+  assert.equal(deck._activeSubpanel, spatial.steps[0]);
+  cyclePanelSubpanel(panel, 'backward');
+  assert.equal(deck._activeSubpanel, spatial.steps[1], 'Cycling wraps within the selected group');
+  changeGroup(0);
+  assert.equal(deck._activeSubpanel, planar.steps[1], 'Returning to a group restores its own cursor');
+
+  body.setAttribute('data-deck-mode', 'tabs');
+  syncPanelElevationTurn(panel, planar.steps[1]);
+  changeGroup(1);
+  deck._lastWheelTime = 0;
+  deck.dispatchEvent({ type: 'wheel', deltaY: 100 });
+  assert.equal(deck._activeSubpanel, spatial.steps[0]);
+  assert.equal(spatial.steps[1].classList.contains('open'), false, 'Wheel tabs close current siblings, not the previously captured group');
+  assert.equal(planar.steps[1].classList.contains('open'), true, 'Other groups retain their state');
+
+  assert.equal(dock.breadcrumbBar.querySelector('.breadcrumb-section').textContent, 'Spatial');
+  assert.equal(dock.breadcrumbBar.querySelector('.breadcrumb-step').textContent, 'Step 1 Proof');
+  spatial.steps[0].querySelector('input').focus();
+  doc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.equal(doc.activeElement, spatial.steps[0].querySelector('.derivation-card-header'));
+  doc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.equal(doc.activeElement, deck.querySelector('.elevation-deck-group-select'));
+  doc.dispatchEvent({ type: 'keydown', key: 'Escape' });
+  assert.equal(doc.activeElement, header);
+
+  body.setAttribute('data-deck-mode', 'stack');
+  syncPanelElevationTurn(panel, spatial.steps[1]);
+  assert.equal(spatial.steps[0].classList.contains('is-in-deck'), false);
+  assert.equal(spatial.steps[0].getAttribute('data-elevation-level'), '3', 'Stack mode preserves the third-level hierarchy');
+  assert.equal(planar.group.getAttribute('data-elevation-group'), 'inactive');
+  const replacement = doc.createElement('div');
+  replacement.className = 'derivation-card';
+  const replacementHeader = doc.createElement('div');
+  replacementHeader.className = 'derivation-card-header';
+  replacementHeader.textContent = 'Updated proof';
+  replacement.appendChild(replacementHeader);
+  const parent = spatial.steps[0].parentElement;
+  spatial.steps.forEach((step) => parent.removeChild(step));
+  parent.appendChild(replacement);
+  body.setAttribute('data-deck-mode', 'deck');
+  syncPanelElevationTurn(panel);
+  assert.equal(deck._activeSubpanel, replacement, 'Dynamic proof replacement drops stale cursors');
+  assert.equal(deck.querySelectorAll('.elevation-deck-pill').length, 1);
+  assert.equal(deck.style.display, 'grid', 'The group switch remains available even for a single step');
+});
+
+test('WorkspaceDockManager: Viewport-bounded dock resizing preserves canvas area and remembered sizes', () => {
+  const oldStorage = globalThis.localStorage.getItem('vml_workspace_dock_state');
+  globalThis.localStorage.removeItem('vml_workspace_dock_state');
+  try {
+    const doc = new MockDocument();
+    const listeners = new Map();
+    const win = {
+      innerWidth: 1200, innerHeight: 800,
+      addEventListener(type, fn) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(fn); },
+      removeEventListener(type, fn) { listeners.set(type, (listeners.get(type) || []).filter((handler) => handler !== fn)); },
+      dispatchEvent(event) { (listeners.get(event.type) || []).forEach((fn) => fn(event)); },
+    };
+    doc.defaultView = win;
+    const root = doc.createElement('div');
+    root.className = 'circle-explorer';
+    root.getBoundingClientRect = () => ({ top: 0, left: 0, width: win.innerWidth, height: win.innerHeight });
+    doc.body.appendChild(root);
+    const dock = new WorkspaceDockManager(root, { document: doc });
+    const resize = (key) => dock.dockResizer.dispatchEvent({ type: 'keydown', key });
+    assert.ok(dock.dockSize <= win.innerWidth * 0.35, 'Default leaves at least 65% of canvas width unobstructed');
+    assert.equal(dock.dockResizer.getAttribute('role'), 'separator');
+    resize('End');
+    assert.equal(dock.dockSize, 780);
+    assert.equal(dock.dockResizer.getAttribute('aria-valuenow'), '780');
+    resize('Home');
+    assert.equal(dock.dockSize, 240);
+    resize('ArrowRight');
+    assert.equal(dock.dockSize, 250);
+    dock.setDockEdge('right');
+    resize('ArrowLeft');
+    assert.equal(dock.dockSize, 260, 'Right-edge handle expands leftward');
+    dock.setDockEdge('top');
+    assert.ok(dock.dockSize <= win.innerHeight * 0.45);
+    resize('End');
+    assert.equal(dock.dockSize, 520, 'At least 35% of the canvas stays exposed at maximum height');
+    dock.setDockEdge('bottom');
+    resize('ArrowUp');
+    assert.equal(dock.dockSize, 520, 'Keyboard cannot exceed the viewport bound');
+    dock.dockResizer.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 100, clientY: 200 });
+    win.dispatchEvent({ type: 'pointermove', clientX: 100, clientY: 260 });
+    win.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+    assert.equal(dock.dockSize, 460, 'Pointer resizing shares the keyboard limits');
+    dock.setDockEdge('left');
+
+    win.innerWidth = 390;
+    win.innerHeight = 300;
+    win.dispatchEvent({ type: 'resize' });
+    assert.equal(dock.dockResizer.getAttribute('data-resize-edge'), 'bottom', 'Compact dock resizes as a bottom sheet regardless of saved edge');
+    assert.equal(dock.dockSize, 195);
+    assert.equal(dock.dockElement.style.height, '195px');
+    resize('Home');
+    assert.equal(dock.dockSize, 160);
+    win.innerHeight = 180;
+    win.dispatchEvent({ type: 'resize' });
+    assert.equal(dock.dockSize, 117, 'Small viewports take precedence over the normal minimum');
+    win.innerWidth = 1200;
+    win.innerHeight = 800;
+    win.dispatchEvent({ type: 'resize' });
+    assert.equal(dock.dockSize, 260, 'Desktop width survives compact viewport changes');
+    dock.setDockEdge('bottom');
+    assert.equal(dock.dockSize, 160, 'User-set horizontal size survives viewport clamping');
+    root.getBoundingClientRect = () => ({ top: 0, left: 0, width: 765, height: 800 });
+    win.innerWidth = 780;
+    dock.setDockEdge('left');
+    assert.equal(dock.dockResizer.getAttribute('aria-orientation'), 'vertical', 'Breakpoint follows viewport width, not scrollbar-reduced root width');
+  } finally {
+    if (oldStorage === null) globalThis.localStorage.removeItem('vml_workspace_dock_state');
+    else globalThis.localStorage.setItem('vml_workspace_dock_state', oldStorage);
+  }
+});
+
+test('WorkspaceDockManager: Shared spatial contract reaches every published visual', () => {
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  assert.ok(css.includes('scrollbar-gutter: stable both-edges !important;'));
+  assert.ok(css.includes('--elevation-header-padding: 0.75rem 1rem;'));
+  assert.ok(css.includes('var(--shelf-cast, 0 0 #0000)'), 'Shaded windows retain their level-one cast');
+  assert.ok(css.includes('--shelf-cast: 0 0 #0000;'), 'Window cast is not inherited by nested shelves');
+  assert.ok(css.includes('height: var(--dock-size) !important;'), 'Compact height follows the actual resize state');
+  assert.ok(css.includes('.workspace-dock:not(.is-collapsed) .dock-resizer'), 'Compact mode exposes a resize handle');
+  assert.ok(css.includes('min-height: 10rem !important;'), 'Small docks scroll rather than crushing the active card content to zero');
+  const shared = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+  assert.ok(shared.includes('workspace-dock.css'));
+  const visuals = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'visuals.json'), 'utf8')).filter((v) => v.published);
+  assert.equal(visuals.length, 12);
+  for (const visual of visuals) {
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', visual.suite, visual.slug, 'index.html'), 'utf8');
+    assert.ok(html.includes('css/visual.css'), `${visual.slug} must load the shared dock spatial rules`);
+  }
+});
+
+test('WorkspaceDockManager: Elevation Reads as Volume: Each Level Is Lighter, Rimmed and Casts Further, the Deck Shows Its Thickness and Turns Move Through Depth', () => {
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
+  const ruleBody = (selector) => {
+    const start = css.indexOf(`\n${selector} {\n`);
+    assert.ok(start >= 0, `${selector} rule must exist`);
+    return css.slice(start, css.indexOf('\n}', start));
+  };
+  const ruleEndingWith = (selector) => {
+    const start = css.indexOf(`${selector} {\n`);
+    assert.ok(start >= 0, `A rule ending with ${selector} must exist`);
+    return css.slice(start, css.indexOf('\n}', start));
+  };
+  const layers = (shadow) => shadow
+    .replace(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi, '')
+    .split(',')
+    .map((layer) => layer.trim().split(/\s+/).map(parseFloat));
+  const luminance = (hex) => {
+    const [r, g, b] = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i).slice(1)
+      .map((h) => parseInt(h, 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  // 1. One key light from above: each step up in elevation has a lighter face, a brighter top rim and a longer cast shadow.
+  const tokens = ruleBody('.workspace-dock,\n.ui-panel');
+  const token = (name) => {
+    const match = tokens.match(new RegExp(`\\n  --elevation-${name}: ([^;]+);`));
+    assert.ok(match, `--elevation-${name} must be declared alongside the dock and panel tokens`);
+    return match[1];
+  };
+  const shelf = ruleBody('.panel-body .collapsible-section.collapsed > .collapsible-header,\n.panel-body .derivation-card:not(.open) > .derivation-card-header:not(.open),\n.workspace-dock-body > .ui-panel:is(.is-shaded, :has(> .panel-content > .panel-body.hidden), :has(> .panel-body.hidden)) .panel-header');
+  const shelfFace = shelf.match(/\n  background: (#[0-9a-f]{6}) !important;/i)?.[1];
+  assert.ok(shelfFace, 'Shelf faces must declare a solid colour');
+  assert.ok(luminance(token('face-2')) > luminance(shelfFace), 'An open section must be lighter than the shelves it rises above, or depth reads inverted');
+  assert.ok(luminance(token('face-3')) > luminance(token('face-2')), 'The deck top card face must be the lightest face');
+  assert.ok(luminance(token('surface-3')) > luminance(token('surface-2')), 'The top card body must sit lighter than an open section body');
+  const rim = (level) => parseFloat(token(`rim-${level}`).match(/([\d.]+)\)$/)[1]);
+  assert.ok(rim(1) < rim(2) && rim(2) < rim(3), 'Top rims must brighten with every level');
+  const reach = (level) => Math.max(...layers(token(`cast-${level}`)).map(([, y, blur]) => y + blur));
+  assert.ok(reach(1) < reach(2) && reach(2) < reach(3), 'Cast shadows must lengthen with every level');
+  assert.ok(token('well').startsWith('inset '), 'The dock body is a recessed well, not a raised surface');
+
+  // 2. Every surface takes its place in that light: the well, the docked slab and its header, the deck rail, the shelves.
+  assert.match(ruleBody('.workspace-dock-body'), /\n  box-shadow: var\(--elevation-well\);/, 'The dock body must read as a recess');
+  assert.match(ruleBody('.workspace-dock-body > .ui-panel'), /\n  box-shadow: var\(--elevation-cast-1\) !important;/, 'Docked panels rest on the well at level 1');
+  assert.match(ruleBody('.workspace-dock-body > .ui-panel .panel-header'), /\n  box-shadow: var\(--elevation-rim-1\);/, 'Panel headers catch the level 1 rim');
+  const deckBar = ruleBody('.panel-elevation-deck');
+  assert.match(deckBar, /\n  background: var\(--elevation-surface-3\) !important;/, 'The deck bar sits at the top card level');
+  assert.match(deckBar, /\n  box-shadow: var\(--elevation-rim-2\), /, 'The deck bar is a rimmed rail');
+  assert.match(shelf, /\n  box-shadow: var\(--shelf-rim, var\(--elevation-rim-2\)\), /, 'Shelves retain their rim while shaded windows use their own level');
+
+  // 3. An open section outside the deck (the lone open section, Stack and Accordion modes) is lifted above its shelves.
+  const lift = '.panel-body :is(.collapsible-section, .derivation-card)[data-elevation-level="2"]:not([data-elevation-turn])';
+  const liftRule = ruleBody(lift);
+  assert.match(liftRule, /\n  z-index: 2;/, 'The lifted section must stack above the shelves it casts onto');
+  assert.match(liftRule, /\n  background: var\(--elevation-surface-2\);/);
+  assert.match(liftRule, /\n  box-shadow: var\(--elevation-cast-2\);/);
+  const liftFace = ruleBody(`${lift} > :is(.collapsible-header, .derivation-card-header)`);
+  assert.match(liftFace, /\n  background: var\(--elevation-face-2\);/);
+  assert.match(liftFace, /\n  box-shadow: var\(--elevation-rim-2\);/);
+
+  // 4. The deck has thickness: one receding card edge per waiting turn (up to three), and the top card leaves room for them.
+  const depthRules = [2, 3, 4].map((pills) => ruleBody(`.panel-body:has(> .panel-elevation-deck .elevation-deck-pill:nth-child(${pills}))`));
+  const gaps = depthRules.map((rule, i) => {
+    const pills = i + 2;
+    const stack = rule.match(/\n  --elevation-stack: ([^;]+);/)[1];
+    assert.strictEqual((stack.match(/rgba\(56, 189, 248, /g) || []).length, pills - 1, `${pills} turns must show ${pills - 1} card edge(s) under the top card`);
+    const gap = parseFloat(rule.match(/\n  --elevation-stack-gap: ([\d.]+)px;/)[1]);
+    const extent = Math.max(...layers(stack).map(([, y, blur, spread]) => y + blur + spread));
+    assert.ok(gap >= extent, `The top card must leave ${extent}px for ${pills - 1} edge(s) or they are clipped`);
+    return gap;
+  });
+  assert.ok(gaps[0] < gaps[1] && gaps[1] < gaps[2], 'The deck must thicken as more turns wait');
+  const topCard = ruleEndingWith('.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top');
+  assert.match(topCard, /\n  background: var\(--elevation-surface-3\) !important;/);
+  assert.match(topCard, /\n  box-shadow: var\(--elevation-stack, 0 0 #0000\), var\(--elevation-cast-3\) !important;/, 'The top card draws the deck edges beneath its own cast shadow');
+  assert.match(topCard, /\n  margin: 0 0 var\(--elevation-stack-gap, 0px\) !important;/, 'The top card yields exactly the room its deck edges need');
+  const topFace = ruleEndingWith('.workspace-dock-body > .ui-panel .panel-body:not([data-deck-mode="stack"]) .derivation-card.is-elevated-top > .derivation-card-header');
+  assert.match(topFace, /\n  background: var\(--elevation-face-3\) !important;/);
+  assert.match(topFace, /\n  box-shadow: var\(--elevation-rim-3\) !important;/);
+
+  // 5. Volume is presentation only: the new rules never change layout or interaction.
+  for (const rule of [liftRule, liftFace, ...depthRules]) {
+    for (const prop of ['display:', 'position:', 'height:', 'padding', 'margin', 'pointer-events:', 'cursor:', 'transition:']) {
+      assert.ok(!rule.includes(prop), `Volume rule "${rule.trim().split(' {')[0]}" must not set "${prop}"`);
+    }
+  }
+
+  // 6. Turns move through depth rather than sideways, and honour reduced motion.
+  const fromDepth = (name) => {
+    const start = css.indexOf(`\n@keyframes ${name} {\n`);
+    assert.ok(start >= 0, `@keyframes ${name} must exist`);
+    const frames = css.slice(start, css.indexOf('\n}', start));
+    assert.ok(frames.includes('perspective('), `${name} needs perspective to read as depth`);
+    assert.ok(!frames.includes('translateX('), `${name} must not slide sideways`);
+    const [from, to] = [...frames.matchAll(/translate3d\(([^)]*)\)/g)].map(([, args]) => args.split(',').map(parseFloat));
+    assert.deepStrictEqual(to, [0, 0, 0], `${name} must land flush where the top card rests`);
+    return from[2];
+  };
+  assert.ok(fromDepth('deckSlideNext') < 0, 'Next lifts the following card up out of the deck, from behind');
+  assert.ok(fromDepth('deckSlidePrev') > 0, 'Previous lays the earlier card back down onto the deck, from in front');
+  assert.ok(fromDepth('elevationSlideIn') < 0, 'A card taking the top turn rises toward the viewer');
+  const reduced = css.indexOf('\n@media (prefers-reduced-motion: reduce) {\n');
+  assert.ok(reduced >= 0, 'Deck turns must honour prefers-reduced-motion');
+  const reducedBlock = css.slice(reduced, css.indexOf('\n}', reduced));
+  assert.ok(reducedBlock.includes(':is(.slide-forward, .slide-backward)'), 'Both turn directions must be covered');
+  assert.ok(reducedBlock.includes('animation-duration: 0.01ms !important;'), 'Turn motion must collapse to an instant, since the turn rules outrank the site-wide reset');
+
+  // 7. The light model reads only state the turn-taking logic already sets.
+  const doc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = doc;
+  doc.body.appendChild(root);
+  const panel = new MockDOMElement('div', 'ui-panel', 'volume-panel');
+  panel.ownerDocument = doc;
+  panel.appendChild(new MockDOMElement('div', 'panel-header'));
+  const body = new MockDOMElement('div', 'panel-body');
+  panel.appendChild(body);
+  root.appendChild(panel);
+  const subs = ['geom', 'units', 'conic'].map((id) => {
+    const sub = new MockDOMElement('div', 'collapsible-section collapsed', `volume-${id}`);
+    sub.appendChild(new MockDOMElement('div', 'collapsible-header'));
+    sub.appendChild(new MockDOMElement('div', 'collapsible-content collapsed'));
+    body.appendChild(sub);
+    return sub;
+  });
+  const [geom, units] = subs;
+
+  setSubpanelOpen(geom, true);
+  syncPanelElevationTurn(panel, geom);
+  assert.strictEqual(geom.getAttribute('data-elevation-level'), '2', 'A lone open section is raised to level 2');
+  assert.strictEqual(geom.getAttribute('data-elevation-turn'), null, 'It takes no turn, so the in-flow lift applies to it');
+  assert.ok(subs.slice(1).every((s) => !s.hasAttribute('data-elevation-level')), 'Shelves stay at rest');
+
+  setSubpanelOpen(units, true);
+  syncPanelElevationTurn(panel, units);
+  const pillRow = body.querySelector('.elevation-deck-pills');
+  assert.strictEqual(pillRow.children.length, 2, 'One pill per turn sets the visible deck thickness');
+  assert.ok(pillRow.children.every((child) => child.classList.contains('elevation-deck-pill')), 'The pill row holds only pills, so :nth-child() counts turns');
+  assert.strictEqual(units.getAttribute('data-elevation-turn'), 'top');
+  assert.ok(subs.slice(0, 2).every((s) => s.hasAttribute('data-elevation-turn')), 'Inside the deck every open section takes a turn, so the in-flow lift steps aside for the top card');
+  assert.ok(!subs[2].hasAttribute('data-elevation-turn') && !subs[2].hasAttribute('data-elevation-level'), 'A closed section stays at rest on its shelf');
+});
+
+test('WorkspaceDockManager: Header Folds Rest the Deck Step, Deck Controls Reopen It, and Dock Content Sizes to the Dock', () => {
+  const doc = new MockDocument();
+  const root = doc.createElement('div');
+  root.className = 'circle-explorer';
+  doc.body.appendChild(root);
+  const makePanel = (id) => {
+    const panel = doc.createElement('div');
+    panel.className = 'ui-panel';
+    panel.id = id;
+    panel.appendChild(new MockDOMElement('div', 'panel-header'));
+    const body = new MockDOMElement('div', 'panel-body');
+    panel.appendChild(body);
+    root.appendChild(panel);
+    return { panel, body };
+  };
+  const makeCard = (id) => {
+    const card = new MockDOMElement('div', 'derivation-card', id);
+    card.appendChild(new MockDOMElement('div', 'derivation-card-header collapsible-header'));
+    card.appendChild(new MockDOMElement('div', 'derivation-card-content collapsible-content'));
+    return card;
+  };
+  const turn = (sub) => sub.getAttribute('data-elevation-turn');
+  const isOpen = (card) => card.classList.contains('open');
+
+  // 1. Forced derivation deck: a header fold (sync with the card and no options) rests the step.
+  const deriv = makePanel('live-derivation-panel');
+  const cards = ['rest-step-1', 'rest-step-2', 'rest-step-3'].map(makeCard);
+  cards.forEach((card) => deriv.body.appendChild(card));
+  const [card1, card2, card3] = cards;
+  setSubpanelOpen(card1, true);
+  syncPanelElevationTurn(deriv.panel, card1);
+  const deck = deriv.body.querySelector('.panel-elevation-deck');
+  assert.equal(turn(card1), 'top');
+
+  setSubpanelOpen(card1, false);
+  syncPanelElevationTurn(deriv.panel, card1);
+  assert.equal(isOpen(card1), false, 'The deck must not undo a header fold');
+  assert.equal(turn(card1), 'top', 'The folded step keeps the turn and rests on its shelf');
+  assert.equal(deck._restedSubpanel, card1);
+  assert.equal(deck.style.display, 'grid', 'Deck controls stay available while the step rests');
+  assert.equal(deck.querySelectorAll('.elevation-deck-pill').length, 3, 'Every step stays reachable from the deck');
+  for (const shelf of [card2, card3]) {
+    assert.equal(turn(shelf), null, 'Nothing is parked while the turn rests');
+    assert.equal(shelf.classList.contains('is-in-deck'), false, 'The other steps lie on their shelves');
+  }
+
+  syncPanelElevationTurn(deriv.panel, null, { silent: true });
+  assert.equal(isOpen(card1), false, 'Background resyncs keep the rested step folded');
+  assert.equal(turn(card1), 'top');
+
+  deck.querySelector('.elevation-deck-nav-btn.next').click();
+  assert.equal(turn(card2), 'top', 'Next moves the turn on from a rested step');
+  assert.equal(isOpen(card2), true, 'Deck navigation opens its target');
+  deck.querySelectorAll('.elevation-deck-pill')[0].click();
+  assert.equal(turn(card1), 'top');
+  assert.equal(isOpen(card1), true, 'A pill reopens the step it selects');
+  assert.equal(deck._restedSubpanel, null, 'An open step is no longer rested');
+
+  setSubpanelOpen(card1, false);
+  syncPanelElevationTurn(deriv.panel, card1);
+  cyclePanelSubpanel(deriv.panel, 'forward');
+  cyclePanelSubpanel(deriv.panel, 'backward');
+  assert.equal(turn(card1), 'top');
+  assert.equal(isOpen(card1), true, 'Keyboard cycling back to a rested step reopens it');
+
+  setSubpanelOpen(card1, false);
+  syncPanelElevationTurn(deriv.panel, card1);
+  setSubpanelOpen(card1, true);
+  syncPanelElevationTurn(deriv.panel, card1);
+  assert.equal(isOpen(card1), true, 'The header that folded a step unfolds it again');
+  assert.equal(deck._restedSubpanel, null);
+
+  // Folding the raised step also folds the steps left open behind it, so the panel collapses to its shelves;
+  // a shelf header then raises its step and parks the others again.
+  deck.querySelector('.elevation-deck-nav-btn.next').click();
+  assert.equal(isOpen(card1), true, 'Deck navigation leaves the previous step open behind the deck');
+  assert.equal(card1.classList.contains('is-in-deck'), true);
+  setSubpanelOpen(card2, false);
+  syncPanelElevationTurn(deriv.panel, card2);
+  assert.equal(deck._restedSubpanel, card2);
+  assert.deepEqual(cards.map(isOpen), [false, false, false], 'Folding the raised step collapses the whole deck');
+  assert.deepEqual(cards.map((card) => card.classList.contains('is-in-deck')), [false, false, false], 'Every step shows on its shelf');
+  syncPanelElevationTurn(deriv.panel, null, { silent: true });
+  assert.equal(card1.classList.contains('is-in-deck'), false, 'Background resyncs keep the shelves in view');
+  setSubpanelOpen(card3, true);
+  syncPanelElevationTurn(deriv.panel, card3);
+  assert.equal(turn(card3), 'top', 'A shelf header raises its step');
+  assert.equal(turn(card1), 'deck');
+  assert.equal(turn(card2), 'deck', 'The previously rested step is parked again');
+
+  // 2. Thales hides card content with .collapsed; opening a card must clear it, closing must not add it.
+  const content3 = card3.querySelector('.derivation-card-content');
+  content3.classList.add('collapsed');
+  setSubpanelOpen(card3, true);
+  assert.equal(content3.classList.contains('collapsed'), false, 'An opened card must not stay empty');
+  setSubpanelOpen(card3, false);
+  assert.equal(content3.classList.contains('collapsed'), false, 'Shared visuals never remove .collapsed, so closing must not add it');
+
+  // 3. Plain Deck lists only open sections, so folding the top one passes the turn to the next open one.
+  const controls = makePanel('controls-panel');
+  const sections = [1, 2, 3].map((n) => {
+    const section = new MockDOMElement('div', 'collapsible-section', `rest-section-${n}`);
+    section.appendChild(new MockDOMElement('div', 'collapsible-header open'));
+    section.appendChild(new MockDOMElement('div', 'collapsible-content open'));
+    controls.body.appendChild(section);
+    return section;
+  });
+  syncPanelElevationTurn(controls.panel, sections[0]);
+  assert.equal(turn(sections[0]), 'top');
+  setSubpanelOpen(sections[0], false);
+  syncPanelElevationTurn(controls.panel, sections[0]);
+  assert.equal(turn(sections[1]), 'top', 'The turn passes to the next open section');
+  assert.equal(sections[0].classList.contains('collapsed'), true, 'The folded section stays folded');
+  assert.equal(sections[0].classList.contains('is-in-deck'), false, 'A closed section left out of the pills stays on its shelf');
+  assert.equal(turn(sections[0]), null);
+  assert.equal(turn(sections[2]), 'deck', 'Open sections listed by the pills are still parked');
+  setSubpanelOpen(sections[0], true);
+  syncPanelElevationTurn(controls.panel, sections[0]);
+  assert.equal(turn(sections[0]), 'top', 'Opening a shelf raises it');
+  assert.equal(turn(sections[1]), 'deck');
+
+  // 4. Grouped panels fall back to the group's remembered step; that must not be mistaken for a header fold.
+  const grouped = makePanel('grouped-derivations');
+  const steps = ['Planar', 'Spatial'].map((title, g) => {
+    const group = new MockDOMElement('div', 'collapsible-section collapsed', `rest-group-${g}`);
+    group.appendChild(new MockDOMElement('div', 'collapsible-header'));
+    const content = new MockDOMElement('div', 'collapsible-content');
+    group.appendChild(content);
+    const groupSteps = [1, 2].map((n) => makeCard(`rest-group-${g}-step-${n}`));
+    groupSteps.forEach((step) => content.appendChild(step));
+    grouped.body.appendChild(group);
+    return groupSteps;
+  })[0];
+  syncPanelElevationTurn(grouped.panel, null, { silent: true });
+  assert.equal(turn(steps[0]), 'top');
+  assert.equal(isOpen(steps[0]), true);
+  setSubpanelOpen(steps[0], false);
+  syncPanelElevationTurn(grouped.panel, null, { silent: true });
+  assert.equal(isOpen(steps[0]), true, 'A step collapsed by the dock (not its header) is reopened on resync');
+  setSubpanelOpen(steps[0], false);
+  syncPanelElevationTurn(grouped.panel, steps[0]);
+  assert.equal(isOpen(steps[0]), false, 'A header fold inside a group rests the step');
+  syncPanelElevationTurn(grouped.panel, null, { silent: true });
+  assert.equal(isOpen(steps[0]), false, 'The remembered step stays rested through background resyncs');
+  assert.equal(turn(steps[0]), 'top');
+
+  // 5. Thales' Accordion folds the card that owns the header and syncs that card, not its group.
+  const accordion = fs.readFileSync(path.join(rootDir, 'visuals/circle-theorems/thales-theorem/src/ui/Accordion.js'), 'utf8');
+  assert.ok(accordion.includes("owner.classList.toggle('open', open)"), 'Card headers toggle the card itself');
+  assert.ok(accordion.includes('syncPanelElevationTurn(panel, this.#owner(header))'), 'The deck syncs the card whose header was used');
+
+  // 6. CSS: a rested top step shrinks to its shelf, and narrow docks give the pills their own full row.
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
+  assert.ok(css.includes('.panel-body.is-all-expanded :is(.collapsible-section.collapsed, .derivation-card:not(.open)):is(.is-elevated-top, [data-elevation-turn="top"]) {\n  flex: 0 0 auto !important;\n  min-height: 0 !important;\n  --elevation-stack: 0 0 #0000;\n  --elevation-stack-gap: 0px;\n}'), 'A rested top step must not keep the open-card minimum height or show turns waiting under it');
+  const narrow = css.slice(css.indexOf('@container workspace-dock (max-width: 20rem)'));
+  assert.ok(narrow.length > 0 && css.includes('@container workspace-dock (max-width: 20rem)'), 'Narrow docks need their own deck layout');
+  assert.ok(narrow.includes('"count count count" "prev pills next" "mode mode mode"'), 'The mode toggle leaves the pill row in narrow docks');
+  assert.ok(narrow.slice(0, narrow.indexOf('\n}\n')).includes('.panel-elevation-deck .elevation-deck-pill {\n    max-width: 100% !important;'), 'The active pill must fit the narrow pill row');
 });

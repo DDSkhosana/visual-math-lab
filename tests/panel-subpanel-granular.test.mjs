@@ -742,7 +742,7 @@ test('Granular Subpanel: Elevation Deck pills selection, turn advancement, and p
 
   const deck = body.querySelector('.panel-elevation-deck');
   assert.ok(deck, 'Deck must be generated');
-  assert.strictEqual(deck.style.display, 'flex');
+  assert.strictEqual(deck.style.display, 'grid');
 
   const pills = deck.querySelectorAll('.elevation-deck-pill');
   assert.strictEqual(pills.length, 3);
@@ -2329,6 +2329,5 @@ test('Universal Toolbar Footprint & Dynamic Viewport Width Calibration across al
   assert.ok(trigCoreSrc.includes('addSeg(R0, R1, PALETTE.sky'), 'trig-core.js must wireframe width with Sky (Side a)');
   assert.ok(trigCoreSrc.includes('addSeg(R0, R3, PALETTE.emerald'), 'trig-core.js must wireframe depth with Emerald (Side b)');
 });
-
 
 

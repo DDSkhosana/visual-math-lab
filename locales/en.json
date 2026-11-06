@@ -45,6 +45,7 @@
     "dimension_mode": "Dimension Mode",
     "planar": "Planar (2D)",
     "spatial": "Spatial 3D (S²)",
+    "solid": "Solid 3D",
     "ar_view": "Augmented Reality (AR)",
     "reset_view": "Reset to Default",
     "recenter": "Recenter View",

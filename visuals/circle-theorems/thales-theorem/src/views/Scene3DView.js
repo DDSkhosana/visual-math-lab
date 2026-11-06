@@ -2,6 +2,7 @@ import { point3DToGreatCircle, sphericalToCartesian } from '../model/thales-math
 import { createThalesScene } from './scene3d/scene-factory.js';
 import { rightAngleVertices, sectorVertices, setPositions } from './scene3d/geometry.js';
 import { ArcballTrackballControls } from '../../../../../js/circle-3d.js';
+import { SolidMorph, IdleParallax, addSolidLighting, isSolidMode } from '../../../../../js/solid-morph.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
@@ -11,6 +12,9 @@ export class Scene3DView {
     this.THREE = THREE;
     this.container = container;
     this.objects = createThalesScene(THREE);
+    addSolidLighting(THREE, this.objects.scene);
+    this.dimensionMode = 'planar';
+    this.radius = 10;
     this.dragging = false;
     this.raycaster = new THREE.Raycaster();
 
@@ -79,6 +83,8 @@ export class Scene3DView {
     const cosR = Math.cos(rot);
     const sinR = Math.sin(rot);
     const isSpatial = state.dimensionMode === 'spatial';
+    this.dimensionMode = state.dimensionMode || 'planar';
+    this.radius = r;
     let raw;
     if (isSpatial) {
       const lat = state.lat3D ?? Math.PI / 4;
@@ -107,7 +113,7 @@ export class Scene3DView {
     if (o.axes) {
       o.axes.visible = state.vis3d.axes !== undefined ? Boolean(state.vis3d.axes) : true;
     }
-    o.sphere.visible = o.sphereLines.visible = state.vis3d.sphere;
+    o.sphere.visible = o.sphereLines.visible = Boolean(state.vis3d.sphere) && !isSolidMode(this.dimensionMode);
     o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
     o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
 
@@ -266,9 +272,27 @@ export class Scene3DView {
     }
     return dataUrl;
   }
-  renderFrame() {
+  renderFrame(now = performance.now()) {
     this.controls.update();
+    this.updateDepthCues(now);
     this.renderer.render(this.objects.scene, this.camera);
+  }
+
+  /** Solid mode extrudes the XY-plane figure along Z into prisms; idle parallax sways the camera. */
+  updateDepthCues(now) {
+    const o = this.objects;
+    const solid = isSolidMode(this.dimensionMode);
+    if (solid && !this.solidMorph) {
+      this.solidMorph = new SolidMorph(this.THREE, o.scene, {
+        axis: 'z',
+        exclude: () => [o.sphere, o.sphereLines, o.grids?.xz, o.grids?.xy, o.grids?.yz, o.axes, o.volumeBox, o.volumeWire],
+        emphasis: () => [o.greatCircleWire],
+        halfHeight: () => 0.3 * Math.abs(this.radius || 10),
+      });
+    }
+    this.solidMorph?.update(solid, now);
+    if (!this.parallax) this.parallax = new IdleParallax(this.controls, this.renderer.domElement);
+    this.parallax.update(!this.isARActive && !this.camAnim, now);
   }
 
   /** World point to container pixels, or null when behind the camera. */
@@ -394,6 +418,7 @@ export class Scene3DView {
       side: { pos: new this.THREE.Vector3(48, 0, 0), up: new this.THREE.Vector3(0, 1, 0) },
     };
     const target = presets[presetName] || presets.default;
+    this.parallax?.poke();
     this.#animateCamera(target.pos, target.up);
   }
 

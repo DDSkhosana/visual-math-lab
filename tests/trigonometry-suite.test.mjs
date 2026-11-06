@@ -638,8 +638,9 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(losHtml.includes('id="toolbar-dimension-status"'), 'Toolbar must include status pill');
         assert.ok(losHtml.includes('<span>Spatial: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>'), 'Toolbar toggle must consistently label Spatial: OFF');
         assert.ok(losHtml.includes('>Spatial S²</button>'), 'Segmented bar pill must consistently label Spatial S²');
+        assert.ok(losHtml.includes('id="btn-mode-solid"'), 'Must include Solid 3D button');
 
-        // Check trig-core.js dual-mode wiring
+        // Check trig-core.js tri-mode wiring
         assert.ok(src.includes("dimensionMode: 'planar'"));
         assert.ok(src.includes("computeSphericalLawOfSines(state, R)"));
         assert.ok(src.includes("addGeodesicArc(B, C, PALETTE.red)"));
@@ -650,7 +651,10 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("Euclidean Taylor Correspondence"));
         assert.ok(src.includes("btn-mode-planar"));
         assert.ok(src.includes("btn-mode-spatial"));
-        assert.ok(src.includes("btnToggleDim.classList.toggle('active', isSpatial)"));
+        assert.ok(src.includes("btn-mode-solid"));
+        assert.ok(src.includes("press('btn-toggle-dimension-mode', is3D)"));
+        assert.ok(src.includes("bindModeSwitch('btn-mode-spatial', 'spatial')"), 'Spatial-id buttons must select Spatial S² mode');
+        assert.ok(src.includes("bindModeSwitch('btn-mode-solid', 'solid')"), 'Solid-id buttons must select Solid 3D mode');
         assert.ok(src.includes("new THREE.BufferGeometry().setFromPoints([Ap, B, C])"), '3D planar mode must shade Thales right-triangle mesh in Amber');
         assert.ok(src.includes("const rLift = R * 1.002;"), '3D spherical cap must have radial lift offset to prevent Z-fighting');
         assert.ok(src.includes("addSeg(B, C, PALETTE.red, true)"), 'Law of Sines spatial mode must draw straight Euclidean chord BC');
@@ -674,6 +678,7 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(locHtml.includes('id="toolbar-dimension-status"'), 'Toolbar must include status pill');
         assert.ok(locHtml.includes('<span>Spatial: <span class="tutorial-status-pill is-off" id="toolbar-dimension-status">OFF</span></span>'), 'Toolbar toggle must consistently label Spatial: OFF');
         assert.ok(locHtml.includes('>Spatial S²</button>'), 'Segmented bar pill must consistently label Spatial S²');
+        assert.ok(locHtml.includes('id="btn-mode-solid"'), 'Must include Solid 3D button');
         assert.ok(locHtml.includes('id="row-3d-sph-c"'));
         assert.ok(locHtml.includes('id="row-3d-excess"'));
         assert.ok(locHtml.includes('id="row-3d-area"'));
@@ -767,11 +772,14 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
         assert.ok(src.includes("angleGamma: toRadians(28)"), 'Switching to Spatial SO(3) must initialize non-zero Euler tilt');
         assert.ok(src.includes("angleGamma: 0"), 'Switching to Planar SO(2) must reset Euler tilt to 0');
 
-        // Mode switch accessibility attribute synchronization
-        assert.ok(src.includes("btnPlanar.setAttribute('aria-pressed'"), 'btnPlanar must sync aria-pressed');
-        assert.ok(src.includes("btnSpatial.setAttribute('aria-pressed'"), 'btnSpatial must sync aria-pressed');
-        assert.ok(src.includes("btnPlanarPill.setAttribute('aria-pressed'"), 'btnPlanarPill must sync aria-pressed');
-        assert.ok(src.includes("btnSpatialPill.setAttribute('aria-pressed'"), 'btnSpatialPill must sync aria-pressed');
+        // Mode switch accessibility attribute synchronization (one shared helper presses every mode control)
+        assert.ok(src.includes("el.setAttribute('aria-pressed', on ? 'true' : 'false')"), 'mode controls must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-planar', isPlanar)"), 'btnPlanar must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-spatial', isSpatial)"), 'btnSpatial must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-solid', isSolid)"), 'btnSolid must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-planar-pill', isPlanar)"), 'btnPlanarPill must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-spatial-pill', isSpatial)"), 'btnSpatialPill must sync aria-pressed');
+        assert.ok(src.includes("press('btn-mode-solid-pill', isSolid)"), 'btnSolidPill must sync aria-pressed');
 
         // CSS stacking & title collision protection
         const trigCss = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/css/trig-suite.css'), 'utf-8');

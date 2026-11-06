@@ -45,6 +45,7 @@
     "dimension_mode": "Dimensionsmodus",
     "planar": "Eben (2D)",
     "spatial": "Räumlich 3D (S²)",
+    "solid": "Körper 3D",
     "ar_view": "Erweiterte Realität (AR)",
     "reset_view": "Auf Standard zurücksetzen",
     "recenter": "Ansicht zentrieren",

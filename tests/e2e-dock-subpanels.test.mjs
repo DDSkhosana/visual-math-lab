@@ -486,7 +486,7 @@ test('E2E Subpanel Contract 3: Elevation Level Turn-Taking Deck, Pills, and Turn
   // Deck bar is generated with 3 pills
   const deck = body.querySelector('.panel-elevation-deck');
   assert.ok(deck, 'Elevation deck bar must be present in body');
-  assert.strictEqual(deck.style.display, 'flex');
+  assert.strictEqual(deck.style.display, 'grid');
 
   const pills = deck.querySelectorAll('.elevation-deck-pill');
   assert.strictEqual(pills.length, 3, 'Deck must render 3 pills for 3 open subpanels');

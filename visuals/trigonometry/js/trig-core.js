@@ -81,6 +81,7 @@ import {
 
 import { HarmonicSonifier } from './harmonic-sonifier.js';
 import { generateTrigSVG } from './trig-svg.js';
+import { isSolidMode } from '../../../js/solid-morph.js';
 export { generateTrigSVG };
 
 /* ============================================================================
@@ -4961,76 +4962,55 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   bindCheck('toggle-diff-ray', 'showDifferenceRay');
   bindCheck('toggle-stacked-tri', 'showStackedTriangles');
 
-  // Dual Mode Switch: Planar (Y = 0) vs True Spherical 3D on S² (Law of Sines) / Spatial SO(3) (Angle Sum)
+  // Dual Mode Switch: Planar (Y = 0) vs Solid 3D (the planar figure extruded into prisms and a cylinder).
+  // The legacy 'spatial' branch (S² / SO(3) presets) is kept for programmatic callers only.
+  const applyDimensionMode = (mode) => {
+    const st = store.get();
+    if (mode === 'spatial') {
+      if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
+        store.set({
+          dimensionMode: 'spatial',
+          latA: toRadians(65),
+          latB: toRadians(115),
+          latC: toRadians(50),
+        });
+      } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
+        store.set({
+          dimensionMode: 'spatial',
+          angleGamma: toRadians(28),
+        });
+      } else {
+        store.set({ dimensionMode: 'spatial' });
+      }
+      return;
+    }
+    // Planar and Solid share the flat figure: lifted vertices and the SO(3) tilt are reset.
+    if (visualId === 'angle-sum-identities') {
+      store.set({ dimensionMode: mode, angleGamma: 0 });
+    } else if (visualId === 'law-of-sines') {
+      store.set({ dimensionMode: mode, latA: Math.PI / 2, latB: Math.PI / 2, latC: Math.PI / 2 });
+    } else {
+      store.set({ dimensionMode: mode });
+    }
+  };
   const bindModeSwitch = (id, mode) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('click', () => {
-        if (mode === 'spatial') {
-          const st = store.get();
-          if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
-            store.set({
-              dimensionMode: 'spatial',
-              latA: toRadians(65),
-              latB: toRadians(115),
-              latC: toRadians(50),
-            });
-          } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
-            store.set({
-              dimensionMode: 'spatial',
-              angleGamma: toRadians(28),
-            });
-          } else {
-            store.set({ dimensionMode: 'spatial' });
-          }
-        } else {
-          if (visualId === 'angle-sum-identities') {
-            store.set({ dimensionMode: 'planar', angleGamma: 0 });
-          } else if (visualId === 'law-of-sines') {
-            store.set({ dimensionMode: 'planar', latA: Math.PI / 2, latB: Math.PI / 2, latC: Math.PI / 2 });
-          } else {
-            store.set({ dimensionMode: 'planar' });
-          }
-        }
-      });
-    }
+    if (el) el.addEventListener('click', () => applyDimensionMode(mode));
   };
   bindModeSwitch('btn-mode-planar', 'planar');
   bindModeSwitch('btn-mode-spatial', 'spatial');
+  bindModeSwitch('btn-mode-solid', 'solid');
   bindModeSwitch('btn-mode-planar-pill', 'planar');
   bindModeSwitch('btn-mode-spatial-pill', 'spatial');
+  bindModeSwitch('btn-mode-solid-pill', 'solid');
 
   // Floating Header Toolbar Dimension Mode Toggle (#btn-toggle-dimension-mode)
   const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
   if (btnToggleDim) {
     btnToggleDim.addEventListener('click', () => {
-      const isSpatial = store.get().dimensionMode === 'spatial';
-      if (isSpatial) {
-        if (visualId === 'angle-sum-identities') {
-          store.set({ dimensionMode: 'planar', angleGamma: 0 });
-        } else if (visualId === 'law-of-sines') {
-          store.set({ dimensionMode: 'planar', latA: Math.PI / 2, latB: Math.PI / 2, latC: Math.PI / 2 });
-        } else {
-          store.set({ dimensionMode: 'planar' });
-        }
-      } else {
-        const st = store.get();
-        if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
-          store.set({
-            dimensionMode: 'spatial',
-            latA: toRadians(65),
-            latB: toRadians(115),
-            latC: toRadians(50),
-          });
-        } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
-          store.set({
-            dimensionMode: 'spatial',
-            angleGamma: toRadians(28),
-          });
-        } else {
-          store.set({ dimensionMode: 'spatial' });
-        }
-      }
+      const curMode = store.get().dimensionMode || 'planar';
+      const is3D = curMode !== 'planar';
+      applyDimensionMode(is3D ? 'planar' : 'spatial');
     });
   }
 
@@ -5527,6 +5507,33 @@ function syncSlider(id, val) {
   }
 }
 
+/** Mode bar, pill and toolbar toggle reflect Planar, Spatial S² and Solid 3D. */
+function syncDimensionControls(mode) {
+  const isSolid = isSolidMode(mode);
+  const isSpatial = mode === 'spatial';
+  const isPlanar = !mode || mode === 'planar';
+  const is3D = isSpatial || isSolid;
+  const press = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  };
+  press('btn-mode-planar', isPlanar);
+  press('btn-mode-planar-pill', isPlanar);
+  press('btn-mode-spatial', isSpatial);
+  press('btn-mode-spatial-pill', isSpatial);
+  press('btn-mode-solid', isSolid);
+  press('btn-mode-solid-pill', isSolid);
+  press('btn-toggle-dimension-mode', is3D);
+  const statusPill = document.getElementById('toolbar-dimension-status');
+  if (statusPill) {
+    statusPill.classList.toggle('is-on', is3D);
+    statusPill.classList.toggle('is-off', !is3D);
+    statusPill.textContent = is3D ? 'ON' : 'OFF';
+  }
+}
+
 function updateTelemetryAndSlidersDOM(state, visualId) {
   const angUnit = state.angleUnit || 'deg';
   const lenUnit = state.lengthUnit || 'px';
@@ -5604,54 +5611,30 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-hc', m.altitudeHc.toFixed(3));
 
     // Update Mode Buttons & View Title
-    const btnPlanar = document.getElementById('btn-mode-planar');
-    const btnSpatial = document.getElementById('btn-mode-spatial');
-    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
-    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) {
-      btnPlanar.classList.toggle('active', !isSpatial);
-      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatial) {
-      btnSpatial.classList.toggle('active', isSpatial);
-      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (btnPlanarPill) {
-      btnPlanarPill.classList.toggle('active', !isSpatial);
-      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatialPill) {
-      btnSpatialPill.classList.toggle('active', isSpatial);
-      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-
-    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
-    const dimStatusPill = document.getElementById('toolbar-dimension-status');
-    if (btnToggleDim) {
-      btnToggleDim.classList.toggle('active', isSpatial);
-      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (dimStatusPill) {
-      dimStatusPill.classList.toggle('is-on', isSpatial);
-      dimStatusPill.classList.toggle('is-off', !isSpatial);
-      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
-    }
+    const isSolid = isSolidMode(state.dimensionMode);
+    syncDimensionControls(state.dimensionMode);
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spherical Law of Sines (<span class="color-teal">S²</span>)'
-        : '3D: Circumscribed Sphere (<span class="color-amber">2R</span>)';
+        : isSolid
+          ? '3D: Solid Prism in Circumcylinder (<span class="color-amber">2R</span>)'
+          : '3D: Circumscribed Sphere (<span class="color-amber">2R</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Sines & Excess on S² (sin(a/R)/sin A = const)'
-        : "3D: Circumscribed Sphere & Antipodal Diameter (A'B = 2R)";
+        : isSolid
+          ? '3D: Triangle ABC extruded into a right prism inscribed in its circumcylinder (a/sin A = 2R on every slice)'
+          : "3D: Circumscribed Sphere & Antipodal Diameter (A'B = 2R)";
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
     if (descEl) {
       descEl.textContent = isSpatial
         ? 'Spherical geometry on S²: arcs are great circles, A+B+C > 180°, sin(a/R)/sin A = const.'
-        : 'Planar Euclidean embedding on equatorial plane Y = 0 with diameter 2R = a / sin A.';
+        : isSolid
+          ? 'Solid extrusion: triangle ABC becomes a right prism inside the circumcylinder. Every horizontal slice is ABC, so a / sin A = 2R at every height.'
+          : 'Planar Euclidean embedding on equatorial plane Y = 0 with diameter 2R = a / sin A.';
     }
 
     const rowExcess = document.getElementById('row-3d-excess');
@@ -5662,7 +5645,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const lblRb = document.getElementById('lbl-3d-rb');
     const lblRc = document.getElementById('lbl-3d-rc');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : 'Planar (Y = 0)');
+    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : isSolid ? 'Solid 3D (prism)' : 'Planar (Y = 0)');
 
     if (isSpatial) {
       const sM = computeSphericalLawOfSines(state, R3D);
@@ -5763,54 +5746,30 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('val-3d-b-coords', `${m.vertices2D.B.x.toFixed(2)}, ${m.vertices2D.B.y.toFixed(2)}`);
 
     // Update Mode Buttons & View Title
-    const btnPlanar = document.getElementById('btn-mode-planar');
-    const btnSpatial = document.getElementById('btn-mode-spatial');
-    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
-    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) {
-      btnPlanar.classList.toggle('active', !isSpatial);
-      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatial) {
-      btnSpatial.classList.toggle('active', isSpatial);
-      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (btnPlanarPill) {
-      btnPlanarPill.classList.toggle('active', !isSpatial);
-      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatialPill) {
-      btnSpatialPill.classList.toggle('active', isSpatial);
-      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-
-    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
-    const dimStatusPill = document.getElementById('toolbar-dimension-status');
-    if (btnToggleDim) {
-      btnToggleDim.classList.toggle('active', isSpatial);
-      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (dimStatusPill) {
-      dimStatusPill.classList.toggle('is-on', isSpatial);
-      dimStatusPill.classList.toggle('is-off', !isSpatial);
-      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
-    }
+    const isSolid = isSolidMode(state.dimensionMode);
+    syncDimensionControls(state.dimensionMode);
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spherical Law of Cosines (<span class="color-teal">S²</span>)'
-        : '3D: Euclidean Projection Prism (<span class="color-rose">c²</span>)';
+        : isSolid
+          ? '3D: Solid Triangular Prism (<span class="color-rose">c²</span>)'
+          : '3D: Euclidean Projection Prism (<span class="color-rose">c²</span>)';
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Cosines on S² (cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C)'
-        : '3D: Euclidean Parallelepiped & Metric (c² = a² + b² − 2ab cos C)';
+        : isSolid
+          ? '3D: Triangle ABC extruded into a right prism (c² = a² + b² − 2ab cos C on every slice)'
+          : '3D: Euclidean Parallelepiped & Metric (c² = a² + b² − 2ab cos C)';
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
     if (descEl) {
       descEl.textContent = isSpatial
         ? 'Geodesic triangle on sphere S² of radius R: cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C.'
-        : 'Planar Euclidean triangle with squares on edges and projection prism foot D.';
+        : isSolid
+          ? 'Solid extrusion: the triangle and its edge squares become prisms. Every horizontal slice is the planar figure, so c² = a² + b² − 2ab cos C at every height.'
+          : 'Planar Euclidean triangle with squares on edges and projection prism foot D.';
     }
 
     const sphPosContainer = document.getElementById('spatial-sphere-position-controls');
@@ -5829,7 +5788,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const rowArea = document.getElementById('row-3d-area');
     const rowSphPos = document.getElementById('row-3d-sph-pos');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : 'Planar (Y = 0)');
+    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : isSolid ? 'Solid 3D (prism)' : 'Planar (Y = 0)');
 
     if (isSpatial) {
       const sM = computeSphericalLawOfCosines(
@@ -5947,54 +5906,30 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('tel-chord-pd', (2 * Math.sin(m.beta)).toFixed(4));
 
     // Update Mode Buttons & View Title
-    const btnPlanar = document.getElementById('btn-mode-planar');
-    const btnSpatial = document.getElementById('btn-mode-spatial');
-    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
-    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanar) {
-      btnPlanar.classList.toggle('active', !isSpatial);
-      btnPlanar.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatial) {
-      btnSpatial.classList.toggle('active', isSpatial);
-      btnSpatial.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (btnPlanarPill) {
-      btnPlanarPill.classList.toggle('active', !isSpatial);
-      btnPlanarPill.setAttribute('aria-pressed', !isSpatial ? 'true' : 'false');
-    }
-    if (btnSpatialPill) {
-      btnSpatialPill.classList.toggle('active', isSpatial);
-      btnSpatialPill.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-
-    const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
-    const dimStatusPill = document.getElementById('toolbar-dimension-status');
-    if (btnToggleDim) {
-      btnToggleDim.classList.toggle('active', isSpatial);
-      btnToggleDim.setAttribute('aria-pressed', isSpatial ? 'true' : 'false');
-    }
-    if (dimStatusPill) {
-      dimStatusPill.classList.toggle('is-on', isSpatial);
-      dimStatusPill.classList.toggle('is-off', !isSpatial);
-      dimStatusPill.textContent = isSpatial ? 'ON' : 'OFF';
-    }
+    const isSolid = isSolidMode(state.dimensionMode);
+    syncDimensionControls(state.dimensionMode);
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
       titleEl.innerHTML = isSpatial
         ? '3D: Spatial SO(3) Euler Frame (<span class="color-amber">γ</span>)'
-        : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span>+<span class="color-violet">β</span>)';
+        : isSolid
+          ? '3D: Solid Cylinder &amp; Wedge Prisms (<span class="color-sky">α</span>+<span class="color-violet">β</span>)'
+          : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span>+<span class="color-violet">β</span>)';
       titleEl.title = isSpatial
         ? '3D: Spatial SO(3) Lie Group Euler Frame (R = Rz(α+β)Rx(γ))'
-        : '3D: SO(2) Planar Embedding (α + β)';
+        : isSolid
+          ? '3D: Rotation composition extruded along the cylinder axis (R(α)R(β) = R(α+β) on every slice)'
+          : '3D: SO(2) Planar Embedding (α + β)';
     }
 
     const descEl = document.getElementById('desc-mode-dimension');
     if (descEl) {
       descEl.textContent = isSpatial
         ? 'Spatial Lie group SO(3) with Euler tilt γ: triad {e₁, e₂, e₃}, det(R) = +1, exact SO(2) reduction at γ = 0.'
-        : 'Planar SO(2) rotation composition with stacked decomposition triangles and matrix homomorphism.';
+        : isSolid
+          ? 'Solid extrusion: the unit circle becomes a cylinder and the stacked triangles and angle wedges become prisms. Every horizontal slice carries R(α)R(β) = R(α+β).'
+          : 'Planar SO(2) rotation composition with stacked decomposition triangles and matrix homomorphism.';
     }
 
     const rowGamma = document.getElementById('row-3d-gamma');
@@ -6005,7 +5940,7 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
       containerGamma.style.display = isSpatial ? '' : 'none';
     }
 
-    setText('val-3d-mode-label', isSpatial ? 'Spatial SO(3)' : 'Planar SO(2)');
+    setText('val-3d-mode-label', isSpatial ? 'Spatial SO(3)' : isSolid ? 'Solid 3D (cylinder)' : 'Planar SO(2)');
 
     if (isSpatial) {
       const eM = computeSpatialAngleSumEuler(state.angleAlpha, state.angleBeta, state.angleGamma, 1.0);

@@ -144,6 +144,7 @@
             <div class="viewmode-segmented-group" role="group" aria-label="3D Geometry Model">
               <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar Euclidean Embedding (Y = 0)">Planar</button>
               <button type="button" class="btn" id="btn-mode-spatial-pill" title="True Spherical Geometry on S²">Spatial S²</button>
+              <button type="button" class="btn" id="btn-mode-solid-pill" title="Solid 3D: triangle extruded along its plane's normal into a prism inscribed in its circumcylinder">Solid 3D</button>
             </div>
           </div>
           <div class="camera-presets-bar">
@@ -318,9 +319,10 @@
             <div class="collapsible-section collapsed" id="section-dimension-mode">
               <div class="collapsible-header" aria-expanded="false"><span>3D Geometry Model</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
-                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <button type="button" class="btn active" id="btn-mode-planar">Planar (Y = 0)</button>
                   <button type="button" class="btn" id="btn-mode-spatial">Spatial S²</button>
+                  <button type="button" class="btn" id="btn-mode-solid">Solid 3D</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
                   Planar Euclidean embedding on equatorial plane Y = 0 with diameter 2R = a / sin A.

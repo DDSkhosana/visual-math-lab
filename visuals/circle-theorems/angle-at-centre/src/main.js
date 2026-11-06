@@ -273,7 +273,7 @@ function bootstrap() {
 
     const R3D = ((state.radius || 180) / 180) * 10;
     const elDimMode = document.getElementById('val-3d-dim-mode');
-    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spatial S²' : 'Planar (Y=0)';
+    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spatial S²' : state.dimensionMode === 'solid' ? 'Solid 3D (cylinder)' : 'Planar (Y=0)';
     const el3dR = document.getElementById('val-3d-r');
     if (el3dR) el3dR.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
     const elPx = document.getElementById('val-3d-px');

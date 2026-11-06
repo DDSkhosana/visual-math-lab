@@ -145,6 +145,7 @@
             <div class="viewmode-segmented-group" role="group" aria-label="3D Rotation Model">
               <button type="button" class="btn active" id="btn-mode-planar-pill" title="Planar SO(2) Embedding (Z = 0)">Planar SO(2)</button>
               <button type="button" class="btn" id="btn-mode-spatial-pill" title="Spatial SO(3) Euler Rotation Frame">Spatial SO(3)</button>
+              <button type="button" class="btn" id="btn-mode-solid-pill" title="Solid 3D: the rotation frame's unit circle extruded along its normal into a cylinder with wedge prisms">Solid 3D</button>
             </div>
           </div>
           <div class="camera-presets-bar">
@@ -320,9 +321,10 @@
             <div class="collapsible-section collapsed" id="section-dimension-mode">
               <div class="collapsible-header" aria-expanded="false"><span>3D Rotation Model</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.65rem;">
-                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div class="btn-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                   <button type="button" class="btn active" id="btn-mode-planar">Planar SO(2)</button>
                   <button type="button" class="btn" id="btn-mode-spatial">Spatial SO(3)</button>
+                  <button type="button" class="btn" id="btn-mode-solid">Solid 3D</button>
                 </div>
                 <p class="text-xs text-slate-400" id="desc-mode-dimension" style="margin:0; line-height:1.4;">
                   Planar abelian SO(2) embedding on equatorial Y = 0 plane: R(α+β) = R(α)∘R(β).

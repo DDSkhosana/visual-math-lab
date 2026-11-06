@@ -1,9 +1,10 @@
 /**
  * Shared core utilities, math helpers, and UI widgets for Circle Geometry Visualisations.
  */
-import { syncPanelElevationTurn, cyclePanelSubpanel } from './workspace-dock.js';
+import { syncPanelElevationTurn } from './workspace-dock.js';
 import { ARManager } from './ar-manager.js';
 import { t } from './i18n.js';
+import { isSpatialGeometry } from './solid-morph.js';
 
 export const PALETTE = Object.freeze({
   red: '#ef4444',
@@ -1210,43 +1211,6 @@ export function initCollapsibleSections(root = document) {
 
       setExpandButtonUI(expandBtn, shouldExpand);
       syncPanelElevationTurn(panel);
-      return;
-    }
-
-    const navBtn = e.target.closest ? e.target.closest('[data-card-nav]') : null;
-    if (navBtn) {
-      e.preventDefault?.();
-      e.stopPropagation?.();
-      const direction = navBtn.getAttribute('data-card-nav') === 'prev' ? 'backward' : 'forward';
-      const panel = navBtn.closest?.('.ui-panel');
-      if (panel) {
-        cyclePanelSubpanel(panel, direction);
-        return;
-      }
-      const card = navBtn.closest?.('.derivation-card');
-      const container = card?.parentElement;
-      if (!container) return;
-      const cards = Array.from(container.querySelectorAll?.('.derivation-card') || []);
-      if (cards.length <= 1) return;
-      const curIdx = Math.max(0, cards.indexOf(card));
-      const nextIdx = direction === 'forward' ? (curIdx + 1) % cards.length : (curIdx - 1 + cards.length) % cards.length;
-      const targetCard = cards[nextIdx];
-      cards.forEach((c) => {
-        const isTarget = c === targetCard;
-        c.classList?.toggle('open', isTarget);
-        const h = c.querySelector?.('.derivation-card-header');
-        if (h) {
-          h.classList?.toggle('open', isTarget);
-          h.setAttribute?.('aria-expanded', isTarget ? 'true' : 'false');
-          const icon = h.querySelector('.icon');
-          if (icon) icon.textContent = isTarget ? '▼' : '▶';
-        }
-        const content = c.querySelector?.('.derivation-card-content');
-        if (content) {
-          content.classList?.toggle('open', isTarget);
-          if (content.style) content.style.display = isTarget ? 'block' : 'none';
-        }
-      });
       return;
     }
 
@@ -2906,6 +2870,11 @@ export function bindStandardToggles(store, ...args) {
     new UnitSystemConverter(unitConverterContainer, store);
   }
 
+  // Every visual offers Planar | Spatial S² | Solid 3D. Solid shares the Spatial geometry
+  // (points free on S²) and extrudes the figure along its own plane's normal.
+  const vId = opts.visualId || opts.exportPrefix || '';
+  const isThales = vId.includes('thales');
+
   // Mount Dimension Mode, Affine Conic Mode & AR Toolbar buttons if not already present
   const toolbarContent = document.getElementById('toolbar-content');
   if (toolbarContent && typeof document.createElement === 'function') {
@@ -2976,9 +2945,11 @@ export function bindStandardToggles(store, ...args) {
           <div class="btn-group-pill" style="display: flex; gap: 6px; margin-bottom: 10px;">
             <button type="button" class="btn active" id="btn-mode-planar-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Planar 2D</button>
             <button type="button" class="btn" id="btn-mode-spatial-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Spatial 3D</button>
+            <button type="button" class="btn" id="btn-mode-solid-pill" style="flex: 1; padding: 4px 8px; font-size: 11px;">Solid 3D</button>
           </div>
           <p class="text-xs text-slate-400" style="line-height: 1.4; margin: 0;">
             Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
+            <b class="color-sky">Solid 3D</b> keeps those free points and extrudes the figure along its own plane's normal into prisms inside a cylinder, so every slice is the theorem's figure.
           </p>
         </div>
       `;
@@ -3000,16 +2971,15 @@ export function bindStandardToggles(store, ...args) {
       <div class="btn-group btn-group--pill">
         <button type="button" class="btn active" id="btn-mode-planar" title="Planar Euclidean Disk (Y = 0)">Planar</button>
         <button type="button" class="btn" id="btn-mode-spatial" title="True Spherical Geometry on S²">Spatial S²</button>
+        <button type="button" class="btn" id="btn-mode-solid" title="Solid 3D: the figure extruded along its plane's normal into prisms inside a cylinder">Solid 3D</button>
       </div>
     `;
     cont3d.appendChild(bar);
   }
 
-  // Universal Dimension Mode switching logic
-  const vId = opts.visualId || opts.exportPrefix || '';
   const setDimensionMode = (mode) => {
     const isSpatial = mode === 'spatial';
-    if (vId.includes('thales')) {
+    if (isThales) {
       const cur = store.get();
       const ang = cur.angle2D ?? Math.PI / 4;
       if (isSpatial) {
@@ -3025,7 +2995,7 @@ export function bindStandardToggles(store, ...args) {
         });
       } else {
         store.set({
-          dimensionMode: 'planar',
+          dimensionMode: mode === 'solid' ? 'solid' : 'planar',
           lat3D: Math.acos(Math.max(-1, Math.min(1, Math.sin(ang)))),
           lon3D: Math.cos(ang) >= 0 ? Math.PI / 2 : -Math.PI / 2,
         });
@@ -3057,7 +3027,7 @@ export function bindStandardToggles(store, ...args) {
       store.set(updates);
     } else {
       store.set({
-        dimensionMode: 'planar',
+        dimensionMode: mode === 'solid' ? 'solid' : 'planar',
         latA: Math.PI / 2,
         latB: Math.PI / 2,
         latC: Math.PI / 2,
@@ -3084,13 +3054,16 @@ export function bindStandardToggles(store, ...args) {
   bindDimClick('btn-mode-spatial', 'spatial');
   bindDimClick('btn-mode-planar-pill', 'planar');
   bindDimClick('btn-mode-spatial-pill', 'spatial');
+  bindDimClick('btn-mode-solid', 'solid');
+  bindDimClick('btn-mode-solid-pill', 'solid');
 
+  // The Spatial switch reads ON for both lifted modes; switching it off returns to Planar.
   const btnToggleDim = document.getElementById('btn-toggle-dimension-mode');
   if (btnToggleDim && !btnToggleDim._dimBound) {
     btnToggleDim._dimBound = true;
     btnToggleDim.addEventListener('click', () => {
-      const isSpatial = store.get().dimensionMode === 'spatial';
-      setDimensionMode(isSpatial ? 'planar' : 'spatial');
+      const isOn = isSpatialGeometry(store.get().dimensionMode);
+      setDimensionMode(isOn ? 'planar' : 'spatial');
     });
   }
 
@@ -3103,28 +3076,32 @@ export function bindStandardToggles(store, ...args) {
   }
 
   const syncDimensionUI = (st = {}) => {
-    const isSpatial = st.dimensionMode === 'spatial';
+    const mode = st.dimensionMode || 'planar';
+    const isOn = isSpatialGeometry(mode);
     const statusPill = document.getElementById('toolbar-dimension-status');
     if (statusPill) {
-      statusPill.textContent = isSpatial ? 'ON' : 'OFF';
-      statusPill.classList.toggle('is-on', isSpatial);
+      statusPill.textContent = isOn ? 'ON' : 'OFF';
+      statusPill.classList.toggle('is-on', isOn);
     }
     if (btnToggleDim) {
-      btnToggleDim.classList.toggle('active', isSpatial);
-      btnToggleDim.setAttribute('aria-pressed', String(isSpatial));
+      btnToggleDim.classList.toggle('active', isOn);
+      btnToggleDim.setAttribute('aria-pressed', String(isOn));
     }
-    if (toggleDimCheck && toggleDimCheck.checked !== isSpatial) {
-      toggleDimCheck.checked = isSpatial;
+    if (toggleDimCheck && toggleDimCheck.checked !== isOn) {
+      toggleDimCheck.checked = isOn;
     }
-    const btnPlanarPill = document.getElementById('btn-mode-planar-pill');
-    const btnSpatialPill = document.getElementById('btn-mode-spatial-pill');
-    if (btnPlanarPill) btnPlanarPill.classList.toggle('active', !isSpatial);
-    if (btnSpatialPill) btnSpatialPill.classList.toggle('active', isSpatial);
-
-    const btnPlanar = document.getElementById('btn-mode-planar');
-    const btnSpatial = document.getElementById('btn-mode-spatial');
-    if (btnPlanar) btnPlanar.classList.toggle('active', !isSpatial);
-    if (btnSpatial) btnSpatial.classList.toggle('active', isSpatial);
+    const press = (id, on) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('active', on);
+      el.setAttribute?.('aria-pressed', String(on));
+    };
+    press('btn-mode-planar', mode === 'planar');
+    press('btn-mode-planar-pill', mode === 'planar');
+    press('btn-mode-spatial', mode === 'spatial');
+    press('btn-mode-spatial-pill', mode === 'spatial');
+    press('btn-mode-solid', mode === 'solid');
+    press('btn-mode-solid-pill', mode === 'solid');
   };
 
   syncDimensionUI(store.get());
