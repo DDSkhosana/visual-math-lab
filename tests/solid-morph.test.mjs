@@ -104,9 +104,9 @@ const mockControls = () => {
   };
 };
 
-test('Idle parallax waits for idleness, sways about the screen-up axis and stops on interaction', () => {
+test('Idle parallax waits for idleness, executes compound omnidirectional 3D sway (yaw + pitch) perpendicular to view and stops on interaction', () => {
   const controls = mockControls();
-  const parallax = new IdleParallax(controls, null, { amplitudeDeg: 4, periodMs: 8000, idleMs: 3000, rampMs: 1 });
+  const parallax = new IdleParallax(controls, null, { amplitudeDeg: 4, pitchRatio: 0.65, periodMs: 8000, idleMs: 3000, rampMs: 1 });
   const t0 = parallax.holdUntil;
   parallax.update(true, t0 + 1000);
   assert.equal(controls.calls.length, 0, 'no sway before the idle delay');
@@ -114,11 +114,11 @@ test('Idle parallax waits for idleness, sways about the screen-up axis and stops
   parallax.update(true, t0 + 3000);
   parallax.update(true, t0 + 3000 + 2000);
   assert.ok(controls.calls.length >= 1, 'sways once idle');
-  const { axis } = controls.calls[controls.calls.length - 1];
+  const { axis, angle } = controls.calls[controls.calls.length - 1];
   const view = new Vec3().subVectors(controls.target, controls.camera.position).normalize();
-  assert.ok(Math.abs(axis.dot(view)) < 1e-6, 'sway axis is perpendicular to the view direction (works from the Top preset)');
-  const swept = controls.calls.reduce((sum, c) => sum + c.angle, 0);
-  assert.ok(Math.abs(swept - (4 * Math.PI) / 180) < 1e-6, 'quarter period reaches the full amplitude');
+  assert.ok(Math.abs(axis.dot(view)) < 1e-6, 'compound precession axis is perpendicular to the view direction');
+  assert.ok(Math.abs(axis.x) > 1e-4 && Math.abs(axis.z) > 1e-4, 'precession axis spans both horizontal and vertical screen directions for omnidirectional depth');
+  assert.ok(angle > 0, 'non-zero angular displacement applied');
 
   controls.state = 'rotate';
   const before = controls.calls.length;

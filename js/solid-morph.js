@@ -423,13 +423,22 @@ export class SolidMorph {
  * Any pointer, wheel or key interaction stops it immediately; it never runs with reduced motion.
  */
 export class IdleParallax {
-  constructor(controls, domElement, { amplitudeDeg = 4, periodMs = 9000, idleMs = 3000, rampMs = 1500 } = {}) {
+  constructor(controls, domElement, {
+    amplitudeDeg = 4.5,
+    pitchRatio = 0.65,
+    periodMs = 9000,
+    idleMs = 3000,
+    rampMs = 1500,
+  } = {}) {
     this.controls = controls;
-    this.amplitude = (amplitudeDeg * Math.PI) / 180;
+    this.amplitudeYaw = (amplitudeDeg * Math.PI) / 180;
+    this.amplitudePitch = ((amplitudeDeg * pitchRatio) * Math.PI) / 180;
     this.periodMs = periodMs;
+    this.periodPitchMs = periodMs / Math.SQRT2; // Incommensurate frequency ratio produces open, non-repeating Lissajous 3D precession
     this.idleMs = idleMs;
     this.rampMs = rampMs;
-    this.applied = 0;
+    this.appliedYaw = 0;
+    this.appliedPitch = 0;
     this.phaseStart = null;
     this.holdUntil = nowMs();
     this.poke = this.poke.bind(this);
@@ -443,7 +452,8 @@ export class IdleParallax {
     const hold = typeof extraMs === 'number' ? extraMs : 0;
     this.holdUntil = Math.max(this.holdUntil, nowMs() + hold);
     this.phaseStart = null;
-    this.applied = 0;
+    this.appliedYaw = 0;
+    this.appliedPitch = 0;
   }
 
   update(enabled = true, now = nowMs()) {
@@ -457,21 +467,37 @@ export class IdleParallax {
     if (busy) {
       this.holdUntil = Math.max(this.holdUntil, now);
       this.phaseStart = null;
-      this.applied = 0;
+      this.appliedYaw = 0;
+      this.appliedPitch = 0;
       return;
     }
     if (now - this.holdUntil < this.idleMs || typeof controls?.rotateCameraByAxisAngle !== 'function') return;
     if (this.phaseStart == null) {
       this.phaseStart = now;
-      this.applied = 0;
-      this.axis = this.screenUpAxis();
+      this.appliedYaw = 0;
+      this.appliedPitch = 0;
     }
     const elapsed = now - this.phaseStart;
     const ramp = Math.min(1, elapsed / this.rampMs);
-    const angle = this.amplitude * ramp * Math.sin((2 * Math.PI * elapsed) / this.periodMs);
-    const delta = angle - this.applied;
-    this.applied = angle;
-    controls.rotateCameraByAxisAngle(this.axis, delta);
+
+    // True omnidirectional 2-DOF precession: Yaw (screen-up) + Pitch (screen-right)
+    const targetYaw = this.amplitudeYaw * ramp * Math.sin((2 * Math.PI * elapsed) / this.periodMs);
+    const targetPitch = this.amplitudePitch * ramp * Math.sin((2 * Math.PI * elapsed) / this.periodPitchMs);
+
+    const deltaYaw = targetYaw - this.appliedYaw;
+    const deltaPitch = targetPitch - this.appliedPitch;
+    this.appliedYaw = targetYaw;
+    this.appliedPitch = targetPitch;
+
+    const upAxis = this.screenUpAxis();
+    const rightAxis = this.screenRightAxis(upAxis);
+
+    // Instantaneous composite rotation vector in the tangent plane perpendicular to the line of sight
+    const rotVec = new this.controls.THREE.Vector3().addScaledVector(upAxis, deltaYaw).addScaledVector(rightAxis, deltaPitch);
+    const rotAngle = Math.sqrt(rotVec.lengthSq());
+    if (rotAngle > 1e-8) {
+      controls.rotateCameraByAxisAngle(rotVec.normalize(), rotAngle);
+    }
   }
 
   /** Camera up made orthogonal to the view direction: rocking about it is a sideways sway from any preset. */
@@ -484,6 +510,21 @@ export class IdleParallax {
     view.normalize();
     const up = camera.up.clone().addScaledVector(view, -camera.up.dot(view));
     return up.lengthSq() > 1e-8 ? up.normalize() : axis;
+  }
+
+  /** Screen right vector (view × up): rocking about it produces vertical pitch/nodding motion. */
+  screenRightAxis(up = this.screenUpAxis()) {
+    const { THREE, camera, target } = this.controls;
+    const axis = new THREE.Vector3(1, 0, 0);
+    if (!camera?.position || !target || !up) return axis;
+    const view = new THREE.Vector3().subVectors(target, camera.position);
+    if (view.lengthSq() < 1e-12) return axis;
+    view.normalize();
+    const rx = view.y * up.z - view.z * up.y;
+    const ry = view.z * up.x - view.x * up.z;
+    const rz = view.x * up.y - view.y * up.x;
+    const right = new THREE.Vector3(rx, ry, rz);
+    return right.lengthSq() > 1e-8 ? right.normalize() : axis;
   }
 
   dispose() {
