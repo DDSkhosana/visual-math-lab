@@ -18,11 +18,21 @@ const axisIndexOf = (axis) => AXIS_INDEX[axis] ?? 1;
 
 const keyOf = (p) => `${Math.round(p[0] * KEY_SCALE)},${Math.round(p[1] * KEY_SCALE)},${Math.round(p[2] * KEY_SCALE)}`;
 
-const lift = (p, k, offset) => {
-  const q = [p[0], p[1], p[2]];
-  q[k] += offset;
-  return q;
+export const resolveNormal = ({ axis = 'y', normal = null } = {}) => {
+  if (normal) {
+    const n = Array.isArray(normal) ? normal : [normal.x ?? 0, normal.y ?? 0, normal.z ?? 0];
+    const len = Math.hypot(n[0], n[1], n[2]);
+    if (len > 1e-9) return [n[0] / len, n[1] / len, n[2] / len];
+  }
+  const k = axisIndexOf(axis);
+  return [k === 0 ? 1 : 0, k === 1 ? 1 : 0, k === 2 ? 1 : 0];
 };
+
+const lift = (p, norm, offset) => [
+  p[0] + norm[0] * offset,
+  p[1] + norm[1] * offset,
+  p[2] + norm[2] * offset,
+];
 
 const toPoints = (positions) => {
   const points = [];
@@ -52,8 +62,8 @@ const isCorner = (p, neighbours, cornerAngleDeg) => {
  * Returns flat position arrays: `faces` (triangles: both caps + side walls on boundary edges)
  * and `edges` (line-segment pairs: cap outlines + vertical edges at boundary corners).
  */
-export function extrudeTriangleSoup(positions, { axis = 'y', halfHeight = 1, cornerAngleDeg = 25 } = {}) {
-  const k = axisIndexOf(axis);
+export function extrudeTriangleSoup(positions, { axis = 'y', normal = null, halfHeight = 1, cornerAngleDeg = 25 } = {}) {
+  const norm = resolveNormal({ axis, normal });
   const faces = [];
   const edges = [];
   const vertices = new Map();
@@ -63,7 +73,7 @@ export function extrudeTriangleSoup(positions, { axis = 'y', halfHeight = 1, cor
   for (let t = 0; t + 2 < points.length; t += 3) {
     const tri = [points[t], points[t + 1], points[t + 2]];
     if (doubledArea(...tri) < 1e-10) continue;
-    for (const offset of [halfHeight, -halfHeight]) tri.forEach((p) => faces.push(...lift(p, k, offset)));
+    for (const offset of [halfHeight, -halfHeight]) tri.forEach((p) => faces.push(...lift(p, norm, offset)));
     const keys = tri.map(keyOf);
     keys.forEach((key, j) => vertices.set(key, tri[j]));
     for (let j = 0; j < 3; j++) {
@@ -86,8 +96,8 @@ export function extrudeTriangleSoup(positions, { axis = 'y', halfHeight = 1, cor
     if (count !== 1) continue;
     const pa = vertices.get(a);
     const pb = vertices.get(b);
-    const aTop = lift(pa, k, halfHeight), bTop = lift(pb, k, halfHeight);
-    const aBottom = lift(pa, k, -halfHeight), bBottom = lift(pb, k, -halfHeight);
+    const aTop = lift(pa, norm, halfHeight), bTop = lift(pb, norm, halfHeight);
+    const aBottom = lift(pa, norm, -halfHeight), bBottom = lift(pb, norm, -halfHeight);
     faces.push(...aTop, ...bTop, ...bBottom, ...aTop, ...bBottom, ...aBottom);
     edges.push(...aTop, ...bTop, ...aBottom, ...bBottom);
     link(a, b);
@@ -96,7 +106,7 @@ export function extrudeTriangleSoup(positions, { axis = 'y', halfHeight = 1, cor
   for (const [key, list] of neighbours) {
     const p = vertices.get(key);
     if (isCorner(p, list.map((n) => vertices.get(n)), cornerAngleDeg)) {
-      edges.push(...lift(p, k, halfHeight), ...lift(p, k, -halfHeight));
+      edges.push(...lift(p, norm, halfHeight), ...lift(p, norm, -halfHeight));
     }
   }
   return { faces, edges };
@@ -106,8 +116,8 @@ export function extrudeTriangleSoup(positions, { axis = 'y', halfHeight = 1, cor
  * Extrudes a flat polyline (or segment pairs) into a ribbon: a chord becomes a rectangle,
  * a circle becomes an open cylinder. `generators` adds evenly spaced rulings on closed loops.
  */
-export function extrudePolyline(positions, { axis = 'y', halfHeight = 1, pairs = false, closed = false, generators = 0 } = {}) {
-  const k = axisIndexOf(axis);
+export function extrudePolyline(positions, { axis = 'y', normal = null, halfHeight = 1, pairs = false, closed = false, generators = 0 } = {}) {
+  const norm = resolveNormal({ axis, normal });
   const points = toPoints(positions);
   const faces = [];
   const edges = [];
@@ -120,8 +130,8 @@ export function extrudePolyline(positions, { axis = 'y', halfHeight = 1, pairs =
   }
   for (const [a, b] of segments) {
     if (Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) < 1e-9) continue;
-    const aTop = lift(a, k, halfHeight), bTop = lift(b, k, halfHeight);
-    const aBottom = lift(a, k, -halfHeight), bBottom = lift(b, k, -halfHeight);
+    const aTop = lift(a, norm, halfHeight), bTop = lift(b, norm, halfHeight);
+    const aBottom = lift(a, norm, -halfHeight), bBottom = lift(b, norm, -halfHeight);
     faces.push(...aTop, ...bTop, ...bBottom, ...aTop, ...bBottom, ...aBottom);
     edges.push(...aTop, ...bTop, ...aBottom, ...bBottom);
   }
@@ -146,7 +156,7 @@ export function extrudePolyline(positions, { axis = 'y', halfHeight = 1, pairs =
     const step = Math.max(1, Math.floor(points.length / generators));
     for (let i = 0; i < points.length - 1; i += step) rulings.push(points[i]);
   }
-  for (const p of rulings) edges.push(...lift(p, k, halfHeight), ...lift(p, k, -halfHeight));
+  for (const p of rulings) edges.push(...lift(p, norm, halfHeight), ...lift(p, norm, -halfHeight));
   return { faces, edges };
 }
 
@@ -197,11 +207,13 @@ export function addSolidLighting(THREE, scene) {
  * the morph height between 0 (planar) and 1 (solid).
  */
 export class SolidMorph {
-  constructor(THREE, scene, { axis = 'y', exclude = () => [], emphasis = () => [], halfHeight = () => 3, durationMs = 650 } = {}) {
+  constructor(THREE, scene, { axis = 'y', normal = null, center = null, exclude = () => [], emphasis = () => [], halfHeight = () => 3, durationMs = 650 } = {}) {
     this.THREE = THREE;
     this.scene = scene;
     this.axis = axis;
     this.axisIndex = axisIndexOf(axis);
+    this.normal = normal;
+    this.center = center;
     this.exclude = exclude;
     this.emphasis = emphasis;
     this.halfHeight = halfHeight;
@@ -212,6 +224,20 @@ export class SolidMorph {
     this.companions = new Map();
     this.relative = new THREE.Matrix4();
     this.sceneInverse = new THREE.Matrix4();
+  }
+
+  getEffectiveNormal() {
+    const n = typeof this.normal === 'function' ? this.normal() : this.normal;
+    return resolveNormal({ axis: this.axis, normal: n });
+  }
+
+  getEffectiveCenter() {
+    const c = typeof this.center === 'function' ? this.center() : this.center;
+    if (c) {
+      if (Array.isArray(c)) return c;
+      return [c.x ?? 0, c.y ?? 0, c.z ?? 0];
+    }
+    return [0, 0, 0];
   }
 
   update(active, now = nowMs()) {
@@ -235,26 +261,33 @@ export class SolidMorph {
       this.layer.userData.solidSkip = true;
       this.scene.add(this.layer);
     }
-    this.sync();
+    const norm = this.getEffectiveNormal();
+    const isAxisAligned = Math.abs(norm[this.axisIndex]) > 1 - 1e-4;
+    this.sync(norm, isAxisAligned);
     this.layer.visible = true;
-    this.layer.scale.set(1, 1, 1);
-    this.layer.scale.setComponent(this.axisIndex, Math.max(1e-3, easeInOutCubic(this.progress)));
+    if (isAxisAligned) {
+      this.layer.scale.set(1, 1, 1);
+      this.layer.scale.setComponent(this.axisIndex, Math.max(1e-3, easeInOutCubic(this.progress)));
+    } else {
+      this.layer.scale.set(1, 1, 1);
+    }
   }
 
-  sync() {
+  sync(norm = this.getEffectiveNormal(), isAxisAligned = true) {
     this.scene.updateMatrixWorld();
     this.sceneInverse.copy(this.scene.matrixWorld).invert();
     const excluded = new Set((this.exclude() || []).filter(Boolean));
     excluded.add(this.layer);
     const emphasis = new Set((this.emphasis() || []).filter(Boolean));
-    const h = this.halfHeight();
+    const rawH = this.halfHeight();
+    const h = isAxisAligned ? rawH : rawH * Math.max(1e-3, easeInOutCubic(this.progress));
     const seen = new Set();
     const visit = (object, parentIsMesh) => {
       if (!object.visible || excluded.has(object) || object.userData?.solidSkip) return;
       const kind = this.classify(object, parentIsMesh);
       if (kind) {
         seen.add(object);
-        this.syncCompanion(object, kind, h, emphasis.has(object));
+        this.syncCompanion(object, kind, h, emphasis.has(object), norm);
       }
       for (const child of object.children) visit(child, object.isMesh === true);
     };
@@ -284,7 +317,7 @@ export class SolidMorph {
     return null;
   }
 
-  syncCompanion(source, kind, h, emphasised) {
+  syncCompanion(source, kind, h, emphasised, norm = this.getEffectiveNormal()) {
     const geometry = source.geometry;
     const position = geometry.attributes.position;
     const index = geometry.index;
@@ -298,7 +331,8 @@ export class SolidMorph {
       && record.position === position && record.version === position.version
       && record.index === index && record.indexVersion === (index?.version ?? -1)
       && record.drawStart === geometry.drawRange.start && record.drawCount === geometry.drawRange.count
-      && record.h === h && record.colorHex === colorHex && record.opacity === opacity
+      && Math.abs(record.h - h) < 1e-6 && record.colorHex === colorHex && record.opacity === opacity
+      && record.norm && record.norm.every((v, idx) => Math.abs(v - norm[idx]) < 1e-5)
       && record.matrix.every((value, i) => Math.abs(value - matrix[i]) < 1e-9)) {
       return;
     }
@@ -313,6 +347,7 @@ export class SolidMorph {
       h,
       colorHex,
       opacity,
+      norm,
       matrix: Array.from(matrix),
       group: null,
     };
@@ -320,11 +355,16 @@ export class SolidMorph {
 
     const positions = this.readScenePositions(geometry);
     if (positions.length < 6) return;
-    const k = this.axisIndex;
-    for (let i = k; i < positions.length; i += 3) {
-      if (Math.abs(positions[i]) > FLAT_EPSILON) return;
+    const [nx, ny, nz] = norm;
+    const [cx, cy, cz] = this.getEffectiveCenter();
+    for (let i = 0; i < positions.length; i += 3) {
+      const dx = positions[i] - cx;
+      const dy = positions[i + 1] - cy;
+      const dz = positions[i + 2] - cz;
+      const distToPlane = Math.abs(dx * nx + dy * ny + dz * nz);
+      if (distToPlane > FLAT_EPSILON) return;
     }
-    const options = { axis: this.axis, halfHeight: h };
+    const options = { axis: this.axis, normal: norm, halfHeight: h };
     const extruded = kind === 'fill'
       ? extrudeTriangleSoup(positions, options)
       : extrudePolyline(positions, { ...options, pairs: kind === 'pairs', closed: kind === 'loop', generators: emphasised ? 12 : 0 });

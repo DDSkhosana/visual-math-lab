@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extrudeTriangleSoup, extrudePolyline, isSolidMode, IdleParallax, SOLID_MODE } from '../js/solid-morph.js';
+import { getSolidOrientationFrame, rodriguesVector } from '../js/circle-3d.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -160,4 +161,83 @@ test('Planar/Solid wiring: every visual reaches Solid, Thales keeps Spatial S² 
     const locale = JSON.parse(read(`locales/${lang}.json`));
     assert.equal(typeof locale.controls?.solid, 'string', `${lang} defines controls.solid`);
   }
+});
+
+test('Arbitrary normal vector extrusion lifts flat geometry in any 3D direction', () => {
+  // Planar triangle tilted in 3D: normal n = [3/5, 4/5, 0]
+  const n = [3 / 5, 4 / 5, 0];
+  // Orthonormal basis in plane: u = [-4/5, 3/5, 0], v = [0, 0, 1]
+  const u = [-4 / 5, 3 / 5, 0];
+  const v = [0, 0, 1];
+  const p0 = [0, 0, 0];
+  const p1 = [u[0] * 3, u[1] * 3, 0];
+  const p2 = [0, 0, 4];
+  const tri = [...p0, ...p1, ...p2];
+  const halfHeight = 2.5;
+  const { faces, edges } = extrudeTriangleSoup(tri, { normal: n, halfHeight });
+
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const pts = points(faces);
+  for (const pt of pts) {
+    const distFromPlane = Math.abs(dot(pt, n));
+    assert.ok(Math.abs(distFromPlane - halfHeight) < 1e-6, 'every face vertex lies on cap plane ±h along normal n');
+  }
+
+  // Polyline extrusion along arbitrary normal
+  const ribbon = extrudePolyline([p0, p1].flat(), { normal: n, halfHeight, pairs: true });
+  assert.equal(ribbon.faces.length / 3, 6, 'segment produces two triangles (one rectangle)');
+  for (const pt of points(ribbon.faces)) {
+    assert.ok(Math.abs(Math.abs(dot(pt, n)) - halfHeight) < 1e-6);
+  }
+});
+
+test('Solid 3D spherical coordinates orientation frame: exact unit orthogonality across axes and angles', () => {
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const len = (a) => Math.hypot(...a);
+
+  for (const axis of ['y', 'z']) {
+    for (const [tilt, azimuth, spin] of [[0, 0, 0], [0.45, 0.6, 0], [1.2, 2.5, 1.8], [0.8, -1.1, 3.14]]) {
+      const frame = getSolidOrientationFrame({ solidTilt: tilt, solidAzimuth: azimuth, solidSpin: spin }, axis);
+      const { normalArr: n, uArr: u, vArr: v } = frame;
+      assert.ok(Math.abs(len(n) - 1) < 1e-9, 'normal is unit vector');
+      assert.ok(Math.abs(len(u) - 1) < 1e-9, 'u basis is unit vector');
+      assert.ok(Math.abs(len(v) - 1) < 1e-9, 'v basis is unit vector');
+      assert.ok(Math.abs(dot(u, n)) < 1e-9, 'u is strictly orthogonal to normal');
+      assert.ok(Math.abs(dot(v, n)) < 1e-9, 'v is strictly orthogonal to normal');
+      assert.ok(Math.abs(dot(u, v)) < 1e-9, 'u and v are strictly orthogonal');
+    }
+  }
+});
+
+test('Coupled rigid lockstep rotation: spinning or tilting the cylinder moves all points together with invariant distances', () => {
+  const R = 10;
+  const aAng = 0.5, bAng = 2.1, cAng = 4.2;
+  const toPt = (frame, ang) => [
+    R * (frame.uArr[0] * Math.cos(ang) + frame.vArr[0] * Math.sin(ang)),
+    R * (frame.uArr[1] * Math.cos(ang) + frame.vArr[1] * Math.sin(ang)),
+    R * (frame.uArr[2] * Math.cos(ang) + frame.vArr[2] * Math.sin(ang)),
+  ];
+  const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+
+  const f0 = getSolidOrientationFrame({ solidTilt: 0, solidAzimuth: 0, solidSpin: 0 }, 'y');
+  const A0 = toPt(f0, aAng), B0 = toPt(f0, bAng), C0 = toPt(f0, cAng);
+  const dAB0 = dist(A0, B0), dBC0 = dist(B0, C0), dCA0 = dist(C0, A0);
+
+  // Spin cylinder by 75 degrees and tilt by 30 degrees
+  const f1 = getSolidOrientationFrame({ solidTilt: 0.52, solidAzimuth: 1.1, solidSpin: 1.3 }, 'y');
+  const A1 = toPt(f1, aAng), B1 = toPt(f1, bAng), C1 = toPt(f1, cAng);
+  const dAB1 = dist(A1, B1), dBC1 = dist(B1, C1), dCA1 = dist(C1, A1);
+
+  assert.ok(Math.abs(dAB1 - dAB0) < 1e-6, 'chord |AB| remains invariant under coupled rotation');
+  assert.ok(Math.abs(dBC1 - dBC0) < 1e-6, 'chord |BC| remains invariant under coupled rotation');
+  assert.ok(Math.abs(dCA1 - dCA0) < 1e-6, 'chord |CA| remains invariant under coupled rotation');
+});
+
+test('Solid 3D UI controls: orientation sliders (tilt, azimuth, spin) and reset button in circle-core', () => {
+  const core = read('js/circle-core.js');
+  assert.ok(core.includes('id="solid-orientation-controls"'), 'mounts solid orientation subpanel');
+  assert.ok(core.includes('id="slider-solid-tilt"'), 'mounts solid tilt polar phi slider');
+  assert.ok(core.includes('id="slider-solid-azimuth"'), 'mounts solid azimuth theta slider');
+  assert.ok(core.includes('id="slider-solid-spin"'), 'mounts solid coupled spin psi slider');
+  assert.ok(core.includes('id="btn-reset-solid-orientation"'), 'mounts reset solid orientation button');
 });

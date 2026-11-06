@@ -4985,6 +4985,23 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       return;
     }
     // Planar and Solid share the flat figure: lifted vertices and the SO(3) tilt are reset.
+    if (mode === 'solid') {
+      const cur = store.get();
+      const updates = {
+        dimensionMode: 'solid',
+        solidTilt: cur.solidTilt !== undefined ? cur.solidTilt : (25 * Math.PI / 180),
+        solidAzimuth: cur.solidAzimuth !== undefined ? cur.solidAzimuth : (35 * Math.PI / 180),
+        solidSpin: cur.solidSpin !== undefined ? cur.solidSpin : 0,
+      };
+      if (visualId === 'angle-sum-identities') updates.angleGamma = 0;
+      else if (visualId === 'law-of-sines') {
+        updates.latA = Math.PI / 2;
+        updates.latB = Math.PI / 2;
+        updates.latC = Math.PI / 2;
+      }
+      store.set(updates);
+      return;
+    }
     if (visualId === 'angle-sum-identities') {
       store.set({ dimensionMode: mode, angleGamma: 0 });
     } else if (visualId === 'law-of-sines') {

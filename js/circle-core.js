@@ -2951,6 +2951,33 @@ export function bindStandardToggles(store, ...args) {
             Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
             <b class="color-sky">Solid 3D</b> keeps those free points and extrudes the figure along its own plane's normal into prisms inside a cylinder, so every slice is the theorem's figure.
           </p>
+          <div id="solid-orientation-controls" style="margin-top: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Solid 3D Orientation</span>
+              <button type="button" class="btn btn--sm" id="btn-reset-solid-orientation" style="padding: 2px 6px; font-size: 10px;" title="Reset cylinder orientation to default tilt">Reset</button>
+            </div>
+            <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+              <label for="slider-solid-tilt" style="color: #cbd5e1;">Tilt (Polar &phi;):</label>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="range" id="slider-solid-tilt" min="0" max="90" step="1" value="25" style="width: 85px;">
+                <span id="val-solid-tilt" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">25&deg;</span>
+              </div>
+            </div>
+            <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+              <label for="slider-solid-azimuth" style="color: #cbd5e1;">Azimuth (&theta;):</label>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="range" id="slider-solid-azimuth" min="0" max="360" step="1" value="35" style="width: 85px;">
+                <span id="val-solid-azimuth" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">35&deg;</span>
+              </div>
+            </div>
+            <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+              <label for="slider-solid-spin" style="color: #cbd5e1;">Coupled Spin (&psi;):</label>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="range" id="slider-solid-spin" min="0" max="360" step="1" value="0" style="width: 85px;">
+                <span id="val-solid-spin" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">0&deg;</span>
+              </div>
+            </div>
+          </div>
         </div>
       `;
       if (p3dBody.firstChild && typeof p3dBody.insertBefore === 'function') {
@@ -3026,7 +3053,8 @@ export function bindStandardToggles(store, ...args) {
       }
       store.set(updates);
     } else {
-      store.set({
+      const cur = store.get();
+      const updates = {
         dimensionMode: mode === 'solid' ? 'solid' : 'planar',
         latA: Math.PI / 2,
         latB: Math.PI / 2,
@@ -3038,7 +3066,13 @@ export function bindStandardToggles(store, ...args) {
         latT: Math.PI / 2,
         latT1: Math.PI / 2,
         latT2: Math.PI / 2,
-      });
+      };
+      if (mode === 'solid' && cur.solidTilt === undefined) {
+        updates.solidTilt = (25 * Math.PI) / 180;
+        updates.solidAzimuth = (35 * Math.PI) / 180;
+        updates.solidSpin = 0;
+      }
+      store.set(updates);
     }
   };
 
@@ -3102,12 +3136,68 @@ export function bindStandardToggles(store, ...args) {
     press('btn-mode-spatial-pill', mode === 'spatial');
     press('btn-mode-solid', mode === 'solid');
     press('btn-mode-solid-pill', mode === 'solid');
+
+    const solidControls = document.getElementById('solid-orientation-controls');
+    if (solidControls) {
+      solidControls.style.display = mode === 'solid' ? 'block' : 'none';
+    }
+    const tiltSlider = document.getElementById('slider-solid-tilt');
+    const azimSlider = document.getElementById('slider-solid-azimuth');
+    const spinSlider = document.getElementById('slider-solid-spin');
+    const tiltVal = document.getElementById('val-solid-tilt');
+    const azimVal = document.getElementById('val-solid-azimuth');
+    const spinVal = document.getElementById('val-solid-spin');
+
+    const tiltDeg = Math.round(((st.solidTilt ?? (25 * Math.PI / 180)) * 180) / Math.PI);
+    const azimDeg = Math.round(((st.solidAzimuth ?? (35 * Math.PI / 180)) * 180) / Math.PI);
+    const spinDeg = ((Math.round(((st.solidSpin ?? 0) * 180) / Math.PI) % 360) + 360) % 360;
+
+    if (tiltSlider && document.activeElement !== tiltSlider) tiltSlider.value = tiltDeg;
+    if (azimSlider && document.activeElement !== azimSlider) azimSlider.value = azimDeg;
+    if (spinSlider && document.activeElement !== spinSlider) spinSlider.value = spinDeg;
+
+    if (tiltVal) tiltVal.textContent = `${tiltDeg}°`;
+    if (azimVal) azimVal.textContent = `${azimDeg}°`;
+    if (spinVal) spinVal.textContent = `${spinDeg}°`;
   };
+
+  const tiltSlider = document.getElementById('slider-solid-tilt');
+  if (tiltSlider && !tiltSlider._solidBound) {
+    tiltSlider._solidBound = true;
+    tiltSlider.addEventListener('input', (e) => {
+      store.set({ solidTilt: (Number(e.target.value) * Math.PI) / 180 });
+    });
+  }
+  const azimSlider = document.getElementById('slider-solid-azimuth');
+  if (azimSlider && !azimSlider._solidBound) {
+    azimSlider._solidBound = true;
+    azimSlider.addEventListener('input', (e) => {
+      store.set({ solidAzimuth: (Number(e.target.value) * Math.PI) / 180 });
+    });
+  }
+  const spinSlider = document.getElementById('slider-solid-spin');
+  if (spinSlider && !spinSlider._solidBound) {
+    spinSlider._solidBound = true;
+    spinSlider.addEventListener('input', (e) => {
+      store.set({ solidSpin: (Number(e.target.value) * Math.PI) / 180 });
+    });
+  }
+  const btnResetSolid = document.getElementById('btn-reset-solid-orientation');
+  if (btnResetSolid && !btnResetSolid._solidBound) {
+    btnResetSolid._solidBound = true;
+    btnResetSolid.addEventListener('click', () => {
+      store.set({
+        solidTilt: (25 * Math.PI) / 180,
+        solidAzimuth: (35 * Math.PI) / 180,
+        solidSpin: 0,
+      });
+    });
+  }
 
   syncDimensionUI(store.get());
   store.subscribe((st) => {
     syncDimensionUI(st);
-  }, ['dimensionMode']);
+  }, ['dimensionMode', 'solidTilt', 'solidAzimuth', 'solidSpin']);
 
   // Mount Affine Conic Mode subpanel inside primary Interactive Controls panel if not present
   if (!document.getElementById('section-affine-conic') && typeof document.createElement === 'function') {

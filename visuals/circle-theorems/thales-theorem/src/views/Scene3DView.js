@@ -1,7 +1,7 @@
 import { point3DToGreatCircle, sphericalToCartesian } from '../model/thales-math.js';
 import { createThalesScene } from './scene3d/scene-factory.js';
 import { rightAngleVertices, sectorVertices, setPositions } from './scene3d/geometry.js';
-import { ArcballTrackballControls } from '../../../../../js/circle-3d.js';
+import { ArcballTrackballControls, getSolidOrientationFrame } from '../../../../../js/circle-3d.js';
 import { SolidMorph, IdleParallax, addSolidLighting, isSolidMode } from '../../../../../js/solid-morph.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
@@ -84,12 +84,23 @@ export class Scene3DView {
     const sinR = Math.sin(rot);
     const isSpatial = state.dimensionMode === 'spatial';
     this.dimensionMode = state.dimensionMode || 'planar';
+    const isSolid = isSolidMode(this.dimensionMode);
     this.radius = r;
     let raw;
-    if (isSpatial) {
+    if (isSolid) {
+      const frame = getSolidOrientationFrame(state, 'z', THREE);
+      const { u, v, normal } = frame;
+      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: r, u, v };
+      const ang = state.angle2D ?? Math.PI / 4;
+      const P = new THREE.Vector3()
+        .addScaledVector(u, r * Math.cos(ang))
+        .addScaledVector(v, r * Math.sin(ang));
+      raw = { x: P.x, y: P.y, z: P.z };
+    } else if (isSpatial) {
       const lat = state.lat3D ?? Math.PI / 4;
       const lon = state.lon3D ?? Math.PI / 3;
       raw = sphericalToCartesian(r, lat, lon);
+      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0) };
     } else {
       const ang = state.angle2D ?? Math.PI / 4;
       raw = {
@@ -97,6 +108,7 @@ export class Scene3DView {
         y: r * Math.sin(ang),
         z: 0,
       };
+      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0) };
     }
     const x = raw.x * cosR - raw.y * sinR;
     const y = raw.x * sinR + raw.y * cosR;
@@ -285,6 +297,8 @@ export class Scene3DView {
     if (solid && !this.solidMorph) {
       this.solidMorph = new SolidMorph(this.THREE, o.scene, {
         axis: 'z',
+        normal: () => this.circleInfo?.normal || [0, 0, 1],
+        center: () => this.circleInfo?.center || [0, 0, 0],
         exclude: () => [o.sphere, o.sphereLines, o.grids?.xz, o.grids?.xy, o.grids?.yz, o.axes, o.volumeBox, o.volumeWire],
         emphasis: () => [o.greatCircleWire],
         halfHeight: () => 0.3 * Math.abs(this.radius || 10),
