@@ -2989,6 +2989,45 @@ export function bindStandardToggles(store, ...args) {
     }
   }
 
+  // Mount Solid 3D Orientation subpanel in existing Dimension Mode Section if missing
+  if (!document.getElementById('solid-orientation-controls') && typeof document.createElement === 'function') {
+    const dimSec = document.getElementById('section-dimension-mode');
+    const targetParent = dimSec?.querySelector?.('.collapsible-content') || panel3d?.querySelector?.('.panel-body');
+    if (targetParent) {
+      const solidDiv = document.createElement('div');
+      solidDiv.id = 'solid-orientation-controls';
+      solidDiv.style.cssText = 'margin-top: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;';
+      solidDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Solid 3D Orientation</span>
+          <button type="button" class="btn btn--sm" id="btn-reset-solid-orientation" style="padding: 2px 6px; font-size: 10px;" title="Reset cylinder orientation to default tilt">Reset</button>
+        </div>
+        <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+          <label for="slider-solid-tilt" style="color: #cbd5e1;">Tilt (Polar &phi;):</label>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="range" id="slider-solid-tilt" min="0" max="90" step="1" value="25" style="width: 85px;">
+            <span id="val-solid-tilt" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">25&deg;</span>
+          </div>
+        </div>
+        <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+          <label for="slider-solid-azimuth" style="color: #cbd5e1;">Azimuth (&theta;):</label>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="range" id="slider-solid-azimuth" min="0" max="360" step="1" value="35" style="width: 85px;">
+            <span id="val-solid-azimuth" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">35&deg;</span>
+          </div>
+        </div>
+        <div class="control-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+          <label for="slider-solid-spin" style="color: #cbd5e1;">Coupled Spin (&psi;):</label>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="range" id="slider-solid-spin" min="0" max="360" step="1" value="0" style="width: 85px;">
+            <span id="val-solid-spin" style="min-width: 28px; text-align: right; color: #f1f5f9; font-variant-numeric: tabular-nums;">0&deg;</span>
+          </div>
+        </div>
+      `;
+      targetParent.appendChild(solidDiv);
+    }
+  }
+
   // Mount Floating Dimension Mode Pill Bar in 3D Container if not present
   const cont3d = sceneTarget?.container || document.getElementById('canvas-3d-container');
   if (cont3d && !cont3d.querySelector('.dimension-mode-bar') && typeof document.createElement === 'function') {

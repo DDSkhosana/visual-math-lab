@@ -3900,7 +3900,13 @@ export class TangentRadius3DView extends BaseScene3DView {
             this.geodesicChords[k].visible = false;
             this.sphChordMeshes[k].visible = false;
 
-            if (state.chordAreaMode === 'sector') {
+            if (isSolid) {
+              if (state.chordAreaMode === 'sector') {
+                setSector3DVertices(this.chordAreaMeshes[k].geometry, O, uFrame, vFrame, R, p1.angle, sweep, 32, THREE);
+              } else {
+                setSegment3DVertices(this.chordAreaMeshes[k].geometry, O, uFrame, vFrame, R, p1.angle, sweep, 32, THREE);
+              }
+            } else if (state.chordAreaMode === 'sector') {
               setSectorXZVertices(this.chordAreaMeshes[k].geometry, 0, 0, R, p1.angle, sweep, 32);
             } else {
               setSegmentXZVertices(this.chordAreaMeshes[k].geometry, 0, 0, R, p1.angle, sweep, 32);
@@ -3910,7 +3916,9 @@ export class TangentRadius3DView extends BaseScene3DView {
 
           const midAngle = p1.angle + sweep / 2;
           const badgeR = (state.chordAreaMode === 'sector') ? (0.6 * R) : (0.85 * R);
-          const badgePos = new THREE.Vector3(badgeR * Math.cos(midAngle), 0.3, badgeR * Math.sin(midAngle));
+          const badgePos = isSolid
+            ? O.clone().addScaledVector(uFrame, badgeR * Math.cos(midAngle)).addScaledVector(vFrame, badgeR * Math.sin(midAngle)).addScaledVector(primNormal, 0.3)
+            : new THREE.Vector3(badgeR * Math.cos(midAngle), 0.3, badgeR * Math.sin(midAngle));
           const areaVal = (state.chordAreaMode === 'sector') ? (0.5 * R * R * sweep) : (0.5 * R * R * (sweep - Math.sin(sweep)));
           const colClass = ['color-violet', 'color-rose', 'color-cyan', 'color-fuchsia'][k % 4];
 
@@ -3940,7 +3948,9 @@ export class TangentRadius3DView extends BaseScene3DView {
     // Secant chord & triangle (relative to primary T)
     const showSecant = Boolean(state.showSecant);
     const angQ = (rawAngles[0]) + 0.45;
-    const Q = new THREE.Vector3(R * Math.cos(angQ), 0, R * Math.sin(angQ));
+    const Q = isSolid
+      ? O.clone().addScaledVector(uFrame, R * Math.cos(angQ)).addScaledVector(vFrame, R * Math.sin(angQ))
+      : new THREE.Vector3(R * Math.cos(angQ), 0, R * Math.sin(angQ));
     this.markerQ.position.copy(Q);
     this.lineTQ.geometry.setFromPoints([activeTangents[0].pos, Q]);
     this.lineTQ.computeLineDistances();
@@ -3960,7 +3970,9 @@ export class TangentRadius3DView extends BaseScene3DView {
       const signs = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'];
       for (let q = 0; q < 4; q++) {
         const midQuad = q * (Math.PI / 2) + Math.PI / 4;
-        const qPos = new THREE.Vector3(0.65 * R * Math.cos(midQuad), 0.2, 0.65 * R * Math.sin(midQuad));
+        const qPos = isSolid
+          ? O.clone().addScaledVector(uFrame, 0.65 * R * Math.cos(midQuad)).addScaledVector(vFrame, 0.65 * R * Math.sin(midQuad)).addScaledVector(primNormal, 0.2)
+          : new THREE.Vector3(0.65 * R * Math.cos(midQuad), 0.2, 0.65 * R * Math.sin(midQuad));
         const isActive = q === quadIndex;
         if (isActive) {
           this.currentLabels.push({
@@ -4032,7 +4044,9 @@ export class TangentRadius3DView extends BaseScene3DView {
       const prim = activeTangents[0];
       const cosVal = Math.cos(primaryAng);
       const sinVal = Math.sin(primaryAng);
-      const Tx = new THREE.Vector3(R * cosVal, 0, 0);
+      const Tx = isSolid
+        ? O.clone().addScaledVector(uFrame, R * cosVal)
+        : new THREE.Vector3(R * cosVal, 0, 0);
 
       // Horizontal line O to Tx (cos θ)
       this.lineCos.geometry.setFromPoints([O, Tx]);
@@ -4051,7 +4065,9 @@ export class TangentRadius3DView extends BaseScene3DView {
       this.markerTx.visible = true;
 
       // Angle θ wedge at O subtended from +X axis to primary radius OT
-      const refX = new THREE.Vector3(R * 0.35, 0, 0);
+      const refX = isSolid
+        ? O.clone().addScaledVector(uFrame, R * 0.35)
+        : new THREE.Vector3(R * 0.35, 0, 0);
       setAngleWedgeVertices3D(this.trigAngleWedgeMesh, O, refX, prim.pos, R * 0.35, 32, THREE, false);
       this.trigAngleWedgeMesh.visible = true;
 
@@ -4060,7 +4076,9 @@ export class TangentRadius3DView extends BaseScene3DView {
       if (isSecantFinite) {
         const secVal = 1 / cosVal;
         const clampedSecX = Math.min(Math.max(R * secVal, -3.5 * R), 3.5 * R);
-        const Sx = new THREE.Vector3(clampedSecX, 0, 0);
+        const Sx = isSolid
+          ? O.clone().addScaledVector(uFrame, clampedSecX)
+          : new THREE.Vector3(clampedSecX, 0, 0);
 
         this.markerSx.position.copy(Sx);
         this.markerSx.visible = true;
@@ -4441,6 +4459,12 @@ export class AlternateSegment3DView extends BaseScene3DView {
       const dAngA = ((state.angleA - state.angleT) % TAU + TAU) % TAU;
       const dAngB = ((state.angleB - state.angleT) % TAU + TAU) % TAU;
       arcRange = getSubtendedArcRange3D(0, dAngA, dAngB);
+      segStart = (arcRange.start + arcRange.sweep) % TAU;
+      segSweep = TAU - arcRange.sweep;
+      setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE);
+      setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE);
+    } else if (isSolid) {
+      arcRange = getSubtendedArcRange3D(state.angleT, state.angleA, state.angleB);
       segStart = (arcRange.start + arcRange.sweep) % TAU;
       segSweep = TAU - arcRange.sweep;
       setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE);
@@ -5161,7 +5185,11 @@ export class ChordBisector3DView extends BaseScene3DView {
       this.bisectorGreatCircle.visible = false;
 
       const { start, sweep } = getMinorArcRange3D(state.angleA, state.angleB);
-      setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, start, sweep);
+      if (isSolid) {
+        setSegment3DVertices(this.segmentMesh.geometry, O, uFrame, vFrame, R, start, sweep, 32, THREE);
+      } else {
+        setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, start, sweep);
+      }
       this.segmentMesh.visible = showArea;
     }
 

@@ -233,11 +233,28 @@ test('Coupled rigid lockstep rotation: spinning or tilting the cylinder moves al
   assert.ok(Math.abs(dCA1 - dCA0) < 1e-6, 'chord |CA| remains invariant under coupled rotation');
 });
 
-test('Solid 3D UI controls: orientation sliders (tilt, azimuth, spin) and reset button in circle-core', () => {
-  const core = read('js/circle-core.js');
-  assert.ok(core.includes('id="solid-orientation-controls"'), 'mounts solid orientation subpanel');
-  assert.ok(core.includes('id="slider-solid-tilt"'), 'mounts solid tilt polar phi slider');
-  assert.ok(core.includes('id="slider-solid-azimuth"'), 'mounts solid azimuth theta slider');
-  assert.ok(core.includes('id="slider-solid-spin"'), 'mounts solid coupled spin psi slider');
-  assert.ok(core.includes('id="btn-reset-solid-orientation"'), 'mounts reset solid orientation button');
+test('Solid 3D UI controls: orientation sliders (tilt, azimuth, spin) and reset button in circle-core and trig-core', () => {
+  const circleCore = read('js/circle-core.js');
+  assert.ok(circleCore.includes('id="solid-orientation-controls"'), 'circle-core mounts solid orientation subpanel');
+  assert.ok(circleCore.includes('id="slider-solid-tilt"'), 'circle-core mounts solid tilt polar phi slider');
+  assert.ok(circleCore.includes('id="slider-solid-azimuth"'), 'circle-core mounts solid azimuth theta slider');
+  assert.ok(circleCore.includes('id="slider-solid-spin"'), 'circle-core mounts solid coupled spin psi slider');
+  assert.ok(circleCore.includes('id="btn-reset-solid-orientation"'), 'circle-core mounts reset solid orientation button');
+
+  const trigCore = read('visuals/trigonometry/js/trig-core.js');
+  assert.ok(trigCore.includes('solid-orientation-controls'), 'trig-core mounts solid orientation subpanel');
+  assert.ok(trigCore.includes('id="slider-solid-tilt"'), 'trig-core mounts solid tilt polar phi slider');
+  assert.ok(trigCore.includes('id="slider-solid-azimuth"'), 'trig-core mounts solid azimuth theta slider');
+  assert.ok(trigCore.includes('id="slider-solid-spin"'), 'trig-core mounts solid coupled spin psi slider');
+  assert.ok(trigCore.includes('id="btn-reset-solid-orientation"'), 'trig-core mounts reset solid orientation button');
+  assert.ok(trigCore.includes('getSolidOrientationFrame'), 'trig-core imports and uses getSolidOrientationFrame');
+});
+
+test('Trigonometry visualizers support true 3D Solid mode orientation across all 4 modules', () => {
+  const trigCore = read('visuals/trigonometry/js/trig-core.js');
+  assert.ok(trigCore.includes("visualId === 'unit-circle-helix'"), 'unit-circle-helix present');
+  assert.ok(trigCore.includes("getSolidOrientationFrame(state, 'y', THREE)"), 'uses orientation frame in unit-circle-helix, law-of-sines, law-of-cosines, angle-sum');
+  const solidOccurrences = trigCore.match(/isSolidMode\(state\.dimensionMode\)/g);
+  assert.ok(solidOccurrences && solidOccurrences.length >= 3, 'all 3 theorem renderers check isSolidMode');
+  assert.ok(trigCore.includes('const isSolid = isSolidMode(state.dimensionMode);'), 'unit-circle-helix checks isSolidMode');
 });
