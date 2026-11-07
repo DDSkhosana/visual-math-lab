@@ -3686,18 +3686,18 @@ export class TangentRadius3DView extends BaseScene3DView {
 
     const isSolid = isSolidMode(state.dimensionMode);
     const isOriented3D = isSolid || isSpatial;
-    let primNormal, u, v;
+    let primNormal, uFrame, vFrame;
     if (isOriented3D) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       primNormal = frame.normal;
-      u = frame.u;
-      v = frame.v;
-      this.circleInfo = { normal: primNormal, center: O, radius: R, u, v };
+      uFrame = frame.u;
+      vFrame = frame.v;
+      this.circleInfo = { normal: primNormal, center: O, radius: R, u: uFrame, v: vFrame };
     } else {
       primNormal = new THREE.Vector3(0, 1, 0);
-      u = new THREE.Vector3(1, 0, 0);
-      v = new THREE.Vector3(0, 0, 1);
-      this.circleInfo = { normal: primNormal, center: O, radius: R, u, v };
+      uFrame = new THREE.Vector3(1, 0, 0);
+      vFrame = new THREE.Vector3(0, 0, 1);
+      this.circleInfo = { normal: primNormal, center: O, radius: R, u: uFrame, v: vFrame };
     }
     alignCircleWireToPlane(this.circleWire, primNormal, O, R, THREE);
 
@@ -3714,7 +3714,7 @@ export class TangentRadius3DView extends BaseScene3DView {
         }
         setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE);
       } else if (isSolid) {
-        setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE);
+        setSector3DVertices(this.quadrantMesh.geometry, O, uFrame, vFrame, R, quadStart, Math.PI / 2, 32, THREE);
       } else {
         setSectorXZVertices(this.quadrantMesh.geometry, 0, 0, R, quadStart, Math.PI / 2, 32);
       }
@@ -3778,7 +3778,7 @@ export class TangentRadius3DView extends BaseScene3DView {
         const rightAngleAt = get3DAngleBisector(T, corner1, corner3, 3.0, THREE);
         const reflexAngleAt = get3DReflexBisector(T, corner1, corner3, 3.8, THREE);
         const name = count === 1 ? 'T' : `T${i + 1}`;
-        activeTangents.push({ index: i, name, pos: T, angle: normAngle(ang), rightAngleAt, reflexAngleAt });
+        activeTangents.push({ index: i, name, pos: T, tanDir, angle: normAngle(ang), rightAngleAt, reflexAngleAt });
       } else {
         this.tangentMarkers[i].visible = false;
         this.radiiLines[i].visible = false;
@@ -4111,6 +4111,9 @@ export class TangentRadius3DView extends BaseScene3DView {
     }
 
     this.currentLabels.push(...chordLabels);
+
+    const primT = activeTangents[0]?.pos || O;
+    const primTanDir = activeTangents[0]?.tanDir || new THREE.Vector3(1, 0, 0);
 
     this.lastComputed3D = {
       T: primT,
