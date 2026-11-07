@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Tangent-Radius Perpendicularity | Visual Mathematics Lab</title>
   <meta name="description" content="Investigate why a tangent to a circle is perpendicular to the radius at the point of contact with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="tangent radius perpendicularity, tangent theorem, circle theorems, Euclidean geometry, orthogonality, 3D math proof">

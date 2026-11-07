@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Alternate Segment Theorem | Visual Mathematics Lab</title>
   <meta name="description" content="Visualize how the angle between a tangent and a chord equals the angle subtended in the alternate segment with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="alternate segment theorem, tangent chord theorem, inscribed angle, circle theorems, Euclidean geometry, 3D math proof">

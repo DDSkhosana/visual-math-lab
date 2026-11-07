@@ -47,8 +47,18 @@ export function handleRequest(req, res, rootDir = ROOT) {
     return;
   }
 
-  // If directory, look for index.html
+  // If directory, ensure trailing slash with 301 redirect, then look for index.html
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+    const cleanPath = decodedUrl.split('?')[0];
+    if (!cleanPath.endsWith('/')) {
+      const search = new URL(req.url, `http://${req.headers?.host || 'localhost'}`).search;
+      res.writeHead(301, {
+        Location: cleanPath + '/' + search,
+        'Content-Type': 'text/plain; charset=utf-8'
+      });
+      res.end('Redirecting to directory path with trailing slash');
+      return;
+    }
     filePath = path.join(filePath, 'index.html');
   }
 

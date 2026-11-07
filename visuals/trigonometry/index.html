@@ -5,6 +5,11 @@
   <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Trigonometry Suite | Visual Mathematics Lab</title>
   <meta name="description" content="Interactive 2D and 3D Trigonometry Suite: Unit Circle & 3D Helix Waves, Law of Sines, Law of Cosines, and Angle Sum Rotation Matrix Identities.">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/unit-circle-helix-thumbnail.svg">

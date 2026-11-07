@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Perpendicular Chord Bisector | Visual Mathematics Lab</title>
   <meta name="description" content="Explore why the perpendicular from the centre of a circle to a chord bisects the chord with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="perpendicular chord bisector, circle theorems, chord bisection, Euclidean geometry, isosceles triangle, 3D math proof">

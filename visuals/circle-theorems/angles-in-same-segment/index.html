@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Angles in the Same Segment | Visual Mathematics Lab</title>
   <meta name="description" content="Explore how angles subtended by the same chord or arc in the same segment of a circle are equal with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="angles in the same segment, inscribed angles, circle theorems, Euclidean geometry, chord subtended angles, 3D math proof">

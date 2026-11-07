@@ -5,6 +5,11 @@
   <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Angle-Sum &amp; Rotation Matrix Homomorphism | Visual Mathematics Lab</title>
   <meta name="description" content="Discover why composing 2D rotation matrices R(α)R(β) = R(α + β) directly generates the cosine and sine addition and subtraction identities.">
   <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/trigonometry/angle-sum-identities/">

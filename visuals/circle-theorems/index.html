@@ -5,6 +5,11 @@
   <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Circle Theorems Suite | Visual Mathematics Lab</title>
   <meta name="description" content="Interactive 2D and 3D Euclidean & Affine Circle Theorems Suite — Thales' Theorem, Angle at the Centre, Same Segment, Cyclic Quadrilateral, Tangents, Alternate Segment, and Chord Bisector.">
   <link rel="icon" type="image/svg+xml" href="../../assets/images/thales-thumbnail.svg">

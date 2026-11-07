@@ -106,7 +106,7 @@
 }
 
 .stats-body.hidden {
-    display: none;
+    display: none !important;
 }
 
 .stat-line {

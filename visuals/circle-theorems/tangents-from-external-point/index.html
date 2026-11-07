@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Tangents from an External Point | Visual Mathematics Lab</title>
   <meta name="description" content="Discover why the two tangents drawn from an external point to a circle are equal in length and subtend equal angles at the centre with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="tangents from external point, circle theorems, tangent theorem, Euclidean geometry, congruent triangles, 3D math proof">

@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Thales' Theorem | Visual Mathematics Lab</title>
   <meta name="description" content="Explore why an angle subtended by a diameter is always a right angle with interactive 2D and 3D Euclidean geometry visualisations, live derivations, and real-time invariants.">
   <meta name="keywords" content="Thales' theorem, circle theorems, Euclidean geometry, right triangle, semicircle angle, 3D geometry proof, interactive math">

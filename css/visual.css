@@ -436,6 +436,10 @@ html, body {
   overflow-y: auto !important;
 }
 
+.stats-body.hidden {
+  display: none !important;
+}
+
 .stats-header {
   display: flex !important;
   align-items: center !important;
@@ -2473,8 +2477,22 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   gap: 0.35rem;
 }
 
+.viewmode-segmented-group {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.viewmode-segmented-group .btn {
+  white-space: nowrap !important;
+}
+
 .viewport-header-toolbar:not(.is-collapsed).is-reflow-vertical .viewmode-segmented-group {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   width: 100%;
 }
 
@@ -2482,6 +2500,7 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   flex: 1 1 0;
   justify-content: center;
   text-align: center;
+  white-space: nowrap !important;
 }
 
 .viewport-header-toolbar:not(.is-collapsed).is-reflow-vertical .btn-toolbar {

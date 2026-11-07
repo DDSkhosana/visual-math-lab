@@ -5,6 +5,11 @@
   <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Law of Sines &amp; Circumcircle Invariant | Visual Mathematics Lab</title>
   <meta name="description" content="Verify why the ratio of any triangle chord to the sine of its opposite inscribed angle equals the circumcircle diameter 2R in 2D and 3D.">
   <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/trigonometry/law-of-sines/">

@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
   <title>Angle at the Centre Theorem | Visual Mathematics Lab</title>
   <meta name="description" content="Demonstrate that the angle subtended by an arc at the centre is twice the angle subtended at the circumference with interactive 2D and 3D Euclidean geometry.">
   <meta name="keywords" content="angle at the centre theorem, inscribed angle theorem, central angle, circle theorems, Euclidean geometry, 3D math proof">
