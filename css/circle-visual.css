@@ -546,6 +546,10 @@ body.header-collapsed .circle-explorer {
   right: calc(var(--dock-size, 380px) + 1rem);
 }
 
+.has-workspace-dock[data-dock-edge="top"]:not(.dock-is-collapsed) .camera-presets-bar {
+  top: calc(var(--dock-size, 340px) + 1rem);
+}
+
 .viewport-header-toolbar.is-dragging {
   cursor: grabbing !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);

@@ -2586,6 +2586,10 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   right: calc(var(--dock-size, 380px) + 1rem);
 }
 
+.has-workspace-dock[data-dock-edge="top"]:not(.dock-is-collapsed) .camera-presets-bar {
+  top: calc(var(--dock-size, 340px) + 1rem);
+}
+
 /* Floating Shareable Permalink Toast */
 .vml-toast {
   position: fixed;

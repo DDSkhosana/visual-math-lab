@@ -124,9 +124,9 @@ export class WorkspaceDockManager {
 
       const titleGroup = this.doc.createElement('div');
       titleGroup.className = 'dock-title-group';
-      titleGroup.title = 'Workspace Window Manager (Drag when collapsed, double-click to reset)';
+      titleGroup.title = 'Workspace Window Manager (Drag dock header to snap to any margin, click arrow buttons to switch, double-click to collapse/expand)';
       titleGroup.innerHTML = `
-        <span class="dock-drag-handle" title="Drag to reposition capsule pill" aria-hidden="true">
+        <span class="dock-drag-handle" title="Drag dock to snap to any margin (Left, Right, Top, Bottom)" aria-hidden="true">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/>
             <circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/>
@@ -266,7 +266,7 @@ export class WorkspaceDockManager {
 
     this.#bindDockHeaderEvents();
     this.#bindDockResizer();
-    this.#bindCollapsedDockDrag();
+    this.#bindDockHeaderDrag();
   }
 
   #createBreadcrumbBar() {
@@ -351,10 +351,15 @@ export class WorkspaceDockManager {
     // 1. Edge buttons
     const edgeBtns = this.dockElement.querySelectorAll('.dock-edge-btn');
     edgeBtns.forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      const handleEdge = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         const edge = btn.getAttribute('data-edge');
-        this.setDockEdge(edge);
+        if (edge) this.setDockEdge(edge);
+      };
+      btn.addEventListener('click', handleEdge);
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
       });
     });
 
@@ -413,32 +418,38 @@ export class WorkspaceDockManager {
       header.addEventListener('click', (e) => {
         if (this.isCollapsed && !e.target.closest('button')) {
           if (this.dockElement.classList.contains('is-dragging')) return;
-          if (this._lastDragReleaseTime && (Date.now() - this._lastDragReleaseTime < 350)) return;
+          if (this._justDragged) {
+            this._justDragged = false;
+            return;
+          }
           this.setDockCollapsed(false);
         }
       });
       header.addEventListener('dblclick', (e) => {
+        if (e.target.closest('button, input, select, a')) return;
+        e.stopPropagation();
         if (this.isCollapsed) {
-          e.stopPropagation();
           const initX = 16;
           const initY = 56;
           this.dockElement.style.left = `${initX}px`;
           this.dockElement.style.top = `${initY}px`;
           this.collapsedPos = { x: initX, y: initY };
           this.#persistState();
+        } else {
+          this.setDockCollapsed(true);
         }
       });
     }
   }
 
-  #bindCollapsedDockDrag() {
+  #bindDockHeaderDrag() {
     const header = this.dockElement.querySelector('.workspace-dock-header');
     if (!header) return;
 
     header.addEventListener('pointerdown', (e) => {
-      if (!this.isCollapsed) return;
-      if (e.target.closest('button, input, select, a')) return;
+      if (e.target.closest('button, input, select, a, textarea')) return;
       e.preventDefault();
+      this._justDragged = false;
       try {
         if (header.setPointerCapture) header.setPointerCapture(e.pointerId);
       } catch (_) {}
@@ -452,6 +463,8 @@ export class WorkspaceDockManager {
       const startTop = dockRect.top - parentRect.top;
 
       let hasDragged = false;
+      let lastDragPos = { x: startLeft, y: startTop };
+      let lastPointerPos = { x: startX, y: startY };
 
       const onMove = (moveEv) => {
         const dx = moveEv.clientX - startX;
@@ -462,8 +475,8 @@ export class WorkspaceDockManager {
         }
         if (!hasDragged) return;
 
-        const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
-        const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
+        const maxLeft = Math.max(0, parentRect.width - (this.isCollapsed ? (dockRect.width || 120) : Math.min(dockRect.width || 380, parentRect.width * 0.8)));
+        const maxTop = Math.max(0, parentRect.height - (this.isCollapsed ? (dockRect.height || 40) : Math.min(dockRect.height || 340, parentRect.height * 0.8)));
 
         const nextX = clamp(startLeft + dx, 0, maxLeft);
         const nextY = clamp(startTop + dy, 0, maxTop);
@@ -473,7 +486,11 @@ export class WorkspaceDockManager {
         this.dockElement.style.right = 'auto';
         this.dockElement.style.bottom = 'auto';
 
-        this.collapsedPos = { x: nextX, y: nextY };
+        lastDragPos = { x: nextX, y: nextY };
+        lastPointerPos = { x: moveEv.clientX, y: moveEv.clientY };
+        if (this.isCollapsed) {
+          this.collapsedPos = { x: nextX, y: nextY };
+        }
       };
 
       const onUp = (upEv) => {
@@ -488,43 +505,73 @@ export class WorkspaceDockManager {
         this.win?.removeEventListener?.('pointercancel', onUp);
 
         if (hasDragged) {
-          this._lastDragReleaseTime = Date.now();
-          // Magnetic edge snapping (within 24px of edge) using quadratic potential well
-          const snapMargin = 12;
-          const snapDist = 24;
-          const maxLeft = Math.max(0, parentRect.width - (dockRect.width || 120));
-          const maxTop = Math.max(0, parentRect.height - (dockRect.height || 40));
-          let { x, y } = this.collapsedPos;
-          const oldX = x;
-          const oldY = y;
-          x = computeEdgeSnapTarget(x, 0, maxLeft, snapDist, snapMargin);
-          y = computeEdgeSnapTarget(y, 0, maxTop, snapDist, snapMargin);
+          const maxLeft = Math.max(0, parentRect.width - (this.isCollapsed ? (dockRect.width || 120) : Math.min(dockRect.width || 380, parentRect.width * 0.8)));
+          const maxTop = Math.max(0, parentRect.height - (this.isCollapsed ? (dockRect.height || 40) : Math.min(dockRect.height || 340, parentRect.height * 0.8)));
 
-          this.collapsedPos = { x, y };
-          if (oldX !== x || oldY !== y) {
-            this.dockElement.style.transition = 'left 0.18s cubic-bezier(0.16, 1, 0.3, 1), top 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
-            this.dockElement.style.left = `${x}px`;
-            this.dockElement.style.top = `${y}px`;
-            setTimeout(() => {
-              if (this.dockElement) this.dockElement.style.transition = '';
-            }, 200);
-          } else {
-            this.dockElement.style.left = `${x}px`;
-            this.dockElement.style.top = `${y}px`;
-          }
+          if (this.isCollapsed) {
+            this._justDragged = true;
+            setTimeout(() => { this._justDragged = false; }, 350);
+            const snapMargin = 12;
+            const snapDist = 24;
+            let { x, y } = this.collapsedPos || lastDragPos;
+            const oldX = x;
+            const oldY = y;
+            x = computeEdgeSnapTarget(x, 0, maxLeft, snapDist, snapMargin);
+            y = computeEdgeSnapTarget(y, 0, maxTop, snapDist, snapMargin);
 
-          // If dragged near a margin boundary, magnetically dock to that margin
-          const dists = [
-            { edge: 'left', dist: x },
-            { edge: 'right', dist: maxLeft - x },
-            { edge: 'top', dist: y },
-            { edge: 'bottom', dist: maxTop - y },
-          ];
-          dists.sort((a, b) => a.dist - b.dist);
-          if (dists[0].dist <= snapDist) {
-            this.setDockEdge(dists[0].edge);
+            this.collapsedPos = { x, y };
+            if (oldX !== x || oldY !== y) {
+              this.dockElement.style.transition = 'left 0.18s cubic-bezier(0.16, 1, 0.3, 1), top 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
+              this.dockElement.style.left = `${x}px`;
+              this.dockElement.style.top = `${y}px`;
+              setTimeout(() => {
+                if (this.dockElement) this.dockElement.style.transition = '';
+              }, 200);
+            } else {
+              this.dockElement.style.left = `${x}px`;
+              this.dockElement.style.top = `${y}px`;
+            }
+
+            // If dragged near a margin boundary, magnetically dock to that margin
+            const edgeDists = [
+              { edge: 'left', dist: x },
+              { edge: 'right', dist: maxLeft - x },
+              { edge: 'top', dist: y },
+              { edge: 'bottom', dist: maxTop - y },
+            ];
+            edgeDists.sort((a, b) => a.dist - b.dist);
+            if (edgeDists[0].dist <= snapDist) {
+              this.setDockEdge(edgeDists[0].edge);
+            } else {
+              this.#persistState();
+            }
           } else {
-            this.#persistState();
+            // When expanded, dragging the dock header magnetically docks to the closest/dragged margin
+            const dxTotal = lastPointerPos.x - startX;
+            const dyTotal = lastPointerPos.y - startY;
+            let targetEdge = null;
+            if (Math.hypot(dxTotal, dyTotal) > 30) {
+              if (Math.abs(dxTotal) > Math.abs(dyTotal)) {
+                targetEdge = dxTotal > 0 ? 'right' : 'left';
+              } else {
+                targetEdge = dyTotal > 0 ? 'bottom' : 'top';
+              }
+            } else {
+              const pLeft = parentRect.left || 0;
+              const pTop = parentRect.top || 0;
+              const pRight = parentRect.right || (pLeft + (parentRect.width || 1000));
+              const pBottom = parentRect.bottom || (pTop + (parentRect.height || 700));
+
+              const dists = [
+                { edge: 'left', dist: Math.max(0, lastPointerPos.x - pLeft) },
+                { edge: 'right', dist: Math.max(0, pRight - lastPointerPos.x) },
+                { edge: 'top', dist: Math.max(0, lastPointerPos.y - pTop) },
+                { edge: 'bottom', dist: Math.max(0, pBottom - lastPointerPos.y) },
+              ];
+              dists.sort((a, b) => a.dist - b.dist);
+              targetEdge = dists[0].edge;
+            }
+            this.setDockEdge(targetEdge);
           }
         }
       };
@@ -643,7 +690,7 @@ export class WorkspaceDockManager {
       btn.setAttribute('aria-pressed', String(isActive));
     });
 
-    // Synchronize collapsed position with the new dock edge margin
+    // Synchronize collapsed position with the new dock edge margin if not already set by user
     if (!this.collapsedPos) {
       const parentRect = this.root?.getBoundingClientRect?.() || { width: 1000, height: 700 };
       let initX = 16;

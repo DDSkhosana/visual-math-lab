@@ -3721,3 +3721,60 @@ test('WorkspaceDockManager: Dock Panel Docks in All Margins (Left, Right, Top, B
   assert.ok(css.includes('[data-dock-edge="bottom"] .workspace-dock'));
   assert.ok(css.includes('.dock-edge-switcher {') && !css.includes('.dock-edge-switcher {\n    display: none !important;'));
 });
+
+test('WorkspaceDockManager: Expanded Dock is Freely Draggable to Any Margin and Supports Edge Buttons', () => {
+  globalThis.localStorage?.clear?.();
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+  const panel = new MockDOMElement('div', 'ui-panel', 'test-expanded-panel');
+  panel.appendChild(new MockDOMElement('div', 'panel-header'));
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+  assert.strictEqual(dock.isCollapsed, false, 'Dock must start expanded');
+  assert.strictEqual(dock.dockEdge, 'left', 'Dock default edge must be left');
+
+  // 1. Dragging expanded dock header towards right margin moves and docks to right
+  const dockHeader = dock.dockElement.querySelector('.workspace-dock-header');
+  root.getBoundingClientRect = () => ({ top: 0, left: 0, width: 1000, height: 700 });
+  dock.dockElement.getBoundingClientRect = () => ({ top: 0, left: 0, width: 380, height: 700 });
+
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 50, clientY: 20, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 900, clientY: 20 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'right', 'Dragging expanded dock to right edge must magnetically dock it to right');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'right');
+
+  // 2. Dragging expanded dock towards top margin
+  dock.dockElement.getBoundingClientRect = () => ({ top: 0, left: 620, width: 380, height: 700 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 700, clientY: 500, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 700, clientY: 10 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'top', 'Dragging expanded dock to top edge must magnetically dock it to top');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'top');
+
+  // 3. Dragging expanded dock towards bottom margin
+  dock.dockElement.getBoundingClientRect = () => ({ top: 0, left: 0, width: 1000, height: 340 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 500, clientY: 50, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 500, clientY: 670 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'bottom', 'Dragging expanded dock to bottom edge must magnetically dock it to bottom');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'bottom');
+
+  // 4. Clicking edge switcher buttons [ ⬅ | ➡ | ⬆ | ⬇ ] immediately docks to that edge
+  const leftBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="left"]');
+  leftBtn.dispatchEvent({ type: 'click', target: leftBtn, stopPropagation: () => {}, preventDefault: () => {} });
+  assert.strictEqual(dock.dockEdge, 'left', 'Clicking left edge button must immediately dock to left');
+
+  const rightBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="right"]');
+  rightBtn.dispatchEvent({ type: 'click', target: rightBtn, stopPropagation: () => {}, preventDefault: () => {} });
+  assert.strictEqual(dock.dockEdge, 'right', 'Clicking right edge button must immediately dock to right');
+
+  // 5. Double clicking header toggles collapse
+  dockHeader.dispatchEvent({ type: 'dblclick', target: dockHeader, stopPropagation: () => {} });
+  assert.strictEqual(dock.isCollapsed, true, 'Double-clicking expanded dock header must collapse it');
+
+  dockHeader.dispatchEvent({ type: 'click', target: dockHeader, stopPropagation: () => {} });
+  assert.strictEqual(dock.isCollapsed, false, 'Clicking collapsed header without drag must expand it');
+});
