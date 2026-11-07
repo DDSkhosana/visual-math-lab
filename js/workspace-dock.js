@@ -65,7 +65,10 @@ export class WorkspaceDockManager {
     this.root = rootContainer || (this.doc ? (this.doc.querySelector('.circle-explorer') || this.doc.querySelector('.thales-explorer') || this.doc.body) : null);
     this.options = options;
     this.dockEdge = 'left'; // 'left' | 'right' | 'top' | 'bottom'
-    this.isCollapsed = false;
+    const startCollapsed = options.defaultCollapsed !== undefined
+      ? Boolean(options.defaultCollapsed)
+      : Boolean(options.startCollapsed);
+    this.isCollapsed = startCollapsed;
     this.collapsedPos = null; // { x, y }
     this._hasUserDraggedCollapsedPos = false;
     this.dockSizeVertical = 380; // px
@@ -81,6 +84,9 @@ export class WorkspaceDockManager {
 
     if (this.root && this.doc) {
       this.#initContainers();
+      if (this.isCollapsed) {
+        this.setDockCollapsed(true);
+      }
       this.#loadPersistedState();
       this.deduceViewport();
       this.#discoverAndRegisterPanels();
@@ -2273,7 +2279,11 @@ export class WorkspaceDockManager {
         this.collapsedPos = data.collapsedPos;
         this._hasUserDraggedCollapsedPos = true;
       }
-      if (data.isCollapsed !== undefined) this.setDockCollapsed(data.isCollapsed);
+      if (data.isCollapsed !== undefined) {
+        this.setDockCollapsed(data.isCollapsed);
+      } else if (this.options?.defaultCollapsed || this.options?.startCollapsed) {
+        this.setDockCollapsed(true);
+      }
       this.savedPanelStates = data.panels || {};
     } catch (_) {}
   }
@@ -2283,7 +2293,8 @@ export class WorkspaceDockManager {
  * Convenience helper to initialize the workspace dock manager across any visual page.
  */
 export function initWorkspaceDock(root = null, options = {}) {
-  return new WorkspaceDockManager(root, options);
+  const mergedOptions = { defaultCollapsed: true, ...options };
+  return new WorkspaceDockManager(root, mergedOptions);
 }
 
 /**
@@ -2659,7 +2670,8 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         if (wheelEv.target?.closest?.('select')) return;
         const subs = deck._openSubpanels || [];
         if (subs.length <= 1) return;
-        wheelEv.preventDefault?.();
+
+        if (wheelEv.cancelable) wheelEv.preventDefault?.();
         wheelEv.stopPropagation?.();
         const now = Date.now();
         if (deck._lastWheelTime && (now - deck._lastWheelTime < 180)) return;

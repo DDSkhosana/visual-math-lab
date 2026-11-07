@@ -61,12 +61,8 @@ export class Scene3DInteraction {
     } else if (event.pointerType !== 'touch' && this.scene.hitsCircumference?.(this.store.get().radius, event)) {
       const st = this.store.get();
       if ((st.dimensionMode === 'solid' || st.dimensionMode === 'spatial') && !(event.ctrlKey || event.metaKey)) {
-        this.activeTarget = 'solidSpin';
-        const hit = this.scene.pickBaselinePlane?.();
-        const u = this.scene.circleInfo?.u;
-        const v = this.scene.circleInfo?.v;
-        this.spinStartAngle = (hit && u && v) ? Math.atan2(hit.dot(v), hit.dot(u)) : 0;
-        this.spinInitial = st.solidSpin || 0;
+        // In Solid 3D and Spatial modes, allow omnidirectional tumbling of the 3D canvas via controls
+        return;
       } else {
         this.activeTarget = 'radius';
       }
@@ -110,7 +106,9 @@ export class Scene3DInteraction {
 
     if (!this.dragging) {
       if (this.scene.domElement) {
-        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB) ? 'pointer' : (hoverCirc ? 'ew-resize' : (event.altKey ? 'alias' : 'grab'));
+        const isOriented = this.store.get().dimensionMode === 'solid' || this.store.get().dimensionMode === 'spatial';
+        const circCursor = (isOriented && !(event.ctrlKey || event.metaKey)) ? 'grab' : 'ew-resize';
+        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB) ? 'pointer' : (hoverCirc ? circCursor : (event.altKey ? 'alias' : 'grab'));
       }
       return;
     }

@@ -269,7 +269,11 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 .viewmode-segmented-group {
-    display: inline-flex;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
     align-items: center;
     gap: 2px;
     background: rgba(30, 41, 59, 0.7);
@@ -279,6 +283,8 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
 }
 
 .viewmode-segmented-group .btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
     background-color: transparent;
     color: #94a3b8;
     padding: 0.3rem 0.65rem;

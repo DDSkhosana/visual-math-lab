@@ -1141,19 +1141,8 @@ export class BaseScene3DView {
         if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
           const st = store.get();
           if (isOriented3D && !(e.ctrlKey || e.metaKey)) {
-            const dHit = eqHit ? new this.THREE.Vector3().subVectors(eqHit, cCenter) : null;
-            const startAngle = (dHit && this.circleInfo?.u && this.circleInfo?.v)
-              ? Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u))
-              : (dHit ? Math.atan2(dHit.z, dHit.x) : 0);
-            activeTarget = {
-              isSolidSpin: true,
-              startAngle,
-              initialSpin: st.solidSpin || 0,
-            };
-            this.controls.enabled = false;
-            element.style.cursor = 'grab';
-            try { element.setPointerCapture(e.pointerId); } catch (_) {}
-            e.stopPropagation();
+            // In Solid 3D & Spatial modes, dragging the circle rotates the 3D canvas omnidirectionally via ArcballTrackballControls.
+            // Direct radius resizing requires Ctrl/Meta + drag so 3D omnidirectional tumbling is never trapped or locked to a single axis.
           } else {
             const isTangentExt = Boolean(st.pointDist);
             const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
