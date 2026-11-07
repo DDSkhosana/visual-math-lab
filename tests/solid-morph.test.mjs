@@ -270,3 +270,45 @@ test('Omnidirectional 3D solid mode dragging: direct interaction on solid visual
   assert.ok(thales3D.includes('solidTilt: nextTilt'), 'Thales Scene3DInteraction updates solidTilt during omnidirectional drag');
   assert.ok(thales3D.includes('solidAzimuth: nextAzimuth'), 'Thales Scene3DInteraction updates solidAzimuth during omnidirectional drag');
 });
+
+test('Spatial mode 2D spherical surface draggability: all cases decouple Solid from Spatial and support 2-DOF dragging (lat & angle) on S²', () => {
+  const circle3D = read('js/circle-3d.js');
+
+  // 1. Tangent-Radius: points T, T2, T3, T4 draggable across full S² (latT, angleT)
+  assert.ok(circle3D.includes("{ id: 'T', mesh: this.tangentMarkers[0], field: 'angleT', latField: 'latT' }"), 'TangentRadius3DView equips T with latField latT');
+  assert.ok(circle3D.includes("R * Math.sin(lat) * Math.cos(ang)"), 'TangentRadius3DView computes T on S² via spherical lat & ang');
+
+  // 2. Perpendicular Chord Bisector: points A, B, and midpoint M draggable across full S²
+  assert.ok(circle3D.includes("latField: 'latA'"), 'ChordBisector3DView equips A with latField latA');
+  assert.ok(circle3D.includes("latField: 'latB'"), 'ChordBisector3DView equips B with latField latB');
+  assert.ok(circle3D.includes("updates.latA = lat;"), 'ChordBisector3DView updates latA in store on drag');
+  assert.ok(circle3D.includes("updates.latB = lat;"), 'ChordBisector3DView updates latB in store on drag');
+
+  // 3. Alternate Segment: points T, B, and D draggable across full S²
+  assert.ok(circle3D.includes("updates.latT = lat;"), 'AlternateSegment3DView updates latT in store on drag');
+  assert.ok(circle3D.includes("updates.latB = lat;"), 'AlternateSegment3DView updates latB in store on drag');
+
+  // 4. Tangents from Point: apex P draggable in 3D around S² (latP, pointAngle)
+  assert.ok(circle3D.includes("store.set({ pointAngle: angle, latP: lat });"), 'TangentsFromPoint3DView updates latP on drag');
+  assert.ok(circle3D.includes("d * Math.sin(latP) * Math.cos(angP)"), 'TangentsFromPoint3DView positions apex P in 3D spherical coordinates');
+
+  // 5. Angle at Centre: points P, A, B draggable across full S² and feed Girard excess
+  assert.ok(circle3D.includes("if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latP = lat;"), 'AngleAtCentre3DView updates latP on drag in spatial mode');
+  assert.ok(circle3D.includes("if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latA = lat;"), 'AngleAtCentre3DView updates latA on drag in spatial mode');
+  assert.ok(circle3D.includes("if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latB = lat;"), 'AngleAtCentre3DView updates latB on drag in spatial mode');
+
+  // 6. Thales: P draggable across full S² (lat3D, lon3D)
+  const thalesScene = read('visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js');
+  assert.ok(thalesScene.includes("sphericalToCartesian(r, lat, lon)"), 'Thales Scene3DView positions P on S²');
+  assert.ok(!thalesScene.includes("if (isSolid || isSpatial)"), 'Thales Scene3DView decouples isSolid from isSpatial');
+  const thalesInteraction = read('visuals/circle-theorems/thales-theorem/src/controllers/Scene3DInteraction.js');
+  assert.ok(thalesInteraction.includes("this.scene.pickSphere(st.baselineRotation || 0)"), 'Thales Scene3DInteraction picks S² in spatial mode');
+  assert.ok(thalesInteraction.includes("setSpherePoint(sph, st)"), 'Thales Scene3DInteraction updates sphere coordinates');
+
+  // 7. Trigonometry Suite: Law of Sines & Law of Cosines support full 2D surface dragging on S²
+  const trigCore = read('visuals/trigonometry/js/trig-core.js');
+  assert.ok(trigCore.includes("makeLawOfSinesTarget('A', this.handleA, 'angleA', 'latA')"), 'Law of Sines equips A with latA');
+  assert.ok(trigCore.includes("makeLawOfSinesTarget('B', this.handleB, 'angleB', 'latB')"), 'Law of Sines equips B with latB');
+  assert.ok(trigCore.includes("makeLawOfSinesTarget('C', this.handleC, 'angleC', 'latC')"), 'Law of Sines equips C with latC');
+  assert.ok(trigCore.includes("store.set({ colatC: colat, lonC: lon, solidTilt: colat, solidAzimuth: lon });"), 'Law of Cosines drags C over colatC and lonC on S²');
+});

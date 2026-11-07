@@ -2421,33 +2421,42 @@ export class AngleAtCentre3DView extends BaseScene3DView {
         id: 'P',
         mesh: this.markerP,
         field: 'angleP',
-        onDrag: (angle, hit, store) => {
+        latField: 'latP',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const targetAng = angle;
           const clamped = clampAngleInArc(targetAng, st.angleB, st.angleA, 0.15);
-          store.set({ angleP: clamped });
+          const updates = { angleP: clamped };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latP = lat;
+          store.set(updates);
         },
       },
       {
         id: 'A',
         mesh: this.markerA,
         field: 'angleA',
-        onDrag: (angle, hit, store) => {
+        latField: 'latA',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const targetAng = angle;
           const clamped = clampAngleInArc(targetAng, st.angleP, st.angleB, 0.2);
-          store.set({ angleA: clamped });
+          const updates = { angleA: clamped };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latA = lat;
+          store.set(updates);
         },
       },
       {
         id: 'B',
         mesh: this.markerB,
         field: 'angleB',
-        onDrag: (angle, hit, store) => {
+        latField: 'latB',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const targetAng = angle;
           const clamped = clampAngleInArc(targetAng, st.angleA, st.angleP, 0.2);
-          store.set({ angleB: clamped });
+          const updates = { angleB: clamped };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latB = lat;
+          store.set(updates);
         },
       },
     ];
@@ -2463,7 +2472,7 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const isSpatial = state.dimensionMode === 'spatial';
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P, circleInfo;
-    if (isSolid || isSpatial) {
+    if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const { u, v, normal } = frame;
       const toPt = (ang) => new THREE.Vector3()
@@ -2472,6 +2481,20 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       A = toPt(state.angleA);
       B = toPt(state.angleB);
       P = toPt(state.angleP);
+      circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
+    } else if (isSpatial) {
+      const latA = state.latA ?? (Math.PI / 2);
+      const latB = state.latB ?? (Math.PI / 2);
+      const latP = state.latP ?? (Math.PI / 2);
+      A = new THREE.Vector3(R * Math.sin(latA) * Math.cos(state.angleA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(state.angleA));
+      B = new THREE.Vector3(R * Math.sin(latB) * Math.cos(state.angleB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(state.angleB));
+      P = new THREE.Vector3(R * Math.sin(latP) * Math.cos(state.angleP), R * Math.cos(latP), R * Math.sin(latP) * Math.sin(state.angleP));
+      let normal = new THREE.Vector3().crossVectors(A, B);
+      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3().crossVectors(A, P);
+      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
+      normal.normalize();
+      const u = A.clone().normalize();
+      const v = normal.clone().cross(u).normalize();
       circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
     } else {
       A = new THREE.Vector3(R * Math.cos(state.angleA), 0, R * Math.sin(state.angleA));
@@ -3703,9 +3726,8 @@ export class TangentRadius3DView extends BaseScene3DView {
     const quadStart = quadIndex * (Math.PI / 2);
 
     const isSolid = isSolidMode(state.dimensionMode);
-    const isOriented3D = isSolid || isSpatial;
     let primNormal, uFrame, vFrame;
-    if (isOriented3D) {
+    if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       primNormal = frame.normal;
       uFrame = frame.u;
@@ -3750,21 +3772,25 @@ export class TangentRadius3DView extends BaseScene3DView {
         const ang = rawAngles[i];
         const lat = lats[i];
         let T, tanDir;
-        if (isOriented3D) {
+        if (isSolid) {
           T = O.clone().addScaledVector(uFrame, R * Math.cos(ang)).addScaledVector(vFrame, R * Math.sin(ang));
           tanDir = new THREE.Vector3().addScaledVector(uFrame, -Math.sin(ang)).addScaledVector(vFrame, Math.cos(ang)).normalize();
-        } else {
+        } else if (isSpatial) {
           T = new THREE.Vector3(
             R * Math.sin(lat) * Math.cos(ang),
             R * Math.cos(lat),
             R * Math.sin(lat) * Math.sin(ang)
           );
-          tanDir = new THREE.Vector3(-Math.sin(ang), 0, Math.cos(ang));
-          if (Math.abs(Math.sin(lat)) < 0.99) {
-            const radDir = T.clone().normalize();
-            tanDir = new THREE.Vector3(0, 1, 0).cross(radDir).normalize();
-            if (tanDir.lengthSq() < 0.01) tanDir = new THREE.Vector3(1, 0, 0).cross(radDir).normalize();
-          }
+          const radDir = T.clone().normalize();
+          tanDir = new THREE.Vector3(0, 1, 0).cross(radDir).normalize();
+          if (tanDir.lengthSq() < 0.01) tanDir = new THREE.Vector3(1, 0, 0).cross(radDir).normalize();
+        } else {
+          T = new THREE.Vector3(
+            R * Math.cos(ang),
+            0,
+            R * Math.sin(ang)
+          );
+          tanDir = new THREE.Vector3(-Math.sin(ang), 0, Math.cos(ang)).normalize();
         }
 
         this.tangentMarkers[i].position.copy(T);
@@ -4237,20 +4263,30 @@ export class AlternateSegment3DView extends BaseScene3DView {
         id: 'B',
         mesh: this.markerB,
         field: 'angleB',
-        onDrag: (angle, hit, store) => {
+        latField: 'latB',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const clampedB = clampAngleInArc(angle, st.angleT, st.angleA, 0.15);
-          store.set({ angleB: clampedB });
+          const updates = { angleB: clampedB };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) {
+            updates.latB = lat;
+          }
+          store.set(updates);
         },
       },
       {
         id: 'T',
         mesh: this.markerT,
         field: 'angleT',
-        onDrag: (angle, hit, store) => {
+        latField: 'latT',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const clampedT = clampAngleInArc(angle, st.angleA, st.angleB, 0.2);
-          store.set({ angleT: clampedT });
+          const updates = { angleT: clampedT };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) {
+            updates.latT = lat;
+          }
+          store.set(updates);
         },
       },
       {
@@ -4754,7 +4790,7 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const isSolid = isSolidMode(state.dimensionMode);
     let P, u, v, normal, T1, T2, K;
     const alpha = Math.acos(Math.min(1, Math.max(-1, R / d)));
-    if (isSolid || isSpatial) {
+    if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const uFrame = frame.u;
       const vFrame = frame.v;
@@ -4782,7 +4818,7 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       T1 = u.clone().multiplyScalar(R * Math.cos(alpha)).add(v.clone().multiplyScalar(R * Math.sin(alpha)));
       T2 = u.clone().multiplyScalar(R * Math.cos(alpha)).sub(v.clone().multiplyScalar(R * Math.sin(alpha)));
       K = u.clone().multiplyScalar(R * Math.cos(alpha));
-      this.circleInfo = { normal, center: O, radius: R, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
+      this.circleInfo = { normal, center: O, radius: R, u: isSpatial ? u : new THREE.Vector3(1, 0, 0), v: isSpatial ? v : new THREE.Vector3(0, 0, 1) };
     }
 
     this.markerO.position.copy(O);
@@ -4991,32 +5027,51 @@ export class ChordBisector3DView extends BaseScene3DView {
         id: 'A',
         mesh: this.markerA,
         field: 'angleA',
-        onDrag: (angle, hit, store) => {
+        latField: 'latA',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const clampedA = clampMinAngleDistance(angle, st.angleB, 0.2);
-          store.set({ angleA: clampedA });
+          const updates = { angleA: clampedA };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) {
+            updates.latA = lat;
+          }
+          store.set(updates);
         },
       },
       {
         id: 'B',
         mesh: this.markerB,
         field: 'angleB',
-        onDrag: (angle, hit, store) => {
+        latField: 'latB',
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const clampedB = clampMinAngleDistance(angle, st.angleA, 0.2);
-          store.set({ angleB: clampedB });
+          const updates = { angleB: clampedB };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) {
+            updates.latB = lat;
+          }
+          store.set(updates);
         },
       },
       {
         id: 'M',
         mesh: this.markerM,
-        onDrag: (angle, hit, store) => {
+        onDrag: (angle, hit, store, lat) => {
           const st = store.get();
           const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
           const TAU = Math.PI * 2;
           const nextA = (angle - dAngle / 2 + TAU * 2) % TAU;
           const nextB = (angle + dAngle / 2 + TAU * 2) % TAU;
-          store.set({ angleA: nextA, angleB: nextB });
+          const updates = { angleA: nextA, angleB: nextB };
+          if (st.dimensionMode === 'spatial' && lat !== undefined) {
+            const curLatA = st.latA ?? (Math.PI / 2);
+            const curLatB = st.latB ?? (Math.PI / 2);
+            const midLat = (curLatA + curLatB) / 2;
+            const deltaLat = lat - midLat;
+            updates.latA = Math.max(0.05, Math.min(Math.PI - 0.05, curLatA + deltaLat));
+            updates.latB = Math.max(0.05, Math.min(Math.PI - 0.05, curLatB + deltaLat));
+          }
+          store.set(updates);
         },
       },
     ];
@@ -5035,7 +5090,7 @@ export class ChordBisector3DView extends BaseScene3DView {
     const O = new THREE.Vector3(0, 0, 0);
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, M, normal, uFrame, vFrame;
-    if (isSolid || isSpatial) {
+    if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       uFrame = frame.u;
       vFrame = frame.v;
@@ -5064,9 +5119,9 @@ export class ChordBisector3DView extends BaseScene3DView {
       if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
       normal.normalize();
       alignCircleWireToPlane(this.circleWire, normal, O, R, THREE);
-      uFrame = new THREE.Vector3(1, 0, 0);
-      vFrame = new THREE.Vector3(0, 0, 1);
-      this.circleInfo = { normal, center: O, radius: R, u: uFrame, v: vFrame };
+      const u = isSpatial ? A.clone().normalize() : new THREE.Vector3(1, 0, 0);
+      const v = isSpatial ? normal.clone().cross(u).normalize() : new THREE.Vector3(0, 0, 1);
+      this.circleInfo = { normal, center: O, radius: R, u, v };
     }
 
     this.markerO.position.copy(O);

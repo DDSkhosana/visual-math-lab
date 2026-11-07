@@ -181,7 +181,7 @@ export class Scene3DInteraction {
       return;
     } else if (this.activeTarget === 'P') {
       const st = this.store.get();
-      if ((st.dimensionMode === 'solid' || st.dimensionMode === 'spatial') && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
+      if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
         const hit = this.scene.pickBaselinePlane?.();
         if (hit) {
           const u = this.scene.circleInfo.u;
@@ -221,7 +221,7 @@ export class Scene3DInteraction {
       if (hit) {
         const st = this.store.get();
         let ang;
-        if ((st.dimensionMode === 'solid' || st.dimensionMode === 'spatial') && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
+        if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
           const u = this.scene.circleInfo.u;
           const v = this.scene.circleInfo.v;
           ang = Math.atan2(hit.dot(v), hit.dot(u));

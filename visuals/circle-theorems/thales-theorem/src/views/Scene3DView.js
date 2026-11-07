@@ -129,7 +129,7 @@ export class Scene3DView {
     o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
     o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
 
-    if (isSolid || isSpatial) {
+    if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'z', THREE);
       const { u, v, normal } = frame;
       const cosR_val = Math.cos(rot);
