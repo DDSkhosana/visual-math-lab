@@ -1227,6 +1227,7 @@ test('WorkspaceDockManager: Comprehensive Step-by-Step User Interaction Pipeline
   assert.strictEqual(dock.dockSize, 340, 'Horizontal edge must use dockSizeHorizontal (340px)');
   assert.strictEqual(edgeTopBtn.classList.contains('active'), true);
   assert.strictEqual(edgeTopBtn.getAttribute('aria-pressed'), 'true');
+  assert.deepStrictEqual(dock.getEdgeDefaultCollapsedPos('top'), { x: 120, y: 16 }, 'Top edge collapsed pill must sit to the right of modes pill at x=120');
 
   const edgeRightBtn = dock.dockElement.querySelector('.dock-edge-btn[data-edge="right"]');
   edgeRightBtn.click();

@@ -692,7 +692,7 @@ export class WorkspaceDockManager {
       initX = 16;
       initY = Math.max(16, (parentRect.height || 700) - 48);
     } else if (edge === 'top') {
-      initX = 16;
+      initX = 120;
       initY = 16;
     } else if (edge === 'left') {
       initX = 16;

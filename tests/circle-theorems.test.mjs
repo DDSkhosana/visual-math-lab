@@ -2739,6 +2739,7 @@ test('3D Spatial Mode Euclidean Invariants: Straight Chords, Flat Triangles & Ge
   assert.ok(circle3DCode.includes('setTriVertices(this.triOPBMesh.geometry, O, P, B)'), 'AngleAtCentre3DView must build flat Euclidean triangle triOPBMesh');
   assert.ok(circle3DCode.includes('setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4)'), 'AngleAtCentre3DView must measure true Euclidean angle between straight chords');
   assert.ok(circle3DCode.includes('updateGeodesicArc3D(this.geodesicArcAB, A, B, R)'), 'AngleAtCentre3DView must update geodesic arc AB for the subtended arc on S²');
+  assert.ok(circle3DCode.includes('const psiB = norm(Math.atan2(B.dot(circleInfo.v), B.dot(circleInfo.u)));'), 'AngleAtCentre3DView must calculate true 3D spatial arc range for 2theta sector shading');
 
   // 2. AnglesInSameSegment3DView: straight chords AB, P1A, P1B, P2A, P2B, flat triangles tri1Mesh/tri2Mesh
   assert.ok(circle3DCode.includes('this.chordAB.geometry.setFromPoints([A, B])'), 'AnglesInSameSegment3DView must set chordAB from straight endpoints');

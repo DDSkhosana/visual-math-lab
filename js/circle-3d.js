@@ -2544,7 +2544,20 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.triOPAMesh.visible = showArea;
     this.triOPBMesh.visible = showArea;
 
-    const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
+    let arcRange;
+    if (isSpatial) {
+      const TAU = Math.PI * 2;
+      const norm = (a) => ((a % TAU) + TAU) % TAU;
+      const psiB = norm(Math.atan2(B.dot(circleInfo.v), B.dot(circleInfo.u)));
+      const psiP = norm(Math.atan2(P.dot(circleInfo.v), P.dot(circleInfo.u)));
+      const pInArc = psiP > 0 && psiP < psiB;
+      arcRange = {
+        start: pInArc ? psiB : 0,
+        sweep: pInArc ? (TAU - psiB) : psiB,
+      };
+    } else {
+      arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
+    }
     if (isSolid || isSpatial) {
       setSector3DVertices(this.sectorMesh.geometry, O, circleInfo.u, circleInfo.v, R, arcRange.start, arcRange.sweep, 32, THREE);
     } else {
