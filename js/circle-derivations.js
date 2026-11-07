@@ -33,20 +33,6 @@ export function cardTemplate(id, badge, title, symbolicLines, hasHighlight = fal
 
 export function ensureFirstDerivationCardOpen(container) {
   if (!container) return;
-  const cards = Array.from(container.querySelectorAll ? container.querySelectorAll('.derivation-card') : []);
-  if (cards.length > 0 && !cards.some((c) => c?.classList?.contains?.('open'))) {
-    const first = cards[0];
-    first?.classList?.add?.('open');
-    const h = first?.querySelector ? first.querySelector('.derivation-card-header') : null;
-    if (h) {
-      h?.classList?.add?.('open');
-      h?.setAttribute?.('aria-expanded', 'true');
-      const icon = h?.querySelector ? h.querySelector('.icon') : null;
-      if (icon) icon.textContent = '▼';
-    }
-    const c = first?.querySelector ? first.querySelector('.derivation-card-content') : null;
-    if (c) c?.classList?.add?.('open');
-  }
   try {
     const evt = typeof CustomEvent !== 'undefined'
       ? new CustomEvent('vml:derivations-rendered', { bubbles: true })

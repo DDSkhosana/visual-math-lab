@@ -2761,8 +2761,8 @@ test('WorkspaceDockManager: Default Elevation Turn-Taking, Re-dock Resync & Acco
 
   assert.strictEqual(deckOf(derivs).style.display, 'grid', 'Derivation steps take turns even with one step open');
   assert.strictEqual(label(derivs), 'Deck (1/3)');
-  assert.deepStrictEqual(turns(derivs), ['top', 'deck', 'deck']);
-  assert.deepStrictEqual(derivs.subs.map(isOpen), [true, false, false]);
+  assert.deepStrictEqual(turns(derivs), ['top', null, null]);
+  assert.deepStrictEqual(derivs.subs.map(isOpen), [false, false, false], 'Derivation steps start collapsed by default as shelves');
 
   // 2. Re-docking resyncs the panel's own deck instead of reporting the sections it just collapsed.
   dock.floatPanel('toolbar-2d-panel');
@@ -2787,8 +2787,8 @@ test('WorkspaceDockManager: Default Elevation Turn-Taking, Re-dock Resync & Acco
   deckButton(derivs, '.elevation-deck-nav-btn.next').click();
   assert.deepStrictEqual(turns(derivs), ['deck', 'top', 'deck']);
   dock.dockPanel('derivations-panel');
-  assert.deepStrictEqual(derivs.subs.map(isOpen), [false, true, false], 'Re-docked derivations keep only the step holding the turn open');
-  assert.deepStrictEqual(turns(derivs), ['deck', 'top', 'deck']);
+  assert.deepStrictEqual(derivs.subs.map(isOpen), [false, false, false], 'Re-docked derivations return collapsed on their shelves');
+  assert.deepStrictEqual(turns(derivs), [null, 'top', null]);
   assert.strictEqual(label(derivs), 'Deck (2/3)');
 
   // 3. Accordion, chosen from the deck's mode button: nothing is parked, toggles stick, and
@@ -3451,10 +3451,13 @@ test('WorkspaceDockManager: Header Folds Rest the Deck Step, Deck Controls Reope
   })[0];
   syncPanelElevationTurn(grouped.panel, null, { silent: true });
   assert.equal(turn(steps[0]), 'top');
-  assert.equal(isOpen(steps[0]), true);
+  assert.equal(isOpen(steps[0]), false, 'Derivation steps start collapsed by default as shelves');
   setSubpanelOpen(steps[0], false);
   syncPanelElevationTurn(grouped.panel, null, { silent: true });
-  assert.equal(isOpen(steps[0]), true, 'A step collapsed by the dock (not its header) is reopened on resync');
+  assert.equal(isOpen(steps[0]), false, 'A step collapsed by default stays rested on resync');
+  setSubpanelOpen(steps[0], true);
+  syncPanelElevationTurn(grouped.panel, steps[0]);
+  assert.equal(isOpen(steps[0]), true, 'Opening a step unfolds it');
   setSubpanelOpen(steps[0], false);
   syncPanelElevationTurn(grouped.panel, steps[0]);
   assert.equal(isOpen(steps[0]), false, 'A header fold inside a group rests the step');
@@ -3553,3 +3556,83 @@ test('WorkspaceDockManager: Universal Mouse Wheel Scrolling Across Labels, Input
   assert.strictEqual(dock.dockBody.scrollLeft, 75, 'Dock body horizontal scrollLeft must increment by deltaY');
 });
 
+
+
+test('WorkspaceDockManager: Derivation Panel Steps Start Collapsed by Default as Shelves', () => {
+  const doc = new MockDocument();
+  const root = new MockDOMElement('div', 'circle-explorer');
+  root.ownerDocument = doc;
+  doc.body.appendChild(root);
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'live-derivation-panel');
+  panel.ownerDocument = doc;
+  const header = new MockDOMElement('div', 'panel-header');
+  panel.appendChild(header);
+
+  const body = new MockDOMElement('div', 'panel-body');
+  panel.appendChild(body);
+
+  const steps = [1, 2, 3, 4].map((n) => {
+    const card = new MockDOMElement('div', 'derivation-card', `step-${n}`);
+    const h = new MockDOMElement('div', 'derivation-card-header collapsible-header');
+    h.textContent = `Step ${n}: Proof`;
+    const icon = new MockDOMElement('span', 'icon');
+    icon.textContent = '▶';
+    h.appendChild(icon);
+    card.appendChild(h);
+    const c = new MockDOMElement('div', 'derivation-card-content collapsible-content');
+    card.appendChild(c);
+    body.appendChild(card);
+    return card;
+  });
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root, { document: doc });
+  const deck = body.querySelector('.panel-elevation-deck');
+
+  // 1. All steps must be collapsed by default on initial dock render
+  assert.ok(deck, 'Derivation deck must be created');
+  assert.strictEqual(deck.style.display, 'grid', 'Deck bar must be displayed');
+  assert.ok(steps.every((s) => !s.classList.contains('open')), 'All derivation steps must start collapsed by default');
+  steps.forEach((s, idx) => {
+    const h = s.querySelector('.derivation-card-header');
+    assert.strictEqual(h.getAttribute('aria-expanded'), 'false', `Step ${idx + 1} header must have aria-expanded="false"`);
+    assert.ok(!h.classList.contains('open'), `Step ${idx + 1} header must not have .open class`);
+    const c = s.querySelector('.derivation-card-content');
+    assert.ok(!c.classList.contains('open'), `Step ${idx + 1} content must not have .open class`);
+  });
+
+  // Step 1 holds the top turn cursor, resting on its shelf
+  assert.strictEqual(steps[0].getAttribute('data-elevation-turn'), 'top', 'Step 1 holds the turn cursor');
+  assert.strictEqual(steps[0].classList.contains('open'), false, 'Step 1 rests collapsed on its shelf');
+  for (let i = 1; i < steps.length; i++) {
+    assert.strictEqual(steps[i].getAttribute('data-elevation-turn'), null, `Step ${i + 1} rests unparked on its shelf`);
+    assert.strictEqual(steps[i].classList.contains('is-in-deck'), false, `Step ${i + 1} is not parked in deck while turn rests`);
+  }
+
+  // 2. Navigation through deck pills or controls raises and opens the chosen step
+  const pills = deck.querySelectorAll('.elevation-deck-pill');
+  assert.strictEqual(pills.length, 4, 'All 4 steps must have pills in the deck');
+  pills[1].click(); // Click Step 2
+  assert.strictEqual(steps[1].getAttribute('data-elevation-turn'), 'top');
+  assert.strictEqual(steps[1].classList.contains('open'), true, 'Clicking Step 2 pill opens Step 2');
+  assert.strictEqual(steps[1].querySelector('.derivation-card-header').getAttribute('aria-expanded'), 'true');
+  assert.strictEqual(steps[0].getAttribute('data-elevation-turn'), 'deck', 'Step 1 is now parked in deck');
+
+  // 3. Folding Step 2 via header collapses it back into a rested shelf
+  setSubpanelOpen(steps[1], false);
+  syncPanelElevationTurn(panel, steps[1]);
+  assert.strictEqual(steps[1].classList.contains('open'), false, 'Step 2 folded via header');
+  assert.strictEqual(steps[1].getAttribute('data-elevation-turn'), 'top', 'Step 2 holds the turn as a rested shelf');
+  assert.ok(steps.every((s) => !s.classList.contains('open')), 'All steps are collapsed again');
+  for (let i = 0; i < steps.length; i++) {
+    if (i !== 1) {
+      assert.strictEqual(steps[i].getAttribute('data-elevation-turn'), null);
+      assert.strictEqual(steps[i].classList.contains('is-in-deck'), false);
+    }
+  }
+
+  // Background resync keeps all steps collapsed on their shelves
+  syncPanelElevationTurn(panel, null, { silent: true });
+  assert.ok(steps.every((s) => !s.classList.contains('open')), 'Background resync preserves collapsed shelf state');
+});

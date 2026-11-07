@@ -197,32 +197,6 @@ export class DerivationView {
       step4Eval: this.solidElement.querySelector('#deriv-3d-step-4 [data-eval]'),
     };
 
-    const sec2d = this.flatElement?.closest ? this.flatElement.closest('.collapsible-section') : null;
-    if (sec2d) {
-      sec2d.classList?.remove?.('collapsed');
-      const h = sec2d.querySelector ? sec2d.querySelector('.collapsible-header') : null;
-      if (h) {
-        h.classList?.add?.('open');
-        h.setAttribute?.('aria-expanded', 'true');
-        const icon = h.querySelector ? h.querySelector('.icon') : null;
-        if (icon) icon.textContent = '▼';
-      }
-      const c = sec2d.querySelector ? sec2d.querySelector('.collapsible-content') : null;
-      if (c) c.classList?.remove?.('collapsed');
-    }
-    const firstCard = this.flatElement?.querySelector ? this.flatElement.querySelector('.derivation-card') : null;
-    if (firstCard) {
-      firstCard.classList?.add?.('open');
-      const h = firstCard.querySelector ? firstCard.querySelector('.derivation-card-header') : null;
-      if (h) {
-        h.classList?.add?.('open');
-        h.setAttribute?.('aria-expanded', 'true');
-        const icon = h.querySelector ? h.querySelector('.icon') : null;
-        if (icon) icon.textContent = '▼';
-      }
-      const c = firstCard.querySelector ? firstCard.querySelector('.derivation-card-content') : null;
-      if (c) c.classList?.add?.('open');
-    }
     try {
       this.flatElement?.dispatchEvent?.(new CustomEvent('vml:derivations-rendered', { bubbles: true }));
     } catch (_) {}

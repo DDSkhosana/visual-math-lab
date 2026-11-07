@@ -2490,6 +2490,10 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     activeSubpanel = openSubpanels[0] || (isAccordionMode ? null : allSubpanels[0]);
   }
 
+  if (!restedSubpanel && openSubpanels.length === 0 && !navigating) {
+    restedSubpanel = activeSubpanel;
+  }
+
   if (!isAccordionMode && (isTabsMode || forceDeck) && activeSubpanel && activeSubpanel !== restedSubpanel && !isOpen(activeSubpanel)) {
     setSubpanelOpen(activeSubpanel, true);
   }
