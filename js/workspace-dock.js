@@ -657,8 +657,11 @@ export class WorkspaceDockManager {
       this[key] = clamp(requested, min, max);
       this.dockSizeCustomized[axis] = true;
     }
+    const defaultSize = horizontal ? 340 : 380;
     const preferred = this.dockSizeCustomized[axis] ? this[key] :
-      Math.min(horizontal ? 340 : 380, Math.floor(extent * (horizontal ? 0.45 : 0.35)));
+      (extent >= (horizontal ? 650 : 860)
+        ? defaultSize
+        : Math.max(horizontal ? 280 : 340, Math.min(defaultSize, Math.floor(extent * (horizontal ? 0.45 : 0.35)))));
     this.dockSize = clamp(preferred, min, max);
     this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
     if (!this.isCollapsed) {
@@ -2248,11 +2251,17 @@ export class WorkspaceDockManager {
       const raw = storage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (Number.isFinite(data.dockSizeVertical)) this.dockSizeVertical = data.dockSizeVertical;
-      if (Number.isFinite(data.dockSizeHorizontal)) this.dockSizeHorizontal = data.dockSizeHorizontal;
+      const isCustomVert = Boolean(data.dockSizeCustomized?.vertical);
+      const isCustomHoriz = Boolean(data.dockSizeCustomized?.horizontal);
+      if (Number.isFinite(data.dockSizeVertical)) {
+        this.dockSizeVertical = isCustomVert ? data.dockSizeVertical : Math.max(380, data.dockSizeVertical);
+      }
+      if (Number.isFinite(data.dockSizeHorizontal)) {
+        this.dockSizeHorizontal = isCustomHoriz ? data.dockSizeHorizontal : Math.max(340, data.dockSizeHorizontal);
+      }
       this.dockSizeCustomized = {
-        vertical: data.dockSizeCustomized?.vertical ?? Number.isFinite(data.dockSizeVertical),
-        horizontal: data.dockSizeCustomized?.horizontal ?? Number.isFinite(data.dockSizeHorizontal),
+        vertical: isCustomVert,
+        horizontal: isCustomHoriz,
       };
       if (Number.isFinite(data.dockSize) && !Number.isFinite(data.dockSizeVertical) && !Number.isFinite(data.dockSizeHorizontal)) {
         const horizontal = data.dockEdge === 'top' || data.dockEdge === 'bottom';

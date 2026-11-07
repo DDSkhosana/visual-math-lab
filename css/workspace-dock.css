@@ -76,6 +76,7 @@
   left: 0;
   right: auto;
   width: var(--dock-size, 380px);
+  min-width: min(380px, 90vw);
   max-width: 65%;
   height: 100%;
   border-top: none;
@@ -90,6 +91,7 @@
   right: 0;
   left: auto;
   width: var(--dock-size, 380px);
+  min-width: min(380px, 90vw);
   max-width: 65%;
   height: 100%;
   border-top: none;
@@ -104,8 +106,8 @@
   right: 0;
   bottom: auto;
   height: var(--dock-size, 340px);
+  min-height: min(340px, 60vh);
   max-height: 65%;
-  min-height: 0;
   width: 100%;
   border-left: none;
   border-right: none;
@@ -119,8 +121,8 @@
   right: 0;
   top: auto;
   height: var(--dock-size, 340px);
+  min-height: min(340px, 60vh);
   max-height: 65%;
-  min-height: 0;
   width: 100%;
   border-left: none;
   border-right: none;
@@ -302,7 +304,7 @@
   min-width: 0 !important;
   height: auto !important;
   min-height: max-content !important;
-  max-height: min(540px, 65vh) !important;
+  max-height: min(780px, 85vh) !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
   box-shadow: var(--elevation-cast-1) !important;
@@ -359,7 +361,7 @@
 }
 
 .workspace-dock-body > .ui-panel.has-expanded-subpanel .panel-body {
-  min-height: 180px !important;
+  min-height: 260px !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body.hidden {
@@ -2027,7 +2029,7 @@
     bottom: 0 !important;
     left: 0 !important;
     right: auto !important;
-    width: min(var(--dock-size, 320px), 85vw) !important;
+    width: min(var(--dock-size, 360px), 85vw) !important;
     max-width: 85% !important;
     height: 100% !important;
     border-top: none !important;
@@ -2044,7 +2046,7 @@
     bottom: 0 !important;
     right: 0 !important;
     left: auto !important;
-    width: min(var(--dock-size, 320px), 85vw) !important;
+    width: min(var(--dock-size, 360px), 85vw) !important;
     max-width: 85% !important;
     height: 100% !important;
     border-top: none !important;
