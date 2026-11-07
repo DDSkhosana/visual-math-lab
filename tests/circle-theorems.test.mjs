@@ -2915,6 +2915,8 @@ test('Concyclic Wireframe Dynamic Alignment & Spatial Shading: alignCircleWireTo
   const tangentsViewStart = circle3DCode.indexOf('export class TangentsFromPoint3DView', alternateViewStart);
   const alternateViewCode = circle3DCode.slice(alternateViewStart, tangentsViewStart);
   assert.match(alternateViewCode, /let arcRange;\s+let segStart;\s+let segSweep;\s+if \(isSpatial\)/, 'AlternateSegment3DView must retain segment geometry values for label placement in both dimensions');
+  assert.ok(alternateViewCode.includes('let T = new THREE.Vector3('), 'AlternateSegment3DView must declare T with let to permit reorientation in solid mode');
+  assert.ok(alternateViewCode.includes('let D = T.clone().negate()'), 'AlternateSegment3DView must declare D with let to permit reorientation in solid mode');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, O, u, v'), 'ChordBisector3DView must build 3D segmentMesh in spatial mode');
   assert.ok(circle3DCode.includes('setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE)'), 'TangentRadius3DView must build 3D quadrant mesh in spatial mode');
 });

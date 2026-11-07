@@ -4280,13 +4280,13 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const latA = state.latA ?? (Math.PI / 2);
     const latB = state.latB ?? (Math.PI / 2);
     const latT = state.latT ?? (Math.PI / 2);
-    const T = new THREE.Vector3(
+    let T = new THREE.Vector3(
       R * Math.sin(latT) * Math.cos(state.angleT),
       R * Math.cos(latT),
       R * Math.sin(latT) * Math.sin(state.angleT)
     );
-    const D = T.clone().negate();
-    const Dext = D.clone().add(D.clone().normalize().multiplyScalar(3.2));
+    let D = T.clone().negate();
+    let Dext = D.clone().add(D.clone().normalize().multiplyScalar(3.2));
 
     let normal;
     let tanDir;

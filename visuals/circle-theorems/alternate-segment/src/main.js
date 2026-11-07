@@ -313,12 +313,14 @@ function bootstrap() {
 
     const m3d = scene3d?.lastComputed3D;
     const isSpatial = state.dimensionMode === 'spatial';
-    const pT = (isSpatial && m3d?.T) ? m3d.T : { x: R3D * Math.cos(state.angleT), y: 0, z: R3D * Math.sin(state.angleT) };
-    const pA = (isSpatial && m3d?.A) ? m3d.A : { x: R3D * Math.cos(state.angleA), y: 0, z: R3D * Math.sin(state.angleA) };
-    const pB = (isSpatial && m3d?.B) ? m3d.B : { x: R3D * Math.cos(state.angleB), y: 0, z: R3D * Math.sin(state.angleB) };
-    const pD = (isSpatial && m3d?.D) ? m3d.D : { x: R3D * Math.cos(state.angleT + Math.PI), y: 0, z: R3D * Math.sin(state.angleT + Math.PI) };
+    const isSolid = state.dimensionMode === 'solid';
+    const isOriented3D = isSpatial || isSolid;
+    const pT = (isOriented3D && m3d?.T) ? m3d.T : { x: R3D * Math.cos(state.angleT), y: 0, z: R3D * Math.sin(state.angleT) };
+    const pA = (isOriented3D && m3d?.A) ? m3d.A : { x: R3D * Math.cos(state.angleA), y: 0, z: R3D * Math.sin(state.angleA) };
+    const pB = (isOriented3D && m3d?.B) ? m3d.B : { x: R3D * Math.cos(state.angleB), y: 0, z: R3D * Math.sin(state.angleB) };
+    const pD = (isOriented3D && m3d?.D) ? m3d.D : { x: R3D * Math.cos(state.angleT + Math.PI), y: 0, z: R3D * Math.sin(state.angleT + Math.PI) };
 
-    const fmtCoords = (p) => isSpatial && Math.abs(p.y || 0) > 0.01
+    const fmtCoords = (p) => isOriented3D && Math.abs(p.y || 0) > 0.01
       ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`
       : `${p.x.toFixed(2)}, ${p.z.toFixed(2)}`;
 
@@ -331,9 +333,9 @@ function bootstrap() {
     const elD = document.getElementById('val-3d-d');
     if (elD) elD.textContent = fmtCoords(pD);
 
-    const tan3dDeg = (isSpatial && m3d) ? m3d.degTan : g.tangentChordDeg;
-    const tba3dDeg = (isSpatial && m3d) ? m3d.degB : g.inscribedDeg;
-    const diff3dDeg = (isSpatial && m3d) ? m3d.diffDeg : g.diffDeg;
+    const tan3dDeg = (isOriented3D && m3d) ? m3d.degTan : g.tangentChordDeg;
+    const tba3dDeg = (isOriented3D && m3d) ? m3d.degB : g.inscribedDeg;
+    const diff3dDeg = (isOriented3D && m3d) ? m3d.diffDeg : g.diffDeg;
 
     const elTan = document.getElementById('val-3d-ang-tan');
     if (elTan) elTan.textContent = UnitSystemConverter.formatAngle(tan3dDeg, angUnit);
@@ -342,10 +344,10 @@ function bootstrap() {
     const elDiff = document.getElementById('val-3d-diff');
     if (elDiff) elDiff.textContent = UnitSystemConverter.formatAngle(diff3dDeg, angUnit, 3);
 
-    const tbd3dDeg = (isSpatial && m3d) ? m3d.thalesTBD : g.thalesAngleTBD;
-    const tad3dDeg = (isSpatial && m3d) ? m3d.thalesTAD : g.thalesAngleTAD;
-    const intD3dDeg = (isSpatial && m3d) ? m3d.degIntD : g.angleTDA;
-    const extD3dDeg = (isSpatial && m3d) ? m3d.degExtD : g.extAngleD;
+    const tbd3dDeg = (isOriented3D && m3d) ? m3d.thalesTBD : g.thalesAngleTBD;
+    const tad3dDeg = (isOriented3D && m3d) ? m3d.thalesTAD : g.thalesAngleTAD;
+    const intD3dDeg = (isOriented3D && m3d) ? m3d.degIntD : g.angleTDA;
+    const extD3dDeg = (isOriented3D && m3d) ? m3d.degExtD : g.extAngleD;
 
     const el3DThalesTBD = document.getElementById('val-3d-thales-tbd');
     if (el3DThalesTBD) el3DThalesTBD.textContent = UnitSystemConverter.formatAngle(tbd3dDeg, angUnit);
