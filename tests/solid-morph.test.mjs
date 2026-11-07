@@ -258,3 +258,15 @@ test('Trigonometry visualizers support true 3D Solid mode orientation across all
   assert.ok(solidOccurrences && solidOccurrences.length >= 3, 'all 3 theorem renderers check isSolidMode');
   assert.ok(trigCore.includes('const isSolid = isSolidMode(state.dimensionMode);'), 'unit-circle-helix checks isSolidMode');
 });
+
+test('Omnidirectional 3D solid mode dragging: direct interaction on solid visual and circular mesh updates solidTilt and solidAzimuth', () => {
+  const circle3D = read('js/circle-3d.js');
+  assert.ok(circle3D.includes('isSolidOrient: true'), 'circle-3d.js enables isSolidOrient on direct drag');
+  assert.ok(circle3D.includes('solidTilt: nextTilt'), 'circle-3d.js updates solidTilt during omnidirectional drag');
+  assert.ok(circle3D.includes('solidAzimuth: nextAzimuth'), 'circle-3d.js updates solidAzimuth during omnidirectional drag');
+
+  const thales3D = read('visuals/circle-theorems/thales-theorem/src/controllers/Scene3DInteraction.js');
+  assert.ok(thales3D.includes("activeTarget = 'solidOrient'"), 'Thales Scene3DInteraction activates solidOrient mode');
+  assert.ok(thales3D.includes('solidTilt: nextTilt'), 'Thales Scene3DInteraction updates solidTilt during omnidirectional drag');
+  assert.ok(thales3D.includes('solidAzimuth: nextAzimuth'), 'Thales Scene3DInteraction updates solidAzimuth during omnidirectional drag');
+});

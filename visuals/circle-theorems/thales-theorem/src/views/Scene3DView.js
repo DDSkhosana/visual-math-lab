@@ -413,6 +413,15 @@ export class Scene3DView {
     return Math.abs(distRayToOrigin - radius) < tol;
   }
 
+  hitsSolid(radius = 10) {
+    if (!this.raycaster?.ray) return false;
+    const vOrigin = this.raycaster.ray.origin;
+    const vDir = this.raycaster.ray.direction;
+    const b = vOrigin.dot(vDir);
+    const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+    return distRayToOrigin <= radius * 1.35;
+  }
+
   pickCircumferenceRadius(min = 5, max = 15) {
     if (!this.raycaster?.ray) return null;
     const vOrigin = this.raycaster.ray.origin;

@@ -58,10 +58,26 @@ export class Scene3DInteraction {
       this.activeTarget = 'A';
     } else if (this.scene.hitsPointB()) {
       this.activeTarget = 'B';
+    } else if (this.store.get().dimensionMode === 'solid') {
+      const r = this.store.get().radius || 10;
+      if (this.scene.hitsSolid?.(r) || this.scene.hitsCircumference?.(r, event)) {
+        if (event.ctrlKey || event.metaKey) {
+          this.activeTarget = 'radius';
+        } else {
+          this.activeTarget = 'solidOrient';
+          this.orientStartX = event.clientX;
+          this.orientStartY = event.clientY;
+          const st = this.store.get();
+          this.orientInitialTilt = st.solidTilt !== undefined ? Number(st.solidTilt) : (25 * Math.PI / 180);
+          this.orientInitialAzimuth = st.solidAzimuth !== undefined ? Number(st.solidAzimuth) : (35 * Math.PI / 180);
+          this.orientInitialSpin = st.solidSpin !== undefined ? Number(st.solidSpin) : 0;
+        }
+      } else {
+        return;
+      }
     } else if (event.pointerType !== 'touch' && this.scene.hitsCircumference?.(this.store.get().radius, event)) {
       const st = this.store.get();
-      if ((st.dimensionMode === 'solid' || st.dimensionMode === 'spatial') && !(event.ctrlKey || event.metaKey)) {
-        // In Solid 3D and Spatial modes, allow omnidirectional tumbling of the 3D canvas via controls
+      if (st.dimensionMode === 'spatial' && !(event.ctrlKey || event.metaKey)) {
         return;
       } else {
         this.activeTarget = 'radius';
@@ -106,9 +122,13 @@ export class Scene3DInteraction {
 
     if (!this.dragging) {
       if (this.scene.domElement) {
-        const isOriented = this.store.get().dimensionMode === 'solid' || this.store.get().dimensionMode === 'spatial';
-        const circCursor = (isOriented && !(event.ctrlKey || event.metaKey)) ? 'grab' : 'ew-resize';
-        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB) ? 'pointer' : (hoverCirc ? circCursor : (event.altKey ? 'alias' : 'grab'));
+        const isSolid = this.store.get().dimensionMode === 'solid';
+        const isSpatial = this.store.get().dimensionMode === 'spatial';
+        const r = this.store.get().radius || 10;
+        const hoverSolid = isSolid && (this.scene.hitsSolid?.(r) || hoverCirc);
+        this.scene.domElement.style.cursor = (hoverP || hoverA || hoverB)
+          ? 'pointer'
+          : (hoverSolid ? 'grab' : (hoverCirc ? (isSpatial ? 'grab' : 'ew-resize') : (event.altKey ? 'alias' : 'grab')));
       }
       return;
     }
@@ -122,6 +142,29 @@ export class Scene3DInteraction {
       if (newRadius) {
         this.store.set(setRadius(newRadius));
       }
+    } else if (this.activeTarget === 'solidOrient') {
+      const rect = this.scene.domElement?.getBoundingClientRect ? this.scene.domElement.getBoundingClientRect() : { width: 400, height: 400 };
+      const dx = event.clientX - this.orientStartX;
+      const dy = event.clientY - this.orientStartY;
+      if (event.altKey || event.shiftKey) {
+        const deltaSpin = (dx / (rect.width || 400)) * Math.PI * 2;
+        let nextSpin = (this.orientInitialSpin + deltaSpin) % (Math.PI * 2);
+        if (nextSpin < 0) nextSpin += Math.PI * 2;
+        this.store.set({ solidSpin: nextSpin });
+      } else {
+        const deltaAzimuth = (dx / (rect.width || 400)) * Math.PI * 2;
+        const deltaTilt = (dy / (rect.height || 400)) * Math.PI * 2;
+        let nextAzimuth = (this.orientInitialAzimuth + deltaAzimuth) % (Math.PI * 2);
+        if (nextAzimuth < 0) nextAzimuth += Math.PI * 2;
+        let nextTilt = Math.max(0.001, Math.min(Math.PI - 0.001, this.orientInitialTilt + deltaTilt));
+        this.store.set({
+          solidTilt: nextTilt,
+          solidAzimuth: nextAzimuth,
+        });
+      }
+      if (this.scene.domElement) this.scene.domElement.style.cursor = 'grabbing';
+      event.stopPropagation();
+      return;
     } else if (this.activeTarget === 'solidSpin') {
       const hit = this.scene.pickBaselinePlane?.();
       const u = this.scene.circleInfo?.u;

@@ -1111,8 +1111,8 @@ export class BaseScene3DView {
         element.style.cursor = 'grabbing';
         try { element.setPointerCapture(e.pointerId); } catch (_) {}
         e.stopPropagation();
-      } else if (e.pointerType !== 'touch') {
-        // Direct click-and-drag radius resizing from 3D equatorial wire rim (tight tolerance so 3D rotation is never obstructed)
+      } else {
+        // Direct click-and-drag radius resizing or omnidirectional 3D solid orientation
         const r3d = this.R || 10;
         const rayObj = ray.ray || ray;
         const vOrigin = rayObj.origin;
@@ -1138,28 +1138,43 @@ export class BaseScene3DView {
             break;
           }
         }
-        if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
+        if (!nearAnyTarget) {
           const st = store.get();
-          if (isOriented3D && !(e.ctrlKey || e.metaKey)) {
-            // In Solid 3D & Spatial modes, dragging the circle rotates the 3D canvas omnidirectionally via ArcballTrackballControls.
-            // Direct radius resizing requires Ctrl/Meta + drag so 3D omnidirectional tumbling is never trapped or locked to a single axis.
-          } else {
-            const isTangentExt = Boolean(st.pointDist);
-            const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
-            const default2D = isTangentExt ? 120 : (isChordBisector ? 170 : 180);
+          if (isSolid && !(e.ctrlKey || e.metaKey) && (distRayToOrigin <= r3d * 1.35 || eqDistDiff < 2.0)) {
+            // In Solid 3D mode, dragging anywhere on the solid figure or blue circular mesh tilts and yaws omnidirectionally
             activeTarget = {
-              isRadius: true,
-              initialDist: distRayToOrigin,
-              initialR: st.radius || default2D,
-              base3D: isTangentExt ? 8 : 10,
-              default2D,
-              isTangentExt,
-              isChordBisector,
+              isSolidOrient: true,
+              startX: e.clientX,
+              startY: e.clientY,
+              initialTilt: st.solidTilt !== undefined ? Number(st.solidTilt) : (25 * Math.PI / 180),
+              initialAzimuth: st.solidAzimuth !== undefined ? Number(st.solidAzimuth) : (35 * Math.PI / 180),
+              initialSpin: st.solidSpin !== undefined ? Number(st.solidSpin) : 0,
             };
             this.controls.enabled = false;
-            element.style.cursor = 'ew-resize';
+            element.style.cursor = 'grabbing';
             try { element.setPointerCapture(e.pointerId); } catch (_) {}
             e.stopPropagation();
+          } else if (Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
+            if (isOriented3D && !(e.ctrlKey || e.metaKey)) {
+              // Direct radius resizing requires Ctrl/Meta + drag so 3D omnidirectional tumbling is never trapped or locked to a single axis.
+            } else {
+              const isTangentExt = Boolean(st.pointDist);
+              const isChordBisector = !isTangentExt && (st.showExtendedBisector !== undefined || st.radius === 170);
+              const default2D = isTangentExt ? 120 : (isChordBisector ? 170 : 180);
+              activeTarget = {
+                isRadius: true,
+                initialDist: distRayToOrigin,
+                initialR: st.radius || default2D,
+                base3D: isTangentExt ? 8 : 10,
+                default2D,
+                isTangentExt,
+                isChordBisector,
+              };
+              this.controls.enabled = false;
+              element.style.cursor = 'ew-resize';
+              try { element.setPointerCapture(e.pointerId); } catch (_) {}
+              e.stopPropagation();
+            }
           }
         }
       }
@@ -1179,18 +1194,31 @@ export class BaseScene3DView {
       }
       const ray = pointerToRay(e);
       if (activeTarget) {
-        if (activeTarget.isSolidSpin) {
-          const hit = (this.circleInfo?.normal ? pickTiltedPlane(ray, this.circleInfo.normal, this.circleInfo.center) : null) || pickEquatorialPlane(ray, 0);
-          if (hit) {
-            const cCenter = this.circleInfo?.center || new this.THREE.Vector3(0, 0, 0);
-            const dHit = new this.THREE.Vector3().subVectors(hit, cCenter);
-            const curAngle = (this.circleInfo?.u && this.circleInfo?.v)
-              ? Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u))
-              : Math.atan2(dHit.z, dHit.x);
-            const delta = curAngle - activeTarget.startAngle;
-            let nextSpin = (activeTarget.initialSpin + delta) % (Math.PI * 2);
+        if (activeTarget.isSolidOrient) {
+          const rect = element.getBoundingClientRect();
+          const dx = e.clientX - activeTarget.startX;
+          const dy = e.clientY - activeTarget.startY;
+          if (e.altKey || e.shiftKey) {
+            const deltaSpin = (dx / (rect.width || 400)) * Math.PI * 2;
+            let nextSpin = (activeTarget.initialSpin + deltaSpin) % (Math.PI * 2);
             if (nextSpin < 0) nextSpin += Math.PI * 2;
-            store.set({ solidSpin: nextSpin });
+            const updates = { solidSpin: nextSpin };
+            if (store.get().headingC !== undefined) updates.headingC = nextSpin;
+            store.set(updates);
+          } else {
+            const deltaAzimuth = (dx / (rect.width || 400)) * Math.PI * 2;
+            const deltaTilt = (dy / (rect.height || 400)) * Math.PI * 2;
+            let nextAzimuth = (activeTarget.initialAzimuth + deltaAzimuth) % (Math.PI * 2);
+            if (nextAzimuth < 0) nextAzimuth += Math.PI * 2;
+            let nextTilt = Math.max(0.001, Math.min(Math.PI - 0.001, activeTarget.initialTilt + deltaTilt));
+            const updates = {
+              solidTilt: nextTilt,
+              solidAzimuth: nextAzimuth,
+            };
+            if (store.get().colatC !== undefined) updates.colatC = nextTilt;
+            if (store.get().lonC !== undefined) updates.lonC = nextAzimuth;
+            if (store.get().angleGamma !== undefined) updates.angleGamma = nextTilt;
+            store.set(updates);
           }
           element.style.cursor = 'grabbing';
           e.stopPropagation();
@@ -1218,22 +1246,23 @@ export class BaseScene3DView {
 
         const isSpatialMode = store.get().dimensionMode === 'spatial';
         const isSolid = isSolidMode(store.get().dimensionMode);
-        const isOriented3D = isSolid || isSpatialMode;
         const targetY = activeTarget.mesh?.position?.y || 0;
         const targetPos = activeTarget.mesh?.position || null;
         let hit = null;
-        if (isOriented3D && this.circleInfo?.normal) {
+        if (isSolid && this.circleInfo?.normal) {
           hit = pickTiltedPlane(ray, this.circleInfo.normal, this.circleInfo.center);
-        } else if (!isSpatialMode && Math.abs(targetY) < 0.5) {
+        } else if (isSpatialMode) {
+          hit = pickSphere(ray, targetPos);
+        } else if (Math.abs(targetY) < 0.5) {
           hit = pickEquatorialPlane(ray, 0) || pickSphere(ray, targetPos);
-        } else if (!isSpatialMode && Math.abs(targetY) >= 0.5 && !activeTarget.latField) {
+        } else if (Math.abs(targetY) >= 0.5 && !activeTarget.latField) {
           hit = pickEquatorialPlane(ray, targetY) || pickSphere(ray, targetPos);
         } else {
           hit = pickSphere(ray, targetPos);
         }
         if (hit) {
           let angle;
-          if (isOriented3D && this.circleInfo?.u && this.circleInfo?.v) {
+          if (isSolid && this.circleInfo?.u && this.circleInfo?.v) {
             const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center || new this.THREE.Vector3());
             angle = Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u));
           } else {
@@ -1275,7 +1304,7 @@ export class BaseScene3DView {
             break;
           }
         }
-        if (!hover && e.pointerType !== 'touch') {
+        if (!hover) {
           const r3d = this.R || 10;
           const rayObj = ray.ray || ray;
           const vOrigin = rayObj.origin;
@@ -1291,6 +1320,10 @@ export class BaseScene3DView {
           const cCenter = this.circleInfo?.center || new this.THREE.Vector3(0, 0, 0);
           const eqDistDiff = eqHit ? Math.abs(eqHit.clone().sub(cCenter).length() - r3d) : Infinity;
           const rimTol = (e.ctrlKey || e.metaKey) ? 1.4 : 0.35;
+          if (isSolid && (distRayToOrigin <= r3d * 1.35 || eqDistDiff < 2.0) && !(e.ctrlKey || e.metaKey)) {
+            element.style.cursor = 'grab';
+            return;
+          }
           if (Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
             element.style.cursor = isOriented3D && !(e.ctrlKey || e.metaKey) ? 'grab' : 'ew-resize';
             return;
