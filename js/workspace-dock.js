@@ -512,7 +512,20 @@ export class WorkspaceDockManager {
             this.dockElement.style.left = `${x}px`;
             this.dockElement.style.top = `${y}px`;
           }
-          this.#persistState();
+
+          // If dragged near a margin boundary, magnetically dock to that margin
+          const dists = [
+            { edge: 'left', dist: x },
+            { edge: 'right', dist: maxLeft - x },
+            { edge: 'top', dist: y },
+            { edge: 'bottom', dist: maxTop - y },
+          ];
+          dists.sort((a, b) => a.dist - b.dist);
+          if (dists[0].dist <= snapDist) {
+            this.setDockEdge(dists[0].edge);
+          } else {
+            this.#persistState();
+          }
         }
       };
 
@@ -573,21 +586,22 @@ export class WorkspaceDockManager {
     });
   }
 
-  #dockBounds() {
+  #dockBounds(overrideEdge = null) {
     const rect = this.root.getBoundingClientRect();
     const width = Math.min(rect.width || 1200, this.win?.innerWidth || 1200);
     const height = Math.min(rect.height || 800,
       (this.win?.innerHeight || 800) - Math.max(0, rect.top || 0));
-    const edge = (this.win?.innerWidth || width) <= 768 ? 'bottom' : this.dockEdge;
+    const isCompact = (this.win?.innerWidth || width) <= 768;
+    const edge = overrideEdge || (isCompact ? 'bottom' : this.dockEdge);
     const horizontal = edge === 'top' || edge === 'bottom';
     const extent = Math.max(0, horizontal ? height : width);
     const max = Math.floor(extent * 0.65);
     return { edge, horizontal, extent, max, min: Math.min(horizontal ? 160 : 240, max) };
   }
 
-  #applyDockSize(requested = null) {
+  #applyDockSize(requested = null, overrideEdge = null) {
     if (!this.dockElement) return;
-    const { edge, horizontal, extent, min, max } = this.#dockBounds();
+    const { edge, horizontal, extent, min, max } = this.#dockBounds(overrideEdge);
     const axis = horizontal ? 'horizontal' : 'vertical';
     const key = horizontal ? 'dockSizeHorizontal' : 'dockSizeVertical';
     if (requested !== null) {
@@ -620,7 +634,7 @@ export class WorkspaceDockManager {
       this.dockElement.style.right = '';
       this.dockElement.style.bottom = '';
     }
-    this.#applyDockSize();
+    this.#applyDockSize(null, edge);
 
     // Update active button state
     this.dockElement.querySelectorAll('.dock-edge-btn').forEach((btn) => {
@@ -628,6 +642,33 @@ export class WorkspaceDockManager {
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', String(isActive));
     });
+
+    // Synchronize collapsed position with the new dock edge margin
+    if (!this.collapsedPos) {
+      const parentRect = this.root?.getBoundingClientRect?.() || { width: 1000, height: 700 };
+      let initX = 16;
+      let initY = 56;
+      if (edge === 'right') {
+        initX = Math.max(16, (parentRect.width || 1000) - 160);
+        initY = 16;
+      } else if (edge === 'bottom') {
+        initX = 16;
+        initY = Math.max(16, (parentRect.height || 700) - 48);
+      } else if (edge === 'top') {
+        initX = 16;
+        initY = 16;
+      } else if (edge === 'left') {
+        initX = 16;
+        initY = 56;
+      }
+      this.collapsedPos = { x: initX, y: initY };
+    }
+    if (this.isCollapsed && this.collapsedPos) {
+      this.dockElement.style.left = `${this.collapsedPos.x}px`;
+      this.dockElement.style.top = `${this.collapsedPos.y}px`;
+      this.dockElement.style.right = 'auto';
+      this.dockElement.style.bottom = 'auto';
+    }
 
     this.syncSubpanelOverlayState();
     this.#persistState();
@@ -1231,6 +1272,19 @@ export class WorkspaceDockManager {
         }
 
         if (record.isFloating && hasDragged) {
+          // If dropped over the workspace dock body, re-dock the panel into the dock
+          if (this.dockElement && !this.isCollapsed) {
+            const dockRect = this.dockElement.getBoundingClientRect?.() || {};
+            const clientX = upEv?.clientX;
+            const clientY = upEv?.clientY;
+            if (Number.isFinite(clientX) && Number.isFinite(clientY) &&
+                clientX >= (dockRect.left || 0) && clientX <= (dockRect.right || 0) &&
+                clientY >= (dockRect.top || 0) && clientY <= (dockRect.bottom || 0)) {
+              this.dockPanel(record.id);
+              return;
+            }
+          }
+
           // Apply magnetic edge potential well to floating panel
           const curX = record.lastPos.x;
           const curY = record.lastPos.y;
@@ -2112,6 +2166,9 @@ export class WorkspaceDockManager {
     this.root.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
     this.dockElement?.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
     this.#applyDockSize();
+    if (isCompact && !this._userCustomizedEdge) {
+      this.dockResizer?.setAttribute?.('data-resize-edge', 'bottom');
+    }
   }
 
   #persistState() {

@@ -89,9 +89,17 @@ input:checked + .toggle-slider:before { transform: translateX(14px); }
     transition: left 0.22s cubic-bezier(0.16, 1, 0.3, 1), top 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* When left dock is expanded, modes toolbar aligns to the active canvas workspace margin */
+/* When dock is expanded, modes toolbar and camera presets align to the active canvas workspace margin */
 .has-workspace-dock[data-dock-edge="left"]:not(.dock-is-collapsed) .viewport-header-toolbar {
     left: calc(var(--dock-size, 380px) + 1rem);
+}
+
+.has-workspace-dock[data-dock-edge="top"]:not(.dock-is-collapsed) .viewport-header-toolbar {
+    top: calc(var(--dock-size, 340px) + 1rem);
+}
+
+.has-workspace-dock[data-dock-edge="right"]:not(.dock-is-collapsed) .camera-presets-bar {
+    right: calc(var(--dock-size, 380px) + 1rem);
 }
 
 .viewport-header-toolbar.is-dragging {

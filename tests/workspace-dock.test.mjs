@@ -3636,3 +3636,88 @@ test('WorkspaceDockManager: Derivation Panel Steps Start Collapsed by Default as
   syncPanelElevationTurn(panel, null, { silent: true });
   assert.ok(steps.every((s) => !s.classList.contains('open')), 'Background resync preserves collapsed shelf state');
 });
+
+test('WorkspaceDockManager: Dock Panel Docks in All Margins (Left, Right, Top, Bottom) Across All Viewports & Snaps on Drag', () => {
+  globalThis.localStorage?.clear?.();
+  const root = new MockDOMElement('div', 'circle-explorer');
+  const viewContainer = new MockDOMElement('div', 'view-container', 'main-view');
+  root.appendChild(viewContainer);
+  const panel = new MockDOMElement('div', 'ui-panel', 'test-dock-panel');
+  const header = new MockDOMElement('div', 'panel-header');
+  panel.appendChild(header);
+  root.appendChild(panel);
+
+  const dock = new WorkspaceDockManager(root);
+
+  // 1. Explicit docking across all 4 margins
+  const edges = ['left', 'right', 'top', 'bottom'];
+  edges.forEach((edge) => {
+    dock.setDockEdge(edge);
+    assert.strictEqual(dock.dockEdge, edge, `Dock edge must be ${edge}`);
+    assert.strictEqual(root.getAttribute('data-dock-edge'), edge, `Root data-dock-edge must be ${edge}`);
+    assert.strictEqual(dock.dockResizer.getAttribute('data-resize-edge'), edge, `Resizer edge must be ${edge}`);
+    const isHorizontal = edge === 'top' || edge === 'bottom';
+    assert.strictEqual(dock.dockResizer.getAttribute('aria-orientation'), isHorizontal ? 'horizontal' : 'vertical');
+    const btn = dock.dockElement.querySelector(`.dock-edge-btn[data-edge="${edge}"]`);
+    assert.ok(btn && btn.classList.contains('active'), `Edge button for ${edge} must be active`);
+  });
+
+  // 2. Dragging collapsed dock near a margin magnetically docks to that margin
+  dock.setDockCollapsed(true);
+  const dockHeader = dock.dockElement.querySelector('.workspace-dock-header');
+
+  // Drag towards right margin
+  root.getBoundingClientRect = () => ({ top: 0, left: 0, width: 1000, height: 700 });
+  dock.dockElement.getBoundingClientRect = () => ({ top: 300, left: 100, width: 120, height: 40 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 100, clientY: 300, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 870, clientY: 300 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'right', 'Dragging collapsed pill to right edge must magnetically set dock edge to right');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'right');
+
+  // Drag towards bottom margin
+  dock.dockElement.getBoundingClientRect = () => ({ top: 100, left: 500, width: 120, height: 40 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 500, clientY: 100, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 500, clientY: 655 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'bottom', 'Dragging collapsed pill to bottom edge must magnetically set dock edge to bottom');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'bottom');
+
+  // Drag towards top margin
+  dock.dockElement.getBoundingClientRect = () => ({ top: 500, left: 500, width: 120, height: 40 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 500, clientY: 500, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 500, clientY: 8 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'top', 'Dragging collapsed pill to top edge must magnetically set dock edge to top');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'top');
+
+  // Drag towards left margin
+  dock.dockElement.getBoundingClientRect = () => ({ top: 300, left: 500, width: 120, height: 40 });
+  dockHeader.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 500, clientY: 300, target: dockHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 8, clientY: 300 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 1 });
+  assert.strictEqual(dock.dockEdge, 'left', 'Dragging collapsed pill to left edge must magnetically set dock edge to left');
+  assert.strictEqual(root.getAttribute('data-dock-edge'), 'left');
+
+  // Expanding the dock restores from the docked margin
+  dock.setDockCollapsed(false);
+  assert.strictEqual(dock.dockEdge, 'left');
+
+  // 3. Floating panel dropped onto the dock body re-docks automatically
+  dock.floatPanel('test-dock-panel');
+  assert.strictEqual(dock.panels.get('test-dock-panel').isFloating, true);
+  dock.dockElement.getBoundingClientRect = () => ({ top: 0, left: 0, width: 380, height: 700, right: 380, bottom: 700 });
+  const pHeader = panel.querySelector('.panel-header');
+  pHeader.dispatchEvent({ type: 'pointerdown', pointerId: 2, clientX: 500, clientY: 200, target: pHeader, preventDefault: () => {} });
+  mockWin.dispatchEvent({ type: 'pointermove', clientX: 100, clientY: 200 });
+  mockWin.dispatchEvent({ type: 'pointerup', pointerId: 2, clientX: 100, clientY: 200 });
+  assert.strictEqual(dock.panels.get('test-dock-panel').isFloating, false, 'Dropping floating panel over dock body must re-dock it');
+
+  // 4. CSS declarations verify all 4 margins are styled and edge switcher is always visible
+  const css = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8').replace(/\r\n/g, '\n');
+  assert.ok(css.includes('[data-dock-edge="left"] .workspace-dock'));
+  assert.ok(css.includes('[data-dock-edge="right"] .workspace-dock'));
+  assert.ok(css.includes('[data-dock-edge="top"] .workspace-dock'));
+  assert.ok(css.includes('[data-dock-edge="bottom"] .workspace-dock'));
+  assert.ok(css.includes('.dock-edge-switcher {') && !css.includes('.dock-edge-switcher {\n    display: none !important;'));
+});
