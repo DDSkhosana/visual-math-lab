@@ -315,6 +315,28 @@ html, body {
 /* ==========================================================================
    Panel Header Action Controls & Expand/Collapse Chevrons
    ========================================================================== */
+.panel-header h1,
+.panel-header h2,
+.panel-header h3,
+.panel-header .panel-title,
+.ui-panel .panel-header h1,
+.ui-panel .panel-header h2,
+.ui-panel .panel-header h3,
+.ui-panel .panel-header .panel-title {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.01em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
 .panel-header-actions {
   display: inline-flex;
   align-items: center;

@@ -3778,3 +3778,43 @@ test('WorkspaceDockManager: Expanded Dock is Freely Draggable to Any Margin and 
   dockHeader.dispatchEvent({ type: 'click', target: dockHeader, stopPropagation: () => {} });
   assert.strictEqual(dock.isCollapsed, false, 'Clicking collapsed header without drag must expand it');
 });
+
+test('Workspace Windowing System: Panel Header Typography & Zero Heading Leakage Invariant across all visuals', () => {
+  const dockCss = fs.readFileSync(path.join(rootDir, 'css', 'workspace-dock.css'), 'utf8');
+  const visualCss = fs.readFileSync(path.join(rootDir, 'css', 'visual.css'), 'utf8');
+  const circleVisualCss = fs.readFileSync(path.join(rootDir, 'css', 'circle-visual.css'), 'utf8');
+
+  // Verify typography resets exist in workspace-dock.css, visual.css, and circle-visual.css
+  for (const [name, css] of [['workspace-dock.css', dockCss], ['visual.css', visualCss], ['circle-visual.css', circleVisualCss]]) {
+    assert.ok(
+      css.includes('font-size: 0.875rem !important;') &&
+      css.includes('font-weight: 700 !important;') &&
+      css.includes('max-width: none !important;') &&
+      css.includes('white-space: nowrap !important;'),
+      `${name} must enforce 0.875rem font size, font-weight 700, max-width none, and white-space nowrap on panel headers`
+    );
+  }
+
+  // Verify all 12 visualizer index.html files have no conflicting inline 0.95rem styles on panel headers
+  const visualFiles = [
+    'visuals/circle-theorems/alternate-segment/index.html',
+    'visuals/circle-theorems/angle-at-centre/index.html',
+    'visuals/circle-theorems/angles-in-same-segment/index.html',
+    'visuals/circle-theorems/cyclic-quadrilateral/index.html',
+    'visuals/circle-theorems/perpendicular-chord-bisector/index.html',
+    'visuals/circle-theorems/tangent-radius/index.html',
+    'visuals/circle-theorems/tangents-from-external-point/index.html',
+    'visuals/circle-theorems/thales-theorem/index.html',
+    'visuals/trigonometry/angle-sum-identities/index.html',
+    'visuals/trigonometry/law-of-cosines/index.html',
+    'visuals/trigonometry/law-of-sines/index.html',
+    'visuals/trigonometry/unit-circle-helix/index.html'
+  ];
+
+  for (const relPath of visualFiles) {
+    const fullPath = path.join(rootDir, relPath);
+    assert.ok(fs.existsSync(fullPath), `${relPath} must exist`);
+    const content = fs.readFileSync(fullPath, 'utf8');
+    assert.ok(!content.includes('style="font-size: 0.95rem'), `${relPath} must not contain conflicting inline font-size on panel headers`);
+  }
+});

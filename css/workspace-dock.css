@@ -963,9 +963,13 @@
 }
 
 [data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-header,
-[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-header {
+[data-dock-edge="right"] .workspace-dock-body > .ui-panel .panel-header,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-header,
+.ui-panel.is-floating .panel-header {
   min-height: 40px !important;
   flex-shrink: 0 !important;
+  padding: 0.5rem 0.75rem !important;
 }
 
 [data-dock-edge="left"] .workspace-dock-body > .ui-panel .panel-body,
@@ -1557,7 +1561,22 @@
 .panel-header h1,
 .panel-header h2,
 .panel-header h3,
-.panel-header .panel-title {
+.panel-header .panel-title,
+.ui-panel .panel-header h1,
+.ui-panel .panel-header h2,
+.ui-panel .panel-header h3,
+.ui-panel .panel-header .panel-title,
+.workspace-dock .panel-header h1,
+.workspace-dock .panel-header h2,
+.workspace-dock .panel-header h3,
+.workspace-dock .panel-header .panel-title {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.01em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
   overflow: hidden !important;

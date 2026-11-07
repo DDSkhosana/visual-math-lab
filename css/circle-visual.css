@@ -849,10 +849,22 @@ body.interaction-tips-enabled .viewport-header-toolbar.is-collapsed::after,
   cursor: grabbing;
 }
 
-.panel-header h1 {
-  font-size: 0.875rem;
-  font-weight: 700;
-  margin: 0;
+.panel-header h1,
+.panel-header h2,
+.panel-header h3,
+.panel-header .panel-title {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.01em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 .panel-body {
