@@ -182,11 +182,54 @@ export function thalesStats2D(radius, angle, options = {}) {
   };
 }
 
-export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D = null) {
+export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D = null, options = {}) {
   const isSpatial = dimensionMode === 'spatial';
-  const p = (!isSpatial && typeof angle2D === 'number')
-    ? { x: radius * Math.cos(angle2D), y: radius * Math.sin(angle2D), z: 0 }
-    : sphericalToCartesian(radius, lat, lon);
+  const isSolid = dimensionMode === 'solid';
+  let p;
+  if (isSpatial) {
+    p = sphericalToCartesian(radius, lat, lon);
+  } else if (isSolid) {
+    const ang = typeof angle2D === 'number' ? angle2D : (Math.PI / 4);
+    const tilt = options.solidTilt !== undefined ? Number(options.solidTilt) : (25 * Math.PI / 180);
+    const azimuth = options.solidAzimuth !== undefined ? Number(options.solidAzimuth) : (35 * Math.PI / 180);
+    const spin = options.solidSpin !== undefined ? Number(options.solidSpin) : 0;
+    const rot = options.baselineRotation || 0;
+    const u = {
+      x: Math.cos(azimuth) * Math.cos(spin) - Math.cos(tilt) * Math.sin(azimuth) * Math.sin(spin),
+      y: -Math.sin(azimuth) * Math.cos(spin) - Math.cos(tilt) * Math.cos(azimuth) * Math.sin(spin),
+      z: Math.sin(tilt) * Math.sin(spin),
+    };
+    const v = {
+      x: -Math.cos(azimuth) * Math.sin(spin) - Math.cos(tilt) * Math.sin(azimuth) * Math.cos(spin),
+      y: Math.sin(azimuth) * Math.sin(spin) - Math.cos(tilt) * Math.cos(azimuth) * Math.cos(spin),
+      z: Math.sin(tilt) * Math.cos(spin),
+    };
+    const cosR = Math.cos(rot), sinR = Math.sin(rot);
+    const uRot = {
+      x: u.x * cosR + v.x * sinR,
+      y: u.y * cosR + v.y * sinR,
+      z: u.z * cosR + v.z * sinR,
+    };
+    const vRot = {
+      x: -u.x * sinR + v.x * cosR,
+      y: -u.y * sinR + v.y * cosR,
+      z: -u.z * sinR + v.z * cosR,
+    };
+    const cosA = Math.cos(ang), sinA = Math.sin(ang);
+    p = {
+      x: radius * (uRot.x * cosA + vRot.x * sinA),
+      y: radius * (uRot.y * cosA + vRot.y * sinA),
+      z: radius * (uRot.z * cosA + vRot.z * sinA),
+    };
+  } else if (typeof angle2D === 'number') {
+    const rot = options.baselineRotation || 0;
+    const cosR = Math.cos(rot), sinR = Math.sin(rot);
+    const cosA = Math.cos(angle2D), sinA = Math.sin(angle2D);
+    const rawX = radius * cosA, rawY = radius * sinA;
+    p = { x: rawX * cosR - rawY * sinR, y: rawX * sinR + rawY * cosR, z: 0 };
+  } else {
+    p = sphericalToCartesian(radius, lat, lon);
+  }
   const s = Math.hypot(p.x + radius, p.y, p.z);
   const t = Math.hypot(p.x - radius, p.y, p.z);
   const d = 2 * radius;
@@ -195,9 +238,13 @@ export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D 
   const pA = { x: -radius, y: 0, z: 0 };
   const pB = { x: radius, y: 0, z: 0 };
   const excessData = computeSphericalTriangleExcess(pA, pB, p, radius);
+  const h = 0.3 * radius;
+  const depth = (isSolid && Math.abs(p.z) < 0.05) ? (2 * h) : Math.max(Math.abs(p.z), 0.001);
+  const volume = Math.abs(p.x * p.y * depth);
   return {
     dimensionMode,
     isSpatial,
+    isSolid,
     excessDeg: isSpatial ? excessData.excessDeg : 0,
     sphericalArea: isSpatial ? excessData.area : 0,
     radius,
@@ -210,7 +257,7 @@ export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D 
     sumSquares: p.x * p.x + p.y * p.y + p.z * p.z,
     thalesSumSquares: s * s + t * t,
     radiusSquared: radius * radius,
-    volume: Math.abs(p.x * p.y * p.z),
+    volume,
     area: 0.5 * s * t,
     alpha,
     beta,

@@ -77,10 +77,10 @@ export function createThalesScene(THREE) {
   const arrowPA = add(new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, PALETTE.blue, 1, 0.5));
   const arrowPB = add(new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 1, PALETTE.orange, 1, 0.5));
 
-  const volumeBox = add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), translucent(THREE, PALETTE.violet, 0.18, { side: THREE.FrontSide })));
+  const volumeBox = add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), translucent(THREE, PALETTE.violet, 0.22, { side: THREE.DoubleSide, depthWrite: false })));
   const volumeWire = add(new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    new THREE.LineBasicMaterial({ color: PALETTE.violetLight, transparent: true, opacity: 0.8 }),
+    new THREE.LineBasicMaterial({ color: PALETTE.violetLight, transparent: true, opacity: 0.85 }),
   ));
 
   const circlePoints = [];

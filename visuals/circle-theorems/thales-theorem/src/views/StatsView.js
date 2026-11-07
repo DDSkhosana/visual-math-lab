@@ -19,7 +19,7 @@ const IDS = {
 
 /** Writes the numeric read-outs shown over each canvas. */
 export class StatsView {
-  static stateKeys = ['dimensionMode', 'radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle'];
+  static stateKeys = ['dimensionMode', 'radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle', 'solidTilt', 'solidAzimuth', 'solidSpin', 'baselineRotation'];
 
   constructor(root = document) {
     this.root = root;
@@ -33,7 +33,7 @@ export class StatsView {
     const angUnit = state.angleUnit || 'deg';
     const flat = thalesStats2D(state.radius, state.angle2D, state);
     const isSpatial = state.dimensionMode === 'spatial';
-    const solid = sphereStats(state.radius, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D);
+    const solid = sphereStats(state.radius, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D, state);
     const theta2dDeg = ((state.angle2D * 180 / Math.PI % 360) + 360) % 360;
     const theta3dDeg = Math.acos(Math.max(-1, Math.min(1, solid.p.y / (state.radius || 1)))) * 180 / Math.PI;
     const phi3dDeg = Math.atan2(solid.p.x, solid.p.z) * 180 / Math.PI;

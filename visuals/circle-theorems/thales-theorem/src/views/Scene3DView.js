@@ -86,34 +86,6 @@ export class Scene3DView {
     this.dimensionMode = state.dimensionMode || 'planar';
     const isSolid = isSolidMode(this.dimensionMode);
     this.radius = r;
-    let raw;
-    if (isSolid) {
-      const frame = getSolidOrientationFrame(state, 'z', THREE);
-      const { u, v, normal } = frame;
-      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: r, u, v };
-      const ang = state.angle2D ?? Math.PI / 4;
-      const P = new THREE.Vector3()
-        .addScaledVector(u, r * Math.cos(ang))
-        .addScaledVector(v, r * Math.sin(ang));
-      raw = { x: P.x, y: P.y, z: P.z };
-    } else if (isSpatial) {
-      const lat = state.lat3D ?? Math.PI / 4;
-      const lon = state.lon3D ?? Math.PI / 3;
-      raw = sphericalToCartesian(r, lat, lon);
-      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0) };
-    } else {
-      const ang = state.angle2D ?? Math.PI / 4;
-      raw = {
-        x: r * Math.cos(ang),
-        y: r * Math.sin(ang),
-        z: 0,
-      };
-      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0) };
-    }
-    const x = raw.x * cosR - raw.y * sinR;
-    const y = raw.x * sinR + raw.y * cosR;
-    const z = raw.z;
-
     const scaleX = state.affineMode ? (state.affineStretch ?? 1.0) : 1.0;
     const scaleY = 1.0;
     const scaleZ = 1.0;
@@ -147,14 +119,27 @@ export class Scene3DView {
       o.pointB.position.copy(posB);
       o.pointP.position.copy(posP);
 
-      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: r, u: uRot, v: vRot };
+      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: r, u: uRot, v: vRot, baseU: u, baseV: v };
 
       if (o.greatCircleWire) {
         o.greatCircleWire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
         o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
         o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : true;
       }
-    } else {
+    } else if (isSpatial) {
+      const lat = state.lat3D ?? Math.PI / 4;
+      const lon = state.lon3D ?? Math.PI / 3;
+      const raw = sphericalToCartesian(r, lat, lon);
+      const cosR_val = Math.cos(rot);
+      const sinR_val = Math.sin(rot);
+      const uRot = new THREE.Vector3(cosR_val, sinR_val, 0);
+      const vRot = new THREE.Vector3(-sinR_val, cosR_val, 0);
+      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: uRot, v: vRot, baseU: new THREE.Vector3(1, 0, 0), baseV: new THREE.Vector3(0, 1, 0) };
+
+      const x = raw.x * cosR - raw.y * sinR;
+      const y = raw.x * sinR + raw.y * cosR;
+      const z = raw.z;
+
       const { psi } = point3DToGreatCircle(raw, r);
       if (o.greatCircleWire) {
         o.greatCircleWire.rotation.order = 'ZYX';
@@ -165,6 +150,33 @@ export class Scene3DView {
       }
 
       o.pointP.position.set(x * scaleX, y * scaleY, z * scaleZ);
+      o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
+      o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
+    } else {
+      const ang = state.angle2D ?? Math.PI / 4;
+      const raw = {
+        x: r * Math.cos(ang),
+        y: r * Math.sin(ang),
+        z: 0,
+      };
+      const cosR_val = Math.cos(rot);
+      const sinR_val = Math.sin(rot);
+      const uRot = new THREE.Vector3(cosR_val, sinR_val, 0);
+      const vRot = new THREE.Vector3(-sinR_val, cosR_val, 0);
+      this.circleInfo = { normal: new THREE.Vector3(0, 0, 1), center: new THREE.Vector3(0, 0, 0), radius: r, u: uRot, v: vRot, baseU: new THREE.Vector3(1, 0, 0), baseV: new THREE.Vector3(0, 1, 0) };
+
+      const x = raw.x * cosR - raw.y * sinR;
+      const y = raw.x * sinR + raw.y * cosR;
+
+      if (o.greatCircleWire) {
+        o.greatCircleWire.rotation.order = 'ZYX';
+        o.greatCircleWire.rotation.z = rot;
+        o.greatCircleWire.rotation.x = 0;
+        o.greatCircleWire.scale.set(r * scaleX, r * scaleY, r * scaleZ);
+        o.greatCircleWire.visible = state.vis3d.circleWire !== undefined ? Boolean(state.vis3d.circleWire) : Boolean(state.vis3d.sphere);
+      }
+
+      o.pointP.position.set(x * scaleX, y * scaleY, 0);
       o.pointA.position.set(-r * scaleX * cosR, -r * scaleY * sinR, 0);
       o.pointB.position.set(r * scaleX * cosR, r * scaleY * sinR, 0);
     }
@@ -208,24 +220,16 @@ export class Scene3DView {
     o.areaTriangle.visible = false;
 
     if (o.altitudeLine) {
-      if (isSolid) {
-        const abDir = new THREE.Vector3().subVectors(o.pointB.position, o.pointA.position).normalize();
-        const aToP = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
-        const foot = new THREE.Vector3().addVectors(o.pointA.position, abDir.clone().multiplyScalar(aToP.dot(abDir)));
-        o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
-        o.altitudeLine.computeLineDistances();
-        o.altitudeLine.visible = showArea;
-      } else {
-        const proj = x * cosR + y * sinR;
-        const foot = new THREE.Vector3(proj * cosR, proj * sinR, 0);
-        o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
-        o.altitudeLine.computeLineDistances();
-        o.altitudeLine.visible = showArea;
-      }
+      const abDir = new THREE.Vector3().subVectors(o.pointB.position, o.pointA.position).normalize();
+      const aToP = new THREE.Vector3().subVectors(o.pointP.position, o.pointA.position);
+      const foot = new THREE.Vector3().addVectors(o.pointA.position, abDir.clone().multiplyScalar(aToP.dot(abDir)));
+      o.altitudeLine.geometry.setFromPoints([foot, o.pointP.position]);
+      o.altitudeLine.computeLineDistances();
+      o.altitudeLine.visible = showArea;
     }
 
     const origin = new THREE.Vector3();
-    const floorProj = new THREE.Vector3(x * scaleX, 0, z * scaleZ);
+    const floorProj = new THREE.Vector3(p.x, 0, p.z);
     this.updateSector(o.thetaSector, origin, new THREE.Vector3(0, 1, 0), p, r * 0.35);
     this.updateSector(o.phiSector, origin, new THREE.Vector3(0, 0, 1), floorProj, r * 0.45);
     o.thetaSector.visible = showAngles;
@@ -296,12 +300,18 @@ export class Scene3DView {
       }
     }
 
+    const px = o.pointP.position.x;
+    const py = o.pointP.position.y;
+    const pz = o.pointP.position.z;
     const min = 0.001;
-    o.volumeBox.scale.set(Math.max(Math.abs(x), min), Math.max(Math.abs(y), min), Math.max(Math.abs(z), min));
-    o.volumeBox.position.set(x / 2, y / 2, z / 2);
+    const h = 0.3 * Math.abs(r || 10);
+    const boxDepth = (isSolid && Math.abs(pz) < 0.05) ? (2 * h) : Math.max(Math.abs(pz), min);
+    const boxPosZ = (isSolid && Math.abs(pz) < 0.05) ? 0 : (pz / 2);
+    o.volumeBox.scale.set(Math.max(Math.abs(px), min), Math.max(Math.abs(py), min), boxDepth);
+    o.volumeBox.position.set(px / 2, py / 2, boxPosZ);
     o.volumeWire.scale.copy(o.volumeBox.scale);
     o.volumeWire.position.copy(o.volumeBox.position);
-    o.volumeBox.visible = o.volumeWire.visible = state.vis3d.volume;
+    o.volumeBox.visible = o.volumeWire.visible = Boolean(state.vis3d?.volume !== false);
   }
 
   updateSector(mesh, center, from, to, radius, sweepReflex = false) {
@@ -378,7 +388,7 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointP).length > 0) return true;
     const screenPt = this.project(this.objects.pointP.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 34) return true;
     }
     return false;
   }
@@ -388,7 +398,7 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointA).length > 0) return true;
     const screenPt = this.project(this.objects.pointA.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 34) return true;
     }
     return false;
   }
@@ -398,7 +408,19 @@ export class Scene3DView {
     if (this.raycaster.intersectObject(this.objects.pointB).length > 0) return true;
     const screenPt = this.project(this.objects.pointB.position);
     if (screenPt && this.lastPointerCoords) {
-      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 14) return true;
+      if (Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < 34) return true;
+    }
+    return false;
+  }
+
+  nearAnyTarget(tolerance = 38) {
+    if (!this.lastPointerCoords) return false;
+    for (const obj of [this.objects?.pointP, this.objects?.pointA, this.objects?.pointB]) {
+      if (!obj) continue;
+      const screenPt = this.project(obj.position);
+      if (screenPt && Math.hypot(this.lastPointerCoords.x - screenPt.x, this.lastPointerCoords.y - screenPt.y) < tolerance) {
+        return true;
+      }
     }
     return false;
   }
@@ -432,17 +454,28 @@ export class Scene3DView {
   }
 
   pickSphere(baselineRotation = 0) {
-    const hits = this.raycaster.intersectObject(this.objects.sphere);
-    let pt = hits.length ? hits[0].point : null;
+    if (!this.raycaster?.ray) return null;
+    const r = (this.objects?.sphere?.scale?.x) || this.radius || 10;
+    const ray = this.raycaster.ray;
+    const vOrigin = ray.origin;
+    const vDir = ray.direction;
 
+    let pt = null;
+    const b = vOrigin.dot(vDir);
+    const c = vOrigin.lengthSq() - r * r;
+    const disc = b * b - c;
+    if (disc >= 0) {
+      const sqrtDisc = Math.sqrt(disc);
+      const t1 = -b - sqrtDisc;
+      const t2 = -b + sqrtDisc;
+      if (t1 > 0) pt = vOrigin.clone().addScaledVector(vDir, t1);
+      else if (t2 > 0) pt = vOrigin.clone().addScaledVector(vDir, t2);
+    }
     if (!pt) {
-      // When dragged past the sphere's edge, clamp to the nearest point on the sphere silhouette
-      const r = this.objects.sphere.scale.x;
-      const ray = this.raycaster.ray;
-      const t = -ray.origin.dot(ray.direction);
+      const t = -b;
       if (t > 0) {
-        const closestPointOnRay = ray.origin.clone().addScaledVector(ray.direction, t);
-        if (closestPointOnRay.lengthSq() > 0) {
+        const closestPointOnRay = vOrigin.clone().addScaledVector(vDir, t);
+        if (closestPointOnRay.lengthSq() > 1e-6) {
           pt = closestPointOnRay.normalize().multiplyScalar(r);
         }
       }
@@ -450,11 +483,11 @@ export class Scene3DView {
     if (!pt) return null;
 
     if (baselineRotation) {
-      const c = Math.cos(-baselineRotation);
-      const s = Math.sin(-baselineRotation);
+      const cR = Math.cos(-baselineRotation);
+      const sR = Math.sin(-baselineRotation);
       return new this.THREE.Vector3(
-        pt.x * c - pt.y * s,
-        pt.x * s + pt.y * c,
+        pt.x * cR - pt.y * sR,
+        pt.x * sR + pt.y * cR,
         pt.z
       );
     }
@@ -464,10 +497,11 @@ export class Scene3DView {
   pickBaselinePlane() {
     if (!this.raycaster?.ray) return null;
     const normal = this.circleInfo?.normal || new this.THREE.Vector3(0, 0, 1);
-    const plane = new this.THREE.Plane(normal, 0);
+    const center = this.circleInfo?.center || new this.THREE.Vector3(0, 0, 0);
+    const plane = new this.THREE.Plane().setFromNormalAndCoplanarPoint(normal, center);
     const planeHit = new this.THREE.Vector3();
     const hit = this.raycaster.ray.intersectPlane(plane, planeHit);
-    if (hit && planeHit.lengthSq() > 1e-4) {
+    if (hit) {
       return planeHit;
     }
     return this.pickSphere(0);

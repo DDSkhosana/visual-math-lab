@@ -312,3 +312,27 @@ test('Spatial mode 2D spherical surface draggability: all cases decouple Solid f
   assert.ok(trigCore.includes("makeLawOfSinesTarget('C', this.handleC, 'angleC', 'latC')"), 'Law of Sines equips C with latC');
   assert.ok(trigCore.includes("store.set({ colatC: colat, lonC: lon, solidTilt: colat, solidAzimuth: lon });"), 'Law of Cosines drags C over colatC and lonC on S²');
 });
+
+test('Thales Theorem: Point P 3D interaction, solidOrient anti-hijack guard, and Volume Box formation in 3D Solid mode', () => {
+  const thalesScene = read('visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js');
+  const thalesInteraction = read('visuals/circle-theorems/thales-theorem/src/controllers/Scene3DInteraction.js');
+  const thalesMath = read('visuals/circle-theorems/thales-theorem/src/model/thales-math.js');
+
+  // 1. Point P hit testing threshold expanded to 34px and nearAnyTarget anti-hijack guard
+  assert.ok(thalesScene.includes('< 34) return true;'), 'hitsPointP uses 34px screen distance threshold');
+  assert.ok(thalesScene.includes('nearAnyTarget(tolerance = 38)'), 'Scene3DView defines nearAnyTarget guard');
+  assert.ok(thalesInteraction.includes('if (this.scene.nearAnyTarget?.(38))'), 'Scene3DInteraction guards against solidOrient hijacking near points');
+
+  // 2. Volume Box formed by Point P in Solid mode
+  assert.ok(thalesScene.includes('const px = o.pointP.position.x;'), 'volumeBox tracks pointP x coordinate');
+  assert.ok(thalesScene.includes('const py = o.pointP.position.y;'), 'volumeBox tracks pointP y coordinate');
+  assert.ok(thalesScene.includes('const pz = o.pointP.position.z;'), 'volumeBox tracks pointP z coordinate');
+  assert.ok(thalesScene.includes('const boxDepth = (isSolid && Math.abs(pz) < 0.05) ? (2 * h) : Math.max(Math.abs(pz), min);'), 'volumeBox enforces non-zero 3D extrusion depth in solid mode');
+  assert.ok(thalesScene.includes('o.volumeBox.scale.set(Math.max(Math.abs(px), min), Math.max(Math.abs(py), min), boxDepth);'), 'volumeBox scaled with Point P dimensions');
+  assert.ok(thalesScene.includes('o.volumeBox.position.set(px / 2, py / 2, boxPosZ);'), 'volumeBox centered between origin and Point P');
+
+  // 3. Mathematical sphereStats computes volume in Solid mode
+  assert.ok(thalesMath.includes('const isSolid = dimensionMode === \'solid\';'), 'sphereStats recognizes solid mode');
+  assert.ok(thalesMath.includes('const depth = (isSolid && Math.abs(p.z) < 0.05) ? (2 * h) : Math.max(Math.abs(p.z), 0.001);'), 'sphereStats computes 3D volume depth');
+  assert.ok(thalesMath.includes('const volume = Math.abs(p.x * p.y * depth);'), 'sphereStats computes box volume for solid mode');
+});

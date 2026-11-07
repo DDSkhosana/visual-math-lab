@@ -13,18 +13,8 @@ function describeLabels(state) {
   const rot = state.baselineRotation || 0;
   const cosR = Math.cos(rot);
   const sinR = Math.sin(rot);
-  const rawP = isSpatial
-    ? sphereStats(r, state.lat3D, state.lon3D).p
-    : {
-        x: r * Math.cos(state.angle2D ?? Math.PI / 4),
-        y: r * Math.sin(state.angle2D ?? Math.PI / 4),
-        z: 0,
-      };
-  const p = {
-    x: rawP.x * cosR - rawP.y * sinR,
-    y: rawP.x * sinR + rawP.y * cosR,
-    z: rawP.z,
-  };
+  const solidStats = sphereStats(r, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D, state);
+  const p = solidStats.p;
   const ax = -r * cosR, ay = -r * sinR, az = 0;
   const bx = r * cosR, by = r * sinR, bz = 0;
 
@@ -59,7 +49,6 @@ function describeLabels(state) {
     z: p.z + (bisector.z / bisectorLen) * 1.5,
   };
 
-  const solidStats = sphereStats(r, state.lat3D, state.lon3D, state.dimensionMode, state.angle2D);
   const alphaDeg = solidStats.alphaDeg;
   const betaDeg = solidStats.betaDeg;
 

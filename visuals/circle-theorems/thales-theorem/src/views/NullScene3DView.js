@@ -14,6 +14,7 @@ export class NullScene3DView {
   hitsPointP() { return false; }
   hitsPointA() { return false; }
   hitsPointB() { return false; }
+  nearAnyTarget() { return false; }
   hitsCircumference() { return false; }
   pickCircumferenceRadius() { return null; }
   pickSphere() { return null; }

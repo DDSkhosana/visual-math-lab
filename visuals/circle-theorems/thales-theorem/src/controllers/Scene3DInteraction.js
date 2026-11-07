@@ -58,6 +58,8 @@ export class Scene3DInteraction {
       this.activeTarget = 'A';
     } else if (this.scene.hitsPointB()) {
       this.activeTarget = 'B';
+    } else if (this.scene.nearAnyTarget?.(38)) {
+      return;
     } else if (this.store.get().dimensionMode === 'solid') {
       const r = this.store.get().radius || 10;
       if (this.scene.hitsSolid?.(r) || this.scene.hitsCircumference?.(r, event)) {
@@ -181,26 +183,17 @@ export class Scene3DInteraction {
       return;
     } else if (this.activeTarget === 'P') {
       const st = this.store.get();
-      if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
-        const hit = this.scene.pickBaselinePlane?.();
+      if (st.dimensionMode === 'spatial') {
+        const hit = this.scene.pickSphere(st.baselineRotation || 0);
         if (hit) {
-          const u = this.scene.circleInfo.u;
-          const v = this.scene.circleInfo.v;
-          const rot = st.baselineRotation || 0;
-          const cosR = Math.cos(rot);
-          const sinR = Math.sin(rot);
-          const uRot = new this.scene.THREE.Vector3().addScaledVector(u, cosR).addScaledVector(v, sinR);
-          const vRot = new this.scene.THREE.Vector3().addScaledVector(u, -sinR).addScaledVector(v, cosR);
-          const rawAngle = Math.atan2(hit.dot(vRot), hit.dot(uRot));
-          const TAU = Math.PI * 2;
-          const angle2D = ((rawAngle % TAU) + TAU) % TAU;
-          this.store.set({ angle2D });
+          const sph = cartesianToSpherical(hit, st.radius);
+          this.store.set(setSpherePoint(sph, st));
         }
-      } else if (st.dimensionMode !== 'spatial') {
-        const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(st.baselineRotation || 0);
-        if (hit) {
-          const rot = st.baselineRotation || 0;
-          const rawAngle = Math.atan2(hit.y, hit.x) - rot;
+      } else {
+        const hit = this.scene.pickBaselinePlane?.();
+        if (hit && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
+          const dHit = hit.clone().sub(this.scene.circleInfo.center || new this.scene.THREE.Vector3());
+          const rawAngle = Math.atan2(dHit.dot(this.scene.circleInfo.v), dHit.dot(this.scene.circleInfo.u));
           const TAU = Math.PI * 2;
           const angle2D = ((rawAngle % TAU) + TAU) % TAU;
           this.store.set({
@@ -209,25 +202,14 @@ export class Scene3DInteraction {
             lon3D: Math.cos(angle2D) >= 0 ? Math.PI / 2 : -Math.PI / 2,
           });
         }
-      } else {
-        const hit = this.scene.pickSphere(st.baselineRotation || 0);
-        if (hit) {
-          const sph = cartesianToSpherical(hit, st.radius);
-          this.store.set(setSpherePoint(sph, st));
-        }
       }
     } else if (this.activeTarget === 'A' || this.activeTarget === 'B') {
       const hit = this.scene.pickBaselinePlane?.() || this.scene.pickSphere(0);
       if (hit) {
         const st = this.store.get();
-        let ang;
-        if (st.dimensionMode === 'solid' && this.scene.circleInfo?.u && this.scene.circleInfo?.v) {
-          const u = this.scene.circleInfo.u;
-          const v = this.scene.circleInfo.v;
-          ang = Math.atan2(hit.dot(v), hit.dot(u));
-        } else {
-          ang = Math.atan2(hit.y, hit.x);
-        }
+        const baseU = this.scene.circleInfo?.baseU || new this.scene.THREE.Vector3(1, 0, 0);
+        const baseV = this.scene.circleInfo?.baseV || new this.scene.THREE.Vector3(0, 1, 0);
+        let ang = Math.atan2(hit.dot(baseV), hit.dot(baseU));
         if (this.activeTarget === 'A') ang += Math.PI;
         const TAU = Math.PI * 2;
         const baselineRotation = ((ang % TAU) + TAU) % TAU;

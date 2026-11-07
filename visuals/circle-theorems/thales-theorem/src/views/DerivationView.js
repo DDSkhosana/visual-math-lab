@@ -29,7 +29,7 @@ function cardTemplate(id, badge, title, symbolicLines, hasHighlight = false) {
 
 /** Renders the "Live Math Derivations" panel with full algebraic proofs and live numerical substitutions. */
 export class DerivationView {
-  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle'];
+  static stateKeys = ['radius', 'angle2D', 'lat3D', 'lon3D', 'lengthUnit', 'angleUnit', 'affineMode', 'affineStretch', 'affineAxisAngle', 'dimensionMode', 'solidTilt', 'solidAzimuth', 'solidSpin', 'baselineRotation'];
 
   constructor(flatElement, solidElement) {
     this.flatElement = flatElement;
@@ -344,8 +344,9 @@ export class DerivationView {
     }
   }
 
-  updateSolid({ radius, lat3D, lon3D }) {
-    const { p, sumSquares, radiusSquared, surfaceArea, volume } = sphereStats(radius, lat3D, lon3D);
+  updateSolid(state) {
+    const { radius, lat3D, lon3D, dimensionMode, angle2D } = state;
+    const { p, sumSquares, radiusSquared, surfaceArea, volume } = sphereStats(radius, lat3D, lon3D, dimensionMode, angle2D, state);
     const latDeg = Math.round(toDegrees(lat3D));
     const lonDeg = Math.round(toDegrees(lon3D));
     const x = p.x;
