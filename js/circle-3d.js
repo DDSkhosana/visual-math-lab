@@ -2488,10 +2488,15 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     this.triOPAMesh.visible = showArea;
     this.triOPBMesh.visible = showArea;
 
-    if (isSpatial) {
-      setTriVertices(this.sectorMesh.geometry, O, A, B);
-      this.sectorMesh.visible = showArea;
+    const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
+    if (isSolid || isSpatial) {
+      setSector3DVertices(this.sectorMesh.geometry, O, circleInfo.u, circleInfo.v, R, arcRange.start, arcRange.sweep, 32, THREE);
+    } else {
+      setSectorXZVertices(this.sectorMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
+    }
+    this.sectorMesh.visible = showArea;
 
+    if (isSpatial) {
       // Curved subtended arc on the sphere surface S² (distinct PALETTE.amber token)
       updateGeodesicArc3D(this.geodesicArcAB, A, B, R);
       const showGeodesic = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
@@ -2526,21 +2531,12 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       this.geodesicArcPB.visible = false;
       this.geodesicArcAB.visible = false;
       this.sphericalCapMesh.visible = false;
-
-      const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
-      if (isSolid || isSpatial) {
-        setSector3DVertices(this.sectorMesh.geometry, O, circleInfo.u, circleInfo.v, R, arcRange.start, arcRange.sweep, 32, THREE);
-      } else {
-        setSectorXZVertices(this.sectorMesh.geometry, 0, 0, R, arcRange.start, arcRange.sweep, 32);
-      }
-      this.sectorMesh.visible = showArea;
     }
 
     // Inscribed angle wedge measures the true Euclidean angle between straight chords PA and PB
     setAngleWedgeVertices3D(this.inscribedAngleMesh, P, A, B, 2.4);
     setAngleWedgeVertices3D(this.inscribedReflexMesh, P, A, B, 3.0, 32, THREE, true);
 
-    const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
     const isReflexSubtended = arcRange.sweep > Math.PI;
     setAngleWedgeVertices3D(this.centralAngleMesh, O, A, B, 2.6, 24, THREE, isReflexSubtended);
     setAngleWedgeVertices3D(this.centralReflexMesh, O, A, B, 3.2, 32, THREE, !isReflexSubtended);

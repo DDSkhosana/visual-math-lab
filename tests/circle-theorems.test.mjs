@@ -2907,7 +2907,7 @@ test('Concyclic Wireframe Dynamic Alignment & Spatial Shading: alignCircleWireTo
   assert.ok(circle3DCode.includes('alignCircleWireToPlane(this.circleWire, normal, O, R, THREE)'), 'ChordBisector3DView & TangentsFromPoint3DView must align circle wire');
 
   // Complete 3D spatial shading restorations:
-  assert.ok(circle3DCode.includes('setTriVertices(this.sectorMesh.geometry, O, A, B)'), 'AngleAtCentre3DView must build central sector mesh in spatial mode');
+  assert.ok(circle3DCode.includes('setSector3DVertices(this.sectorMesh.geometry, O, circleInfo.u, circleInfo.v, R, arcRange.start, arcRange.sweep, 32, THREE)'), 'AngleAtCentre3DView must build central sector mesh in spatial and solid modes');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, circleInfo.center, circleInfo.u, circleInfo.v, circleInfo.radius, segStart, segSweep, 32, THREE)'), 'AnglesInSameSegment3DView must build 3D segmentMesh in spatial mode');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.segmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, segStart, segSweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Major segment mesh in spatial mode');
   assert.ok(circle3DCode.includes('setSegment3DVertices(this.minorSegmentMesh.geometry, new THREE.Vector3(0, 0, 0), u, v, R, arcRange.start, arcRange.sweep, 32, THREE)'), 'AlternateSegment3DView must build 3D Minor segment mesh in spatial mode');
