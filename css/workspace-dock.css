@@ -61,6 +61,7 @@
   z-index: 30;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.55);
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
@@ -140,6 +141,10 @@
   gap: 0.5rem;
   user-select: none;
   cursor: grab;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .workspace-dock.is-dragging {
@@ -164,12 +169,24 @@
   letter-spacing: 0.03em;
   color: #38bdf8;
   white-space: nowrap;
+  min-width: 0 !important;
+  flex-shrink: 1 !important;
+  overflow: hidden !important;
+}
+
+.dock-title-group > span:not(.dock-drag-handle) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 .dock-controls-group {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+  max-width: 100% !important;
 }
 
 /* Edge Switcher Button Group [ ⬅ | ➡ | ⬇ | ⬆ ] */
@@ -305,7 +322,7 @@
   height: auto !important;
   min-height: max-content !important;
   max-height: 100% !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-header {
@@ -776,7 +793,7 @@
   background: none !important;
   box-shadow: none !important;
   border: 0 !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body.has-elevation-groups .is-elevation-group > :is(.collapsible-header, .derivation-card-header) {
@@ -1329,7 +1346,7 @@
   border-radius: 9999px !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
   border: 1px solid rgba(56, 189, 248, 0.5) !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   padding: 0 !important;
   z-index: 40 !important;
   background: rgba(15, 23, 42, 0.95) !important;
@@ -1353,6 +1370,9 @@
   gap: 0.65rem;
   background: transparent !important;
   height: auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
 }
 
 .workspace-dock.is-collapsed .dock-title-group span {
@@ -1361,9 +1381,12 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #38bdf8;
+  white-space: nowrap !important;
 }
 
 .workspace-dock.is-collapsed .dock-edge-switcher,
+.workspace-dock.is-collapsed .dock-tray-btn,
+.workspace-dock.is-collapsed .panels-tray-dropdown,
 .workspace-dock.is-collapsed .workspace-dock-body,
 .workspace-dock.is-collapsed .dock-resizer {
   display: none !important;
@@ -1643,7 +1666,7 @@
   box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 8px 16px -4px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 0.5rem;
-  overflow: visible !important;
+  overflow: hidden !important;
   pointer-events: auto;
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(14px);
@@ -1673,7 +1696,7 @@
 .ui-panel.is-floating.is-shaded .panel-content {
   height: auto !important;
   min-height: 40px !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .ui-panel.is-floating .panel-header {
@@ -1834,11 +1857,12 @@
   min-width: 0 !important;
   min-height: 0 !important;
   word-break: break-word !important;
+  overflow-wrap: anywhere !important;
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch !important;
 }
 
-/* Math, Badges, and Table Zero-Overflow Wrapping */
+/* Math, Badges, Table, and Derivation Zero-Overflow Wrapping */
 .panel-body table,
 .panel-body .katex-display {
   min-width: 0 !important;
@@ -1853,6 +1877,49 @@
   max-width: 100% !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
+}
+
+.derivation-card-header.collapsible-header,
+.derivation-card-header-title {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.derivation-title {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.derivation-card-content,
+.derivation-math-row,
+.derivation-sub-row,
+.derivation-eval-highlight {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.panel-body .checkbox-container,
+.workspace-dock-body label {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+
+.stat-line {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
 /* Collapsed Nested Subcomponents inside Dock Panel */
