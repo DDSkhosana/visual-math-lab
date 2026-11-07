@@ -1818,14 +1818,22 @@ export class WorkspaceDockManager {
       this.dockBody.addEventListener?.('wheel', (e) => {
         if (this.dockEdge === 'top' || this.dockEdge === 'bottom') {
           // If the cursor is over an inner vertically-scrollable container that has room to scroll, let it scroll
-          const innerScrollable = e.target?.closest?.('.collapsible-content, .derivation-card-content, .panel-body');
-          if (innerScrollable && innerScrollable !== this.dockBody) {
-            const hasVert = (innerScrollable.scrollHeight || 0) > (innerScrollable.clientHeight || 0) + 2;
-            const canScrollDown = e.deltaY > 0 && ((innerScrollable.scrollTop || 0) + (innerScrollable.clientHeight || 0) < (innerScrollable.scrollHeight || 0) - 2);
-            const canScrollUp = e.deltaY < 0 && (innerScrollable.scrollTop || 0) > 2;
+          let cur = e.target;
+          let innerScrollable = null;
+          while (cur && cur !== this.dockBody && cur !== this.root && cur !== this.doc?.body) {
+            const scrollable = cur.closest?.('.collapsible-content, .derivation-card-content, .panel-body');
+            if (!scrollable || scrollable === this.dockBody) break;
+            const hasVert = (scrollable.scrollHeight || 0) > (scrollable.clientHeight || 0) + 2;
+            const canScrollDown = e.deltaY > 0 && ((scrollable.scrollTop || 0) + (scrollable.clientHeight || 0) < (scrollable.scrollHeight || 0) - 2);
+            const canScrollUp = e.deltaY < 0 && (scrollable.scrollTop || 0) > 2;
             if (hasVert && (canScrollDown || canScrollUp)) {
-              return; // Allow the inner content to scroll vertically
+              innerScrollable = scrollable;
+              break;
             }
+            cur = scrollable.parentElement;
+          }
+          if (innerScrollable) {
+            return; // Allow the inner content to scroll vertically
           }
           const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
           if (delta) {

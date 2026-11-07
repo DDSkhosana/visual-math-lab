@@ -3475,3 +3475,81 @@ test('WorkspaceDockManager: Header Folds Rest the Deck Step, Deck Controls Reope
   assert.ok(narrow.includes('"count count count" "prev pills next" "mode mode mode"'), 'The mode toggle leaves the pill row in narrow docks');
   assert.ok(narrow.slice(0, narrow.indexOf('\n}\n')).includes('.panel-elevation-deck .elevation-deck-pill {\n    max-width: 100% !important;'), 'The active pill must fit the narrow pill row');
 });
+
+test('WorkspaceDockManager: Universal Mouse Wheel Scrolling Across Labels, Inputs, Cards, and Headers Without Overscroll Traps', () => {
+  const cssPath = path.join(rootDir, 'css', 'workspace-dock.css');
+  const css = fs.readFileSync(cssPath, 'utf8').replace(/\r\n/g, '\n');
+
+  // 1. CSS Zero-Trapping Invariant: open subpanels in vertical docks must not trap wheel events
+  assert.ok(
+    css.includes('overflow-y: visible !important;\n  overflow-x: hidden !important;\n  overscroll-behavior: auto !important;\n  overscroll-behavior-y: auto !important;'),
+    'Active subpanel content must declare overflow-y: visible !important and overscroll-behavior: auto !important to prevent scroll chaining deadlocks'
+  );
+
+  // 2. Panel body allows overscroll chaining to dock body
+  assert.ok(
+    css.includes('.workspace-dock-body > .ui-panel .panel-body {\n  --shelf-cast: 0 0 #0000;\n  padding: 0 !important;\n  flex: 0 1 auto !important;\n  display: flex !important;\n  flex-direction: column !important;\n  min-height: 0 !important;\n  height: auto !important;\n  max-height: min(460px, 55vh) !important;\n  overflow-y: auto !important;\n  overscroll-behavior: auto !important;\n  overscroll-behavior-y: auto !important;'),
+    'Docked panel body must allow overscroll chaining to dock body'
+  );
+
+  // 3. Top/bottom dock wheel listener ancestor traversal
+  const mockDoc = new MockDocument();
+  const mockWin = { innerWidth: 1200, innerHeight: 800 };
+  const root = new MockDOMElement('div', 'circle-explorer', 'root');
+  root.ownerDocument = mockDoc;
+  mockDoc.body.appendChild(root);
+
+  const dock = new WorkspaceDockManager(root, { win: mockWin, doc: mockDoc });
+  dock.setDockEdge('top');
+  dock.dockBody.scrollLeft = 0;
+
+  const panel = new MockDOMElement('div', 'ui-panel', 'controls-panel');
+  panel.ownerDocument = mockDoc;
+  const panelBody = new MockDOMElement('div', 'panel-body');
+  panelBody.scrollHeight = 300;
+  panelBody.clientHeight = 200;
+  panelBody.scrollTop = 10;
+
+  const sec = new MockDOMElement('div', 'collapsible-section is-elevated-top');
+  const content = new MockDOMElement('div', 'collapsible-content');
+  content.scrollHeight = 100;
+  content.clientHeight = 100; // No vertical scroll on content itself
+
+  const sliderBox = new MockDOMElement('div', 'slider-container');
+  const label = new MockDOMElement('label');
+  const input = new MockDOMElement('input');
+
+  sliderBox.appendChild(label);
+  sliderBox.appendChild(input);
+  content.appendChild(sliderBox);
+  sec.appendChild(content);
+  panelBody.appendChild(sec);
+  panel.appendChild(panelBody);
+  dock.dockBody.appendChild(panel);
+
+  // Wheel over label when parent panelBody has vertical room -> let it scroll vertically (does not hijack scrollLeft)
+  let prevented = false;
+  dock.dockBody.dispatchEvent({
+    type: 'wheel',
+    target: label,
+    deltaY: 50,
+    deltaX: 0,
+    preventDefault: () => { prevented = true; },
+  });
+  assert.strictEqual(prevented, false, 'Wheel over label inside vertically scrollable panelBody must not be hijacked by horizontal dock');
+  assert.strictEqual(dock.dockBody.scrollLeft, 0, 'Dock body horizontal scroll must not increment when inner container has vertical scroll');
+
+  // When panelBody has no vertical room -> horizontal dock scrolls dock body
+  panelBody.scrollHeight = 200;
+  panelBody.clientHeight = 200;
+  dock.dockBody.dispatchEvent({
+    type: 'wheel',
+    target: label,
+    deltaY: 75,
+    deltaX: 0,
+    preventDefault: () => { prevented = true; },
+  });
+  assert.strictEqual(prevented, true, 'Wheel over label when no vertical scroll is needed must map to dockBody.scrollLeft');
+  assert.strictEqual(dock.dockBody.scrollLeft, 75, 'Dock body horizontal scrollLeft must increment by deltaY');
+});
+
