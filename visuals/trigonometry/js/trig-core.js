@@ -2064,7 +2064,7 @@ export class TrigScene3DView extends BaseScene3DView {
               const colat = Math.acos(clamp(hit.y / R, -1, 1));
               let lon = Math.atan2(hit.z, hit.x);
               if (lon < 0) lon += Math.PI * 2;
-              store.set({ colatC: colat, lonC: lon });
+              store.set({ colatC: colat, lonC: lon, solidTilt: colat, solidAzimuth: lon });
             }
           },
         },
@@ -2307,7 +2307,7 @@ export class TrigScene3DView extends BaseScene3DView {
     if (this.visualId === 'unit-circle-helix') {
       const pitch = state.helixPitch || 0.35;
       const m = computeUnitCircleHelix(state.angleTheta, R, pitch);
-      const isSolid = isSolidMode(state.dimensionMode);
+      const isSolid = isSolidMode(state.dimensionMode) || state.dimensionMode === 'spatial';
       let uFrame = new THREE.Vector3(1, 0, 0);
       let vFrame = new THREE.Vector3(0, 0, 1);
       let normal = new THREE.Vector3(0, 1, 0);
@@ -2830,9 +2830,18 @@ export class TrigScene3DView extends BaseScene3DView {
         // --- TRUE 3D SPHERICAL GEOMETRY ON S² ---
         const sM = computeSphericalLawOfSines(state, R);
         const O = new THREE.Vector3(0, 0, 0);
-        const A = new THREE.Vector3(sM.vertices3D.A.x, sM.vertices3D.A.y, sM.vertices3D.A.z);
-        const B = new THREE.Vector3(sM.vertices3D.B.x, sM.vertices3D.B.y, sM.vertices3D.B.z);
-        const C = new THREE.Vector3(sM.vertices3D.C.x, sM.vertices3D.C.y, sM.vertices3D.C.z);
+        let A = new THREE.Vector3(sM.vertices3D.A.x, sM.vertices3D.A.y, sM.vertices3D.A.z);
+        let B = new THREE.Vector3(sM.vertices3D.B.x, sM.vertices3D.B.y, sM.vertices3D.B.z);
+        let C = new THREE.Vector3(sM.vertices3D.C.x, sM.vertices3D.C.y, sM.vertices3D.C.z);
+
+        const frame = getSolidOrientationFrame(state, 'y', THREE);
+        const rotateToFrame = (vOrig) => new THREE.Vector3()
+          .addScaledVector(frame.u, vOrig.x)
+          .addScaledVector(frame.normal, vOrig.y)
+          .addScaledVector(frame.v, vOrig.z);
+        A = rotateToFrame(A);
+        B = rotateToFrame(B);
+        C = rotateToFrame(C);
 
         this.markerO.position.copy(O);
         this.handleA.position.copy(A);
@@ -2971,9 +2980,9 @@ export class TrigScene3DView extends BaseScene3DView {
 
         // 4. Spherical Triangle Curved Mesh Cap on S² (Optional Dual Overlay)
         if (showArea && showSphericalCap) {
-          const uA = sM.unitVectors.uA;
-          const uB = sM.unitVectors.uB;
-          const uC = sM.unitVectors.uC;
+          const uA = A.clone().normalize();
+          const uB = B.clone().normalize();
+          const uC = C.clone().normalize();
           const N = 18;
           const positions = [];
           const indices = [];
@@ -3367,14 +3376,17 @@ export class TrigScene3DView extends BaseScene3DView {
       const isSpatial = state.dimensionMode === 'spatial';
       if (isSpatial) {
         // computeSphericalLawOfCosines(state.sideA, state.sideB, state.angleC, R)
+        const colatVal = state.solidTilt !== undefined ? state.solidTilt : (state.colatC ?? 0);
+        const lonVal = state.solidAzimuth !== undefined ? state.solidAzimuth : (state.lonC ?? 0);
+        const headingVal = state.solidSpin !== undefined ? state.solidSpin : (state.headingC ?? 0);
         const sM = computeSphericalLawOfCosines(
           state.sideA,
           state.sideB,
           state.angleC,
           R,
-          state.colatC ?? 0,
-          state.lonC ?? 0,
-          state.headingC ?? 0
+          colatVal,
+          lonVal,
+          headingVal
         );
         const O = new THREE.Vector3(0, 0, 0);
         const C = new THREE.Vector3(sM.vertices3D.C.x, sM.vertices3D.C.y, sM.vertices3D.C.z);
@@ -4396,18 +4408,54 @@ export class TrigScene3DView extends BaseScene3DView {
     } else {
       const isSpatial = state.dimensionMode === 'spatial';
       if (isSpatial) {
+        const gamma = state.angleGamma !== undefined ? state.angleGamma : (state.solidTilt || 0);
         const eM = computeSpatialAngleSumEuler(state.angleAlpha, state.angleBeta, state.angleGamma, R);
         const m = computeAngleSumIdentities(state.angleAlpha, state.angleBeta, R);
         const O = new THREE.Vector3(0, 0, 0);
-        const e1 = new THREE.Vector3(eM.triad.e1.x, eM.triad.e1.z, eM.triad.e1.y);
-        const e2 = new THREE.Vector3(eM.triad.e2.x, eM.triad.e2.z, eM.triad.e2.y);
-        const e3 = new THREE.Vector3(eM.triad.e3.x, eM.triad.e3.z, eM.triad.e3.y);
-        const Aray = new THREE.Vector3(eM.intermediateAlpha.e1_alpha.x, eM.intermediateAlpha.e1_alpha.z, eM.intermediateAlpha.e1_alpha.y);
+        let e1 = new THREE.Vector3(eM.triad.e1.x, eM.triad.e1.z, eM.triad.e1.y);
+        let e2 = new THREE.Vector3(eM.triad.e2.x, eM.triad.e2.z, eM.triad.e2.y);
+        let e3 = new THREE.Vector3(eM.triad.e3.x, eM.triad.e3.z, eM.triad.e3.y);
+        let Aray = new THREE.Vector3(eM.intermediateAlpha.e1_alpha.x, eM.intermediateAlpha.e1_alpha.z, eM.intermediateAlpha.e1_alpha.y);
         const X_ref = new THREE.Vector3(R, 0, 0);
+
+        // Spatial cosine projections onto X-axis: N = R cos(α+β) (Amber) and N_D = R cos(α−β) (Orange)
+        const cosSum = Math.cos(state.angleAlpha + state.angleBeta);
+        const sinSum = Math.sin(state.angleAlpha + state.angleBeta);
+        const cosGamma = Math.cos(gamma);
+        const sinGamma = Math.sin(gamma);
+
+        // Tilted planar decomposition coordinates (straight, unbent Euclidean geometry in R³):
+        // Orthonormal basis for tilted Euler plane: u = (1, 0, 0), v = (0, sinGamma, cosGamma)
+        let Q = new THREE.Vector3(m.points2D.Q.x, m.points2D.Q.y * sinGamma, m.points2D.Q.y * cosGamma);
+        let S = new THREE.Vector3(m.points2D.S_corner.x, m.points2D.S_corner.y * sinGamma, m.points2D.S_corner.y * cosGamma);
+        let M = new THREE.Vector3(m.points2D.M.x, 0, 0);
+        let N_spatial = new THREE.Vector3(R * cosSum, 0, 0);
+
+        // Spatial difference vector D(α-β) under the Euler rotation frame
+        const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
+        const sinDiff = Math.sin(state.angleAlpha - state.angleBeta);
+        let D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
+        let Ndiff_spatial = new THREE.Vector3(R * cosDiff, 0, 0);
+
+        const azim = state.solidAzimuth || 0;
+        if (azim !== 0) {
+          const cosA = Math.cos(azim);
+          const sinA = Math.sin(azim);
+          const rotY = (v) => {
+            const x = v.x * cosA - v.z * sinA;
+            const z = v.x * sinA + v.z * cosA;
+            v.set(x, v.y, z);
+            return v;
+          };
+          rotY(e1); rotY(e2); rotY(e3); rotY(Aray);
+          rotY(Q); rotY(S); rotY(M); rotY(N_spatial);
+          rotY(D_spatial); rotY(Ndiff_spatial);
+        }
 
         // Align primary unit circle wireframe to the SO(3) Euler plane spanned by {e1, e2}
         alignCircleWireToPlane(this.circleWire, e3, O, R, THREE);
         this.circleWire.visible = state?.vis3d?.circleWire !== false;
+        this.circleInfo = { normal: e3, center: O, radius: R, u: e1.clone().normalize(), v: e2.clone().normalize() };
 
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
@@ -4416,25 +4464,6 @@ export class TrigScene3DView extends BaseScene3DView {
         this.handleA.visible = true;
         this.handleP.visible = true;
         this.handleB.visible = true;
-
-        // Spatial cosine projections onto X-axis: N = R cos(α+β) (Amber) and N_D = R cos(α−β) (Orange)
-        const cosSum = Math.cos(state.angleAlpha + state.angleBeta);
-        const sinSum = Math.sin(state.angleAlpha + state.angleBeta);
-        const cosGamma = Math.cos(state.angleGamma || 0);
-        const sinGamma = Math.sin(state.angleGamma || 0);
-
-        // Tilted planar decomposition coordinates (straight, unbent Euclidean geometry in R³):
-        // Orthonormal basis for tilted Euler plane: u = (1, 0, 0), v = (0, sinGamma, cosGamma)
-        const Q = new THREE.Vector3(m.points2D.Q.x, m.points2D.Q.y * sinGamma, m.points2D.Q.y * cosGamma);
-        const S = new THREE.Vector3(m.points2D.S_corner.x, m.points2D.S_corner.y * sinGamma, m.points2D.S_corner.y * cosGamma);
-        const M = new THREE.Vector3(m.points2D.M.x, 0, 0);
-        const N_spatial = new THREE.Vector3(R * cosSum, 0, 0);
-
-        // Spatial difference vector D(α-β) under the Euler rotation frame
-        const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
-        const sinDiff = Math.sin(state.angleAlpha - state.angleBeta);
-        const D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
-        const Ndiff_spatial = new THREE.Vector3(R * cosDiff, 0, 0);
 
         // Crisp 3D Conical Vector Arrows (unbent Euclidean vectors from origin)
         addVectorArrow(O, Aray, PALETTE.sky);
@@ -5409,14 +5438,17 @@ export class TrigDerivationsView {
       }
     } else if (this.visualId === 'law-of-cosines') {
       if (state.dimensionMode === 'spatial') {
+        const colatVal = state.solidTilt !== undefined ? state.solidTilt : (state.colatC ?? 0);
+        const lonVal = state.solidAzimuth !== undefined ? state.solidAzimuth : (state.lonC ?? 0);
+        const headingVal = state.solidSpin !== undefined ? state.solidSpin : (state.headingC ?? 0);
         const sM = computeSphericalLawOfCosines(
           state.sideA,
           state.sideB,
           state.angleC,
           getModelRadius(state),
-          state.colatC ?? 0,
-          state.lonC ?? 0,
-          state.headingC ?? 0
+          colatVal,
+          lonVal,
+          headingVal
         );
         setSlot(
           '#loc-step-1 [data-sub]',
@@ -5744,7 +5776,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   const btnRecenterC = document.getElementById('btn-recenter-c');
   if (btnRecenterC) {
     btnRecenterC.addEventListener('click', () => {
-      store.set({ colatC: 0, lonC: 0, headingC: 0 });
+      store.set({ colatC: 0, lonC: 0, headingC: 0, solidTilt: 0, solidAzimuth: 0, solidSpin: 0 });
     });
   }
   bindRangeDeg('slider-alpha', 'angleAlpha');
@@ -5753,7 +5785,8 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   if (sliderGamma) {
     sliderGamma.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
-      const updates = { angleGamma: toRadians(val) };
+      const rad = toRadians(val);
+      const updates = { angleGamma: rad, solidTilt: rad };
       if (Math.abs(val) > 0.1 && store.get().dimensionMode !== 'spatial') {
         updates.dimensionMode = 'spatial';
       }
@@ -5794,20 +5827,45 @@ function bindVisualSpecificControls(store, visualId, view2d) {
   const applyDimensionMode = (mode) => {
     const st = store.get();
     if (mode === 'spatial') {
+      const cur = store.get();
+      const tilt = cur.solidTilt !== undefined ? cur.solidTilt : (25 * Math.PI / 180);
+      const azim = cur.solidAzimuth !== undefined ? cur.solidAzimuth : (35 * Math.PI / 180);
+      const spin = cur.solidSpin !== undefined ? cur.solidSpin : 0;
       if (visualId === 'law-of-sines' && st.latA === Math.PI / 2 && st.latB === Math.PI / 2 && st.latC === Math.PI / 2) {
         store.set({
           dimensionMode: 'spatial',
           latA: toRadians(65),
           latB: toRadians(115),
           latC: toRadians(50),
+          solidTilt: tilt,
+          solidAzimuth: azim,
+          solidSpin: spin,
         });
-      } else if (visualId === 'angle-sum-identities' && (!st.angleGamma || Math.abs(st.angleGamma) < 1e-4)) {
+      } else if (visualId === 'angle-sum-identities') {
         store.set({
           dimensionMode: 'spatial',
           angleGamma: toRadians(28),
+          solidTilt: tilt,
+          solidAzimuth: azim,
+          solidSpin: spin,
+        });
+      } else if (visualId === 'law-of-cosines') {
+        store.set({
+          dimensionMode: 'spatial',
+          colatC: cur.colatC !== undefined ? cur.colatC : tilt,
+          lonC: cur.lonC !== undefined ? cur.lonC : azim,
+          headingC: cur.headingC !== undefined ? cur.headingC : spin,
+          solidTilt: tilt,
+          solidAzimuth: azim,
+          solidSpin: spin,
         });
       } else {
-        store.set({ dimensionMode: 'spatial' });
+        store.set({
+          dimensionMode: 'spatial',
+          solidTilt: tilt,
+          solidAzimuth: azim,
+          solidSpin: spin,
+        });
       }
       return;
     }
@@ -5902,31 +5960,40 @@ function bindVisualSpecificControls(store, visualId, view2d) {
     if (tiltSlider && !tiltSlider._solidBound) {
       tiltSlider._solidBound = true;
       tiltSlider.addEventListener('input', (e) => {
-        store.set({ solidTilt: (Number(e.target.value) * Math.PI) / 180 });
+        const val = (Number(e.target.value) * Math.PI) / 180;
+        store.set({ solidTilt: val, colatC: val, angleGamma: val });
       });
     }
     const azimSlider = document.getElementById('slider-solid-azimuth');
     if (azimSlider && !azimSlider._solidBound) {
       azimSlider._solidBound = true;
       azimSlider.addEventListener('input', (e) => {
-        store.set({ solidAzimuth: (Number(e.target.value) * Math.PI) / 180 });
+        const val = (Number(e.target.value) * Math.PI) / 180;
+        store.set({ solidAzimuth: val, lonC: val });
       });
     }
     const spinSlider = document.getElementById('slider-solid-spin');
     if (spinSlider && !spinSlider._solidBound) {
       spinSlider._solidBound = true;
       spinSlider.addEventListener('input', (e) => {
-        store.set({ solidSpin: (Number(e.target.value) * Math.PI) / 180 });
+        const val = (Number(e.target.value) * Math.PI) / 180;
+        store.set({ solidSpin: val, headingC: val });
       });
     }
     const btnResetSolid = document.getElementById('btn-reset-solid-orientation');
     if (btnResetSolid && !btnResetSolid._solidBound) {
       btnResetSolid._solidBound = true;
       btnResetSolid.addEventListener('click', () => {
+        const tilt = (25 * Math.PI) / 180;
+        const azim = (35 * Math.PI) / 180;
         store.set({
-          solidTilt: (25 * Math.PI) / 180,
-          solidAzimuth: (35 * Math.PI) / 180,
+          solidTilt: tilt,
+          solidAzimuth: azim,
           solidSpin: 0,
+          colatC: tilt,
+          lonC: azim,
+          headingC: 0,
+          angleGamma: tilt,
         });
       });
     }
@@ -6452,7 +6519,11 @@ function syncDimensionControls(mode) {
   }
   const solidControls = document.getElementById('solid-orientation-controls');
   if (solidControls) {
-    solidControls.style.display = isSolid ? 'block' : 'none';
+    solidControls.style.display = is3D ? 'block' : 'none';
+    const titleSpan = solidControls.querySelector('span');
+    if (titleSpan) {
+      titleSpan.textContent = isSpatial ? 'Spatial 3D Orientation' : 'Solid 3D Orientation';
+    }
   }
 }
 
@@ -6728,14 +6799,17 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : isSolid ? 'Solid 3D (prism)' : 'Planar (Y = 0)');
 
     if (isSpatial) {
+      const colatVal = state.solidTilt !== undefined ? state.solidTilt : (state.colatC ?? 0);
+      const lonVal = state.solidAzimuth !== undefined ? state.solidAzimuth : (state.lonC ?? 0);
+      const headingVal = state.solidSpin !== undefined ? state.solidSpin : (state.headingC ?? 0);
       const sM = computeSphericalLawOfCosines(
         state.sideA,
         state.sideB,
         state.angleC,
         R3D,
-        state.colatC ?? 0,
-        state.lonC ?? 0,
-        state.headingC ?? 0
+        colatVal,
+        lonVal,
+        headingVal
       );
       const pC = sM.vertices3D.C;
       const pA = sM.vertices3D.A;

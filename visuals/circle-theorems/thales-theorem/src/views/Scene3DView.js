@@ -129,7 +129,7 @@ export class Scene3DView {
     o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
     o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
 
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'z', THREE);
       const { u, v, normal } = frame;
       const cosR_val = Math.cos(rot);
@@ -146,6 +146,8 @@ export class Scene3DView {
       o.pointA.position.copy(posA);
       o.pointB.position.copy(posB);
       o.pointP.position.copy(posP);
+
+      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: r, u: uRot, v: vRot };
 
       if (o.greatCircleWire) {
         o.greatCircleWire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
@@ -452,9 +454,10 @@ export class Scene3DView {
 
   pickBaselinePlane() {
     if (!this.raycaster?.ray) return null;
-    const planeZ0 = new this.THREE.Plane(new this.THREE.Vector3(0, 0, 1), 0);
+    const normal = this.circleInfo?.normal || new this.THREE.Vector3(0, 0, 1);
+    const plane = new this.THREE.Plane(normal, 0);
     const planeHit = new this.THREE.Vector3();
-    const hit = this.raycaster.ray.intersectPlane(planeZ0, planeHit);
+    const hit = this.raycaster.ray.intersectPlane(plane, planeHit);
     if (hit && planeHit.lengthSq() > 1e-4) {
       return planeHit;
     }

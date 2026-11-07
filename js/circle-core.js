@@ -3178,7 +3178,12 @@ export function bindStandardToggles(store, ...args) {
 
     const solidControls = document.getElementById('solid-orientation-controls');
     if (solidControls) {
-      solidControls.style.display = mode === 'solid' ? 'block' : 'none';
+      const is3D = mode === 'solid' || mode === 'spatial';
+      solidControls.style.display = is3D ? 'block' : 'none';
+      const titleSpan = solidControls.querySelector('span');
+      if (titleSpan) {
+        titleSpan.textContent = mode === 'spatial' ? 'Spatial 3D Orientation' : 'Solid 3D Orientation';
+      }
     }
     const tiltSlider = document.getElementById('slider-solid-tilt');
     const azimSlider = document.getElementById('slider-solid-azimuth');

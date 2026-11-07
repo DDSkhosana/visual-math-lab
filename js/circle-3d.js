@@ -1119,8 +1119,10 @@ export class BaseScene3DView {
         const vDir = rayObj.direction;
         const b = vOrigin.dot(vDir);
         const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+        const isSpatialMode = store.get().dimensionMode === 'spatial';
         const isSolid = isSolidMode(store.get().dimensionMode);
-        const eqHit = (isSolid && this.circleInfo?.normal)
+        const isOriented3D = isSolid || isSpatialMode;
+        const eqHit = (isOriented3D && this.circleInfo?.normal)
           ? pickTiltedPlane(ray, this.circleInfo.normal, this.circleInfo.center)
           : pickEquatorialPlane(ray, 0);
         const cCenter = this.circleInfo?.center || new this.THREE.Vector3(0, 0, 0);
@@ -1138,7 +1140,7 @@ export class BaseScene3DView {
         }
         if (!nearAnyTarget && Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
           const st = store.get();
-          if (isSolid && !(e.ctrlKey || e.metaKey)) {
+          if (isOriented3D && !(e.ctrlKey || e.metaKey)) {
             const dHit = eqHit ? new this.THREE.Vector3().subVectors(eqHit, cCenter) : null;
             const startAngle = (dHit && this.circleInfo?.u && this.circleInfo?.v)
               ? Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u))
@@ -1227,10 +1229,11 @@ export class BaseScene3DView {
 
         const isSpatialMode = store.get().dimensionMode === 'spatial';
         const isSolid = isSolidMode(store.get().dimensionMode);
+        const isOriented3D = isSolid || isSpatialMode;
         const targetY = activeTarget.mesh?.position?.y || 0;
         const targetPos = activeTarget.mesh?.position || null;
         let hit = null;
-        if (isSolid && this.circleInfo?.normal) {
+        if (isOriented3D && this.circleInfo?.normal) {
           hit = pickTiltedPlane(ray, this.circleInfo.normal, this.circleInfo.center);
         } else if (!isSpatialMode && Math.abs(targetY) < 0.5) {
           hit = pickEquatorialPlane(ray, 0) || pickSphere(ray, targetPos);
@@ -1241,7 +1244,7 @@ export class BaseScene3DView {
         }
         if (hit) {
           let angle;
-          if (isSolid && this.circleInfo?.u && this.circleInfo?.v) {
+          if (isOriented3D && this.circleInfo?.u && this.circleInfo?.v) {
             const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center || new this.THREE.Vector3());
             angle = Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u));
           } else {
@@ -1290,15 +1293,17 @@ export class BaseScene3DView {
           const vDir = rayObj.direction;
           const b = vOrigin.dot(vDir);
           const distRayToOrigin = Math.sqrt(Math.max(0, vOrigin.lengthSq() - b * b));
+          const isSpatialMode = store.get().dimensionMode === 'spatial';
           const isSolid = isSolidMode(store.get().dimensionMode);
-          const eqHit = (isSolid && this.circleInfo?.normal)
+          const isOriented3D = isSolid || isSpatialMode;
+          const eqHit = (isOriented3D && this.circleInfo?.normal)
             ? pickTiltedPlane(ray, this.circleInfo.normal, this.circleInfo.center)
             : pickEquatorialPlane(ray, 0);
           const cCenter = this.circleInfo?.center || new this.THREE.Vector3(0, 0, 0);
           const eqDistDiff = eqHit ? Math.abs(eqHit.clone().sub(cCenter).length() - r3d) : Infinity;
           const rimTol = (e.ctrlKey || e.metaKey) ? 1.4 : 0.35;
           if (Math.abs(distRayToOrigin - r3d) < rimTol && eqDistDiff < rimTol) {
-            element.style.cursor = isSolid && !(e.ctrlKey || e.metaKey) ? 'grab' : 'ew-resize';
+            element.style.cursor = isOriented3D && !(e.ctrlKey || e.metaKey) ? 'grab' : 'ew-resize';
             return;
           }
         }
@@ -2436,7 +2441,7 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const isSpatial = state.dimensionMode === 'spatial';
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P, circleInfo;
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const { u, v, normal } = frame;
       const toPt = (ang) => new THREE.Vector3()
@@ -2446,26 +2451,6 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       B = toPt(state.angleB);
       P = toPt(state.angleP);
       circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
-    } else if (isSpatial) {
-      const latP = state.latP ?? (Math.PI / 2);
-      const latA = state.latA ?? (Math.PI / 2);
-      const latB = state.latB ?? (Math.PI / 2);
-      A = new THREE.Vector3(
-        R * Math.sin(latA) * Math.cos(state.angleA),
-        R * Math.cos(latA),
-        R * Math.sin(latA) * Math.sin(state.angleA)
-      );
-      B = new THREE.Vector3(
-        R * Math.sin(latB) * Math.cos(state.angleB),
-        R * Math.cos(latB),
-        R * Math.sin(latB) * Math.sin(state.angleB)
-      );
-      P = new THREE.Vector3(
-        R * Math.sin(latP) * Math.cos(state.angleP),
-        R * Math.cos(latP),
-        R * Math.sin(latP) * Math.sin(state.angleP)
-      );
-      circleInfo = computeConcyclicPlaneAndCircle(A, B, P, R, THREE);
     } else {
       A = new THREE.Vector3(R * Math.cos(state.angleA), 0, R * Math.sin(state.angleA));
       B = new THREE.Vector3(R * Math.cos(state.angleB), 0, R * Math.sin(state.angleB));
@@ -2828,7 +2813,7 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     const isSpatial = state.dimensionMode === 'spatial';
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P1, P2, circleInfo;
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const { u, v, normal } = frame;
       const toPt = (ang) => new THREE.Vector3()
@@ -2839,32 +2824,6 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       P1 = toPt(state.angleP1);
       P2 = toPt(state.angleP2);
       circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
-    } else if (isSpatial) {
-      const latP1 = state.latP1 ?? (Math.PI / 2);
-      const latP2 = state.latP2 ?? (Math.PI / 2);
-      const latA = state.latA ?? (Math.PI / 2);
-      const latB = state.latB ?? (Math.PI / 2);
-      A = new THREE.Vector3(
-        R * Math.sin(latA) * Math.cos(state.angleA),
-        R * Math.cos(latA),
-        R * Math.sin(latA) * Math.sin(state.angleA)
-      );
-      B = new THREE.Vector3(
-        R * Math.sin(latB) * Math.cos(state.angleB),
-        R * Math.cos(latB),
-        R * Math.sin(latB) * Math.sin(state.angleB)
-      );
-      P1 = new THREE.Vector3(
-        R * Math.sin(latP1) * Math.cos(state.angleP1),
-        R * Math.cos(latP1),
-        R * Math.sin(latP1) * Math.sin(state.angleP1)
-      );
-      P2 = new THREE.Vector3(
-        R * Math.sin(latP2) * Math.cos(state.angleP2),
-        R * Math.cos(latP2),
-        R * Math.sin(latP2) * Math.sin(state.angleP2)
-      );
-      circleInfo = computeConcyclicPlaneAndCircle(A, B, P1, R, THREE);
     } else {
       A = new THREE.Vector3(R * Math.cos(state.angleA), 0, R * Math.sin(state.angleA));
       B = new THREE.Vector3(R * Math.cos(state.angleB), 0, R * Math.sin(state.angleB));
@@ -3276,7 +3235,7 @@ export class CyclicQuad3DView extends BaseScene3DView {
     const isSpatial = state.dimensionMode === 'spatial';
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, C, D, circleInfo;
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const { u, v, normal } = frame;
       const toPt = (ang) => new THREE.Vector3()
@@ -3287,16 +3246,6 @@ export class CyclicQuad3DView extends BaseScene3DView {
       C = toPt(state.angleC);
       D = toPt(state.angleD);
       circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
-    } else if (isSpatial) {
-      const latA = state.latA ?? (Math.PI / 2);
-      const latB = state.latB ?? (Math.PI / 2);
-      const latC = state.latC ?? (Math.PI / 2);
-      const latD = state.latD ?? (Math.PI / 2);
-      A = new THREE.Vector3(R * Math.sin(latA) * Math.cos(state.angleA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(state.angleA));
-      B = new THREE.Vector3(R * Math.sin(latB) * Math.cos(state.angleB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(state.angleB));
-      C = new THREE.Vector3(R * Math.sin(latC) * Math.cos(state.angleC), R * Math.cos(latC), R * Math.sin(latC) * Math.sin(state.angleC));
-      D = new THREE.Vector3(R * Math.sin(latD) * Math.cos(state.angleD), R * Math.cos(latD), R * Math.sin(latD) * Math.sin(state.angleD));
-      circleInfo = computeConcyclicPlaneAndCircle(A, B, C, R, THREE);
     } else {
       A = new THREE.Vector3(R * Math.cos(state.angleA), 0, R * Math.sin(state.angleA));
       B = new THREE.Vector3(R * Math.cos(state.angleB), 0, R * Math.sin(state.angleB));
@@ -3736,46 +3685,35 @@ export class TangentRadius3DView extends BaseScene3DView {
     const quadStart = quadIndex * (Math.PI / 2);
 
     const isSolid = isSolidMode(state.dimensionMode);
-    let primNormal, uFrame, vFrame;
-    if (isSolid) {
+    const isOriented3D = isSolid || isSpatial;
+    let primNormal, u, v;
+    if (isOriented3D) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       primNormal = frame.normal;
-      uFrame = frame.u;
-      vFrame = frame.v;
-      this.circleInfo = { normal: primNormal, center: O, radius: R, u: uFrame, v: vFrame };
+      u = frame.u;
+      v = frame.v;
+      this.circleInfo = { normal: primNormal, center: O, radius: R, u, v };
     } else {
-      const primLat = lats[0];
-      const primT = new THREE.Vector3(
-        R * Math.sin(primLat) * Math.cos(primaryAng),
-        R * Math.cos(primLat),
-        R * Math.sin(primLat) * Math.sin(primaryAng)
-      );
-      let primTanDir = new THREE.Vector3(-Math.sin(primaryAng), 0, Math.cos(primaryAng));
-      if (Math.abs(Math.sin(primLat)) < 0.99) {
-        const radDir = primT.clone().normalize();
-        primTanDir = new THREE.Vector3(0, 1, 0).cross(radDir).normalize();
-        if (primTanDir.lengthSq() < 0.01) primTanDir = new THREE.Vector3(1, 0, 0).cross(radDir).normalize();
-      }
-      primNormal = isSpatial ? new THREE.Vector3().crossVectors(primT, primTanDir).normalize() : new THREE.Vector3(0, 1, 0);
-      uFrame = new THREE.Vector3(1, 0, 0);
-      vFrame = new THREE.Vector3(0, 0, 1);
-      this.circleInfo = { normal: primNormal, center: O, radius: R, u: uFrame, v: vFrame };
+      primNormal = new THREE.Vector3(0, 1, 0);
+      u = new THREE.Vector3(1, 0, 0);
+      v = new THREE.Vector3(0, 0, 1);
+      this.circleInfo = { normal: primNormal, center: O, radius: R, u, v };
     }
     alignCircleWireToPlane(this.circleWire, primNormal, O, R, THREE);
 
     // 1. Dynamic Quadrant Shading in 3D
     if (showQuadrant) {
-      if (isSolid) {
-        setSector3DVertices(this.quadrantMesh.geometry, O, uFrame, vFrame, R, quadStart, Math.PI / 2, 32, THREE);
-      } else if (isSpatial) {
+      if (isSpatial) {
         let u = new THREE.Vector3(1, 0, 0).projectOnPlane(primNormal);
         if (u.lengthSq() < 1e-4) u = new THREE.Vector3(0, 0, 1).projectOnPlane(primNormal);
         u.normalize();
         let v = new THREE.Vector3().crossVectors(u, primNormal).negate().normalize();
         if (Math.abs(primNormal.y - 1) < 1e-4) {
-          u = new THREE.Vector3(1, 0, 0);
-          v = new THREE.Vector3(0, 0, 1);
+          u = this.circleInfo.u;
+          v = this.circleInfo.v;
         }
+        setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE);
+      } else if (isSolid) {
         setSector3DVertices(this.quadrantMesh.geometry, O, u, v, R, quadStart, Math.PI / 2, 32, THREE);
       } else {
         setSectorXZVertices(this.quadrantMesh.geometry, 0, 0, R, quadStart, Math.PI / 2, 32);
@@ -3794,7 +3732,7 @@ export class TangentRadius3DView extends BaseScene3DView {
         const ang = rawAngles[i];
         const lat = lats[i];
         let T, tanDir;
-        if (isSolid) {
+        if (isOriented3D) {
           T = O.clone().addScaledVector(uFrame, R * Math.cos(ang)).addScaledVector(vFrame, R * Math.sin(ang));
           tanDir = new THREE.Vector3().addScaledVector(uFrame, -Math.sin(ang)).addScaledVector(vFrame, Math.cos(ang)).normalize();
         } else {
@@ -3900,7 +3838,7 @@ export class TangentRadius3DView extends BaseScene3DView {
             this.geodesicChords[k].visible = false;
             this.sphChordMeshes[k].visible = false;
 
-            if (isSolid) {
+            if (isOriented3D) {
               if (state.chordAreaMode === 'sector') {
                 setSector3DVertices(this.chordAreaMeshes[k].geometry, O, uFrame, vFrame, R, p1.angle, sweep, 32, THREE);
               } else {
@@ -3916,7 +3854,7 @@ export class TangentRadius3DView extends BaseScene3DView {
 
           const midAngle = p1.angle + sweep / 2;
           const badgeR = (state.chordAreaMode === 'sector') ? (0.6 * R) : (0.85 * R);
-          const badgePos = isSolid
+          const badgePos = isOriented3D
             ? O.clone().addScaledVector(uFrame, badgeR * Math.cos(midAngle)).addScaledVector(vFrame, badgeR * Math.sin(midAngle)).addScaledVector(primNormal, 0.3)
             : new THREE.Vector3(badgeR * Math.cos(midAngle), 0.3, badgeR * Math.sin(midAngle));
           const areaVal = (state.chordAreaMode === 'sector') ? (0.5 * R * R * sweep) : (0.5 * R * R * (sweep - Math.sin(sweep)));
@@ -3948,7 +3886,7 @@ export class TangentRadius3DView extends BaseScene3DView {
     // Secant chord & triangle (relative to primary T)
     const showSecant = Boolean(state.showSecant);
     const angQ = (rawAngles[0]) + 0.45;
-    const Q = isSolid
+    const Q = isOriented3D
       ? O.clone().addScaledVector(uFrame, R * Math.cos(angQ)).addScaledVector(vFrame, R * Math.sin(angQ))
       : new THREE.Vector3(R * Math.cos(angQ), 0, R * Math.sin(angQ));
     this.markerQ.position.copy(Q);
@@ -3970,7 +3908,7 @@ export class TangentRadius3DView extends BaseScene3DView {
       const signs = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'];
       for (let q = 0; q < 4; q++) {
         const midQuad = q * (Math.PI / 2) + Math.PI / 4;
-        const qPos = isSolid
+        const qPos = isOriented3D
           ? O.clone().addScaledVector(uFrame, 0.65 * R * Math.cos(midQuad)).addScaledVector(vFrame, 0.65 * R * Math.sin(midQuad)).addScaledVector(primNormal, 0.2)
           : new THREE.Vector3(0.65 * R * Math.cos(midQuad), 0.2, 0.65 * R * Math.sin(midQuad));
         const isActive = q === quadIndex;
@@ -4065,7 +4003,7 @@ export class TangentRadius3DView extends BaseScene3DView {
       this.markerTx.visible = true;
 
       // Angle θ wedge at O subtended from +X axis to primary radius OT
-      const refX = isSolid
+      const refX = isOriented3D
         ? O.clone().addScaledVector(uFrame, R * 0.35)
         : new THREE.Vector3(R * 0.35, 0, 0);
       setAngleWedgeVertices3D(this.trigAngleWedgeMesh, O, refX, prim.pos, R * 0.35, 32, THREE, false);
@@ -4076,7 +4014,7 @@ export class TangentRadius3DView extends BaseScene3DView {
       if (isSecantFinite) {
         const secVal = 1 / cosVal;
         const clampedSecX = Math.min(Math.max(R * secVal, -3.5 * R), 3.5 * R);
-        const Sx = isSolid
+        const Sx = isOriented3D
           ? O.clone().addScaledVector(uFrame, clampedSecX)
           : new THREE.Vector3(clampedSecX, 0, 0);
 
@@ -4405,6 +4343,7 @@ export class AlternateSegment3DView extends BaseScene3DView {
       const dAngB = ((state.angleB - state.angleT) % TAU + TAU) % TAU;
       A = new THREE.Vector3().addScaledVector(u, R * Math.cos(dAngA)).addScaledVector(v, R * Math.sin(dAngA));
       B = new THREE.Vector3().addScaledVector(u, R * Math.cos(dAngB)).addScaledVector(v, R * Math.sin(dAngB));
+      this.circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
     } else {
       normal = new THREE.Vector3(0, 1, 0);
       u = new THREE.Vector3(1, 0, 0);
@@ -4794,7 +4733,7 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const isSolid = isSolidMode(state.dimensionMode);
     let P, u, v, normal, T1, T2, K;
     const alpha = Math.acos(Math.min(1, Math.max(-1, R / d)));
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const uFrame = frame.u;
       const vFrame = frame.v;
@@ -5075,7 +5014,7 @@ export class ChordBisector3DView extends BaseScene3DView {
     const O = new THREE.Vector3(0, 0, 0);
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, M, normal, uFrame, vFrame;
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       uFrame = frame.u;
       vFrame = frame.v;
@@ -5185,7 +5124,7 @@ export class ChordBisector3DView extends BaseScene3DView {
       this.bisectorGreatCircle.visible = false;
 
       const { start, sweep } = getMinorArcRange3D(state.angleA, state.angleB);
-      if (isSolid) {
+      if (isSolid || isSpatial) {
         setSegment3DVertices(this.segmentMesh.geometry, O, uFrame, vFrame, R, start, sweep, 32, THREE);
       } else {
         setSegmentXZVertices(this.segmentMesh.geometry, 0, 0, R, start, sweep);
