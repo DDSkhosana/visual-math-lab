@@ -1525,4 +1525,240 @@ describe('Trigonometry Suite — Axiomatic Invariants, Synchronization & Unified
             global.document = prevDoc;
         }
     });
+
+    test('Law of Cosines 3D: spatial mode locus circle & unified shading across planar, spatial, and solid modes', async () => {
+        const { TrigScene3DView, createTrigInitialState } = await import('../visuals/trigonometry/js/trig-core.js');
+        const prevResizeObserver = global.ResizeObserver;
+        const prevRAF = global.requestAnimationFrame;
+        const prevCAF = global.cancelAnimationFrame;
+        const prevWindow = global.window;
+        const prevDoc = global.document;
+
+        global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+        global.requestAnimationFrame = () => {};
+        global.cancelAnimationFrame = () => {};
+        global.window = { devicePixelRatio: 1, addEventListener: () => {}, removeEventListener: () => {} };
+        global.document = {
+            createElement: () => ({
+                appendChild: () => {},
+                removeChild: () => {},
+                querySelector: () => null,
+                querySelectorAll: () => [],
+                dataset: {},
+                style: {},
+                classList: { add: () => {}, remove: () => {}, contains: () => false },
+            }),
+        };
+
+        class Vector2 {
+            constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+            set(x, y) { this.x = x; this.y = y; return this; }
+        }
+        class Vector3 {
+            constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+            set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+            copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+            clone() { return new Vector3(this.x, this.y, this.z); }
+            sub(v) { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; }
+            subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+            add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
+            addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
+            addScaledVector(v, s) { this.x += v.x * s; this.y += v.y * s; this.z += v.z * s; return this; }
+            normalize() { const l = Math.hypot(this.x, this.y, this.z) || 1; this.x /= l; this.y /= l; this.z /= l; return this; }
+            multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+            dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+            cross(v) { return this.crossVectors(this, v); }
+            crossVectors(a, b) {
+                const ax = a.x, ay = a.y, az = a.z;
+                const bx = b.x, by = b.y, bz = b.z;
+                this.x = ay * bz - az * by;
+                this.y = az * bx - ax * bz;
+                this.z = ax * by - ay * bx;
+                return this;
+            }
+            length() { return Math.hypot(this.x, this.y, this.z); }
+            lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+            setScalar(s) { this.x = s; this.y = s; this.z = s; return this; }
+            negate() { this.x = -this.x; this.y = -this.y; this.z = -this.z; return this; }
+            project() { return this; }
+            distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+            angleTo(v) {
+                const theta = this.dot(v) / (Math.sqrt(this.lengthSq() * v.lengthSq()) || 1);
+                return Math.acos(Math.max(-1, Math.min(1, theta)));
+            }
+            applyAxisAngle(axis, angle) {
+                const c = Math.cos(angle), s = Math.sin(angle);
+                const dot = this.dot(axis);
+                const cross = new Vector3().crossVectors(axis, this);
+                this.set(
+                    this.x * c + cross.x * s + axis.x * dot * (1 - c),
+                    this.y * c + cross.y * s + axis.y * dot * (1 - c),
+                    this.z * c + cross.z * s + axis.z * dot * (1 - c)
+                );
+                return this;
+            }
+        }
+        class Group {
+            constructor() { this.children = []; this.visible = true; this.position = new Vector3(); this.scale = new Vector3(1, 1, 1); }
+            add(...objs) { this.children.push(...objs); }
+            remove() {}
+        }
+        class Mesh {
+            constructor() {
+                this.children = [];
+                this.position = new Vector3();
+                this.rotation = new Vector3();
+                this.scale = new Vector3(1, 1, 1);
+                this.material = { color: { set: () => {}, clone: () => new mockTHREE.Color() }, opacity: 1, transparent: false };
+                this.visible = true;
+                this.quaternion = { setFromUnitVectors: () => {}, identity: () => {} };
+                this.geometry = { setFromPoints: () => {}, setAttribute: () => {}, setIndex: () => {}, computeVertexNormals: () => {}, dispose: () => {} };
+                this.userData = {};
+            }
+            add(...objs) { this.children.push(...objs); }
+            remove() {}
+        }
+        class Line extends Mesh {
+            constructor() { super(); }
+            computeLineDistances() {}
+        }
+        class BufferGeometry {
+            setFromPoints() { return this; }
+            setAttribute() { return this; }
+            setIndex() { return this; }
+        }
+        const mockTHREE = {
+            Vector2,
+            Vector3,
+            Group,
+            Mesh,
+            Line,
+            BufferGeometry,
+            Color: class { constructor(c = 0) { this.val = c; } set(c) { this.val = c; return this; } setHex(c) { this.val = c; return this; } clone() { return new mockTHREE.Color(this.val); } },
+            Quaternion: class { constructor() {} setFromUnitVectors() {} identity() {} },
+            ArrowHelper: class { constructor() { this.line = { material: {} }; this.cone = { material: {} }; } },
+            BufferAttribute: class { constructor() {} },
+            GridHelper: class { constructor() { this.position = new Vector3(); } },
+            Float32BufferAttribute: class {},
+            LineBasicMaterial: class { constructor() { this.color = { set: () => {} }; } },
+            LineDashedMaterial: class {},
+            MeshBasicMaterial: class { constructor() { this.color = { set: () => {} }; } },
+            MeshPhysicalMaterial: class { constructor() { this.color = { set: () => {} }; } },
+            MeshStandardMaterial: class { constructor() { this.color = { set: () => {} }; } },
+            SphereGeometry: class {},
+            CylinderGeometry: class {},
+            RingGeometry: class {},
+            ConeGeometry: class {},
+            CircleGeometry: class {},
+            DoubleSide: 2,
+            WebGLRenderer: class {
+                constructor() {
+                    this.domElement = {
+                        style: {},
+                        addEventListener: () => {},
+                        removeEventListener: () => {},
+                        focus: () => {},
+                        setAttribute: () => {},
+                        hasAttribute: () => true,
+                        width: 800,
+                        height: 600,
+                    };
+                }
+                setSize() {}
+                setPixelRatio() {}
+                render() {}
+                dispose() {}
+            },
+            PerspectiveCamera: class {
+                constructor() {
+                    this.position = new Vector3(0, 0, 10);
+                    this.quaternion = { setFromUnitVectors: () => {}, identity: () => {} };
+                    this.up = new Vector3(0, 1, 0);
+                }
+                lookAt() {}
+                updateProjectionMatrix() {}
+            },
+            Scene: class {
+                constructor() { this.children = []; }
+                add(child) { this.children.push(child); }
+                remove() {}
+            },
+            AmbientLight: class {},
+            DirectionalLight: class {
+                constructor() { this.position = new Vector3(); }
+            },
+            Raycaster: class {
+                setFromCamera() {}
+                intersectObjects() { return []; }
+            },
+        };
+
+        const mockContainer = {
+            appendChild: () => {},
+            removeChild: () => {},
+            getBoundingClientRect: () => ({ width: 800, height: 600 }),
+            clientWidth: 800,
+            clientHeight: 600,
+            querySelector: () => null,
+            querySelectorAll: () => [],
+            dataset: {},
+            style: {},
+            classList: { add: () => {}, remove: () => {} },
+            addEventListener: () => {},
+            removeEventListener: () => {},
+        };
+
+        try {
+            const scene = new TrigScene3DView(mockTHREE, mockContainer, 'law-of-cosines');
+            scene.controls = { target: new Vector3(), update: () => {} };
+
+            // 1. Planar Mode Rendering
+            const statePlanar = createTrigInitialState('law-of-cosines');
+            statePlanar.dimensionMode = 'planar';
+            scene.render(statePlanar);
+            assert.ok(scene.circleWire.visible, 'Planar mode must show locus circle');
+            assert.strictEqual(scene.circleInfo.center.x, 0);
+            assert.strictEqual(scene.circleInfo.center.y, 0);
+            assert.strictEqual(scene.circleInfo.center.z, 0);
+
+            // 2. Spatial S² Mode Rendering: locus circle is around C, not concyclic circumcircle
+            const stateSpatial = createTrigInitialState('law-of-cosines');
+            stateSpatial.dimensionMode = 'spatial';
+            scene.render(stateSpatial);
+            assert.ok(scene.circleWire.visible, 'Spatial mode must respect showLocusCircle');
+            assert.ok(scene.circleInfo, 'Spatial mode must provide circleInfo for locus circle');
+            // In spatial mode, circle center must NOT be at 0,0,0 and radius must be R*sin(a/R)
+            const R = scene.R || 10;
+            const expectedRadius = R * Math.sin(stateSpatial.sideA / R);
+            assert.ok(Math.abs(scene.circleInfo.radius - expectedRadius) < 0.1, 'Spatial locus circle radius must be R*sin(a/R)');
+            // And C must be at distance R from origin, not on circleWire circumference
+            const distCFromLocusCenter = Math.hypot(
+                scene.handleC.position.x - scene.circleInfo.center.x,
+                scene.handleC.position.y - scene.circleInfo.center.y,
+                scene.handleC.position.z - scene.circleInfo.center.z
+            );
+            assert.ok(Math.abs(distCFromLocusCenter - scene.circleInfo.radius) > 1.0, 'Vertex C must NOT lie on the locus circle circumference');
+
+            // 3. Solid Mode Rendering: unified shading and interaction rectangle
+            const stateSolid = createTrigInitialState('law-of-cosines');
+            stateSolid.dimensionMode = 'solid';
+            scene.render(stateSolid);
+            assert.ok(scene.circleWire.visible, 'Solid mode must respect showLocusCircle');
+            const hasSolidSkipMesh = scene.dynamicGroup.children.some(c => c.userData?.solidSkip === true);
+            assert.ok(hasSolidSkipMesh, 'Solid mode must render interaction rectangle with solidSkip to prevent double extrusion');
+            const hasSolidColorMesh = scene.dynamicGroup.children.some(c => c.userData?.solidColor);
+            assert.ok(hasSolidColorMesh, 'Solid mode sub-triangles must provide solidColor for SolidMorph companion shading');
+
+            // 4. Source invariant: spatial mode does not call computeConcyclicPlaneAndCircle for law-of-cosines
+            const coreSrc = fs.readFileSync(path.join(ROOT_DIR, 'visuals/trigonometry/js/trig-core.js'), 'utf8');
+            const locSpatialBlock = coreSrc.slice(coreSrc.indexOf("this.visualId === 'law-of-cosines'"), coreSrc.indexOf("this.visualId === 'law-of-cosines'") + 2000);
+            assert.ok(!locSpatialBlock.includes("computeConcyclicPlaneAndCircle(C, A, B"), 'Law of Cosines spatial mode must not compute concyclic circumcircle');
+        } finally {
+            global.ResizeObserver = prevResizeObserver;
+            global.requestAnimationFrame = prevRAF;
+            global.cancelAnimationFrame = prevCAF;
+            global.window = prevWindow;
+            global.document = prevDoc;
+        }
+    });
 });

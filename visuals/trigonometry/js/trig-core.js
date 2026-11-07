@@ -3426,8 +3426,14 @@ export class TrigScene3DView extends BaseScene3DView {
           this.dynamicGroup.add(line);
         };
 
-        const circleInfo = computeConcyclicPlaneAndCircle(C, A, B, R, THREE);
-        alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
+        // Spherical locus circle: locus of vertex B around center vertex C on S² with angular radius θa = a/R
+        const uC = C.clone().normalize();
+        const thetaA = (sM.a || state.sideA) / R;
+        const locusCenter = uC.clone().multiplyScalar(R * Math.cos(thetaA));
+        const locusRadius = Math.max(0.01, R * Math.sin(thetaA));
+        alignCircleWireToPlane(this.circleWire, uC, locusCenter, locusRadius, THREE);
+        this.circleWire.visible = state.showLocusCircle !== false;
+        this.circleInfo = { normal: uC, center: locusCenter, radius: locusRadius };
 
         const showGeodesicOverlay = Boolean(state.showGeodesicOverlay || state.showSphericalOverlay);
         const showSphericalCap = Boolean(state.showSphericalOverlay || state.showSphericalCap);
@@ -3445,22 +3451,96 @@ export class TrigScene3DView extends BaseScene3DView {
           addGeodesicArc(A, B, PALETTE.rose);
         }
 
-        // 3. Flat Euclidean Secant Triangle in R³ inside the sphere (Primary Shaded Triangle)
+        // 3D Euclidean Projection Foot D from Vertex B onto baseline CA:
+        const uCA = new THREE.Vector3().subVectors(A, C).normalize();
+        const vCB = new THREE.Vector3().subVectors(B, C);
+        const projLen = vCB.dot(uCA);
+        const D_3D = C.clone().addScaledVector(uCA, projLen);
+
+        // 3. Flat Euclidean Secant Triangle in R³ inside the sphere (Decomposed with constitutive colors matching Planar & Solid)
         if (showArea) {
-          const flatSecantGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
-          flatSecantGeom.setIndex([0, 1, 2]);
-          this.dynamicGroup.add(
-            new THREE.Mesh(
-              flatSecantGeom,
-              new THREE.MeshBasicMaterial({
-                color: PALETTE.sky,
-                transparent: true,
-                opacity: 0.22,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-              })
-            )
-          );
+          if (state.showAltitude !== false) {
+            const cdbGeom = new THREE.BufferGeometry().setFromPoints([C, D_3D, B]);
+            cdbGeom.setIndex([0, 1, 2]);
+            cdbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.008, 0.518, 0.780, // B: Sky (side a)
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                cdbGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+
+            const adbGeom = new THREE.BufferGeometry().setFromPoints([D_3D, A, B]);
+            adbGeom.setIndex([0, 1, 2]);
+            adbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.063, 0.725, 0.506, // A: Emerald (side b)
+                  0.957, 0.247, 0.369, // B: Rose (side c)
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                adbGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          } else {
+            const flatSecantGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
+            flatSecantGeom.setIndex([0, 1, 2]);
+            flatSecantGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.063, 0.725, 0.506, // A: Emerald
+                  0.008, 0.518, 0.780, // B: Sky
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                flatSecantGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          }
         }
 
         // 4. Spherical Triangle Curved Mesh Cap on S² (Optional Dual Overlay)
@@ -3541,17 +3621,100 @@ export class TrigScene3DView extends BaseScene3DView {
         this.wedge1.visible = this.wedge2.visible = this.wedge3.visible = showAngles;
         this.reflexWedge1.visible = false;
 
-        // 3D Euclidean Projection Foot D from Vertex B onto baseline CA:
-        const uCA = new THREE.Vector3().subVectors(A, C).normalize();
-        const vCB = new THREE.Vector3().subVectors(B, C);
-        const projLen = vCB.dot(uCA);
-        const D_3D = C.clone().addScaledVector(uCA, projLen);
-
         if (state.showAltitude !== false) {
           addSeg(B, D_3D, PALETTE.amber, true); // Perpendicular altitude in 3D
           addSeg(C, D_3D, PALETTE.amber, false); // Base projection segment (a cos C)
           setRightAngle3DVertices(this.rightAngle2, D_3D, B, C, 0.85, THREE);
           this.rightAngle2.visible = showAngles;
+        }
+
+        // 3D Bilinear Interaction Rectangle & Extruded Projection Prism (2ab cos C) in the plane of secant triangle CAB
+        const showSphRect = state.showInteractionRect !== false && showArea;
+        const rectDepth = Math.min(3.6, Math.max(2.4, bEuclid * 0.38));
+        if (showSphRect) {
+          const vAlt = new THREE.Vector3().subVectors(B, D_3D);
+          const altLen = vAlt.length();
+          const normAlt = altLen > 1e-4 ? vAlt.clone().normalize() : new THREE.Vector3(0, 1, 0);
+          const nTri = new THREE.Vector3().crossVectors(uCA, normAlt).normalize();
+          const vDown = normAlt.clone().negate();
+          const normOffset = nTri.clone().multiplyScalar(0.015);
+
+          const R0 = C.clone().add(normOffset);
+          const R1 = D_3D.clone().add(normOffset);
+          const R2 = D_3D.clone().addScaledVector(vDown, rectDepth).add(normOffset);
+          const R3 = C.clone().addScaledVector(vDown, rectDepth).add(normOffset);
+
+          const rectGeom = new THREE.BufferGeometry().setFromPoints([R0, R1, R2, R3]);
+          rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
+
+          const colors = [
+            0.957, 0.247, 0.369, // Corner R0 at Vertex C: Rose (#f43f5e)
+            0.008, 0.518, 0.780, // Corner R1 at Projection Foot D (a cos C): Sky (#0284c7)
+            0.659, 0.333, 0.969, // Corner R2: Violet (#a855f7, cos C)
+            0.063, 0.725, 0.506, // Corner R3: Emerald (#10b981, side b)
+          ];
+          rectGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+          const topMesh = new THREE.Mesh(
+            rectGeom,
+            new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.5,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          );
+          topMesh.renderOrder = 2;
+          this.dynamicGroup.add(topMesh);
+
+          // Prism Base & Vertical Walls along -nTri
+          const prismOffset = nTri.clone().multiplyScalar(-0.45);
+          const B0 = R0.clone().add(prismOffset);
+          const B1 = R1.clone().add(prismOffset);
+          const B2 = R2.clone().add(prismOffset);
+          const B3 = R3.clone().add(prismOffset);
+
+          const botGeom = new THREE.BufferGeometry().setFromPoints([B0, B1, B2, B3]);
+          botGeom.setIndex([0, 1, 2, 0, 2, 3]);
+          botGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+          this.dynamicGroup.add(
+            new THREE.Mesh(
+              botGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.28,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            )
+          );
+
+          addSeg(R0, R1, PALETTE.sky);
+          addSeg(R3, R2, PALETTE.violet);
+          addSeg(R0, R3, PALETTE.emerald);
+          addSeg(R1, R2, PALETTE.emerald);
+          addSeg(R0, R2, PALETTE.rose, true);
+          addSeg(B0, B1, PALETTE.sky, true);
+          addSeg(B3, B2, PALETTE.violet, true);
+          addSeg(B0, B3, PALETTE.emerald, true);
+          addSeg(B1, B2, PALETTE.emerald, true);
+          addSeg(R0, B0, PALETTE.rose);
+          addSeg(R1, B1, PALETTE.sky);
+          addSeg(R2, B2, PALETTE.violet);
+          addSeg(R3, B3, PALETTE.emerald);
+
+          labels.push({
+            key: 'rect-2abcos',
+            text: `2ab cos C = ${(2 * aEuclid * bEuclid * cosCEuclid).toFixed(1)}`,
+            at: C.clone().add(D_3D).multiplyScalar(0.5).addScaledVector(vDown, rectDepth + 0.9).addScaledVector(nTri, -0.65),
+            color: 'color-amber',
+            isAngle: true,
+            show: true,
+          });
         }
 
         const bisC = get3DAngleBisector(C, A, B, 2.8, THREE);
@@ -3580,7 +3743,6 @@ export class TrigScene3DView extends BaseScene3DView {
             : [])
         );
 
-        const showSphRect = state.showInteractionRect !== false && showArea;
         if (showSphericalCap) {
           const cX = (A.x + B.x + C.x) / 3;
           const cY = (A.y + B.y + C.y) / 3;
@@ -3696,35 +3858,173 @@ export class TrigScene3DView extends BaseScene3DView {
 
         if (showArea) {
           if (state.showProjection !== false) {
-            const leftGeom = new THREE.BufferGeometry().setFromPoints([C, D, B]);
-            leftGeom.setIndex([0, 1, 2]);
-            this.dynamicGroup.add(
-              new THREE.Mesh(
-                leftGeom,
-                new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+            const cdbGeom = new THREE.BufferGeometry().setFromPoints([C, D, B]);
+            cdbGeom.setIndex([0, 1, 2]);
+            cdbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.008, 0.518, 0.780, // B: Sky (side a)
+                ],
+                3
               )
             );
+            const leftMesh = new THREE.Mesh(
+              cdbGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.24,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            );
+            leftMesh.userData = leftMesh.userData || {};
+            leftMesh.userData.solidColor = new THREE.Color(PALETTE.sky);
+            this.dynamicGroup.add(leftMesh);
 
-            const rightGeom = new THREE.BufferGeometry().setFromPoints([D, A, B]);
-            rightGeom.setIndex([0, 1, 2]);
-            this.dynamicGroup.add(
-              new THREE.Mesh(
-                rightGeom,
-                new THREE.MeshBasicMaterial({ color: PALETTE.emerald, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+            const adbGeom = new THREE.BufferGeometry().setFromPoints([D, A, B]);
+            adbGeom.setIndex([0, 1, 2]);
+            adbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.063, 0.725, 0.506, // A: Emerald (side b)
+                  0.957, 0.247, 0.369, // B: Rose (side c)
+                ],
+                3
               )
             );
+            const rightMesh = new THREE.Mesh(
+              adbGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.24,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            );
+            rightMesh.userData = rightMesh.userData || {};
+            rightMesh.userData.solidColor = new THREE.Color(PALETTE.emerald);
+            this.dynamicGroup.add(rightMesh);
           } else {
-            const triGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
-            triGeom.setIndex([0, 1, 2]);
-            this.dynamicGroup.add(
-              new THREE.Mesh(
-                triGeom,
-                new THREE.MeshBasicMaterial({ color: PALETTE.sky, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+            const cabGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
+            cabGeom.setIndex([0, 1, 2]);
+            cabGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.063, 0.725, 0.506, // A: Emerald
+                  0.008, 0.518, 0.780, // B: Sky
+                ],
+                3
               )
             );
+            const triMesh = new THREE.Mesh(
+              cabGeom,
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.24,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+              })
+            );
+            triMesh.userData = triMesh.userData || {};
+            triMesh.userData.solidColor = new THREE.Color(PALETTE.sky);
+            this.dynamicGroup.add(triMesh);
           }
         }
 
+        // 3D Bilinear Interaction Rectangle & Extruded Projection Prism (2ab cos C) in the local triangle frame
+        const showInteractionRect = state.showInteractionRect !== false && showArea;
+        const rectDepth = Math.min(3.6, Math.max(2.4, A.length() * 0.38));
+        if (showInteractionRect) {
+          const normOffset = normal.clone().multiplyScalar(0.015);
+          const R0 = C.clone().add(normOffset);
+          const R1 = D.clone().add(normOffset);
+          const R2 = D.clone().addScaledVector(v, -rectDepth).add(normOffset);
+          const R3 = C.clone().addScaledVector(v, -rectDepth).add(normOffset);
+
+          const rectGeom = new THREE.BufferGeometry().setFromPoints([R0, R1, R2, R3]);
+          rectGeom.setIndex([0, 1, 2, 0, 2, 3]);
+
+          // 4-corner constitutive colors: R0=Rose (C/c), R1=Sky (a cos C), R2=Violet (cos C), R3=Emerald (b)
+          const colors = [
+            0.957, 0.247, 0.369, // Corner R0 at Vertex C: Rose (#f43f5e)
+            0.008, 0.518, 0.780, // Corner R1 at Projection Foot D (a cos C): Sky (#0284c7)
+            0.659, 0.333, 0.969, // Corner R2 at (D - v*rectDepth): Violet (#a855f7, cos C)
+            0.063, 0.725, 0.506, // Corner R3 at (C - v*rectDepth): Emerald (#10b981, side b)
+          ];
+          rectGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+          const topMesh = new THREE.Mesh(
+            rectGeom,
+            new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.5,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          );
+          topMesh.renderOrder = 2;
+          topMesh.userData = topMesh.userData || {};
+          topMesh.userData.solidSkip = true;
+          this.dynamicGroup.add(topMesh);
+
+          // 3D Extruded Prism Base & Vertical Walls along -normal
+          const prismOffset = normal.clone().multiplyScalar(-0.45);
+          const B0 = R0.clone().add(prismOffset);
+          const B1 = R1.clone().add(prismOffset);
+          const B2 = R2.clone().add(prismOffset);
+          const B3 = R3.clone().add(prismOffset);
+
+          const botGeom = new THREE.BufferGeometry().setFromPoints([B0, B1, B2, B3]);
+          botGeom.setIndex([0, 1, 2, 0, 2, 3]);
+          botGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+          const botMesh = new THREE.Mesh(
+            botGeom,
+            new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.28,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          );
+          botMesh.userData = botMesh.userData || {};
+          botMesh.userData.solidSkip = true;
+          this.dynamicGroup.add(botMesh);
+
+          // Solid & dashed rectangular wireframe perimeter + vertical prism ribs + diagonal Rose chord
+          addSeg(R0, R1, PALETTE.sky);
+          addSeg(R3, R2, PALETTE.violet);
+          addSeg(R0, R3, PALETTE.emerald);
+          addSeg(R1, R2, PALETTE.emerald);
+          addSeg(R0, R2, PALETTE.rose, true);
+          addSeg(B0, B1, PALETTE.sky, true);
+          addSeg(B3, B2, PALETTE.violet, true);
+          addSeg(B0, B3, PALETTE.emerald, true);
+          addSeg(B1, B2, PALETTE.emerald, true);
+          addSeg(R0, B0, PALETTE.rose);
+          addSeg(R1, B1, PALETTE.sky);
+          addSeg(R2, B2, PALETTE.violet);
+          addSeg(R3, B3, PALETTE.emerald);
+        }
+
+        const bisA = get3DAngleBisector(A, C, B, 3.2, THREE);
+        const bisB = get3DAngleBisector(B, C, A, 3.2, THREE);
         const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
         const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
 
@@ -3733,8 +4033,35 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'A', name: 'A', at: A.clone().multiplyScalar(1.15).addScaledVector(normal, 0.4), coords: A, color: 'color-sky' },
           { key: 'B', name: 'B', at: B.clone().multiplyScalar(1.15).addScaledVector(normal, 0.4), coords: B, color: 'color-emerald' },
           { key: 'D', name: 'D', at: D.clone().addScaledVector(normal, 0.4), coords: D, color: 'color-amber', show: state.showProjection !== false },
-          { key: 'angC', text: `∠C = ${fmtAngle(m.degC, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
-          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex },
+          ...(showLengths
+            ? [
+                { key: 'side-a-len', text: `a = ${m.a.toFixed(2)}`, at: C.clone().add(B).multiplyScalar(0.5).addScaledVector(normal, 0.45), color: 'color-sky', isAngle: true, show: true },
+                { key: 'side-b-len', text: `b = ${m.b.toFixed(2)}`, at: C.clone().add(A).multiplyScalar(0.5).addScaledVector(normal, 0.45).addScaledVector(v, -0.9), color: 'color-emerald', isAngle: true, show: true },
+                { key: 'side-c-len', text: `c = ${m.c.toFixed(2)}`, at: A.clone().add(B).multiplyScalar(0.5).addScaledVector(normal, 0.45).addScaledVector(u, 0.8), color: 'color-rose', isAngle: true, show: true },
+                ...(state.showProjection !== false
+                  ? [
+                      { key: 'alt-h-len', text: `h = ${m.projection.hAlt.toFixed(2)}`, at: D.clone().add(B).multiplyScalar(0.5).addScaledVector(normal, 0.45).addScaledVector(u, 1.2), color: 'color-amber', isAngle: true, show: true },
+                      { key: 'proj-p-len', text: `a cos C = ${m.projection.pProj.toFixed(2)}`, at: C.clone().add(D).multiplyScalar(0.5).addScaledVector(normal, 0.45).addScaledVector(v, 0.85), color: 'color-amber', isAngle: true, show: true },
+                    ]
+                  : []),
+              ]
+            : []),
+          { key: 'ang-C', text: `∠C = ${fmtAngle(m.angleCDeg, angUnit)}`, at: bisC, color: 'color-rose', isAngle: true, show: showAngles },
+          { key: 'ang-A', text: `∠A = ${fmtAngle(toDegrees(m.angleA), angUnit)}`, at: bisA, color: 'color-sky', isAngle: true, show: showAngles },
+          { key: 'ang-B', text: `∠B = ${fmtAngle(toDegrees(m.angleB), angUnit)}`, at: bisB, color: 'color-emerald', isAngle: true, show: showAngles },
+          { key: 'ref-C', text: `∠C* = ${fmtAngle(360 - m.angleCDeg, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex },
+          ...(showInteractionRect
+            ? [
+                {
+                  key: 'rect-2abcos',
+                  text: `2ab cos C = ${m.squares.interaction2abCosC.toFixed(1)}`,
+                  at: C.clone().add(D).multiplyScalar(0.5).addScaledVector(v, -rectDepth - 0.9).addScaledVector(normal, -0.65),
+                  color: 'color-amber',
+                  isAngle: true,
+                  show: true,
+                },
+              ]
+            : []),
           ...(state.showRatioBadge !== false
             ? [
                 {
@@ -3751,6 +4078,7 @@ export class TrigScene3DView extends BaseScene3DView {
       } else {
         const m = computeLawOfCosines(state.sideA, state.sideB, state.angleC);
         const s = R / Math.max(m.a, m.b, m.c, 10);
+        this.circleInfo = { normal: new THREE.Vector3(0, 1, 0), center: new THREE.Vector3(0, 0, 0), radius: m.a * s, u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
         alignCircleWireToPlane(this.circleWire, new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), m.a * s, THREE);
         this.circleWire.visible = state.showLocusCircle !== false;
         const C = new THREE.Vector3(0, 0, 0);
@@ -3854,60 +4182,89 @@ export class TrigScene3DView extends BaseScene3DView {
         this.reflexWedge1.visible = showReflex;
 
         if (showArea) {
-          // Decomposed right sub-triangles △CDB (Rose/Amber/Sky) & △ADB (Amber/Emerald/Rose)
-          const cdbGeom = new THREE.BufferGeometry().setFromPoints([C, D, B]);
-          cdbGeom.setIndex([0, 1, 2]);
-          cdbGeom.setAttribute(
-            'color',
-            new THREE.Float32BufferAttribute(
-              [
-                0.957, 0.247, 0.369, // C: Rose
-                0.984, 0.749, 0.141, // D: Amber
-                0.008, 0.518, 0.780, // B: Sky (side a)
-              ],
-              3
-            )
-          );
-          this.dynamicGroup.add(
-            new THREE.Mesh(
-              cdbGeom,
-              new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.24,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-              })
-            )
-          );
+          if (state.showProjection !== false) {
+            // Decomposed right sub-triangles △CDB (Rose/Amber/Sky) & △ADB (Amber/Emerald/Rose)
+            const cdbGeom = new THREE.BufferGeometry().setFromPoints([C, D, B]);
+            cdbGeom.setIndex([0, 1, 2]);
+            cdbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.008, 0.518, 0.780, // B: Sky (side a)
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                cdbGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
 
-          const adbGeom = new THREE.BufferGeometry().setFromPoints([D, A, B]);
-          adbGeom.setIndex([0, 1, 2]);
-          adbGeom.setAttribute(
-            'color',
-            new THREE.Float32BufferAttribute(
-              [
-                0.984, 0.749, 0.141, // D: Amber
-                0.063, 0.725, 0.506, // A: Emerald (side b)
-                0.957, 0.247, 0.369, // B: Rose (side c)
-              ],
-              3
-            )
-          );
-          this.dynamicGroup.add(
-            new THREE.Mesh(
-              adbGeom,
-              new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.24,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-              })
-            )
-          );
+            const adbGeom = new THREE.BufferGeometry().setFromPoints([D, A, B]);
+            adbGeom.setIndex([0, 1, 2]);
+            adbGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.984, 0.749, 0.141, // D: Amber
+                  0.063, 0.725, 0.506, // A: Emerald (side b)
+                  0.957, 0.247, 0.369, // B: Rose (side c)
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                adbGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          } else {
+            const cabGeom = new THREE.BufferGeometry().setFromPoints([C, A, B]);
+            cabGeom.setIndex([0, 1, 2]);
+            cabGeom.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                [
+                  0.957, 0.247, 0.369, // C: Rose
+                  0.063, 0.725, 0.506, // A: Emerald
+                  0.008, 0.518, 0.780, // B: Sky
+                ],
+                3
+              )
+            );
+            this.dynamicGroup.add(
+              new THREE.Mesh(
+                cabGeom,
+                new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  vertexColors: true,
+                  transparent: true,
+                  opacity: 0.24,
+                  side: THREE.DoubleSide,
+                  depthWrite: false,
+                })
+              )
+            );
+          }
         }
 
         // 3D Bilinear Interaction Rectangle & Extruded Projection Prism (2ab cos C) in the XZ ground plane

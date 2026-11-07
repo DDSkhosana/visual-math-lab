@@ -324,7 +324,18 @@ export class SolidMorph {
     const material = source.material;
     this.relative.multiplyMatrices(this.sceneInverse, source.matrixWorld);
     const matrix = this.relative.elements;
-    const colorHex = material.color?.getHex?.() ?? 0xffffff;
+    let sourceColor = source.userData?.solidColor || material.color;
+    if (!source.userData?.solidColor && material.vertexColors && geometry.attributes.color && (!sourceColor || sourceColor.getHex?.() === 0xffffff)) {
+      const colors = geometry.attributes.color;
+      let rSum = 0, gSum = 0, bSum = 0;
+      for (let i = 0; i < colors.count; i++) {
+        rSum += colors.getX(i);
+        gSum += colors.getY(i);
+        bSum += colors.getZ(i);
+      }
+      sourceColor = new this.THREE.Color(rSum / colors.count, gSum / colors.count, bSum / colors.count);
+    }
+    const colorHex = sourceColor?.getHex?.() ?? 0xffffff;
     const opacity = material.opacity ?? 1;
     const record = this.companions.get(source);
     if (record
@@ -369,7 +380,7 @@ export class SolidMorph {
       ? extrudeTriangleSoup(positions, options)
       : extrudePolyline(positions, { ...options, pairs: kind === 'pairs', closed: kind === 'loop', generators: emphasised ? 12 : 0 });
     if (!extruded.faces.length) return;
-    next.group = this.buildCompanion(extruded, material.color, kind === 'fill' ? opacity : null, emphasised);
+    next.group = this.buildCompanion(extruded, sourceColor, kind === 'fill' ? opacity : null, emphasised);
     this.layer.add(next.group);
   }
 
