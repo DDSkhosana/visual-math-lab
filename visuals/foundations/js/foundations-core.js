@@ -1077,6 +1077,115 @@ export class PermutationMath {
     }
     return transpositions;
   }
+
+  /**
+   * Computes the mathematical inverse permutation σ⁻¹.
+   * If σ(i) = j, then σ⁻¹(j) = i.
+   * Geometrically equivalent to reflecting coordinates across the line y = x.
+   *
+   * @param {Array<number>} mapping - 1-indexed output array
+   * @returns {Array<number>} inverse mapping
+   */
+  static computeInverse(mapping) {
+    const n = mapping.length;
+    const inv = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const target = mapping[i]; // σ(i + 1)
+      if (target >= 1 && target <= n) {
+        inv[target - 1] = i + 1;
+      }
+    }
+    return inv;
+  }
+
+  /**
+   * Applies transposition swap (a b) to permutation mapping.
+   * Swaps the images σ(a) and σ(b) (where a, b are 1-indexed).
+   */
+  static applyTransposition(mapping, a, b) {
+    const next = [...mapping];
+    const idxA = a - 1;
+    const idxB = b - 1;
+    if (idxA >= 0 && idxA < next.length && idxB >= 0 && idxB < next.length) {
+      const temp = next[idxA];
+      next[idxA] = next[idxB];
+      next[idxB] = temp;
+    }
+    return next;
+  }
+
+  /**
+   * Sets mapping value σ(x) = y on the coordinate grid.
+   * Automatically resolves collisions by swapping with the displaced column x'
+   * so the permutation strictly maintains the bijection (Rook property).
+   */
+  static setMappingValue(mapping, x, y) {
+    const next = [...mapping];
+    const idxX = x - 1;
+    if (idxX < 0 || idxX >= next.length || y < 1 || y > next.length) return next;
+
+    const oldY = next[idxX];
+    if (oldY === y) return next;
+
+    // Find the other input x' that currently maps to y
+    const displacedIdx = next.findIndex(val => val === y);
+    if (displacedIdx !== -1) {
+      next[displacedIdx] = oldY;
+    }
+    next[idxX] = y;
+    return next;
+  }
+
+  /**
+   * Computes fixed points of the permutation: elements where σ(x) = x.
+   * Geometrically, these correspond to points lying directly on the diagonal y = x.
+   */
+  static computeFixedPoints(mapping) {
+    const fixed = [];
+    for (let i = 0; i < mapping.length; i++) {
+      if (mapping[i] === i + 1) {
+        fixed.push(i + 1);
+      }
+    }
+    return fixed;
+  }
+
+  /**
+   * Computes Rothe diagram and Cartesian coordinate grid properties for σ ∈ S_n.
+   * - Points: (x, σ(x))
+   * - Fixed points: points lying on diagonal y = x
+   * - Inversion cells: cells (x, y) where y < σ(x) and σ⁻¹(y) > x
+   */
+  static computeRotheDiagram(mapping) {
+    const n = mapping.length;
+    const inv = this.computeInverse(mapping);
+    const fixedPoints = this.computeFixedPoints(mapping);
+    const points = [];
+    const inversionCells = [];
+
+    for (let x = 1; x <= n; x++) {
+      const y = mapping[x - 1];
+      points.push({ x, y, isFixed: x === y });
+
+      // Inversion cells in Rothe diagram:
+      // cell (x, c) where c < y and σ⁻¹(c) > x
+      for (let c = 1; c < y; c++) {
+        if (inv[c - 1] > x) {
+          inversionCells.push({ x, y: c, originalTarget: y, partner: inv[c - 1] });
+        }
+      }
+    }
+
+    return {
+      n,
+      points,
+      fixedPoints,
+      inversionCells,
+      inversionCount: inversionCells.length,
+      parity: inversionCells.length % 2 === 0 ? 'EVEN' : 'ODD',
+      sign: inversionCells.length % 2 === 0 ? 1 : -1
+    };
+  }
 }
 
 // ============================================================================

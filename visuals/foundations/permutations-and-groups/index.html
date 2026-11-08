@@ -40,11 +40,13 @@
     import { mountPermutationsVisual } from './src/controller.js';
 
     const init = () => {
+      const gridContainer = document.querySelector('#grid-viewport-container');
       const cauchyContainer = document.querySelector('#cauchy-viewport-container');
       const braidContainer = document.querySelector('#braid-viewport-container');
       const cayleyContainer = document.querySelector('#cayley-viewport-container');
 
       mountPermutationsVisual({
+        grid: gridContainer,
         cauchy: cauchyContainer,
         braid: braidContainer,
         cayley: cayleyContainer
@@ -92,10 +94,34 @@
       <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Permutations visualizer modes">
         <div class="toolbar-content" id="toolbar-content">
           <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-            <button type="button" class="btn active" data-view-mode="cauchy" aria-pressed="true">Cauchy &amp; Cycle Orbits</button>
-            <button type="button" class="btn" data-view-mode="braid" aria-pressed="false">String Braiding &amp; Inversions</button>
-            <button type="button" class="btn" data-view-mode="cayley" aria-pressed="false">S₃ Cayley Table</button>
+            <button type="button" class="btn active" id="btn-split" data-view-mode="split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">Grid</button>
+            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">Dual Canvas</button>
           </div>
+
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
+            <span>Flip</span>
+          </button>
+
+          <div class="viewmode-segmented-group" id="dual-mode-group" role="group" aria-label="Dual Representation">
+            <button type="button" class="btn active" data-dual-mode="cauchy" aria-pressed="true">Orbits &amp; Cycles</button>
+            <button type="button" class="btn" data-dual-mode="braid" aria-pressed="false">Braid Strands</button>
+            <button type="button" class="btn" data-dual-mode="cayley" aria-pressed="false">S₃ Cayley</button>
+          </div>
+
+          <div class="viewmode-segmented-group" id="degree-n-group" role="group" aria-label="Permutation Degree">
+            <button type="button" class="btn" data-degree-n="3">n = 3</button>
+            <button type="button" class="btn" data-degree-n="4">n = 4</button>
+            <button type="button" class="btn active" data-degree-n="5">n = 5</button>
+          </div>
+
+          <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
+
+          <button type="button" class="btn-toolbar" id="btn-invert-perm" title="Invert permutation (reflect across diagonal line y = x)">
+            Invert (σ⁻¹)
+          </button>
+
           <button type="button" class="btn-toolbar" id="btn-reset" title="Reset permutation to default configuration">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <span>Reset</span>
@@ -104,15 +130,32 @@
       </div>
 
       <!-- Main Visual Viewports -->
-      <div class="view-container visual-viewport" id="main-view" style="background: #090d16;">
-        <!-- Mode 1: Cauchy Matrix & Cycle Orbits -->
-        <div id="cauchy-viewport-container" style="width: 100%; height: 100%;"></div>
+      <div class="view-container layout-split horizontal-split" id="main-view" style="background: #090d16;">
+        <!-- Left: Permutation Coordinate Grid (Primary) -->
+        <div id="canvas-2d-container">
+          <div class="view-title" id="view-title-grid">
+            Coordinate Grid (n &times; n): (<span class="color-sky">X: Input</span>, <span class="color-fuchsia">&sigma;(X): Output</span>) &amp; <span class="color-lime">y = x Fixed Points</span>
+          </div>
+          <div id="grid-viewport-container" style="width: 100%; height: 100%;"></div>
+        </div>
 
-        <!-- Mode 2: String Braiding & Inversions -->
-        <div id="braid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <div class="viewport-resizer" id="viewport-resizer"></div>
 
-        <!-- Mode 3: S_3 Cayley Table -->
-        <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <!-- Right: Dual Representation Viewport (Secondary) -->
+        <div id="canvas-3d-container">
+          <div class="view-title" id="view-title-dual">
+            Dual Representation: <span class="color-sky">Cauchy Matrix &amp; Cycle Orbits</span> &amp; <span class="color-lavender">Braid Strands</span>
+          </div>
+
+          <!-- Mode 1: Cauchy Matrix & Cycle Orbits -->
+          <div id="cauchy-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: String Braiding & Inversions -->
+          <div id="braid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 3: S_3 Cayley Table -->
+          <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        </div>
       </div>
 
       <!-- Panel 1: Cycle Forms & Parity Telemetry -->

@@ -9,16 +9,17 @@ export class BraidDiagramView {
   constructor(container, controller) {
     this.container = container;
     this.controller = controller;
+    this.selectedTerminal = null;
 
     this.init();
   }
 
   init() {
     this.container.innerHTML = `
-      <div class="braid-diagram-container" style="display: flex; flex-direction: column; width: 100%; height: 100%; padding: 16px; box-sizing: border-box; overflow-y: auto;">
+      <div class="braid-diagram-container" style="display: flex; flex-direction: column; width: 100%; height: 100%; padding: 14px; box-sizing: border-box; overflow-y: auto;">
         
         <!-- Top: Parity & Sign Gauge Banner -->
-        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px; margin-bottom: 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
               Parity &amp; Multiplicative Sign Gauge
@@ -39,16 +40,19 @@ export class BraidDiagramView {
         </div>
 
         <!-- Center: Braiding Strands SVG -->
-        <div style="flex: 1; min-height: 280px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-          <svg id="braid-svg" viewBox="0 0 500 280" style="width: 100%; height: 100%; display: block; user-select: none;">
+        <div style="flex: 1; min-height: 250px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <svg id="braid-svg" viewBox="0 0 500 250" style="width: 100%; height: 100%; display: block; user-select: none;">
             <g id="braid-strands-layer"></g>
             <g id="braid-intersections-layer"></g>
             <g id="braid-labels-layer"></g>
           </svg>
+          <div style="position: absolute; bottom: 6px; left: 10px; font-size: 0.7rem; color: #64748b; pointer-events: none;">
+            Click adjacent [⇄ s_i] Coxeter buttons or click 2 bottom terminals to swap strands.
+          </div>
         </div>
 
         <!-- Bottom: Transposition Product Decomposition -->
-        <div id="braid-transposition-breakdown" style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; margin-top: 12px; font-family: monospace; font-size: 0.82rem; color: #cbd5e1; line-height: 1.6;"></div>
+        <div id="braid-transposition-breakdown" style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-family: monospace; font-size: 0.82rem; color: #cbd5e1; line-height: 1.6;"></div>
 
       </div>
     `;
@@ -58,7 +62,37 @@ export class BraidDiagramView {
     this.intersectionsLayer = this.container.querySelector('#braid-intersections-layer');
     this.labelsLayer = this.container.querySelector('#braid-labels-layer');
 
+    this.setupEventListeners();
     this.render();
+  }
+
+  setupEventListeners() {
+    this.container.addEventListener('click', (e) => {
+      // 1. Coxeter generator swap button
+      const coxeterBtn = e.target.closest('.coxeter-swap-btn');
+      if (coxeterBtn) {
+        const i = parseInt(coxeterBtn.dataset.swap, 10);
+        this.controller.applyTransposition(i, i + 1);
+        return;
+      }
+
+      // 2. Bottom terminal click
+      const term = e.target.closest('.braid-terminal');
+      if (term) {
+        const inputIdx = parseInt(term.dataset.input, 10);
+        if (!this.selectedTerminal) {
+          this.selectedTerminal = inputIdx;
+          this.render();
+        } else if (this.selectedTerminal === inputIdx) {
+          this.selectedTerminal = null;
+          this.render();
+        } else {
+          const first = this.selectedTerminal;
+          this.selectedTerminal = null;
+          this.controller.applyTransposition(first, inputIdx);
+        }
+      }
+    });
   }
 
   render() {
@@ -142,15 +176,36 @@ export class BraidDiagramView {
         <text x="${startX}" y="${topY - 18}" text-anchor="middle" fill="#94a3b8" font-size="10">x_${i + 1}</text>
       `;
 
-      // Bottom label
+      // Bottom label (interactive terminal)
+      const isSel = this.selectedTerminal === (i + 1);
+      const termStroke = isSel ? '#fbbf24' : strandColor;
+      const termWidth = isSel ? '3.5' : '2';
+      const termHalo = isSel ? `<circle cx="${endX}" cy="${botY}" r="18" fill="#fbbf24" opacity="0.25" />` : '';
+
       labelsHtml += `
-        <circle cx="${endX}" cy="${botY}" r="12" fill="#0f172a" stroke="${strandColor}" stroke-width="2" />
-        <text x="${endX}" y="${botY + 4}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="bold">${mapping[i]}</text>
-        <text x="${endX}" y="${botY + 22}" text-anchor="middle" fill="#94a3b8" font-size="10">σ(${i + 1})</text>
+        <g class="braid-terminal" data-input="${i + 1}" style="cursor: pointer;">
+          ${termHalo}
+          <circle cx="${endX}" cy="${botY}" r="12" fill="#0f172a" stroke="${termStroke}" stroke-width="${termWidth}" />
+          <text x="${endX}" y="${botY + 4}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="bold">${mapping[i]}</text>
+          <text x="${endX}" y="${botY + 22}" text-anchor="middle" fill="#94a3b8" font-size="10">σ(${i + 1})</text>
+        </g>
       `;
     }
 
-    this.strandsLayer.innerHTML = strandsHtml;
+    // Interactive Coxeter generator buttons in middle tier (s_i = (i, i+1))
+    let coxeterHtml = '';
+    const midY = (topY + botY) / 2;
+    for (let i = 0; i < n - 1; i++) {
+      const midX = paddingX + (i + 0.5) * strandSpacing;
+      coxeterHtml += `
+        <g class="coxeter-swap-btn" data-swap="${i + 1}" transform="translate(${midX}, ${midY})" style="cursor: pointer;">
+          <rect x="-14" y="-10" width="28" height="20" rx="4" fill="#1e293b" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
+          <text y="4" text-anchor="middle" fill="#38bdf8" font-size="9" font-family="monospace">s_${i + 1}</text>
+        </g>
+      `;
+    }
+
+    this.strandsLayer.innerHTML = strandsHtml + coxeterHtml;
     this.labelsLayer.innerHTML = labelsHtml;
   }
 

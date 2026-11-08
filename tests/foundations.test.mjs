@@ -331,6 +331,41 @@ describe('Foundations Suite — PermutationMath & Symmetric Groups S_n (Module 3
     const transpositions = PermutationMath.decomposeIntoTranspositions([1, 2, 3]);
     assert.deepEqual(transpositions, [[1, 3], [1, 2]]);
   });
+
+  test('Computes inverse permutation, fixed points, and Rothe diagram inversion cells on coordinate grid', () => {
+    // sigma = [3, 1, 2, 5, 4] -> (1 3 2)(4 5)
+    // 1->3, 2->1, 3->2, 4->5, 5->4
+    const sigma = [3, 1, 2, 5, 4];
+    const inv = PermutationMath.computeInverse(sigma);
+    // sigma^-1: 3->1, 1->2, 2->3, 5->4, 4->5 => [2, 3, 1, 5, 4]
+    assert.deepEqual(inv, [2, 3, 1, 5, 4]);
+
+    // Round-trip composition (sigma ∘ sigma^-1 = id)
+    const id = PermutationMath.composePermutations(sigma, inv);
+    assert.deepEqual(id, [1, 2, 3, 4, 5]);
+
+    // Fixed points (sigma(x) = x lie on line y = x)
+    const pFixed = [1, 3, 2, 4, 5]; // 1, 4, 5 are fixed
+    assert.deepEqual(PermutationMath.computeFixedPoints(pFixed), [1, 4, 5]);
+    assert.deepEqual(PermutationMath.computeFixedPoints(sigma), []); // derangement
+
+    // Rothe diagram & coordinate grid inversions
+    const rothe = PermutationMath.computeRotheDiagram(sigma);
+    assert.equal(rothe.n, 5);
+    assert.equal(rothe.inversionCount, 3);
+    assert.equal(rothe.parity, 'ODD');
+    assert.equal(rothe.sign, -1);
+
+    // applyTransposition swap (1 2)
+    const swapped = PermutationMath.applyTransposition(sigma, 1, 2);
+    // swap positions 0 and 1: [1, 3, 2, 5, 4]
+    assert.deepEqual(swapped, [1, 3, 2, 5, 4]);
+
+    // setMappingValue with collision auto-swap (maintaining bijection / Rook property)
+    // sigma is [3, 1, 2, 5, 4]. Assign sigma(1) = 1 (displacing column 2 which had value 1 to old value 3)
+    const rookMaintained = PermutationMath.setMappingValue(sigma, 1, 1);
+    assert.deepEqual(rookMaintained, [1, 3, 2, 5, 4]);
+  });
 });
 
 describe('Foundations Suite — CategoryMath & Universal Properties (Module 4)', () => {
@@ -645,6 +680,50 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     ctrl.setMapping([2, 1]);
     assert.equal(ctrl.state.n, 2);
     assert.deepEqual(ctrl.state.mapping, [2, 1]);
+
+    // Split Viewport Modes & Canonical Strategy
+    ctrl.setViewMode('split');
+    assert.equal(ctrl.state.viewMode, 'split');
+    ctrl.setViewMode('2d');
+    assert.equal(ctrl.state.viewMode, '2d');
+    ctrl.setViewMode('3d');
+    assert.equal(ctrl.state.viewMode, '3d');
+
+    // Split orientation flip
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'vertical');
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+
+    // Dual mode switching
+    ctrl.setDualMode('braid');
+    assert.equal(ctrl.state.dualMode, 'braid');
+    ctrl.setDualMode('cayley');
+    assert.equal(ctrl.state.dualMode, 'cayley');
+    ctrl.setDualMode('cauchy');
+    assert.equal(ctrl.state.dualMode, 'cauchy');
+
+    // Interactive transposition swap
+    ctrl.applyPreset('compound'); // [3, 1, 2, 5, 4]
+    ctrl.applyTransposition(1, 2); // swap elements 1 and 2: [1, 3, 2, 5, 4]
+    assert.deepEqual(ctrl.state.mapping, [1, 3, 2, 5, 4]);
+
+    // Interactive coordinate grid cell assignment with automatic bijection collision swap
+    ctrl.setMappingValue(1, 4); // assign sigma(1) = 4, displacing 4 (which had 5) to 1's old value 1
+    assert.equal(ctrl.state.mapping[0], 4);
+    assert.equal(new Set(ctrl.state.mapping).size, 5); // strictly preserves bijection!
+
+    // Invert permutation (y = x reflection)
+    ctrl.applyPreset('compound'); // [3, 1, 2, 5, 4]
+    ctrl.invertPermutation();
+    assert.deepEqual(ctrl.state.mapping, [2, 3, 1, 5, 4]);
+
+    // Dynamic degree n adjustment
+    ctrl.setN(3);
+    assert.equal(ctrl.state.n, 3);
+    assert.equal(ctrl.state.mapping.length, 3);
+    assert.equal(new Set(ctrl.state.mapping).size, 3);
   });
 
   test('Module 3 S_3 Cayley table detects non-commutativity correctly', async () => {
@@ -686,9 +765,14 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     const html = fs.readFileSync(moduleHtmlPath, 'utf8');
     assert.ok(html.includes('Content-Security-Policy'), 'Must have Content-Security-Policy');
     assert.ok(html.includes('workspace-dock'), 'Must contain workspace dock');
+    assert.ok(html.includes('grid-viewport-container'), 'Must contain coordinate grid viewport');
     assert.ok(html.includes('cauchy-viewport-container'), 'Must contain cauchy viewport');
     assert.ok(html.includes('braid-viewport-container'), 'Must contain braid viewport');
     assert.ok(html.includes('cayley-viewport-container'), 'Must contain cayley viewport');
+    assert.ok(html.includes('viewport-resizer'), 'Must contain viewport resizer');
+    assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
+    assert.ok(html.includes('canvas-2d-container'), 'Must contain primary canvas container');
+    assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas container');
   });
 
   test('Module 4 CategoryTheoryController manages presets, commutativity, and proof export', async () => {

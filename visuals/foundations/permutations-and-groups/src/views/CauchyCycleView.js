@@ -10,20 +10,21 @@ export class CauchyCycleView {
     this.container = container;
     this.controller = controller;
     this.orbitStep = 0;
+    this.selectedNode = null;
 
     this.init();
   }
 
   init() {
     this.container.innerHTML = `
-      <div class="cauchy-cycle-container" style="display: flex; flex-direction: column; width: 100%; height: 100%; padding: 16px; box-sizing: border-box; overflow-y: auto;">
+      <div class="cauchy-cycle-container" style="display: flex; flex-direction: column; width: 100%; height: 100%; padding: 14px; box-sizing: border-box; overflow-y: auto;">
         
         <!-- Top: Cauchy Two-Row Matrix & Cycle Formula -->
-        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;">
+        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
           <!-- Two-Row Cauchy Matrix -->
           <div>
             <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-              Cauchy Two-Row Matrix Notation
+              Cauchy Two-Row Matrix Notation <span style="font-size: 0.7rem; color: #64748b; font-weight: normal;">(Click entry to cycle)</span>
             </div>
             <div id="cauchy-matrix-mount" style="font-family: monospace; font-size: 1.1rem; color: #ffffff;"></div>
           </div>
@@ -43,8 +44,8 @@ export class CauchyCycleView {
         </div>
 
         <!-- Center: Cycle Orbits Graph -->
-        <div style="flex: 1; min-height: 260px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-          <svg id="cycle-orbits-svg" viewBox="0 0 500 260" style="width: 100%; height: 100%; display: block; user-select: none;">
+        <div style="flex: 1; min-height: 240px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <svg id="cycle-orbits-svg" viewBox="0 0 500 240" style="width: 100%; height: 100%; display: block; user-select: none;">
             <defs>
               <marker id="cycle-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
@@ -52,18 +53,21 @@ export class CauchyCycleView {
             </defs>
             <g id="cycle-orbits-layer"></g>
           </svg>
+          <div style="position: absolute; bottom: 6px; left: 10px; font-size: 0.7rem; color: #64748b; pointer-events: none;">
+            Click 2 nodes in the orbit graph to apply transposition swap (i j).
+          </div>
         </div>
 
         <!-- Bottom: Orbit Stepper Controls -->
-        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
           <div style="font-family: monospace; font-size: 0.85rem; color: #cbd5e1;">
             Current Orbit Application: <strong id="orbit-power-label" style="color: #38bdf8;">σ⁰ = id</strong>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn" id="btn-step-orbit" style="padding: 6px 14px; font-size: 0.8rem;">
+            <button type="button" class="btn" id="btn-step-orbit" style="padding: 5px 12px; font-size: 0.8rem;">
               Step Orbit (σᵏ⁺¹) &rarr;
             </button>
-            <button type="button" class="btn" id="btn-reset-orbit" style="padding: 6px 12px; font-size: 0.8rem;">
+            <button type="button" class="btn" id="btn-reset-orbit" style="padding: 5px 10px; font-size: 0.8rem;">
               Reset Orbit
             </button>
           </div>
@@ -83,6 +87,38 @@ export class CauchyCycleView {
     this.container.querySelector('#btn-reset-orbit')?.addEventListener('click', () => {
       this.orbitStep = 0;
       this.render();
+    });
+
+    // Delegated click for orbit nodes and matrix cells
+    this.container.addEventListener('click', (e) => {
+      // 1. Matrix cell click
+      const cell = e.target.closest('.cauchy-cell');
+      if (cell) {
+        const col = parseInt(cell.dataset.col, 10);
+        const state = this.controller.state;
+        const currentTarget = state.mapping[col - 1];
+        const nextTarget = (currentTarget % state.n) + 1;
+        this.controller.setMappingValue(col, nextTarget);
+        return;
+      }
+
+      // 2. Orbit node click
+      const nodeGroup = e.target.closest('.orbit-node-group');
+      if (nodeGroup) {
+        const elem = parseInt(nodeGroup.dataset.elem, 10);
+        if (!this.selectedNode) {
+          this.selectedNode = elem;
+          this.render();
+        } else if (this.selectedNode === elem) {
+          this.selectedNode = null;
+          this.render();
+        } else {
+          const nodeA = this.selectedNode;
+          const nodeB = elem;
+          this.selectedNode = null;
+          this.controller.applyTransposition(nodeA, nodeB);
+        }
+      }
     });
   }
 
@@ -106,7 +142,7 @@ export class CauchyCycleView {
       let botRow = '';
       for (let i = 0; i < n; i++) {
         topRow += `<td style="padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.2); color: #94a3b8;">${i + 1}</td>`;
-        botRow += `<td style="padding: 4px 8px; color: #38bdf8; font-weight: bold;">${mapping[i]}</td>`;
+        botRow += `<td class="cauchy-cell" data-col="${i + 1}" style="padding: 4px 8px; color: #38bdf8; font-weight: bold; cursor: pointer; user-select: none;" title="Click to cycle mapping for input ${i + 1}">${mapping[i]}</td>`;
       }
       matrixMount.innerHTML = `
         <div style="display: inline-flex; align-items: center;">
@@ -216,9 +252,15 @@ export class CauchyCycleView {
 
       // Draw node circles
       nodePos.forEach(p => {
+        const isSelected = this.selectedNode === p.elem;
+        const strokeColor = isSelected ? '#fbbf24' : '#38bdf8';
+        const strokeWidth = isSelected ? '3.5' : '2.5';
+        const halo = isSelected ? `<circle r="22" fill="#fbbf24" opacity="0.25" />` : '';
+
         html += `
-          <g transform="translate(${p.x}, ${p.y})">
-            <circle r="16" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" />
+          <g class="orbit-node-group" data-elem="${p.elem}" transform="translate(${p.x}, ${p.y})" style="cursor: pointer;">
+            ${halo}
+            <circle r="16" fill="#0f172a" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
             <text y="5" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="bold">${p.elem}</text>
           </g>
         `;
