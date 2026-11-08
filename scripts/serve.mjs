@@ -98,6 +98,7 @@ if (isDirectCli) {
     console.log(`  ➜ Circle Suite:  http://localhost:${PORT}/visuals/circle-theorems/`);
     console.log(`  ➜ Thales:        http://localhost:${PORT}/visuals/circle-theorems/thales-theorem/`);
     console.log(`  ➜ Trig Suite:    http://localhost:${PORT}/visuals/trigonometry/`);
+    console.log(`  ➜ Foundations:   http://localhost:${PORT}/visuals/foundations/`);
     console.log(`\n  Press Ctrl+C to stop.\n`);
   });
 }
