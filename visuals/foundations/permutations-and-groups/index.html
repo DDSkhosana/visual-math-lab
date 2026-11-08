@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.google-analytics.com; frame-src https://www.youtube-nocookie.com; media-src 'self' blob:; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <title>Permutations &amp; Symmetric Groups S_n | Visual Mathematics Lab</title>
+  <meta name="description" content="Decompose permutations into Cauchy matrices and disjoint cycle orbits, animate transposition braid crossings, and explore Cayley tables.">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/foundations/permutations-and-groups/">
+  <link rel="icon" type="image/svg+xml" href="../../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Permutations & Symmetric Groups S_n | Visual Mathematics Lab",
+    "headline": "Interactive Cauchy Matrices, Disjoint Cycle Orbits, String Braiding & S_3 Cayley Tables",
+    "description": "Explore permutations as bijections, trace cycle orbits, compute orders via lcm, analyze even/odd parity and inversion crossings, and test non-commutativity in symmetric groups.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/foundations/permutations-and-groups/"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="../../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
+  <script type="module">
+    import { mountPermutationsVisual } from './src/controller.js';
+    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
+
+    const init = () => {
+      const cauchyContainer = document.querySelector('#cauchy-viewport-container');
+      const braidContainer = document.querySelector('#braid-viewport-container');
+      const cayleyContainer = document.querySelector('#cayley-viewport-container');
+
+      mountPermutationsVisual({
+        cauchy: cauchyContainer,
+        braid: braidContainer,
+        cayley: cayleyContainer
+      });
+
+      // Mount Workspace Dock
+      const dockRoot = document.querySelector('#workspace-dock');
+      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
+        new WorkspaceDockManager(dockRoot);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</head>
+<body data-root="../../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
+
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Permutations and Symmetric Groups S_n">
+      
+      <!-- Viewport Header Toolbar -->
+      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Permutations visualizer modes">
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" data-view-mode="cauchy" aria-pressed="true">Cauchy &amp; Cycle Orbits</button>
+            <button type="button" class="btn" data-view-mode="braid" aria-pressed="false">String Braiding &amp; Inversions</button>
+            <button type="button" class="btn" data-view-mode="cayley" aria-pressed="false">S₃ Cayley Table</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset permutation to default configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Visual Viewports -->
+      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+        <!-- Mode 1: Cauchy Matrix & Cycle Orbits -->
+        <div id="cauchy-viewport-container" style="width: 100%; height: 100%;"></div>
+
+        <!-- Mode 2: String Braiding & Inversions -->
+        <div id="braid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+        <!-- Mode 3: S_3 Cayley Table -->
+        <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+      </div>
+
+      <!-- Workspace Dock with Sub-Panels -->
+      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
+        <div class="dock-handle" title="Drag dock margin"></div>
+        <div class="dock-tray">
+
+          <!-- Sub-Panel 1: Cycle Forms & Parity Telemetry -->
+          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
+            <div class="panel-header">
+              <span class="panel-header-icon">⚖</span>
+              <h3 class="panel-header-title">Permutation Invariants</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div class="axiom-badge-group">
+                <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
+                <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
+                <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
+                <span id="badge-parity" class="axiom-badge is-valid">Parity: EVEN (+1)</span>
+              </div>
+              <div id="permutation-telemetry-content" style="margin-top: 12px;"></div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 2: Permutation Presets -->
+          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
+            <div class="panel-header">
+              <span class="panel-header-icon">🎛</span>
+              <h3 class="panel-header-title">Permutation Presets</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                Select classic permutations to inspect their cycle decompositions, order, parity, and string braiding crossovers.
+              </p>
+              <div class="preset-grid">
+                <button type="button" class="preset-chip active" data-preset="compound">Compound (1 3 2)(4 5)</button>
+                <button type="button" class="preset-chip" data-preset="three_cycle">3-Cycle (1 2 3)</button>
+                <button type="button" class="preset-chip" data-preset="single_swap">Transposition (1 2)</button>
+                <button type="button" class="preset-chip" data-preset="full_cycle">5-Cycle (1 2 3 4 5)</button>
+                <button type="button" class="preset-chip" data-preset="identity">Identity e = ()</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 3: Mathematical Derivations & Group Axioms -->
+          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
+            <div class="panel-header">
+              <span class="panel-header-icon">📜</span>
+              <h3 class="panel-header-title">Theory &amp; Group Axioms</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+                <p style="margin-top: 0;">
+                  <strong>Symmetric Group $(S_n, \circ)$:</strong> The set of all bijections $\sigma: \{1, \dots, n\} \to \{1, \dots, n\}$ under function composition forms a non-abelian group of size $|S_n| = n!$.
+                </p>
+                <p>
+                  <strong>Cycle Order:</strong> The order of $\sigma$ is the smallest integer $k \ge 1$ such that $\sigma^k = \operatorname{id}$. In disjoint cycle notation, $\operatorname{ord}(\sigma) = \operatorname{lcm}(|c_1|, |c_2|, \dots, |c_m|)$.
+                </p>
+                <p>
+                  <strong>Transpositions &amp; Parity:</strong> Every permutation decomposes into a product of 2-cycles $(i \, j)$. While the factorization is not unique, its parity mod 2 is invariant: $\operatorname{sgn}(\sigma) = (-1)^{\text{transpositions}} = (-1)^{\text{inversions}}$.
+                </p>
+                <p>
+                  <strong>Alternating Group $A_n$:</strong> The subgroup of even permutations has index 2 with $|A_n| = \frac{n!}{2}$.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

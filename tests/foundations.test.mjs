@@ -430,5 +430,80 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('quotient-viewport-container'), 'Must contain quotient viewport');
     assert.ok(html.includes('poset-viewport-container'), 'Must contain poset viewport');
   });
+
+  test('Module 3 PermutationsController manages mapping, presets and factorials', async () => {
+    const { PermutationsController } = await import('../visuals/foundations/permutations-and-groups/src/controller.js');
+    const ctrl = new PermutationsController();
+
+    assert.equal(ctrl.state.activeMode, 'cauchy');
+    assert.equal(ctrl.state.currentPresetId, 'compound');
+    assert.equal(ctrl.state.n, 5);
+
+    // Factorial helper
+    assert.equal(ctrl.factorial(3), 6);
+    assert.equal(ctrl.factorial(4), 24);
+    assert.equal(ctrl.factorial(5), 120);
+
+    // Apply 3-cycle preset
+    ctrl.applyPreset('three_cycle');
+    assert.equal(ctrl.state.currentPresetId, 'three_cycle');
+    assert.equal(ctrl.state.n, 3);
+    assert.deepEqual(ctrl.state.mapping, [2, 3, 1]);
+
+    // Apply transposition swap
+    ctrl.applyPreset('single_swap');
+    assert.equal(ctrl.state.currentPresetId, 'single_swap');
+    assert.equal(ctrl.state.n, 4);
+    assert.deepEqual(ctrl.state.mapping, [2, 1, 3, 4]);
+
+    // Set custom mapping
+    ctrl.setMapping([2, 1]);
+    assert.equal(ctrl.state.n, 2);
+    assert.deepEqual(ctrl.state.mapping, [2, 1]);
+  });
+
+  test('Module 3 S_3 Cayley table detects non-commutativity correctly', async () => {
+    const { CayleyTableView } = await import('../visuals/foundations/permutations-and-groups/src/views/CayleyTableView.js');
+    const view = new CayleyTableView({ innerHTML: '', querySelector: () => null });
+
+    assert.equal(view.s3Elements.length, 6);
+    // Elements: e, (1 2), (1 3), (2 3), (1 2 3), (1 3 2)
+    const tau12 = view.s3Elements.find(e => e.name === '(1 2)');
+    const tau23 = view.s3Elements.find(e => e.name === '(2 3)');
+    assert.ok(tau12);
+    assert.ok(tau23);
+
+    // Test (1 2) ∘ (2 3) = (1 2 3) vs (2 3) ∘ (1 2) = (1 3 2)
+    const { PermutationMath } = await import('../visuals/foundations/js/foundations-core.js');
+    const comp1 = PermutationMath.composePermutations(tau23.mapping, tau12.mapping);
+    const comp2 = PermutationMath.composePermutations(tau12.mapping, tau23.mapping);
+
+    const match1 = view.s3Elements.find(e => e.mapping.every((v, i) => v === comp1[i]));
+    const match2 = view.s3Elements.find(e => e.mapping.every((v, i) => v === comp2[i]));
+
+    assert.equal(match1.name, '(1 2 3)');
+    assert.equal(match2.name, '(1 3 2)');
+    assert.notEqual(match1.name, match2.name); // Non-commutative!
+  });
+
+  test('Module 3 index.html and thumbnail exist and have valid structure', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const fileURLToPath = (await import('node:url')).fileURLToPath;
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const moduleHtmlPath = path.resolve(__dirname, '../visuals/foundations/permutations-and-groups/index.html');
+    const thumbnailPath = path.resolve(__dirname, '../assets/images/permutations-and-groups-thumbnail.svg');
+
+    assert.ok(fs.existsSync(moduleHtmlPath), 'permutations-and-groups/index.html must exist');
+    assert.ok(fs.existsSync(thumbnailPath), 'permutations-and-groups-thumbnail.svg must exist');
+
+    const html = fs.readFileSync(moduleHtmlPath, 'utf8');
+    assert.ok(html.includes('Content-Security-Policy'), 'Must have Content-Security-Policy');
+    assert.ok(html.includes('workspace-dock'), 'Must contain workspace dock');
+    assert.ok(html.includes('cauchy-viewport-container'), 'Must contain cauchy viewport');
+    assert.ok(html.includes('braid-viewport-container'), 'Must contain braid viewport');
+    assert.ok(html.includes('cayley-viewport-container'), 'Must contain cayley viewport');
+  });
 });
 

@@ -43,8 +43,8 @@
     "badge": "Foundations 03",
     "formula": "σ = (a₁ … a_k)  |  sgn(σ) = (-1)^m",
     "description": "Decompose permutations into Cauchy matrices and disjoint cycle orbits, animate transposition braid crossings, and explore Cayley tables.",
-    "thumbnail": "assets/images/thales-thumbnail.svg",
-    "published": false,
+    "thumbnail": "assets/images/permutations-and-groups-thumbnail.svg",
+    "published": true,
     "youtubeId": "",
     "video": {
       "enabled": true,
