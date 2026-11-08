@@ -65,6 +65,26 @@
   </button>
   <header data-site-header></header>
 
+  <!-- Overlay Info Modal (accessible via Info button in header) -->
+  <div class="visual-info-overlay" id="visual-info-modal" role="dialog" aria-modal="true" aria-labelledby="modal-visual-title" hidden>
+    <div class="visual-info-card">
+      <div class="visual-info-header">
+        <span class="eyebrow" data-visual-category>Foundations &amp; Set Theory</span>
+        <button type="button" class="visual-info-close" id="visual-info-close" aria-label="Close information">✕</button>
+      </div>
+      <h2 id="modal-visual-title" class="visual-info-title" data-visual-title>Permutations, Symmetries &amp; Groups</h2>
+      <p class="visual-info-desc" data-visual-description>Investigate finite symmetric groups S_n, Cauchy two-row matrix notation, disjoint cycle decompositions, orbit stepping, transposition string braiding, parity sign, and Cayley multiplication tables.</p>
+      <div class="visual-info-actions">
+        <a href="#about-visual" class="button button--primary" id="visual-info-scroll">
+          Read full theory &amp; video &darr;
+        </a>
+        <button type="button" class="button button--secondary" id="visual-info-dismiss">
+          Back to visual
+        </button>
+      </div>
+    </div>
+  </div>
+
   <main class="visual-page">
     <section class="circle-explorer" data-workspace-dock="true" aria-label="Interactive Permutations and Symmetric Groups S_n">
       
@@ -175,6 +195,19 @@
       </div>
 
     </section>
+
+    <!-- Editorial content below the fullscreen visualizer -->
+    <div class="visual-page__content">
+      <article class="visual-page__intro" id="about-visual">
+        <p class="eyebrow" data-visual-category>Foundations &amp; Set Theory</p>
+        <h1 data-visual-title>Permutations, Symmetries &amp; Groups</h1>
+        <p class="lede" data-visual-description>Investigate finite symmetric groups S_n, Cauchy two-row matrix notation, disjoint cycle decompositions, orbit stepping, transposition string braiding, parity sign, and Cayley multiplication tables.</p>
+        <p class="notice" data-visual-error hidden>The visual information could not be loaded. Please refresh or try again later.</p>
+      </article>
+
+      <div data-video></div>
+      <div data-support-container></div>
+    </div>
   </main>
   <footer data-site-footer></footer>
 </body>

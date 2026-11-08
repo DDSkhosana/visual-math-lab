@@ -6,9 +6,10 @@
 import { RelationMath } from '../../../js/foundations-core.js';
 
 export class RelationDigraphView {
-  constructor(container, controller) {
+  constructor(container, controller, matrixContainer = null) {
     this.container = container;
     this.controller = controller;
+    this.matrixContainer = matrixContainer;
     this.svg = null;
     this.width = 0;
     this.height = 0;
@@ -18,11 +19,12 @@ export class RelationDigraphView {
   }
 
   init() {
-    this.container.innerHTML = `
-      <div class="relation-split-container" style="display: flex; flex-direction: row; width: 100%; height: 100%; gap: 12px; padding: 12px; box-sizing: border-box;">
-        <!-- Left: Digraph SVG -->
-        <div class="digraph-container" style="flex: 3; position: relative; height: 100%; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; overflow: hidden;">
-          <svg class="digraph-svg" id="relation-digraph-svg" style="width: 100%; height: 100%; user-select: none; touch-action: none;">
+    const extMatrix = this.matrixContainer || (typeof document !== 'undefined' ? document.querySelector('#matrix-viewport-container') : null);
+
+    if (extMatrix) {
+      this.container.innerHTML = `
+        <div class="digraph-container" style="position: relative; width: 100%; height: 100%; background: #0c1322; overflow: hidden;">
+          <svg class="digraph-svg" id="relation-digraph-svg" style="width: 100%; height: 100%; display: block; user-select: none; touch-action: none;">
             <defs>
               <marker id="rel-arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
@@ -37,29 +39,71 @@ export class RelationDigraphView {
             <g id="rel-edges-layer"></g>
             <g id="rel-nodes-layer"></g>
           </svg>
-          <div style="position: absolute; bottom: 8px; left: 12px; font-size: 0.75rem; color: #64748b; pointer-events: none;">
-            Click node for self-loop (a, a). Drag between nodes to toggle (a, b). Click edge to delete.
+          <div style="position: absolute; bottom: 8px; left: 12px; font-size: 0.75rem; color: #64748b; pointer-events: none; background: rgba(15, 23, 42, 0.7); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            Click node for self-loop (a, a) &bull; Drag between nodes to toggle (a, b) &bull; Click edge to delete
           </div>
         </div>
+      `;
 
-        <!-- Right: Boolean Incidence Matrix -->
-        <div class="matrix-container" style="flex: 2; min-width: 220px; max-width: 320px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; display: flex; flex-direction: column;">
-          <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">
-            Incidence Matrix (M_ij = 1 ⟺ (i, j) ∈ R)
-          </h4>
+      extMatrix.innerHTML = `
+        <div class="matrix-container" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box;">
           <div id="matrix-grid-mount" style="flex: 1; display: flex; align-items: center; justify-content: center;"></div>
-          <div style="margin-top: 10px; font-size: 0.72rem; color: #64748b; line-height: 1.4;">
-            <span style="color: #38bdf8;">■ Diagonal</span> = Reflexive loops &nbsp;|&nbsp;
-            <span style="color: #a855f7;">■ Symmetry</span>: M = Mᵀ
+          <div style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; text-align: center;">
+            <span style="color: #38bdf8;">■ Diagonal M_ii</span> = Reflexive loops &nbsp;|&nbsp;
+            <span style="color: #a855f7;">■ Symmetry</span>: M = Mᵀ &nbsp;|&nbsp;
+            <span style="color: #cbd5e1;">Click cell to toggle (i, j)</span>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    this.svg = this.container.querySelector('#relation-digraph-svg');
-    this.edgesLayer = this.container.querySelector('#rel-edges-layer');
-    this.nodesLayer = this.container.querySelector('#rel-nodes-layer');
-    this.matrixMount = this.container.querySelector('#matrix-grid-mount');
+      this.svg = this.container.querySelector('#relation-digraph-svg');
+      this.edgesLayer = this.container.querySelector('#rel-edges-layer');
+      this.nodesLayer = this.container.querySelector('#rel-nodes-layer');
+      this.matrixMount = extMatrix.querySelector('#matrix-grid-mount');
+    } else {
+      this.container.innerHTML = `
+        <div class="relation-split-container" style="display: flex; flex-direction: row; width: 100%; height: 100%; gap: 12px; padding: 12px; box-sizing: border-box;">
+          <!-- Left: Digraph SVG -->
+          <div class="digraph-container" style="flex: 3; position: relative; height: 100%; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; overflow: hidden;">
+            <svg class="digraph-svg" id="relation-digraph-svg" style="width: 100%; height: 100%; user-select: none; touch-action: none;">
+              <defs>
+                <marker id="rel-arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                </marker>
+                <marker id="rel-arrow-symmetric" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#a855f7" />
+                </marker>
+                <marker id="rel-arrow-missing" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+                </marker>
+              </defs>
+              <g id="rel-edges-layer"></g>
+              <g id="rel-nodes-layer"></g>
+            </svg>
+            <div style="position: absolute; bottom: 8px; left: 12px; font-size: 0.75rem; color: #64748b; pointer-events: none;">
+              Click node for self-loop (a, a). Drag between nodes to toggle (a, b). Click edge to delete.
+            </div>
+          </div>
+
+          <!-- Right: Boolean Incidence Matrix -->
+          <div class="matrix-container" style="flex: 2; min-width: 220px; max-width: 320px; background: #0c1322; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; display: flex; flex-direction: column;">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">
+              Incidence Matrix (M_ij = 1 ⟺ (i, j) ∈ R)
+            </h4>
+            <div id="matrix-grid-mount" style="flex: 1; display: flex; align-items: center; justify-content: center;"></div>
+            <div style="margin-top: 10px; font-size: 0.72rem; color: #64748b; line-height: 1.4;">
+              <span style="color: #38bdf8;">■ Diagonal</span> = Reflexive loops &nbsp;|&nbsp;
+              <span style="color: #a855f7;">■ Symmetry</span>: M = Mᵀ
+            </div>
+          </div>
+        </div>
+      `;
+
+      this.svg = this.container.querySelector('#relation-digraph-svg');
+      this.edgesLayer = this.container.querySelector('#rel-edges-layer');
+      this.nodesLayer = this.container.querySelector('#rel-nodes-layer');
+      this.matrixMount = this.container.querySelector('#matrix-grid-mount');
+    }
 
     this.setupEventListeners();
     this.resize();
@@ -68,9 +112,37 @@ export class RelationDigraphView {
   setupEventListeners() {
     window.addEventListener('resize', () => this.resize());
 
+    // Observe dock changes to adjust visible canvas bounds
+    const explorer = this.container.closest('.circle-explorer');
+    if (explorer && typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => this.resize());
+      observer.observe(explorer, { attributes: true, attributeFilter: ['data-dock-edge', 'class'] });
+    }
+
     this.svg.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+  }
+
+  getVisibleBounds() {
+    const explorer = this.container.closest('.circle-explorer');
+    let bottomInset = 0;
+    let topInset = 0;
+    if (explorer) {
+      const isDockBottom = explorer.getAttribute('data-dock-edge') === 'bottom' && !explorer.classList.contains('dock-is-collapsed');
+      if (isDockBottom) {
+        const dockEl = explorer.querySelector('.workspace-dock');
+        bottomInset = (dockEl && !dockEl.classList.contains('is-collapsed')) ? (dockEl.offsetHeight || 320) : 0;
+      }
+      const isDockTop = explorer.getAttribute('data-dock-edge') === 'top' && !explorer.classList.contains('dock-is-collapsed');
+      if (isDockTop) {
+        const dockEl = explorer.querySelector('.workspace-dock');
+        topInset = (dockEl && !dockEl.classList.contains('is-collapsed')) ? (dockEl.offsetHeight || 280) : 0;
+      }
+    }
+    const usableH = Math.max(180, this.height - bottomInset - topInset);
+    const startY = topInset;
+    return { topInset, bottomInset, usableH, startY };
   }
 
   resize() {
@@ -84,9 +156,10 @@ export class RelationDigraphView {
   getNodePositions() {
     const state = this.controller.state;
     const n = state.elements.length;
+    const { startY, usableH } = this.getVisibleBounds();
     const cx = this.width / 2;
-    const cy = this.height / 2;
-    const radius = Math.min(this.width, this.height) * 0.36;
+    const cy = startY + usableH / 2;
+    const radius = Math.min(this.width * 0.42, usableH * 0.36);
 
     return state.elements.map((elem, idx) => {
       const angle = (idx / n) * Math.PI * 2 - Math.PI / 2;

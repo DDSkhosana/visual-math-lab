@@ -11,7 +11,11 @@ import { PosetHasseView } from './views/PosetHasseView.js';
 export class RelationsController {
   constructor() {
     this.state = {
-      activeMode: 'digraph', // 'digraph' | 'quotient' | 'poset'
+      viewMode: 'split', // 'split' | '2d' | '3d'
+      splitDirection: 'horizontal', // 'horizontal' | 'vertical'
+      splitRatio: 50,
+      dualMode: 'matrix', // 'matrix' | 'quotient' | 'poset'
+      activeMode: 'digraph', // backward compatibility
       elements: [1, 2, 3, 4, 5],
       pairs: [
         [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], // Reflexive
@@ -92,7 +96,7 @@ export class RelationsController {
 
   mount(containers) {
     if (containers.digraph) {
-      this.digraphView = new RelationDigraphView(containers.digraph, this);
+      this.digraphView = new RelationDigraphView(containers.digraph, this, containers.matrix);
     }
     if (containers.quotient) {
       this.quotientView = new QuotientClockView(containers.quotient, this);
@@ -102,18 +106,32 @@ export class RelationsController {
     }
 
     this.bindDomControls();
+    this.enableResizerDrag();
     this.updateAll();
   }
 
   bindDomControls() {
     if (typeof document === 'undefined') return;
 
-    // View Mode Switcher
+    // View Mode Switcher: Split / Digraph (2D) / Dual View (3D)
     document.querySelectorAll('[data-view-mode]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const mode = e.currentTarget.dataset.viewMode;
         this.setViewMode(mode);
       });
+    });
+
+    // Dual Mode Switcher: Matrix / Quotient / Poset
+    document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const dualMode = e.currentTarget.dataset.dualMode;
+        this.setDualMode(dualMode);
+      });
+    });
+
+    // Flip button: Toggle horizontal vs vertical split
+    document.querySelector('#split-dir-btn')?.addEventListener('click', () => {
+      this.toggleSplitDirection();
     });
 
     // Preset Buttons
@@ -142,28 +160,138 @@ export class RelationsController {
   }
 
   setViewMode(mode) {
-    this.state.activeMode = mode;
-
-    if (typeof document !== 'undefined') {
-      document.querySelectorAll('[data-view-mode]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.viewMode === mode);
-        btn.setAttribute('aria-pressed', btn.dataset.viewMode === mode);
-      });
-
-      const digraphSec = document.querySelector('#digraph-viewport-container');
-      const quotientSec = document.querySelector('#quotient-viewport-container');
-      const posetSec = document.querySelector('#poset-viewport-container');
-
-      if (digraphSec) digraphSec.style.display = mode === 'digraph' ? 'block' : 'none';
-      if (quotientSec) quotientSec.style.display = mode === 'quotient' ? 'block' : 'none';
-      if (posetSec) posetSec.style.display = mode === 'poset' ? 'block' : 'none';
+    let canonicalMode = mode;
+    if (mode === 'digraph') {
+      canonicalMode = '2d';
+    } else if (mode === 'quotient') {
+      canonicalMode = '3d';
+      this.setDualMode('quotient');
+    } else if (mode === 'poset') {
+      canonicalMode = '3d';
+      this.setDualMode('poset');
     }
 
-    if (mode === 'digraph') this.digraphView?.resize();
-    if (mode === 'quotient') this.quotientView?.render();
-    if (mode === 'poset') this.hasseView?.render();
+    this.state.viewMode = canonicalMode;
+    this.state.activeMode = canonicalMode === '2d' ? 'digraph' : (canonicalMode === '3d' ? this.state.dualMode : 'digraph');
 
+    if (typeof document !== 'undefined') {
+      const mainView = document.querySelector('#main-view');
+      if (mainView) {
+        mainView.className = `view-container layout-${canonicalMode} ${this.state.splitDirection}-split`;
+      }
+
+      document.querySelectorAll('[data-view-mode]').forEach(btn => {
+        const isMatch = btn.dataset.viewMode === canonicalMode;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-pressed', String(isMatch));
+      });
+
+      const flipBtn = document.querySelector('#split-dir-btn');
+      if (flipBtn) {
+        flipBtn.style.display = canonicalMode === 'split' ? '' : 'none';
+      }
+    }
+
+    this.resizeAllViews();
     this.updateTelemetry();
+  }
+
+  toggleSplitDirection() {
+    this.state.splitDirection = this.state.splitDirection === 'horizontal' ? 'vertical' : 'horizontal';
+    if (typeof document !== 'undefined') {
+      const mainView = document.querySelector('#main-view');
+      if (mainView) {
+        mainView.className = `view-container layout-${this.state.viewMode} ${this.state.splitDirection}-split`;
+      }
+      const flipBtn = document.querySelector('#split-dir-btn');
+      if (flipBtn) {
+        flipBtn.setAttribute('title', this.state.splitDirection === 'horizontal'
+          ? 'Switch to vertical split (stacked)'
+          : 'Switch to horizontal split (side-by-side)');
+      }
+    }
+    this.resizeAllViews();
+  }
+
+  setDualMode(dualMode) {
+    this.state.dualMode = dualMode;
+
+    if (typeof document !== 'undefined') {
+      const matrixMount = document.querySelector('#matrix-viewport-container');
+      const quotientMount = document.querySelector('#quotient-viewport-container');
+      const posetMount = document.querySelector('#poset-viewport-container');
+      const titleSec = document.querySelector('#view-title-secondary');
+
+      if (matrixMount) matrixMount.style.display = dualMode === 'matrix' ? 'flex' : 'none';
+      if (quotientMount) quotientMount.style.display = dualMode === 'quotient' ? 'block' : 'none';
+      if (posetMount) posetMount.style.display = dualMode === 'poset' ? 'block' : 'none';
+
+      if (titleSec) {
+        if (dualMode === 'matrix') {
+          titleSec.innerHTML = 'Matrix: Boolean Incidence Matrix (<span class="color-sky">M_ii Diagonal</span>, <span class="color-violet">M = Mᵀ Symmetric</span>)';
+        } else if (dualMode === 'quotient') {
+          titleSec.innerHTML = 'Quotient: Equivalence Classes (<span class="color-sky">Partitions A/~</span>, <span class="color-violet">Clock ℤ/nℤ</span>)';
+        } else if (dualMode === 'poset') {
+          titleSec.innerHTML = 'Poset: Hasse Lattice Diagram (<span class="color-emerald">Transitive Reduction</span>, <span class="color-amber">Covering Edges</span>)';
+        }
+      }
+
+      document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.dualMode === dualMode);
+      });
+    }
+
+    this.updateAll();
+  }
+
+  enableResizerDrag() {
+    if (typeof document === 'undefined') return;
+    const resizer = document.querySelector('#viewport-resizer');
+    const mainView = document.querySelector('#main-view');
+    const container2d = document.querySelector('#canvas-2d-container');
+    const container3d = document.querySelector('#canvas-3d-container');
+    if (!resizer || !mainView || !container2d || !container3d) return;
+
+    let isDragging = false;
+
+    resizer.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      resizer.classList.add('active');
+      resizer.setPointerCapture?.(e.pointerId);
+    });
+
+    const onPointerMove = (e) => {
+      if (!isDragging) return;
+      const rect = mainView.getBoundingClientRect();
+      let ratio;
+      if (this.state.splitDirection === 'horizontal') {
+        ratio = ((e.clientX - rect.left) / rect.width) * 100;
+      } else {
+        ratio = ((e.clientY - rect.top) / rect.height) * 100;
+      }
+      ratio = Math.max(20, Math.min(80, ratio));
+      this.state.splitRatio = ratio;
+
+      container2d.style.flexBasis = `${ratio}%`;
+      container3d.style.flexBasis = `${100 - ratio}%`;
+      this.resizeAllViews();
+    };
+
+    const onPointerUp = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      resizer.classList.remove('active');
+      try { resizer.releasePointerCapture?.(e.pointerId); } catch (_) {}
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  resizeAllViews() {
+    this.digraphView?.resize?.();
+    if (this.state.dualMode === 'quotient') this.quotientView?.render?.();
+    if (this.state.dualMode === 'poset') this.hasseView?.render?.();
   }
 
   applyPreset(presetId) {
@@ -173,6 +301,14 @@ export class RelationsController {
     this.state.currentPresetId = presetId;
     this.state.elements = [...preset.elements];
     this.state.pairs = preset.pairs.map(p => [...p]);
+
+    if (presetId === 'equivalence' || presetId === 'modular_z3') {
+      this.setDualMode('quotient');
+    } else if (presetId === 'partial_order' || presetId === 'total_order' || presetId === 'strict_order') {
+      this.setDualMode('poset');
+    } else {
+      this.setDualMode('matrix');
+    }
 
     if (typeof document !== 'undefined') {
       document.querySelectorAll('[data-preset]').forEach(btn => {

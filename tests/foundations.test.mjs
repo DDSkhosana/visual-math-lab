@@ -571,6 +571,49 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('digraph-viewport-container'), 'Must contain digraph viewport');
     assert.ok(html.includes('quotient-viewport-container'), 'Must contain quotient viewport');
     assert.ok(html.includes('poset-viewport-container'), 'Must contain poset viewport');
+    assert.ok(html.includes('viewport-resizer'), 'Must contain viewport resizer');
+    assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
+    assert.ok(html.includes('canvas-2d-container'), 'Must contain primary canvas container');
+    assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas container');
+  });
+
+  test('Module 2 RelationsController manages canonical split viewport modes and dual canvas switching', async () => {
+    const { RelationsController } = await import('../visuals/foundations/relations-and-order/src/controller.js');
+    const ctrl = new RelationsController();
+
+    assert.equal(ctrl.state.viewMode, 'split');
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+    assert.equal(ctrl.state.dualMode, 'matrix');
+
+    // View mode switching
+    ctrl.setViewMode('2d');
+    assert.equal(ctrl.state.viewMode, '2d');
+    ctrl.setViewMode('3d');
+    assert.equal(ctrl.state.viewMode, '3d');
+    ctrl.setViewMode('split');
+    assert.equal(ctrl.state.viewMode, 'split');
+
+    // Split direction flip
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'vertical');
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+
+    // Dual representation canvas switching
+    ctrl.setDualMode('quotient');
+    assert.equal(ctrl.state.dualMode, 'quotient');
+    ctrl.setDualMode('poset');
+    assert.equal(ctrl.state.dualMode, 'poset');
+    ctrl.setDualMode('matrix');
+    assert.equal(ctrl.state.dualMode, 'matrix');
+
+    // Preset auto-switching dual mode
+    ctrl.applyPreset('partial_order');
+    assert.equal(ctrl.state.dualMode, 'poset');
+    ctrl.applyPreset('modular_z3');
+    assert.equal(ctrl.state.dualMode, 'quotient');
+    ctrl.applyPreset('empty');
+    assert.equal(ctrl.state.dualMode, 'matrix');
   });
 
   test('Module 3 PermutationsController manages mapping, presets and factorials', async () => {

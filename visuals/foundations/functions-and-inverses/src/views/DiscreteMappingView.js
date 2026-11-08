@@ -57,10 +57,38 @@ export class DiscreteMappingView {
   setupEventListeners() {
     window.addEventListener('resize', () => this.resize());
 
+    // Observe dock edge / collapse changes to adjust visible canvas bounds
+    const explorer = this.container.closest('.circle-explorer');
+    if (explorer && typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => this.resize());
+      observer.observe(explorer, { attributes: true, attributeFilter: ['data-dock-edge', 'class'] });
+    }
+
     // Interactive Arrow Creation / Dragging
     this.svg.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+  }
+
+  getVisibleBounds() {
+    const explorer = this.container.closest('.circle-explorer');
+    let bottomInset = 0;
+    let topInset = 0;
+    if (explorer) {
+      const isDockBottom = explorer.getAttribute('data-dock-edge') === 'bottom' && !explorer.classList.contains('dock-is-collapsed');
+      if (isDockBottom) {
+        const dockEl = explorer.querySelector('.workspace-dock');
+        bottomInset = (dockEl && !dockEl.classList.contains('is-collapsed')) ? (dockEl.offsetHeight || 320) : 0;
+      }
+      const isDockTop = explorer.getAttribute('data-dock-edge') === 'top' && !explorer.classList.contains('dock-is-collapsed');
+      if (isDockTop) {
+        const dockEl = explorer.querySelector('.workspace-dock');
+        topInset = (dockEl && !dockEl.classList.contains('is-collapsed')) ? (dockEl.offsetHeight || 280) : 0;
+      }
+    }
+    const usableH = Math.max(180, this.height - bottomInset - topInset);
+    const startY = topInset;
+    return { topInset, bottomInset, usableH, startY };
   }
 
   resize() {
@@ -73,8 +101,9 @@ export class DiscreteMappingView {
 
   getLayout() {
     const state = this.controller.state;
-    const paddingY = 60;
-    const availableH = Math.max(200, this.height - paddingY * 2);
+    const { startY, usableH } = this.getVisibleBounds();
+    const paddingY = Math.min(50, Math.max(25, usableH * 0.12));
+    const availableH = Math.max(80, usableH - paddingY * 2);
 
     const xDomain = Math.max(70, this.width * 0.22);
     const xCodomain = Math.min(this.width - 70, this.width * 0.78);
@@ -89,17 +118,17 @@ export class DiscreteMappingView {
       id: item,
       type: 'domain',
       x: xDomain,
-      y: domainCount === 1 ? this.height / 2 : paddingY + idx * domainSpacing
+      y: domainCount === 1 ? startY + usableH / 2 : startY + paddingY + idx * domainSpacing
     }));
 
     const codomainNodes = state.codomain.map((item, idx) => ({
       id: item,
       type: 'codomain',
       x: xCodomain,
-      y: codomainCount === 1 ? this.height / 2 : paddingY + idx * codomainSpacing
+      y: codomainCount === 1 ? startY + usableH / 2 : startY + paddingY + idx * codomainSpacing
     }));
 
-    return { domainNodes, codomainNodes, xDomain, xCodomain };
+    return { domainNodes, codomainNodes, xDomain, xCodomain, startY, usableH };
   }
 
   render() {
@@ -121,8 +150,10 @@ export class DiscreteMappingView {
 
   renderEnclosures(layout) {
     const radius = 34;
-    const topY = 40;
-    const botY = this.height - 40;
+    const startY = layout.startY || 0;
+    const usableH = layout.usableH || this.height;
+    const topY = startY + 36;
+    const botY = startY + usableH - 24;
     const domainX = layout.xDomain;
     const codomainX = layout.xCodomain;
 
