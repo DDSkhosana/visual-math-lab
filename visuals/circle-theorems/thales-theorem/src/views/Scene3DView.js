@@ -3,6 +3,7 @@ import { createThalesScene } from './scene3d/scene-factory.js';
 import { rightAngleVertices, sectorVertices, setPositions } from './scene3d/geometry.js';
 import { ArcballTrackballControls, getSolidOrientationFrame } from '../../../../../js/circle-3d.js';
 import { SolidMorph, IdleParallax, addSolidLighting, isSolidMode } from '../../../../../js/solid-morph.js';
+import { PALETTE } from '../config/palette.js';
 
 /** Facade over Three.js: the rest of the app never touches THREE objects directly. */
 export class Scene3DView {
