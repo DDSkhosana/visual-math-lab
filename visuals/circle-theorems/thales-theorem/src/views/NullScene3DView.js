@@ -9,6 +9,7 @@ export class NullScene3DView {
   renderFrame() {}
   resize() {}
   project() { return null; }
+  getLabelAnchors() { return null; }
   setOrbitEnabled() {}
   pointerToRay() {}
   hitsPointP() { return false; }

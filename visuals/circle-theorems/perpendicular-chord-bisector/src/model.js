@@ -6,6 +6,9 @@ export function createInitialState() {
     pan: { x: 0, y: 0 },
     angleA: 0.85 * Math.PI, // Top-left (symmetrically paired with angleB for 90° vertical bisector)
     angleB: 0.15 * Math.PI, // Top-right
+    dimensionMode: 'planar',
+    latA: 1.13,
+    latB: 2.01,
     showRadii: true,
     showExtendedBisector: true,
     showArea: true,
@@ -88,7 +91,7 @@ export function generateSVG(state, width, height) {
   const g = computeGeometry(state, width, height);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="#0f172a" />
+  <rect width="100%" height="100%" fill="#121215" />
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2.5" />
 
   <!-- Triangles OMA and OMB fills -->
@@ -129,9 +132,21 @@ export function generateSVG(state, width, height) {
     const lenM = Math.hypot(dxm, dym) || 1;
     const mx = g.M.x + (dxm / lenM) * 16;
     const my = g.M.y + (dym / lenM) * 16;
+    const dxAB = g.B.x - g.A.x, dyAB = g.B.y - g.A.y;
+    const lenAB = Math.hypot(dxAB, dyAB) || 1;
+    const nx = -dyAB / lenAB, ny = dxAB / lenAB;
+    const midAMx = (g.A.x + g.M.x) / 2 + nx * 14;
+    const midAMy = (g.A.y + g.M.y) / 2 + ny * 14;
+    const midMBx = (g.M.x + g.B.x) / 2 + nx * 14;
+    const midMBy = (g.M.y + g.B.y) / 2 + ny * 14;
+    const showLengths = (state?.vis2d?.lengths !== false) && (state?.showLengths !== false);
     return `<text x="${la.x}" y="${la.y}" fill="${PALETTE.blue}" font-family="monospace" font-weight="bold" text-anchor="${la.anchor}" dominant-baseline="${la.baseline}">A</text>
   <text x="${lb.x}" y="${lb.y}" fill="${PALETTE.orange}" font-family="monospace" font-weight="bold" text-anchor="${lb.anchor}" dominant-baseline="${lb.baseline}">B</text>
-  <text x="${mx}" y="${my}" fill="${PALETTE.emerald}" font-family="monospace" font-weight="bold" text-anchor="middle" dominant-baseline="middle">M</text>`;
+  <text x="${mx}" y="${my}" fill="${PALETTE.emerald}" font-family="monospace" font-weight="bold" text-anchor="middle" dominant-baseline="middle">M</text>
+  ${showLengths ? `
+  <text x="${midAMx}" y="${midAMy}" fill="${PALETTE.blue}" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" dominant-baseline="middle">|AM| = ${g.lenAM.toFixed(1)}</text>
+  <text x="${midMBx}" y="${midMBy}" fill="${PALETTE.orange}" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" dominant-baseline="middle">|MB| = ${g.lenMB.toFixed(1)}</text>
+  ` : ''}`;
   })()}
 </svg>`;
 }

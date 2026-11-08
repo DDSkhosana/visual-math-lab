@@ -9,6 +9,11 @@ export function createInitialState() {
     angleB: toRadians(330),
     angleP1: toRadians(120),
     angleP2: toRadians(60),
+    dimensionMode: 'planar',
+    latA: 1.31,
+    latB: 1.83,
+    latP1: 0.84,
+    latP2: 0.84,
     segmentMode: 'major',
     showGeodesicOverlay: false,
     showCenter: true,
@@ -120,7 +125,7 @@ export function computeGeometry(state, width, height) {
 export function generateSVG(state, width, height) {
   const g = computeGeometry(state, width, height);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: sans-serif;">
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   <!-- Triangles -->
   <polygon points="${g.P1.x},${g.P1.y} ${g.A.x},${g.A.y} ${g.B.x},${g.B.y}" fill="rgba(59, 130, 246, 0.15)"/>

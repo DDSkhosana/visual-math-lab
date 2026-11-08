@@ -16,7 +16,7 @@
   height: calc(100dvh - 3rem);
   min-height: 0 !important;
   overflow: hidden;
-  background: #0f172a;
+  background: #121215;
 }
 
 /* Canvas View Container: Strict Zero-Reflow & Zero-Displacement Invariant
@@ -53,51 +53,60 @@
   position: absolute !important;
   display: flex;
   flex-direction: column;
-  background: rgba(15, 23, 42, 0.94);
+  background: rgba(20, 20, 24, 0.95);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(51, 65, 85, 0.7);
+  border: 1px solid rgba(63, 63, 70, 0.75);
   box-sizing: border-box;
   z-index: 30;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.55);
+  overflow: visible;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.65);
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.2s ease,
               border-radius 0.2s ease;
 }
 
+.workspace-dock.is-resizing {
+  transition: none !important;
+  user-select: none !important;
+}
+
 /* Overlay Placement & Dimensions per Edge */
 [data-dock-edge="left"] .workspace-dock {
   top: 0;
-  bottom: 0;
+  bottom: auto;
   left: 0;
   right: auto;
   width: var(--dock-size, 380px);
-  min-width: min(380px, 90vw);
+  min-width: min(240px, 90vw);
   max-width: 65%;
-  height: 100%;
+  height: var(--dock-height, auto);
+  max-height: 100%;
   border-top: none;
-  border-bottom: none;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.75);
   border-left: none;
-  border-right: 1px solid rgba(51, 65, 85, 0.75);
+  border-right: 1px solid rgba(63, 63, 70, 0.75);
+  border-bottom-right-radius: 0.5rem;
 }
 
 [data-dock-edge="right"] .workspace-dock {
   top: 0;
-  bottom: 0;
+  bottom: auto;
   right: 0;
   left: auto;
   width: var(--dock-size, 380px);
-  min-width: min(380px, 90vw);
+  min-width: min(240px, 90vw);
   max-width: 65%;
-  height: 100%;
+  height: var(--dock-height, auto);
+  max-height: 100%;
   border-top: none;
-  border-bottom: none;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.75);
   border-right: none;
-  border-left: 1px solid rgba(51, 65, 85, 0.75);
+  border-left: 1px solid rgba(63, 63, 70, 0.75);
+  border-bottom-left-radius: 0.5rem;
 }
 
 [data-dock-edge="top"] .workspace-dock {
@@ -106,13 +115,13 @@
   right: 0;
   bottom: auto;
   height: var(--dock-size, 340px);
-  min-height: min(340px, 60vh);
+  min-height: 0;
   max-height: 65%;
   width: 100%;
   border-left: none;
   border-right: none;
   border-top: none;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.75);
+  border-bottom: 1px solid rgba(63, 63, 70, 0.75);
 }
 
 [data-dock-edge="bottom"] .workspace-dock {
@@ -121,13 +130,13 @@
   right: 0;
   top: auto;
   height: var(--dock-size, 340px);
-  min-height: min(340px, 60vh);
+  min-height: 0;
   max-height: 65%;
   width: 100%;
   border-left: none;
   border-right: none;
   border-bottom: none;
-  border-top: 1px solid rgba(51, 65, 85, 0.75);
+  border-top: 1px solid rgba(63, 63, 70, 0.75);
 }
 
 /* Dock Header Bar */
@@ -136,8 +145,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.45rem 0.65rem;
-  background: rgba(30, 41, 59, 0.85);
-  border-bottom: 1px solid rgba(51, 65, 85, 0.75);
+  background: rgba(28, 28, 34, 0.92);
+  border-bottom: 1px solid rgba(63, 63, 70, 0.8);
   color: #f8fafc;
   flex-shrink: 0;
   gap: 0.5rem;
@@ -194,8 +203,8 @@
 /* Edge Switcher Button Group [ ⬅ | ➡ | ⬇ | ⬆ ] */
 .dock-edge-switcher {
   display: inline-flex;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(51, 65, 85, 0.7);
+  background: rgba(18, 18, 21, 0.85);
+  border: 1px solid rgba(63, 63, 70, 0.75);
   border-radius: 0.35rem;
   padding: 1px;
 }
@@ -203,7 +212,7 @@
 .dock-edge-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #f8fafc;
   padding: 0.2rem 0.35rem;
   font-size: 0.7rem;
   border-radius: 0.25rem;
@@ -215,8 +224,8 @@
 }
 
 .dock-edge-btn:hover {
-  color: #f8fafc;
-  background: rgba(51, 65, 85, 0.6);
+  color: #ffffff;
+  background: rgba(63, 63, 70, 0.7);
 }
 
 .dock-edge-btn.active {
@@ -230,9 +239,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(51, 65, 85, 0.75);
-  color: #cbd5e1;
+  background: rgba(28, 28, 34, 0.92);
+  border: 1px solid rgba(63, 63, 70, 0.75);
+  color: #f8fafc;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
@@ -243,8 +252,8 @@
 
 .dock-tray-btn:hover,
 .dock-tray-btn[aria-expanded="true"] {
-  background: rgba(51, 65, 85, 0.8);
-  color: #f8fafc;
+  background: rgba(63, 63, 70, 0.85);
+  color: #ffffff;
   border-color: #38bdf8;
 }
 
@@ -252,7 +261,7 @@
 .dock-collapse-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: #94a3b8;
+  color: #f8fafc;
   padding: 0.25rem 0.35rem;
   border-radius: 0.35rem;
   cursor: pointer;
@@ -263,14 +272,14 @@
 }
 
 .dock-collapse-btn:hover {
-  background: rgba(51, 65, 85, 0.6);
-  color: #f8fafc;
-  border-color: rgba(51, 65, 85, 0.8);
+  background: rgba(63, 63, 70, 0.7);
+  color: #ffffff;
+  border-color: rgba(63, 63, 70, 0.85);
 }
 
 /* Dock Body (Level 0: the recessed well that hosts docked panels) */
 .workspace-dock-body {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -283,12 +292,31 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  background: rgba(2, 6, 23, 0.45);
+  background: rgba(10, 10, 12, 0.55);
   box-shadow: var(--elevation-well);
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch !important;
   /* Docked content sizes itself to the dock it sits in, not the viewport (see the @container rules). */
   container: workspace-dock / inline-size;
+}
+
+.workspace-dock.has-custom-height .workspace-dock-body,
+[data-dock-edge="top"] .workspace-dock:not(.is-all-panels-shaded) .workspace-dock-body,
+[data-dock-edge="bottom"] .workspace-dock:not(.is-all-panels-shaded) .workspace-dock-body {
+  flex: 1 1 auto;
+}
+
+.workspace-dock.is-all-panels-shaded:not(.has-custom-height),
+.workspace-dock:not(.has-custom-height):has(.workspace-dock-body > .ui-panel):not(:has(.workspace-dock-body > .ui-panel:not(.is-shaded):not(.is-hidden))) {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.workspace-dock.is-all-panels-shaded:not(.has-custom-height) .workspace-dock-body,
+.workspace-dock:not(.has-custom-height):has(.workspace-dock-body > .ui-panel):not(:has(.workspace-dock-body > .ui-panel:not(.is-shaded):not(.is-hidden))) .workspace-dock-body {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 /* Docked Panels In-Flow Layout */
@@ -303,12 +331,13 @@
   max-width: 100% !important;
   min-width: 0 !important;
   height: auto !important;
-  min-height: max-content !important;
+  min-height: 0 !important;
   max-height: min(780px, 85vh) !important;
   margin: 0 !important;
   flex: 0 0 auto !important;
+  background: #141418 !important;
   box-shadow: var(--elevation-cast-1) !important;
-  border: 1px solid rgba(51, 65, 85, 0.75) !important;
+  border: 1px solid rgba(63, 63, 70, 0.8) !important;
   border-radius: 0.5rem !important;
   overflow: hidden !important;
   display: flex !important;
@@ -322,7 +351,7 @@
   width: 100% !important;
   min-width: 0 !important;
   height: auto !important;
-  min-height: max-content !important;
+  min-height: 0 !important;
   max-height: 100% !important;
   overflow: hidden !important;
 }
@@ -338,6 +367,8 @@
   opacity: 1 !important;
   cursor: grab;
   touch-action: none !important;
+  background: #1c1c22 !important;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.75) !important;
   --shelf-rim: var(--elevation-rim-1);
   box-shadow: var(--elevation-rim-1);
 }
@@ -354,6 +385,8 @@
   overflow-y: auto !important;
   overscroll-behavior: auto !important;
   overscroll-behavior-y: auto !important;
+  background: #141418 !important;
+  color: #f8fafc !important;
   scrollbar-gutter: stable both-edges !important;
   scrollbar-width: thin;
   touch-action: pan-y !important;
@@ -382,7 +415,7 @@
 .workspace-dock-body .collapsible-content::-webkit-scrollbar-track,
 .workspace-dock-body .derivation-card-content::-webkit-scrollbar-track,
 .ui-panel.is-floating .panel-body::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(18, 18, 21, 0.55);
   border-radius: 9999px;
 }
 
@@ -391,9 +424,9 @@
 .workspace-dock-body .collapsible-content::-webkit-scrollbar-thumb,
 .workspace-dock-body .derivation-card-content::-webkit-scrollbar-thumb,
 .ui-panel.is-floating .panel-body::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(161, 161, 170, 0.45);
   border-radius: 9999px;
-  border: 2px solid rgba(15, 23, 42, 0.6);
+  border: 2px solid rgba(18, 18, 21, 0.7);
   background-clip: padding-box;
 }
 
@@ -505,6 +538,8 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card:has(.derivation-card-header.open)) .panel-body,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel:has(.derivation-card.open) .panel-body {
+  flex: 1 1 0% !important;
+  min-height: 160px !important;
   height: calc(100% - 2.5rem) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -519,8 +554,8 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open),
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open,
-[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay,
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay {
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay {
   position: absolute !important;
   inset: 0 !important;
   z-index: 10 !important;
@@ -542,15 +577,15 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-header,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-header,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-header,
-[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-header,
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-header {
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-header,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-header {
   flex-shrink: 0 !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 2 !important;
   background: var(--elevation-face-2) !important;
   box-shadow: var(--elevation-rim-2) !important;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.8) !important;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.8) !important;
   padding: var(--elevation-header-padding) !important;
   cursor: pointer !important;
 }
@@ -561,8 +596,8 @@
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-content,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
 [data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
-[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-content,
-[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body > .collapsible-section.is-subpanel-overlay > .collapsible-content {
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-content {
   flex: 1 1 auto !important;
   height: calc(100% - 2.5rem) !important;
   max-height: calc(100% - 2.5rem) !important;
@@ -586,23 +621,37 @@
 .workspace-dock,
 .ui-panel {
   --elevation-header-padding: 0.75rem 1rem;
-  --elevation-well: inset 0 2px 10px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(148, 163, 184, 0.06);
-  --elevation-rim-1: inset 0 1px 0 rgba(226, 232, 240, 0.07);
-  --elevation-rim-2: inset 0 1px 0 rgba(226, 232, 240, 0.12);
+  --elevation-well: inset 0 2px 10px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(161, 161, 170, 0.06);
+  --elevation-rim-1: inset 0 1px 0 rgba(244, 244, 245, 0.07);
+  --elevation-rim-2: inset 0 1px 0 rgba(244, 244, 245, 0.12);
   --elevation-rim-3: inset 0 1px 0 rgba(125, 211, 252, 0.32);
   --elevation-cast-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 12px -6px rgba(0, 0, 0, 0.7);
   --elevation-cast-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 14px 22px -10px rgba(0, 0, 0, 0.85);
   --elevation-cast-3: 0 3px 6px rgba(0, 0, 0, 0.45), 0 22px 34px -14px rgba(0, 0, 0, 0.9);
-  --elevation-surface-2: #111a2d;
-  --elevation-surface-3: #131c31;
-  --elevation-face-2: #243149;
-  --elevation-face-3: #2a3954;
+  --elevation-surface-2: #141418;
+  --elevation-surface-3: #18181d;
+  --elevation-face-2: #24242b;
+  --elevation-face-3: #2c2c35;
 }
 
 /* Level 1: Base Panel Surface */
 .workspace-dock-body > .ui-panel,
 .ui-panel[data-elevation-level="1"] {
   position: relative;
+  background: #141418 !important;
+  border: 1px solid rgba(63, 63, 70, 0.8) !important;
+}
+
+.ui-panel[data-elevation-level="1"] > .panel-content > .panel-header,
+.ui-panel[data-elevation-level="1"] > .panel-header {
+  background: #1c1c22 !important;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.75) !important;
+}
+
+.ui-panel[data-elevation-level="1"] > .panel-content > .panel-body,
+.ui-panel[data-elevation-level="1"] > .panel-body {
+  background: #141418 !important;
+  color: #f8fafc !important;
 }
 
 /* Level 2 Elevation: Nested Subpanels inside Dock Panel */
@@ -641,20 +690,20 @@
 /* Deck thickness: each turn waiting under the top card shows as one card edge beneath it (up to three).
    The pills are the turns, so their count sets the depth; the top card keeps a margin so the edges are not clipped. */
 .panel-body:has(> .panel-elevation-deck .elevation-deck-pill:nth-child(2)) {
-  --elevation-stack: 0 8px 0 -4px #172033, 0 8px 0 -3px rgba(56, 189, 248, 0.3);
+  --elevation-stack: 0 8px 0 -4px #1c1c22, 0 8px 0 -3px rgba(56, 189, 248, 0.3);
   --elevation-stack-gap: 5px;
 }
 
 .panel-body:has(> .panel-elevation-deck .elevation-deck-pill:nth-child(3)) {
-  --elevation-stack: 0 8px 0 -4px #172033, 0 8px 0 -3px rgba(56, 189, 248, 0.3),
-    0 15px 0 -8px #131a2a, 0 15px 0 -7px rgba(56, 189, 248, 0.2);
+  --elevation-stack: 0 8px 0 -4px #1c1c22, 0 8px 0 -3px rgba(56, 189, 248, 0.3),
+    0 15px 0 -8px #16161b, 0 15px 0 -7px rgba(56, 189, 248, 0.2);
   --elevation-stack-gap: 8px;
 }
 
 .panel-body:has(> .panel-elevation-deck .elevation-deck-pill:nth-child(4)) {
-  --elevation-stack: 0 8px 0 -4px #172033, 0 8px 0 -3px rgba(56, 189, 248, 0.3),
-    0 15px 0 -8px #131a2a, 0 15px 0 -7px rgba(56, 189, 248, 0.2),
-    0 22px 0 -12px #0f1522, 0 22px 0 -11px rgba(56, 189, 248, 0.12);
+  --elevation-stack: 0 8px 0 -4px #1c1c22, 0 8px 0 -3px rgba(56, 189, 248, 0.3),
+    0 15px 0 -8px #16161b, 0 15px 0 -7px rgba(56, 189, 248, 0.2),
+    0 22px 0 -12px #101014, 0 22px 0 -11px rgba(56, 189, 248, 0.12);
   --elevation-stack-gap: 11px;
 }
 
@@ -736,7 +785,7 @@
   gap: 0.4rem;
   min-width: 0;
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 .elevation-deck-group-select {
@@ -744,9 +793,9 @@
   min-width: 0;
   width: 100%;
   padding: 0.25rem;
-  color: #e2e8f0;
-  background: #1e293b;
-  border: 1px solid #475569;
+  color: #f8fafc;
+  background: #1c1c22;
+  border: 1px solid #3f3f46;
   border-radius: 0.25rem;
 }
 
@@ -850,9 +899,9 @@
   font-family: inherit !important;
   font-weight: 500 !important;
   line-height: 1.2 !important;
-  color: #94a3b8 !important;
-  background: rgba(30, 41, 59, 0.8) !important;
-  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  color: #f8fafc !important;
+  background: rgba(28, 28, 34, 0.85) !important;
+  border: 1px solid rgba(82, 82, 91, 0.5) !important;
   border-radius: 9999px !important;
   cursor: pointer !important;
   white-space: nowrap !important;
@@ -866,9 +915,9 @@
 }
 
 .elevation-deck-pill:hover {
-  color: #f1f5f9 !important;
-  background: rgba(51, 65, 85, 0.9) !important;
-  border-color: rgba(148, 163, 184, 0.6) !important;
+  color: #ffffff !important;
+  background: rgba(63, 63, 70, 0.9) !important;
+  border-color: rgba(161, 161, 170, 0.65) !important;
 }
 
 .elevation-deck-pill.active {
@@ -889,9 +938,9 @@
   padding: 0 !important;
   font-size: 0.65rem !important;
   line-height: 1 !important;
-  color: #94a3b8 !important;
-  background: rgba(30, 41, 59, 0.8) !important;
-  border: 1px solid rgba(100, 116, 139, 0.35) !important;
+  color: #f8fafc !important;
+  background: rgba(28, 28, 34, 0.85) !important;
+  border: 1px solid rgba(82, 82, 91, 0.5) !important;
   border-radius: 0.25rem !important;
   cursor: pointer !important;
   flex-shrink: 0 !important;
@@ -901,7 +950,7 @@
 
 .elevation-deck-nav-btn:hover {
   color: #38bdf8 !important;
-  background: rgba(51, 65, 85, 0.9) !important;
+  background: rgba(63, 63, 70, 0.9) !important;
   border-color: rgba(56, 189, 248, 0.6) !important;
 }
 
@@ -912,7 +961,7 @@
   font-weight: 600 !important;
   padding: 0.18rem 0.5rem !important;
   border-radius: 9999px !important;
-  background: rgba(30, 41, 59, 0.85) !important;
+  background: rgba(28, 28, 34, 0.88) !important;
   border: 1px solid rgba(56, 189, 248, 0.35) !important;
   color: #38bdf8 !important;
   cursor: pointer !important;
@@ -941,9 +990,9 @@
 }
 
 .elevation-deck-mode-toggle.is-stack {
-  background: rgba(148, 163, 184, 0.15) !important;
-  border-color: rgba(148, 163, 184, 0.4) !important;
-  color: #94a3b8 !important;
+  background: rgba(161, 161, 170, 0.15) !important;
+  border-color: rgba(161, 161, 170, 0.4) !important;
+  color: #a1a1aa !important;
 }
 
 
@@ -1164,6 +1213,30 @@
   -webkit-overflow-scrolling: touch !important;
 }
 
+/* Top/Bottom Dock Single-Subpanel Overlay Scroll Restoration:
+   Must follow the general Level 2 content rule so absolute-positioned overlays
+   (inset: 0; overflow: hidden) scroll internally instead of clipping content. */
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section:not(.collapsed) > .collapsible-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card:has(.derivation-card-header.open) > .derivation-card-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.open > .derivation-card-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) > .collapsible-section.is-subpanel-overlay > .collapsible-content,
+[data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.is-subpanel-overlay > .derivation-card-content,
+[data-dock-edge="bottom"] .workspace-dock-body > .ui-panel .panel-body:not(.is-all-expanded) .derivation-card.is-subpanel-overlay > .derivation-card-content {
+  display: block !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: calc(100% - 2.5rem) !important;
+  max-height: calc(100% - 2.5rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+}
+
 /* Level 2: Subpanels waiting in the deck during multi-expansion */
 .workspace-dock-body > .ui-panel .panel-body.has-elevation-groups .collapsible-section.is-in-deck,
 [data-dock-edge="top"] .workspace-dock-body > .ui-panel .panel-body.is-all-expanded > .collapsible-section.is-in-deck,
@@ -1197,7 +1270,7 @@
   margin-bottom: 0.5rem !important;
   border-radius: 0.375rem !important;
   border: 1px solid rgba(56, 189, 248, 0.25) !important;
-  background: rgba(15, 23, 42, 0.85) !important;
+  background: #141418 !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body[data-deck-mode="stack"] > .collapsible-section:not(.collapsed) > .collapsible-content,
@@ -1224,7 +1297,7 @@
   margin-bottom: 0.5rem !important;
   border-radius: 0.375rem !important;
   border: 1px solid rgba(251, 191, 36, 0.25) !important;
-  background: rgba(15, 23, 42, 0.85) !important;
+  background: #141418 !important;
 }
 
 .workspace-dock-body > .ui-panel .panel-body[data-deck-mode="accordion"] > .collapsible-section:not(.collapsed) > .collapsible-content,
@@ -1259,7 +1332,7 @@
 .collapsible-section[data-elevation-turn="top"] .toggle-tooltips-container,
 .collapsible-section[data-elevation-turn="top"] .derivation-step,
 .derivation-card[data-elevation-turn="top"] .derivation-step {
-  background: rgba(30, 41, 59, 0.65) !important;
+  background: rgba(28, 28, 34, 0.8) !important;
   border: 1px solid rgba(56, 189, 248, 0.18) !important;
   border-radius: 0.375rem !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
@@ -1268,18 +1341,52 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-/* Dock Resizer Divider */
-.dock-resizer {
+/* Dock Resizer Dividers (Horizontal Width & Vertical Height) */
+.dock-resizer,
+.dock-resizer-vertical {
   position: absolute;
-  z-index: 32;
+  z-index: 33;
   background: transparent;
   transition: background 0.15s ease;
   touch-action: none;
 }
 
 .dock-resizer:hover,
-.dock-resizer.active {
+.dock-resizer.active,
+.dock-resizer-vertical:hover,
+.dock-resizer-vertical.active {
   background: #38bdf8 !important;
+}
+
+.dock-resizer-vertical::after,
+[data-dock-edge="top"] .dock-resizer::after,
+[data-dock-edge="bottom"] .dock-resizer::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(161, 161, 170, 0.45);
+  transition: background 0.15s ease, width 0.15s ease;
+  pointer-events: none;
+}
+
+.dock-resizer-vertical:hover::after,
+.dock-resizer-vertical.active::after,
+[data-dock-edge="top"] .dock-resizer:hover::after,
+[data-dock-edge="top"] .dock-resizer.active::after,
+[data-dock-edge="bottom"] .dock-resizer:hover::after,
+[data-dock-edge="bottom"] .dock-resizer.active::after {
+  background: #ffffff;
+  width: 48px;
+}
+
+.dock-resizer-vertical:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: -2px;
 }
 
 /* Resizer positioning strictly outside dock border so it never overlaps inner scrollbars */
@@ -1302,33 +1409,49 @@
 [data-dock-edge="left"] .dock-resizer {
   top: 0;
   bottom: 0;
-  right: -8px;
-  width: 8px;
+  right: -5px;
+  width: 10px;
   cursor: ew-resize;
 }
 
 [data-dock-edge="right"] .dock-resizer {
   top: 0;
   bottom: 0;
-  left: -8px;
-  width: 8px;
+  left: -5px;
+  width: 10px;
   cursor: ew-resize;
 }
 
 [data-dock-edge="top"] .dock-resizer {
   left: 0;
   right: 0;
-  bottom: -8px;
-  height: 8px;
+  bottom: -5px;
+  height: 10px;
   cursor: ns-resize;
 }
 
 [data-dock-edge="bottom"] .dock-resizer {
   left: 0;
   right: 0;
-  top: -8px;
-  height: 8px;
+  top: -5px;
+  height: 10px;
   cursor: ns-resize;
+}
+
+[data-dock-edge="left"] .dock-resizer-vertical,
+[data-dock-edge="right"] .dock-resizer-vertical {
+  display: block;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+[data-dock-edge="top"] .dock-resizer-vertical,
+[data-dock-edge="bottom"] .dock-resizer-vertical,
+.workspace-dock.is-collapsed .dock-resizer-vertical {
+  display: none !important;
 }
 
 /* ==========================================================================
@@ -1350,12 +1473,12 @@
   bottom: auto !important;
   right: auto !important;
   border-radius: 9999px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(56, 189, 248, 0.45) !important;
   border: 1px solid rgba(56, 189, 248, 0.5) !important;
   overflow: hidden !important;
   padding: 0 !important;
   z-index: 40 !important;
-  background: rgba(15, 23, 42, 0.95) !important;
+  background: rgba(20, 20, 24, 0.96) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   cursor: grab;
@@ -1411,11 +1534,11 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0.5rem;
-  background: rgba(15, 23, 42, 0.98);
+  background: rgba(20, 20, 24, 0.98);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.85);
+  border: 1px solid rgba(63, 63, 70, 0.85);
   border-radius: 0.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.65), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
   padding: 0.5rem;
   width: 250px;
   z-index: 50;
@@ -1454,7 +1577,7 @@
 }
 
 .tray-item-row:hover {
-  background: rgba(51, 65, 85, 0.4);
+  background: rgba(63, 63, 70, 0.55);
 }
 
 .tray-item-row .tray-item-label {
@@ -1464,8 +1587,8 @@
 
 .tray-item-float-btn {
   background: transparent;
-  border: 1px solid rgba(51, 65, 85, 0.7);
-  color: #94a3b8;
+  border: 1px solid rgba(63, 63, 70, 0.75);
+  color: #a1a1aa;
   padding: 0.15rem 0.35rem;
   font-size: 0.7rem;
   border-radius: 0.25rem;
@@ -1485,15 +1608,15 @@
   align-items: center;
   gap: 0.35rem;
   padding-top: 0.35rem;
-  border-top: 1px solid rgba(51, 65, 85, 0.6);
+  border-top: 1px solid rgba(63, 63, 70, 0.7);
   margin-top: 0.25rem;
 }
 
 .tray-footer-btn {
   flex: 1;
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  color: #94a3b8;
+  background: rgba(28, 28, 34, 0.85);
+  border: 1px solid rgba(63, 63, 70, 0.7);
+  color: #f8fafc;
   font-size: 0.68rem;
   font-weight: 600;
   padding: 0.2rem 0.35rem;
@@ -1505,8 +1628,8 @@
 }
 
 .tray-footer-btn:hover {
-  background: rgba(51, 65, 85, 0.85);
-  color: #f8fafc;
+  background: rgba(63, 63, 70, 0.85);
+  color: #ffffff;
   border-color: #38bdf8;
 }
 
@@ -1515,9 +1638,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #f8fafc;
   padding: 0.25rem 0.4rem 0.35rem;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  border-bottom: 1px solid rgba(63, 63, 70, 0.7);
   margin-bottom: 0.25rem;
 }
 
@@ -1527,7 +1650,7 @@
   gap: 0.5rem;
   padding: 0.35rem 0.45rem;
   font-size: 0.78rem;
-  color: #e2e8f0;
+  color: #f8fafc;
   border-radius: 0.25rem;
   cursor: pointer;
   user-select: none;
@@ -1535,8 +1658,8 @@
 }
 
 .tray-item-label:hover {
-  background: rgba(51, 65, 85, 0.6);
-  color: #f8fafc;
+  background: rgba(63, 63, 70, 0.65);
+  color: #ffffff;
 }
 
 .tray-item-label input[type="checkbox"] {
@@ -1597,10 +1720,33 @@
   display: none !important;
 }
 
-/* Docked panels navigate through the elevation deck (its Scroll All mode opens every section),
-   so Expand All is only offered once a panel floats as its own window. */
+/* Level 1 panels in the dock and floating windows expose Expand All / Collapse All (.panel-expand-btn).
+   The window close button (.panel-close-btn) is hidden while docked and only shown in floating mode. */
 .workspace-dock-body > .ui-panel .panel-header .panel-expand-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  padding: 0.22rem 0.45rem !important;
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+}
+
+@container workspace-dock (max-width: 20rem) {
+  .workspace-dock-body > .ui-panel .panel-header .panel-expand-btn .panel-expand-label {
+    display: none !important;
+  }
+  .workspace-dock-body > .ui-panel .panel-header .panel-expand-btn {
+    padding: 0.25rem 0.4rem !important;
+  }
+}
+
+.workspace-dock-body > .ui-panel .panel-header .panel-close-btn,
+.ui-panel:not(.is-floating) .panel-header .panel-close-btn {
   display: none !important;
+}
+
+.ui-panel.is-floating .panel-header .panel-close-btn {
+  display: inline-flex !important;
 }
 
 /* Ensure closed/hidden panels are strictly hidden across docked and floating modes */
@@ -1627,9 +1773,9 @@
 }
 
 .panel-window-btn {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(51, 65, 85, 0.65);
-  color: #cbd5e1;
+  background: rgba(18, 18, 21, 0.8);
+  border: 1px solid rgba(63, 63, 70, 0.7);
+  color: #f8fafc;
   padding: 0.25rem 0.4rem;
   font-size: 0.75rem;
   border-radius: 0.25rem;
@@ -1649,7 +1795,7 @@
 }
 
 .panel-window-btn:hover {
-  background: rgba(51, 65, 85, 0.85);
+  background: rgba(63, 63, 70, 0.85);
   color: #f8fafc;
   border-color: #38bdf8;
 }
@@ -1684,12 +1830,12 @@
   position: absolute !important;
   margin: 0 !important;
   z-index: 40;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 8px 16px -4px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 0.5rem;
   overflow: hidden !important;
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.94);
+  background: rgba(20, 20, 24, 0.95);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   display: flex !important;
@@ -2017,7 +2163,7 @@
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
-    border-top: 1px solid rgba(51, 65, 85, 0.8) !important;
+    border-top: 1px solid rgba(63, 63, 70, 0.8) !important;
     box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.75) !important;
     display: flex !important;
     flex-direction: column !important;
@@ -2037,7 +2183,7 @@
     border-left: none !important;
     border-right: none !important;
     border-top: none !important;
-    border-bottom: 1px solid rgba(51, 65, 85, 0.8) !important;
+    border-bottom: 1px solid rgba(63, 63, 70, 0.8) !important;
     box-shadow: 0 10px 32px rgba(0, 0, 0, 0.75) !important;
     display: flex !important;
     flex-direction: column !important;
@@ -2045,16 +2191,17 @@
 
   [data-dock-edge="left"] .workspace-dock:not(.is-collapsed) {
     top: 0 !important;
-    bottom: 0 !important;
+    bottom: auto !important;
     left: 0 !important;
     right: auto !important;
     width: min(var(--dock-size, 360px), 85vw) !important;
     max-width: 85% !important;
-    height: 100% !important;
+    height: var(--dock-height, auto) !important;
+    max-height: 100% !important;
     border-top: none !important;
-    border-bottom: none !important;
+    border-bottom: 1px solid rgba(63, 63, 70, 0.8) !important;
     border-left: none !important;
-    border-right: 1px solid rgba(51, 65, 85, 0.8) !important;
+    border-right: 1px solid rgba(63, 63, 70, 0.8) !important;
     box-shadow: 10px 0 32px rgba(0, 0, 0, 0.75) !important;
     display: flex !important;
     flex-direction: column !important;
@@ -2062,23 +2209,24 @@
 
   [data-dock-edge="right"] .workspace-dock:not(.is-collapsed) {
     top: 0 !important;
-    bottom: 0 !important;
+    bottom: auto !important;
     right: 0 !important;
     left: auto !important;
     width: min(var(--dock-size, 360px), 85vw) !important;
     max-width: 85% !important;
-    height: 100% !important;
+    height: var(--dock-height, auto) !important;
+    max-height: 100% !important;
     border-top: none !important;
-    border-bottom: none !important;
+    border-bottom: 1px solid rgba(63, 63, 70, 0.8) !important;
     border-right: none !important;
-    border-left: 1px solid rgba(51, 65, 85, 0.8) !important;
+    border-left: 1px solid rgba(63, 63, 70, 0.8) !important;
     box-shadow: -10px 0 32px rgba(0, 0, 0, 0.75) !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
   .workspace-dock:not(.is-collapsed) .workspace-dock-body {
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
@@ -2088,6 +2236,10 @@
     display: flex !important;
     flex-direction: column !important;
     gap: 0.5rem !important;
+  }
+
+  .workspace-dock.has-custom-height:not(.is-collapsed) .workspace-dock-body {
+    flex: 1 1 auto !important;
   }
 
   .workspace-dock.is-collapsed {
@@ -2178,10 +2330,10 @@
   text-align: center;
   padding: 2rem 1.25rem;
   margin: auto 0.5rem;
-  background: rgba(30, 41, 59, 0.5);
+  background: rgba(28, 28, 34, 0.65);
   border: 1px dashed rgba(56, 189, 248, 0.35);
   border-radius: 0.5rem;
-  color: #94a3b8;
+  color: #f8fafc;
   gap: 0.5rem;
   user-select: none;
 }
@@ -2270,10 +2422,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.3rem 0.65rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  background: rgba(18, 18, 21, 0.85);
+  border-bottom: 1px solid rgba(63, 63, 70, 0.7);
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #f8fafc;
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -2351,7 +2503,7 @@
 .workspace-dock-body > .ui-panel:is(.is-shaded, :has(> .panel-content > .panel-body.hidden), :has(> .panel-body.hidden)) {
   padding-block-end: 3px !important;
   background: #020617 !important;
-  box-shadow: inset 0 -1px 0 rgba(148, 163, 184, 0.12), var(--shelf-cast, 0 0 #0000) !important;
+  box-shadow: inset 0 -1px 0 rgba(161, 161, 170, 0.12), var(--shelf-cast, 0 0 #0000) !important;
 }
 
 /* Shelves and a lone open section keep their full height; the panel body scrolls instead of squeezing them.
@@ -2371,8 +2523,8 @@
 .panel-body .collapsible-section.collapsed > .collapsible-header,
 .panel-body .derivation-card:not(.open) > .derivation-card-header:not(.open),
 .workspace-dock-body > .ui-panel:is(.is-shaded, :has(> .panel-content > .panel-body.hidden), :has(> .panel-body.hidden)) .panel-header {
-  background: #1e293b !important;
-  box-shadow: var(--shelf-rim, var(--elevation-rim-2)), inset 0 -2px 0 rgba(2, 6, 23, 0.4), 0 2px 2px rgba(0, 0, 0, 0.6);
+  background: #1c1c22 !important;
+  box-shadow: var(--shelf-rim, var(--elevation-rim-2)), inset 0 -2px 0 rgba(10, 10, 12, 0.5), 0 2px 2px rgba(0, 0, 0, 0.65);
 }
 
 .panel-body .collapsible-section.collapsed > .collapsible-header:hover,
@@ -2381,7 +2533,7 @@
 .panel-body .collapsible-section.collapsed > .collapsible-header:focus-visible,
 .panel-body .derivation-card:not(.open) > .derivation-card-header:not(.open):focus-visible,
 .workspace-dock-body > .ui-panel:is(.is-shaded, :has(> .panel-content > .panel-body.hidden), :has(> .panel-body.hidden)) .panel-header:focus-visible {
-  background: #334155 !important;
+  background: #27272a !important;
 }
 
 @media (forced-colors: active) {

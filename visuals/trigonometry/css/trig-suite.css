@@ -138,30 +138,30 @@
 }
 
 .dimension-mode-bar .viewmode-segmented-group {
-  background: #0f172a !important;
+  background: #121215 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(71, 85, 105, 0.85);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(63, 63, 70, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
   gap: 2px;
   padding: 2px;
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn {
-  background: #1e293b;
+  background: #1c1c22;
   font-weight: 600;
   padding: 0.22rem 0.55rem;
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #f8fafc;
   border-radius: 0.25rem;
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  border: 1px solid rgba(63, 63, 70, 0.6);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn:hover {
-  color: #f8fafc;
-  background: rgba(51, 65, 85, 0.8);
+  color: #ffffff;
+  background: rgba(63, 63, 70, 0.85);
 }
 
 .dimension-mode-bar .viewmode-segmented-group .btn.active {
@@ -175,17 +175,17 @@
 /* 2. Interactive Controls Panel (3D Geometry Model buttons) */
 #section-dimension-mode .btn-group .btn,
 .dimension-mode-buttons .btn {
-  background-color: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
+  background-color: #1c1c22;
+  color: #f8fafc;
+  border: 1px solid #27272a;
   font-weight: 600;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #section-dimension-mode .btn-group .btn:hover,
 .dimension-mode-buttons .btn:hover {
-  background-color: #334155;
-  color: #f8fafc;
+  background-color: #27272a;
+  color: #ffffff;
 }
 
 #section-dimension-mode .btn-group .btn.active,
@@ -219,4 +219,44 @@
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.5);
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* Dimension Mode Active View Badges (Planar / Spatial S² / Solid 3D) */
+.dimension-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  vertical-align: baseline;
+  color: #f8fafc !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  transition: all 0.2s ease-in-out;
+}
+
+.dimension-mode-badge.color-sky,
+.dimension-mode-badge .color-sky {
+  color: #38bdf8 !important;
+}
+
+.dimension-mode-badge.color-lime,
+.dimension-mode-badge .color-lime {
+  color: #84cc16 !important;
+}
+
+.dimension-mode-badge.color-violet,
+.dimension-mode-badge .color-violet {
+  color: #c084fc !important;
+}
+
+.dimension-mode-badge.color-amber,
+.dimension-mode-badge .color-amber {
+  color: #fbbf24 !important;
 }

@@ -1560,7 +1560,7 @@ export class TrigCanvas2DView {
       if (projW < 0 || projW > trackW) {
         const extStartX = projW < 0 ? fillEndX : A.x;
         const extW = projW < 0 ? Math.abs(projW) : projW - trackW;
-        ctx.fillStyle = 'rgba(30, 41, 59, 0.55)';
+        ctx.fillStyle = 'rgba(28, 28, 34, 0.65)';
         ctx.strokeStyle = projW < 0 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.55)';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 2]);
@@ -1576,7 +1576,7 @@ export class TrigCanvas2DView {
       }
 
       // Primary Baseline Track [0% at C -> 100% at A] (represents full b = AC in Emerald)
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+      ctx.fillStyle = 'rgba(28, 28, 34, 0.8)';
       ctx.strokeStyle = PALETTE.emerald;
       ctx.lineWidth = 1.4;
       if (ctx.roundRect) {
@@ -1632,7 +1632,7 @@ export class TrigCanvas2DView {
       ctx.beginPath();
       ctx.arc(fillEndX, gaugeY, 4.5, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = '#0f172a';
+      ctx.strokeStyle = '#121215';
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
@@ -2157,46 +2157,30 @@ export class TrigScene3DView extends BaseScene3DView {
           mesh: this.handleA,
           field: 'angleAlpha',
           isVectorRay: true,
-          onDrag: (angle, hit, store) => {
-            const st = store.get();
-            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
-              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
-              store.set({ angleAlpha: angle, angleGamma: gamma });
-            } else {
-              store.set({ angleAlpha: angle });
-            }
+          onDrag: (angle, _hit, store) => {
+            store.set({ angleAlpha: angle });
           },
         },
         {
           id: 'P',
           mesh: this.handleP,
           isVectorRay: true,
-          onDrag: (angle, hit, store) => {
+          onDrag: (angle, _hit, store) => {
             const st = store.get();
             const alpha = st.angleAlpha || 0;
             const nextBeta = normalizeAngle(angle - alpha);
-            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
-              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
-              store.set({ angleBeta: nextBeta, angleGamma: gamma });
-            } else {
-              store.set({ angleBeta: nextBeta });
-            }
+            store.set({ angleBeta: nextBeta });
           },
         },
         {
           id: 'D',
           mesh: this.handleC,
           isVectorRay: true,
-          onDrag: (angle, hit, store) => {
+          onDrag: (angle, _hit, store) => {
             const st = store.get();
             const alpha = st.angleAlpha || 0;
             const nextBeta = normalizeAngle(alpha - angle);
-            if (st.dimensionMode === 'spatial' && Math.abs(hit.y) > 0.35) {
-              const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
-              store.set({ angleBeta: nextBeta, angleGamma: gamma });
-            } else {
-              store.set({ angleBeta: nextBeta });
-            }
+            store.set({ angleBeta: nextBeta });
           },
         },
         {
@@ -2204,8 +2188,10 @@ export class TrigScene3DView extends BaseScene3DView {
           mesh: this.handleB,
           isVectorRay: true,
           onDrag: (_angle, hit, store) => {
-            const gamma = clamp(Math.asin(clamp(hit.y / (this.R || 10), -1, 1)), toRadians(-80), toRadians(80));
-            store.set({ angleGamma: gamma });
+            if (hit) {
+              const gamma = clamp(Math.atan2(hit.y, Math.hypot(hit.x, hit.z)), toRadians(-80), toRadians(80));
+              store.set({ angleGamma: gamma, solidTilt: gamma });
+            }
           },
         },
       ];
@@ -2250,6 +2236,18 @@ export class TrigScene3DView extends BaseScene3DView {
     };
     const map = byVisual[this.visualId] || {};
     for (const [key, col] of Object.entries(map)) set(this[key], col);
+  }
+
+  getLabelAnchors() {
+    const anchors = {};
+    if (this.markerO) anchors.o = this.markerO.position;
+    if (this.handleA) anchors.a = this.handleA.position;
+    if (this.handleB) anchors.b = this.handleB.position;
+    if (this.handleC) anchors.c = this.handleC.position;
+    if (this.handleP) anchors.p = this.handleP.position;
+    if (this.handleAp) anchors.ap = this.handleAp.position;
+    if (this.handleHelix) anchors.helixP = this.handleHelix.position;
+    return anchors;
   }
 
   render(state) {
@@ -3241,6 +3239,10 @@ export class TrigScene3DView extends BaseScene3DView {
         const bisC = get3DAngleBisector(C, A, B, 3.2, THREE);
         const refC = get3DReflexBisector(C, A, B, 3.8, THREE);
 
+        const midBC = new THREE.Vector3().addVectors(B, C).multiplyScalar(0.5).addScaledVector(normal, 0.45);
+        const midAC = new THREE.Vector3().addVectors(A, C).multiplyScalar(0.5).addScaledVector(normal, 0.45);
+        const midAB = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5).addScaledVector(normal, 0.45);
+
         labels.push(
           { key: 'O', name: 'O', at: O.clone().addScaledVector(normal, 0.6), coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A', at: A.clone().multiplyScalar(1.15).addScaledVector(normal, 0.4), coords: A, color: 'color-red' },
@@ -3251,7 +3253,14 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
           { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
           { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
-          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
+          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex },
+          ...(showLengths
+            ? [
+                { key: 'a-len-3d', text: `a = ${m.sides.a.toFixed(2)}`, at: midBC, color: 'color-red', isAngle: true, show: true },
+                { key: 'b-len-3d', text: `b = ${m.sides.b.toFixed(2)}`, at: midAC, color: 'color-green', isAngle: true, show: true },
+                { key: 'c-len-3d', text: `c = ${m.sides.c.toFixed(2)}`, at: midAB, color: 'color-violet', isAngle: true, show: true },
+              ]
+            : [])
         );
       } else {
         alignCircleWireToPlane(this.circleWire, new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), R, THREE);
@@ -3369,7 +3378,14 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'angA', text: `∠A = ${fmtAngle(m.interiorAngles.degA, angUnit)}`, at: bisA, color: 'color-red', isAngle: true, show: showAngles },
           { key: 'angB', text: `∠B = ${fmtAngle(m.interiorAngles.degB, angUnit)}`, at: bisB, color: 'color-green', isAngle: true, show: showAngles },
           { key: 'angC', text: `∠C = ${fmtAngle(m.interiorAngles.degC, angUnit)}`, at: bisC, color: 'color-violet', isAngle: true, show: showAngles },
-          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex }
+          { key: 'refC', text: `∠C* = ${fmtAngle(360 - m.interiorAngles.degC, angUnit)}`, at: refC, color: 'color-teal', isAngle: true, show: showReflex },
+          ...(showLengths
+            ? [
+                { key: 'a-len-3d', text: `a = ${m.sides.a.toFixed(2)}`, at: { x: (B.x + C.x) / 2, y: 0.4, z: (B.z + C.z) / 2 }, color: 'color-red', isAngle: true, show: true },
+                { key: 'b-len-3d', text: `b = ${m.sides.b.toFixed(2)}`, at: { x: (A.x + C.x) / 2, y: 0.4, z: (A.z + C.z) / 2 }, color: 'color-green', isAngle: true, show: true },
+                { key: 'c-len-3d', text: `c = ${m.sides.c.toFixed(2)}`, at: { x: (A.x + B.x) / 2, y: 0.4, z: (A.z + B.z) / 2 }, color: 'color-violet', isAngle: true, show: true },
+              ]
+            : [])
         );
       }
     } else if (this.visualId === 'law-of-cosines') {
@@ -4437,6 +4453,10 @@ export class TrigScene3DView extends BaseScene3DView {
         let D_spatial = new THREE.Vector3(R * cosDiff, R * sinDiff * sinGamma, R * sinDiff * cosGamma);
         let Ndiff_spatial = new THREE.Vector3(R * cosDiff, 0, 0);
 
+        // Stable canonical in-plane reference axes (θ = 0 and θ = π/2) for pointer dragging:
+        let u_plane = new THREE.Vector3(1, 0, 0);
+        let v_plane = new THREE.Vector3(0, sinGamma, cosGamma);
+
         const azim = state.solidAzimuth || 0;
         if (azim !== 0) {
           const cosA = Math.cos(azim);
@@ -4450,12 +4470,13 @@ export class TrigScene3DView extends BaseScene3DView {
           rotY(e1); rotY(e2); rotY(e3); rotY(Aray);
           rotY(Q); rotY(S); rotY(M); rotY(N_spatial);
           rotY(D_spatial); rotY(Ndiff_spatial);
+          rotY(u_plane); rotY(v_plane);
         }
 
         // Align primary unit circle wireframe to the SO(3) Euler plane spanned by {e1, e2}
         alignCircleWireToPlane(this.circleWire, e3, O, R, THREE);
         this.circleWire.visible = state?.vis3d?.circleWire !== false;
-        this.circleInfo = { normal: e3, center: O, radius: R, u: e1.clone().normalize(), v: e2.clone().normalize() };
+        this.circleInfo = { normal: e3, center: O, radius: R, u: u_plane.normalize(), v: v_plane.normalize() };
 
         this.markerO.position.copy(O);
         this.handleA.position.copy(Aray);
@@ -4788,6 +4809,11 @@ export class TrigScene3DView extends BaseScene3DView {
           );
         }
 
+        const cosDiff = Math.cos(state.angleAlpha - state.angleBeta);
+        const sinDiff = Math.sin(state.angleAlpha - state.angleBeta);
+        const cosSum = Math.cos(state.angleAlpha + state.angleBeta);
+        const sinSum = Math.sin(state.angleAlpha + state.angleBeta);
+
         labels.push(
           { key: 'O', name: 'O', at: O.clone().addScaledVector(normal, 0.6), coords: O, color: 'color-indigo' },
           { key: 'A', name: 'A(α)', at: Aray.clone().multiplyScalar(1.15).addScaledVector(normal, 0.4), coords: Aray, color: 'color-sky' },
@@ -4795,6 +4821,24 @@ export class TrigScene3DView extends BaseScene3DView {
           { key: 'N', name: 'N', at: N.clone().addScaledVector(v, -0.35).addScaledVector(normal, 0.4), coords: N, color: 'color-amber', show: true },
           { key: 'Q', name: 'Q', at: Q.clone().addScaledVector(normal, 0.4), coords: Q, color: 'color-amber', show: state.showStackedTriangles !== false },
           { key: 'M', name: 'M', at: M.clone().addScaledVector(normal, 0.4), coords: M, color: 'color-amber', show: state.showStackedTriangles !== false },
+          ...(state.showDifferenceRay !== false
+            ? [
+                { key: 'Pdiff', name: 'D(α−β)', at: Pdiff.clone().multiplyScalar(1.15).addScaledVector(normal, 0.4), coords: Pdiff, color: 'color-rose' },
+                { key: 'Ndiff', name: 'N_D', at: Ndiff.clone().addScaledVector(v, 0.45).addScaledVector(normal, 0.4), coords: Ndiff, color: 'color-orange', show: true },
+                { key: 'cos-diff-len', text: `cos(α−β) = ${cosDiff.toFixed(3)}`, at: Ndiff.clone().multiplyScalar(0.5).addScaledVector(v, 0.95).addScaledVector(normal, 0.45), color: 'color-orange', isAngle: true, show: showLengths && showAngles },
+                { key: 'sin-diff-len', text: `sin(α−β) = ${sinDiff.toFixed(3)}`, at: Ndiff.clone().add(Pdiff).multiplyScalar(0.5).addScaledVector(u, 1.2 * (Ndiff.dot(u) >= 0 ? -1 : 1)).addScaledVector(normal, 0.35), color: 'color-rose', isAngle: true, show: showLengths && showAngles },
+                {
+                  key: 'chord-pd-len',
+                  text: `|PD| = 2R sin β = ${(2 * Math.sin(m.beta) * R).toFixed(2)}`,
+                  at: Pdiff.clone().multiplyScalar(0.7).add(P.clone().multiplyScalar(0.3)).multiplyScalar(1.22).addScaledVector(normal, 0.45),
+                  color: 'color-teal',
+                  isAngle: true,
+                  show: showLengths && showAngles,
+                },
+              ]
+            : []),
+          { key: 'cos-sum-len', text: `cos(α+β) = ${cosSum.toFixed(3)}`, at: N.clone().multiplyScalar(0.5).addScaledVector(v, -0.85).addScaledVector(normal, 0.45), color: 'color-amber', isAngle: true, show: showLengths && showAngles },
+          { key: 'sin-sum-len', text: `sin(α+β) = ${sinSum.toFixed(3)}`, at: N.clone().add(P).multiplyScalar(0.5).addScaledVector(u, 1.2 * (N.dot(u) >= 0 ? -1 : 1)).addScaledVector(normal, 0.35), color: 'color-emerald', isAngle: true, show: state.showStackedTriangles !== false && showAngles },
           { key: 'angAlpha', text: `α = ${fmtAngle(m.angleAlphaDeg, angUnit)}`, at: get3DAngleBisector(O, u.clone().multiplyScalar(R), Aray, 2.0, THREE), color: 'color-sky', isAngle: true, show: showAngles },
           { key: 'angBeta', text: `β = ${fmtAngle(m.angleBetaDeg, angUnit)}`, at: get3DAngleBisector(O, Aray, P, 3.4, THREE), color: 'color-violet', isAngle: true, show: showAngles },
           { key: 'ref-sum', text: `(α+β)* = ${fmtAngle(360 - m.sumAngleDeg, angUnit)}`, at: get3DReflexBisector(O, u.clone().multiplyScalar(R), P, 4.0, THREE), color: 'color-teal', isAngle: true, show: showReflex }
@@ -5924,7 +5968,7 @@ function bindVisualSpecificControls(store, visualId, view2d) {
       if (targetParent) {
         const solidDiv = document.createElement('div');
         solidDiv.id = 'solid-orientation-controls';
-        solidDiv.style.cssText = 'margin-top: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;';
+        solidDiv.style.cssText = 'margin-top: 10px; padding: 8px 10px; background: rgba(20, 20, 24, 0.65); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;';
         solidDiv.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <span style="font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Solid 3D Orientation</span>
@@ -6624,11 +6668,18 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
-      titleEl.innerHTML = isSpatial
+      // Mode badges: [Planar (Y=0)], [Spatial S²], [Spatial SO(3)], [Solid 3D]
+      const modeBadge = isSpatial
+        ? ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">S²</span>]</span>'
+        : isSolid
+          ? ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>'
+          : ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+      const baseTitle = isSpatial
         ? '3D: Spherical Law of Sines (<span class="color-teal">S²</span>)'
         : isSolid
           ? '3D: Solid Prism in Circumcylinder (<span class="color-amber">2R</span>)'
           : '3D: Circumscribed Sphere (<span class="color-amber">2R</span>)';
+      titleEl.innerHTML = `${baseTitle}${modeBadge}`;
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Sines & Excess on S² (sin(a/R)/sin A = const)'
         : isSolid
@@ -6653,7 +6704,14 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const lblRb = document.getElementById('lbl-3d-rb');
     const lblRc = document.getElementById('lbl-3d-rc');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : isSolid ? 'Solid 3D (prism)' : 'Planar (Y = 0)');
+    const modeLabelEl = document.getElementById('val-3d-mode-label');
+    if (modeLabelEl) {
+      modeLabelEl.innerHTML = isSpatial
+        ? 'Spatial <span class="color-violet">S²</span>'
+        : isSolid
+          ? 'Solid <span class="color-amber">3D</span> (prism)'
+          : 'Planar (<span class="color-lime">Y = 0</span>)';
+    }
 
     if (isSpatial) {
       const sM = computeSphericalLawOfSines(state, R3D);
@@ -6759,11 +6817,17 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
-      titleEl.innerHTML = isSpatial
+      const modeBadge = isSpatial
+        ? ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">S²</span>]</span>'
+        : isSolid
+          ? ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>'
+          : ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+      const baseTitle = isSpatial
         ? '3D: Spherical Law of Cosines (<span class="color-teal">S²</span>)'
         : isSolid
           ? '3D: Solid Triangular Prism (<span class="color-rose">c²</span>)'
           : '3D: Euclidean Projection Prism (<span class="color-rose">c²</span>)';
+      titleEl.innerHTML = `${baseTitle}${modeBadge}`;
       titleEl.title = isSpatial
         ? '3D: Spherical Law of Cosines on S² (cos(c/R) = cos(a/R)cos(b/R) + sin(a/R)sin(b/R)cos C)'
         : isSolid
@@ -6796,7 +6860,14 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
     const rowArea = document.getElementById('row-3d-area');
     const rowSphPos = document.getElementById('row-3d-sph-pos');
 
-    setText('val-3d-mode-label', isSpatial ? 'Spatial S²' : isSolid ? 'Solid 3D (prism)' : 'Planar (Y = 0)');
+    const modeLabelEl = document.getElementById('val-3d-mode-label');
+    if (modeLabelEl) {
+      modeLabelEl.innerHTML = isSpatial
+        ? 'Spatial <span class="color-violet">S²</span>'
+        : isSolid
+          ? 'Solid <span class="color-amber">3D</span> (prism)'
+          : 'Planar (<span class="color-lime">Y = 0</span>)';
+    }
 
     if (isSpatial) {
       const colatVal = state.solidTilt !== undefined ? state.solidTilt : (state.colatC ?? 0);
@@ -6922,11 +6993,17 @@ function updateTelemetryAndSlidersDOM(state, visualId) {
 
     const titleEl = document.getElementById('canvas-3d-title');
     if (titleEl) {
-      titleEl.innerHTML = isSpatial
+      const modeBadge = isSpatial
+        ? ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">SO(3)</span>]</span>'
+        : isSolid
+          ? ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>'
+          : ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+      const baseTitle = isSpatial
         ? '3D: Spatial SO(3) Euler Frame (<span class="color-amber">γ</span>)'
         : isSolid
           ? '3D: Solid Cylinder &amp; Wedge Prisms (<span class="color-sky">α</span>+<span class="color-violet">β</span>)'
           : '3D: SO(2) Planar Embedding (<span class="color-sky">α</span>+<span class="color-violet">β</span>)';
+      titleEl.innerHTML = `${baseTitle}${modeBadge}`;
       titleEl.title = isSpatial
         ? '3D: Spatial SO(3) Lie Group Euler Frame (R = Rz(α+β)Rx(γ))'
         : isSolid

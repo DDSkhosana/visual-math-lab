@@ -11,6 +11,11 @@ export function createInitialState() {
     angleB: toRadians(40),
     angleC: toRadians(310),
     angleD: toRadians(230),
+    dimensionMode: 'planar',
+    latA: 1.05,
+    latB: 2.09,
+    latC: 2.09,
+    latD: 1.05,
     showExterior: true,
     showDiagonals: true,
     showAngles: true,
@@ -96,7 +101,7 @@ export function computeGeometry(state, width, height) {
 export function generateSVG(state, width, height) {
   const g = computeGeometry(state, width, height);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: sans-serif;">
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   <!-- Quadrilateral fill -->
   <polygon points="${g.A.x},${g.A.y} ${g.B.x},${g.B.y} ${g.C.x},${g.C.y} ${g.D.x},${g.D.y}" fill="${state.showArea !== false ? 'rgba(99, 102, 241, 0.15)' : 'none'}" stroke="#6366f1" stroke-width="2.5"/>

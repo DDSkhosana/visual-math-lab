@@ -213,7 +213,7 @@ export class CanvasView {
     off.width = this.width * 2; off.height = this.height * 2;
     const offCtx = off.getContext('2d');
     offCtx.scale(2, 2);
-    offCtx.fillStyle = '#0f172a';
+    offCtx.fillStyle = '#121215';
     offCtx.fillRect(0, 0, this.width, this.height);
     const prevCtx = this.ctx; this.ctx = offCtx;
     this.render(this.state);

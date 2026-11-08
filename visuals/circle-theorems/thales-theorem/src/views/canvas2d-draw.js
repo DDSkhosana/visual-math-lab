@@ -143,7 +143,7 @@ function drawGrid(ctx, state, f) {
   const size = 5 * (f.zoom || state.zoom);
   const startX = (state.pan.x % size) - size;
   const startY = (state.pan.y % size) - size;
-  ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+  ctx.strokeStyle = 'rgba(63, 63, 70, 0.35)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   if (state.vis2d.gridX) for (let x = startX; x < f.width; x += size) line(ctx, { x, y: 0 }, { x, y: f.height });
@@ -700,7 +700,7 @@ function drawLabelledPoint(ctx, at, color, label, dx = 0, dy = 0, align = null, 
   ctx.font = 'bold 13px monospace';
   ctx.lineJoin = 'round';
   ctx.miterLimit = 2;
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+  ctx.strokeStyle = 'rgba(18, 18, 21, 0.95)';
   ctx.lineWidth = 4.5;
   ctx.strokeText(label, at.x + dx, at.y + dy);
   ctx.fillStyle = color;
@@ -749,7 +749,7 @@ function drawPoints(ctx, state, f) {
     ctx.save();
     ctx.font = 'bold 11px monospace';
     ctx.fillStyle = f.outOfPlane.color;
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.strokeStyle = 'rgba(18, 18, 21, 0.95)';
     ctx.lineWidth = 3;
     const oopText = `${f.outOfPlane.symbol} ${f.outOfPlane.axis}=${f.outOfPlane.val > 0 ? '+' : ''}${f.outOfPlane.val.toFixed(1)}`;
     ctx.strokeText(oopText, f.p.x + 20 * upx, f.p.y + 20 * upy + 14);

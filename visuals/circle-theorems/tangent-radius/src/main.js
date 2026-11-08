@@ -354,7 +354,23 @@ function bootstrap() {
     const title3d = document.getElementById('view-title-3d');
     if (title3d && g.quadrant) {
       const qSign3D = ['(+X, +Z)', '(-X, +Z)', '(-X, -Z)', '(+X, -Z)'][g.quadrant.index];
-      title3d.innerHTML = `3D: Spherical Great-Circle Tangent — <span class="color-yellow font-bold">Quadrant ${g.quadrant.roman} ${qSign3D}</span>`;
+      const base = `3D: Spherical Great-Circle Tangent — <span class="color-yellow font-bold">Quadrant ${g.quadrant.roman} ${qSign3D}</span>`;
+      title3d.dataset.origTitle = base;
+      const isSpatial = state.dimensionMode === 'spatial';
+      const isSolid = state.dimensionMode === 'solid';
+      const dimBadge = isSpatial
+        ? ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">S²</span>]</span>'
+        : isSolid
+          ? ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>'
+          : ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+      const p = state.cameraPerspective || 'iso';
+      const pBadgeMap = {
+        top: ' <span class="perspective-badge font-bold">[Top View: <span class="color-amber">X</span><span class="color-steel">Z</span> Plan]</span>',
+        front: ' <span class="perspective-badge font-bold">[Front View: <span class="color-amber">X</span><span class="color-lime">Y</span> Elevation]</span>',
+        side: ' <span class="perspective-badge font-bold">[Side View: <span class="color-lime">Y</span><span class="color-steel">Z</span> Profile]</span>',
+        iso: ' <span class="perspective-badge font-bold">[Isometric Perspective]</span>',
+      };
+      title3d.innerHTML = `${base}${dimBadge}${pBadgeMap[p] || ''}`;
     }
 
     if (btnSegment && btnSector) {

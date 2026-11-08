@@ -8,6 +8,10 @@ export function createInitialState() {
     angleA: toRadians(210), // bottom-left
     angleB: toRadians(330), // bottom-right
     angleP: toRadians(90),  // top
+    dimensionMode: 'planar',
+    latA: Math.PI / 2,
+    latB: Math.PI / 2,
+    latP: Math.PI / 2,
     showRadii: true,
     showSplit: true,
     showAngles: true,
@@ -68,7 +72,7 @@ export function computeGeometry(state, width, height) {
 export function generateSVG(state, width, height) {
   const g = computeGeometry(state, width, height);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: sans-serif;">
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   ${state.showArea !== false ? `<!-- Central sector & Inscribed triangle -->
   <polygon points="${g.O.x},${g.O.y} ${g.A.x},${g.A.y} ${g.B.x},${g.B.y}" fill="rgba(234, 179, 8, 0.16)"/>

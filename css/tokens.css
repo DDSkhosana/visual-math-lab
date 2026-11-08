@@ -4,7 +4,10 @@
   --muted: #666666;
   --line: #deded9;
   --surface: #f2f1ed;
-  --accent: #d75a34;
+  --accent: #8b5cf6;
+  --hover-lavender: #c4b5fd;
+  --hover-lavender-soft: #ede9fe;
+  --hover-lavender-deep: #6d28d9;
   --text: var(--ink);
   --text-muted: var(--muted);
   --max-width: 72rem;

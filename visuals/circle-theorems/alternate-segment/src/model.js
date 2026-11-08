@@ -8,6 +8,10 @@ export function createInitialState() {
     angleT: toRadians(270), // bottom contact
     angleA: toRadians(150), // upper-left
     angleB: toRadians(40),  // upper-right
+    dimensionMode: 'planar',
+    latT: 1.22,
+    latA: 1.92,
+    latB: 0.87,
     showProofConstruction: true, // Thales theorem proof overlay
     showThalesOverlay: true,
     showDAngles: true,
@@ -200,7 +204,7 @@ export function generateSVG(state, width, height) {
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: sans-serif;">
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   <!-- Tangent line -->
   <line x1="${g.Tan1.x}" y1="${g.Tan1.y}" x2="${g.Tan2.x}" y2="${g.Tan2.y}" stroke="${PALETTE.emerald}" stroke-width="3"/>

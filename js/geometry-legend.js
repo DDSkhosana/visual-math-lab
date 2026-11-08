@@ -148,14 +148,16 @@ export const GEOMETRY_ELEMENTS = [
     name: 'Circular Sector',
     symbol: 'Sector OAB',
     formula: '\\text{Area} = \\frac{1}{2} r^2 \\theta',
-    definition: 'The wedge-shaped region enclosed by two radii and the arc between them (similar to a pizza slice). Area is proportional to central angle θ.',
-    colorToken: 'PALETTE.amber (#fbbf24)',
+    definition: 'The wedge-shaped region enclosed by two radii and the arc between them. In the Angle at Centre visualizer, central sector AOB is shaded translucent yellow, while other circular segments remain unshaded across both 2D canvas and 3D views.',
+    colorToken: 'PALETTE.yellow (#eab308) | rgba(234, 179, 8, 0.16)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#334155" stroke-width="1.5"/>
-        <path d="M 50 50 L 77 23 A 38 38 0 0 1 88 50 Z" fill="rgba(251, 191, 36, 0.3)" stroke="#fbbf24" stroke-width="2"/>
+        <path d="M 50 50 L 77 23 A 38 38 0 0 1 88 50 Z" fill="rgba(234, 179, 8, 0.2)" stroke="#eab308" stroke-width="2"/>
+        <line x1="50" y1="50" x2="77" y2="23" stroke="#ef4444" stroke-width="1.8"/>
+        <line x1="50" y1="50" x2="88" y2="50" stroke="#f97316" stroke-width="1.8"/>
         <circle cx="50" cy="50" r="2.5" fill="#6366f1"/>
-        <text x="64" y="44" fill="#fbbf24" font-size="8" font-weight="bold">Sector</text>
+        <text x="64" y="44" fill="#eab308" font-size="8" font-weight="bold">Sector</text>
       </svg>
     `
   },
@@ -166,8 +168,8 @@ export const GEOMETRY_ELEMENTS = [
     name: 'Circular Segment',
     symbol: 'Segment on AB',
     formula: '\\text{Area} = \\frac{1}{2} r^2 (\\theta - \\sin\\theta)',
-    definition: 'The region enclosed between a straight chord and the circular arc subtended by it. Can be Major (greater than semicircle) or Minor (less than semicircle).',
-    colorToken: 'Major: Sky Blue (#0284c7) | Minor: Violet (#a855f7)',
+    definition: 'The region enclosed between a straight chord AB and its subtended circular arc. Shaded in Sky Blue (#0284c7) for the eponymous segment in Angles in the Same Segment, and Violet (#a855f7) for minor alternate segments. Outer non-mathematical segments remain clean and unshaded in both 2D canvas and 3D views.',
+    colorToken: 'Eponymous / Major Segment: Sky Blue (#0284c7) | Minor Segment: Violet (#a855f7) | Outer Segments: Dark (#121215, Unshaded)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#334155" stroke-width="1.5"/>
@@ -269,19 +271,26 @@ export const GEOMETRY_ELEMENTS = [
     category: 'angles',
     categoryName: 'Angles & Theorems',
     name: 'Inscribed Angle',
-    symbol: '∠APB',
-    formula: '\\theta = \\frac{1}{2} \\angle\\text{AOB} = \\frac{1}{2} \\times \\text{Central } \\angle',
-    definition: 'An angle whose vertex P lies on the circle circumference and whose legs contain chords subtending arc AB.',
-    colorToken: 'Vertex P: Violet (#a855f7) | Inscribed Angle θ: Yellow (#eab308) | Chords PA, PB: Blue (#3b82f6) / Orange (#f97316)',
+    symbol: '∠APB = θ',
+    formula: '\\theta = \\frac{1}{2} \\angle\\text{AOB} = \\alpha + \\beta',
+    definition: 'An angle whose vertex P lies on the circle circumference and whose legs contain chords subtending arc AB. Auxiliary split radius OP divides △APB into two isosceles triangles with base angles α (lime) and β (fuchsia), proving θ = α + β.',
+    colorToken: 'Vertex P: Violet (#a855f7) | Inscribed Angle θ: Green (#22c55e) | Base Angle α: Lime (#84cc16) | Base Angle β: Fuchsia (#d946ef) | Chords PA: Blue (#3b82f6), PB: Orange (#f97316) | Split Radius OP: Lavender (#c084fc)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
+        <!-- Chords PA, PB and auxiliary radius OP -->
         <line x1="50" y1="12" x2="20" y2="68" stroke="#3b82f6" stroke-width="2"/>
         <line x1="50" y1="12" x2="80" y2="68" stroke="#f97316" stroke-width="2"/>
-        <path d="M 45 22 A 12 12 0 0 1 55 22" fill="none" stroke="#eab308" stroke-width="2"/>
+        <line x1="50" y1="12" x2="50" y2="50" stroke="#c084fc" stroke-width="1.6" stroke-dasharray="2,2"/>
+        <!-- Inscribed angle arc θ in green -->
+        <path d="M 42 22 A 14 14 0 0 1 58 22" fill="none" stroke="#22c55e" stroke-width="2"/>
+        <!-- Alpha and beta sub-arcs -->
+        <path d="M 44 26 A 16 16 0 0 1 50 25" fill="none" stroke="#84cc16" stroke-width="1.6"/>
+        <path d="M 50 25 A 16 16 0 0 1 56 26" fill="none" stroke="#d946ef" stroke-width="1.6"/>
         <circle cx="50" cy="12" r="3" fill="#a855f7"/>
+        <circle cx="50" cy="50" r="2.5" fill="#6366f1"/>
         <text x="46" y="8" fill="#a855f7" font-size="8.5" font-weight="bold">P</text>
-        <text x="48" y="30" fill="#eab308" font-size="8" font-weight="bold">θ</text>
+        <text x="47" y="34" fill="#22c55e" font-size="7.5" font-weight="bold">θ</text>
       </svg>
     `
   },
@@ -289,20 +298,24 @@ export const GEOMETRY_ELEMENTS = [
     id: 'central-angle',
     category: 'angles',
     categoryName: 'Angles & Theorems',
-    name: 'Central Angle',
-    symbol: '∠AOB',
-    formula: '\\angle\\text{AOB} = 2\\angle\\text{APB} = 2\\theta',
-    definition: 'An angle whose apex is at the circle centre O, subtending the same arc as an inscribed angle. It is always exactly twice the measure of the inscribed angle.',
-    colorToken: 'Center O: Indigo (#6366f1) | Central Angle 2θ: Amber (#fbbf24) / Yellow (#eab308) | Radii OA, OB: Blue (#3b82f6) / Orange (#f97316)',
+    name: 'Central Angle & Proof Decomposition',
+    symbol: '∠AOB = 2θ',
+    formula: '\\angle\\text{AOB} = 2\\theta = 2(\\alpha + \\beta)',
+    definition: 'An angle whose apex is at the circle centre O, subtending the same arc as inscribed angle ∠APB. By exterior angles of isosceles triangles △OPA (2α) and △OPB (2β), central angle ∠AOB = 2α + 2β = 2θ. Central sector AOB is shaded yellow; outer circular segments remain unshaded across 2D canvas and 3D views.',
+    colorToken: 'Centre O: Indigo (#6366f1) | Central Angle 2θ: Yellow (#eab308) | Central Sector: Translucent Yellow | △OPA: Blue (#3b82f6) | △OPB: Orange (#f97316) | Radii OA: Red (#ef4444), OB: Orange (#f97316), OP: Lavender (#c084fc)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">
         <circle cx="50" cy="50" r="38" fill="none" stroke="#475569" stroke-width="2"/>
-        <line x1="50" y1="50" x2="20" y2="68" stroke="#3b82f6" stroke-width="2"/>
+        <!-- Central sector AOB in translucent yellow -->
+        <path d="M 50 50 L 20 68 A 38 38 0 0 0 80 68 Z" fill="rgba(234, 179, 8, 0.2)" stroke="none"/>
+        <!-- Radii OA (red) and OB (orange) -->
+        <line x1="50" y1="50" x2="20" y2="68" stroke="#ef4444" stroke-width="2"/>
         <line x1="50" y1="50" x2="80" y2="68" stroke="#f97316" stroke-width="2"/>
-        <path d="M 40 56 A 14 14 0 0 0 60 56" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+        <!-- Central angle arc 2θ in yellow -->
+        <path d="M 38 57 A 15 15 0 0 0 62 57" fill="none" stroke="#eab308" stroke-width="2.5"/>
         <circle cx="50" cy="50" r="3" fill="#6366f1"/>
         <text x="47" y="44" fill="#6366f1" font-size="8.5" font-weight="bold">O</text>
-        <text x="46" y="67" fill="#fbbf24" font-size="8" font-weight="bold">2θ</text>
+        <text x="44" y="69" fill="#eab308" font-size="8" font-weight="bold">2θ</text>
       </svg>
     `
   },
@@ -313,7 +326,7 @@ export const GEOMETRY_ELEMENTS = [
     name: 'Angles in the Same Segment',
     symbol: '∠AP₁B = ∠AP₂B = θ',
     formula: '\\angle AP_1B = \\angle AP_2B = \\frac{1}{2}\\angle AOB = \\theta',
-    definition: 'Inscribed angles subtended at the circumference by the same chord AB in the same circular segment are identically congruent. Vertices P₁ and P₂ glide along the common arc while preserving angle measure θ.',
+    definition: 'Inscribed angles subtended at the circumference by the same chord AB in the same circular segment are identically congruent. Vertices P₁ and P₂ glide along the common arc while preserving angle measure θ. The eponymous segment containing P₁ and P₂ is shaded Sky Blue (#0284c7), while outer segments remain clean and unshaded across 2D canvas and 3D views.',
     colorToken: 'P₁ / ∠P₁: Blue (#3b82f6) | P₂ / ∠P₂: Emerald (#10b981) | Common Chord AB: Red (#ef4444) | Same Segment: Sky (#0284c7) | Central 2θ: Yellow (#eab308) | Centre O: Indigo (#6366f1) | Spherical Arc: Amber (#fbbf24)',
     svg: `
       <svg viewBox="0 0 100 100" class="legend-svg">

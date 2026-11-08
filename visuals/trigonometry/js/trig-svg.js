@@ -59,7 +59,7 @@ export function generateTrigSVG(visualId, state = {}, width = 800, height = 600)
 
   const svgPoint = (pt, label, color = PALETTE.amber, dx = 12, dy = -10, radius = 4.5) => {
     return `<g>
-      <circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="${radius}" fill="${color}" stroke="#0f172a" stroke-width="1.8"/>
+      <circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="${radius}" fill="${color}" stroke="#121215" stroke-width="1.8"/>
       <text x="${(pt.x + dx).toFixed(1)}" y="${(pt.y + dy).toFixed(1)}" fill="${color}" font-size="13" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-weight="600" text-anchor="middle" dominant-baseline="central">${label}</text>
     </g>`;
   };
@@ -302,13 +302,13 @@ export function generateTrigSVG(visualId, state = {}, width = 800, height = 600)
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
     </filter>
   </defs>
-  <rect width="${width}" height="${height}" fill="#0f172a"/>
+  <rect width="${width}" height="${height}" fill="#121215"/>
   ${content}
 </svg>`;
 }

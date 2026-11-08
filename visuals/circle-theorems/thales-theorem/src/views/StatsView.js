@@ -56,7 +56,11 @@ export class StatsView {
       alpha3d: solid.alphaDeg, beta3d: solid.betaDeg, sumAB3d: solid.alphaDeg + solid.betaDeg,
       alphaReflex3d: solid.alphaReflexDeg, betaReflex3d: solid.betaReflexDeg, reflexSum3d: solid.reflexSumDeg,
       surf: solid.surfaceArea, volume: solid.volume,
-      mode3d: isSpatial ? 'Spatial S²' : state.dimensionMode === 'solid' ? 'Solid 3D (prism)' : 'Planar (Y = 0)',
+      mode3d: isSpatial
+        ? 'Spatial <span class="color-violet">S²</span>'
+        : state.dimensionMode === 'solid'
+          ? 'Solid <span class="color-amber">3D</span> (prism)'
+          : 'Planar (<span class="color-lime">Y = 0</span>)',
       excess3d: solid.excessDeg || 0,
       sphArea3d: solid.sphericalArea || 0,
       affineInv: flat.affine ? flat.affine.apolloniusConjugacy : 0,
@@ -81,7 +85,9 @@ export class StatsView {
         field.textContent = angUnit === 'deg' ? `${value.toFixed(2)}°` : UnitSystemConverter.formatAngle(value, angUnit);
       } else if (lengthKeys.has(key)) {
         field.textContent = lenUnit === 'px' ? value.toFixed(2) : UnitSystemConverter.formatLength(value, lenUnit, state.radius);
-      } else if (key === 'mode3d' || typeof value === 'string') {
+      } else if (key === 'mode3d') {
+        field.innerHTML = value;
+      } else if (typeof value === 'string') {
         field.textContent = value;
       } else if (typeof value === 'number') {
         field.textContent = Number.isFinite(value) ? value.toFixed(2) : String(value);

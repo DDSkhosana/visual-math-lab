@@ -6,8 +6,8 @@
     min-height: 24rem;
     overflow: hidden;
     font-family: 'Inter', sans-serif;
-    background-color: #0f172a; /* Slate 900 */
-    color: #f8fafc; /* Slate 50 */
+    background-color: #121215;
+    color: #f8fafc;
     transition: height 0.25s ease;
 }
 
@@ -35,6 +35,7 @@ body.header-collapsed .thales-explorer {
     overflow: hidden;
     min-width: 0;
     min-height: 0;
+    background-color: #121215;
 }
 
 #canvas-3d-container {
@@ -72,7 +73,7 @@ body.header-collapsed .thales-explorer {
 }
 
 #canvas2d {
-    background-color: #1e293b; /* Slate 800 */
+    background-color: #121215;
     cursor: grab;
 }
 #canvas2d:active {
@@ -85,7 +86,7 @@ body.header-collapsed .thales-explorer {
 .layout-split #canvas-3d-container { flex-basis: 50%; }
 
 .viewport-resizer {
-  background-color: #334155;
+  background-color: #27272a;
   z-index: 10;
   display: none;
   position: relative;

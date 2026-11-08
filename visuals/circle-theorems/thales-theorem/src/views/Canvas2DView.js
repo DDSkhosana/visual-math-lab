@@ -55,10 +55,10 @@ export class Canvas2DView {
     }
 
     const perspectiveBadges = {
-      'great-circle': ' <span class="perspective-badge color-sky font-bold">[Isometric Perspective]</span>',
-      'xz': ' <span class="perspective-badge color-yellow font-bold">[Top View: XZ Plan]</span>',
-      'xy': ' <span class="perspective-badge color-lime font-bold">[Front View: XY Elevation]</span>',
-      'yz': ' <span class="perspective-badge color-steel font-bold">[Side View: YZ Profile]</span>',
+      'great-circle': ' <span class="perspective-badge font-bold">[Isometric Perspective]</span>',
+      'xz': ' <span class="perspective-badge font-bold">[Top View: <span class="color-amber">X</span><span class="color-steel">Z</span> Plan]</span>',
+      'xy': ' <span class="perspective-badge font-bold">[Front View: <span class="color-amber">X</span><span class="color-lime">Y</span> Elevation]</span>',
+      'yz': ' <span class="perspective-badge font-bold">[Side View: <span class="color-lime">Y</span><span class="color-steel">Z</span> Profile]</span>',
     };
     title.dataset.origTitle = baseTitle;
     title.innerHTML = `${baseTitle}${perspectiveBadges[plane] || perspectiveBadges['great-circle']}`;
@@ -98,7 +98,7 @@ export class Canvas2DView {
     offCtx.scale(scale, scale);
 
     // Dark background
-    offCtx.fillStyle = '#0f172a';
+    offCtx.fillStyle = '#121215';
     offCtx.fillRect(0, 0, width, height);
 
     // Render scene without hover state

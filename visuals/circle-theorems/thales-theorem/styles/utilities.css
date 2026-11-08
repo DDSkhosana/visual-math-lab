@@ -20,8 +20,9 @@
 .text-slate-300 { color: #cbd5e1; }
 .text-slate-400 { color: #94a3b8; }
 .hover\:text-white:hover { color: #ffffff; }
-.bg-slate-800 { background-color: #1e293b; }
+.bg-slate-800 { background-color: #1c1c22; }
 .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
 .border-t { border-top-width: 1px; border-top-style: solid; }
-.border-slate-700 { border-color: #334155; }
+.border-slate-700 { border-color: #27272a; }
 .rounded { border-radius: 0.25rem; }
+.color-white, .color-platinum { color: #f8fafc !important; }

@@ -43,7 +43,11 @@ function bootstrap() {
 
   const view2d = new Canvas2DView(byId('canvas2d'), byId('canvas-2d-container'));
   const scene3d = createScene3D(byId('canvas-3d-container'));
-  const labels = new LabelOverlayView(byId('labels-3d-container'), (point) => scene3d.project(point));
+  const labels = new LabelOverlayView(
+    byId('labels-3d-container'),
+    (point) => scene3d.project(point),
+    () => scene3d.getLabelAnchors?.()
+  );
   const derivations = new DerivationView(byId('live-math-2d'), byId('live-math-3d'));
   const stats = new StatsView(document);
   const controls = new ControlsController(store, document);
@@ -251,10 +255,10 @@ function bootstrap() {
 
     const pKey = targetPreset === 'isometric' ? 'iso' : targetPreset;
     const perspectiveBadges = {
-      top: ' <span class="perspective-badge color-yellow font-bold">[Top View: XZ Plan]</span>',
-      front: ' <span class="perspective-badge color-lime font-bold">[Front View: XY Elevation]</span>',
-      side: ' <span class="perspective-badge color-steel font-bold">[Side View: YZ Profile]</span>',
-      iso: ' <span class="perspective-badge color-sky font-bold">[Isometric Perspective]</span>',
+      top: ' <span class="perspective-badge font-bold">[Top View: <span class="color-amber">X</span><span class="color-steel">Z</span> Plan]</span>',
+      front: ' <span class="perspective-badge font-bold">[Front View: <span class="color-amber">X</span><span class="color-lime">Y</span> Elevation]</span>',
+      side: ' <span class="perspective-badge font-bold">[Side View: <span class="color-lime">Y</span><span class="color-steel">Z</span> Profile]</span>',
+      iso: ' <span class="perspective-badge font-bold">[Isometric Perspective]</span>',
     };
 
     const updateContainerBadge = (containerId) => {
@@ -267,11 +271,21 @@ function bootstrap() {
       if (titleEl) {
         if (!titleEl.dataset.origTitle) {
           titleEl.dataset.origTitle = titleEl.innerHTML
-            .replace(/\s*<span class="[^"]*(?:color-|perspective-badge)[^"]*font-bold[^"]*">\[.*?\]<\/span>/gi, '')
+            .replace(/\s*<span class="[^"]*(?:color-|perspective-badge|dimension-mode-badge)[^"]*font-bold[^"]*">\[.*?\]<\/span>/gi, '')
             .replace(/\s*\[.*?\]/g, '')
             .trim();
         }
-        titleEl.innerHTML = `${titleEl.dataset.origTitle}${perspectiveBadges[pKey] || ''}`;
+        const is3D = containerId === 'canvas-3d-container';
+        let dimBadge = '';
+        if (is3D) {
+          const mode = store.get().dimensionMode || 'planar';
+          dimBadge = mode === 'spatial'
+            ? ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">S²</span>]</span>'
+            : mode === 'solid'
+              ? ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>'
+              : ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+        }
+        titleEl.innerHTML = `${titleEl.dataset.origTitle}${dimBadge}${perspectiveBadges[pKey] || ''}`;
       }
     };
 

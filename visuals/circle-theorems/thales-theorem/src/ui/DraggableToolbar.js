@@ -53,8 +53,8 @@ export class DraggableToolbar {
     this.toolbar.classList.toggle('tips-active', Boolean(collapsed && tipsOn));
     if (this.collapseBtn) {
       this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
-      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand toolbar' : 'Collapse toolbar');
-      this.collapseBtn.title = collapsed ? 'Expand viewport modes panel' : 'Collapse / expand viewport modes panel';
+      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand view options' : 'Collapse view options');
+      this.collapseBtn.title = collapsed ? 'Expand view options (2D, 3D, Split, AR, Spatial, Play, Reset)' : 'Collapse view options';
       const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
       const iconExpand = this.collapseBtn.querySelector('.icon-expand');
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
@@ -117,7 +117,7 @@ export class DraggableToolbar {
         h.className = `toolbar-resize-handle handle-${dir}`;
         h.dataset.resizeDir = dir;
         h.setAttribute('aria-hidden', 'true');
-        h.title = 'Drag to resize modes panel (Double-click to reset size)';
+        h.title = 'Drag to resize view toolbar (Double-click to reset size)';
         this.toolbar.appendChild(h);
       }
       if (h) {

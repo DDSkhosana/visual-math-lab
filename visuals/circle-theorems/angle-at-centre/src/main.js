@@ -273,19 +273,26 @@ function bootstrap() {
 
     const R3D = ((state.radius || 180) / 180) * 10;
     const elDimMode = document.getElementById('val-3d-dim-mode');
-    if (elDimMode) elDimMode.textContent = isSpatial ? 'Spatial S²' : state.dimensionMode === 'solid' ? 'Solid 3D (cylinder)' : 'Planar (Y=0)';
+    if (elDimMode) {
+      elDimMode.innerHTML = isSpatial
+        ? 'Spatial <span class="color-violet">S²</span>'
+        : state.dimensionMode === 'solid'
+          ? 'Solid <span class="color-amber">3D</span> (cylinder)'
+          : 'Planar (<span class="color-lime">Y=0</span>)';
+    }
     const el3dR = document.getElementById('val-3d-r');
     if (el3dR) el3dR.textContent = lenUnit === 'px' ? R3D.toFixed(1) : UnitSystemConverter.formatLength(R3D, lenUnit, 10, 1);
+    const m3d = scene3d.lastComputed3D;
     const elPx = document.getElementById('val-3d-px');
-    if (elPx) elPx.textContent = (R3D * Math.sin(latP) * Math.cos(state.angleP)).toFixed(2);
+    if (elPx) elPx.textContent = (m3d?.P ? m3d.P.x : (R3D * Math.sin(latP) * Math.cos(state.angleP))).toFixed(2);
     const elPy = document.getElementById('val-3d-py');
-    if (elPy) elPy.textContent = (R3D * Math.cos(latP)).toFixed(2);
+    if (elPy) elPy.textContent = (m3d?.P ? m3d.P.y : (R3D * Math.cos(latP))).toFixed(2);
     const elPz = document.getElementById('val-3d-pz');
-    if (elPz) elPz.textContent = (R3D * Math.sin(latP) * Math.sin(state.angleP)).toFixed(2);
+    if (elPz) elPz.textContent = (m3d?.P ? m3d.P.z : (R3D * Math.sin(latP) * Math.sin(state.angleP))).toFixed(2);
 
-    const p3A = { x: R3D * Math.sin(latA) * Math.cos(state.angleA), y: R3D * Math.cos(latA), z: R3D * Math.sin(latA) * Math.sin(state.angleA) };
-    const p3B = { x: R3D * Math.sin(latB) * Math.cos(state.angleB), y: R3D * Math.cos(latB), z: R3D * Math.sin(latB) * Math.sin(state.angleB) };
-    const p3P = { x: R3D * Math.sin(latP) * Math.cos(state.angleP), y: R3D * Math.cos(latP), z: R3D * Math.sin(latP) * Math.sin(state.angleP) };
+    const p3A = m3d?.A || { x: R3D * Math.sin(latA) * Math.cos(state.angleA), y: R3D * Math.cos(latA), z: R3D * Math.sin(latA) * Math.sin(state.angleA) };
+    const p3B = m3d?.B || { x: R3D * Math.sin(latB) * Math.cos(state.angleB), y: R3D * Math.cos(latB), z: R3D * Math.sin(latB) * Math.sin(state.angleB) };
+    const p3P = m3d?.P || { x: R3D * Math.sin(latP) * Math.cos(state.angleP), y: R3D * Math.cos(latP), z: R3D * Math.sin(latP) * Math.sin(state.angleP) };
     const sphExcess = computeSphericalTriangleExcess(p3A, p3B, p3P, R3D);
 
     const rowExcess = document.getElementById('row-3d-excess');
@@ -297,12 +304,11 @@ function bootstrap() {
     const elArea = document.getElementById('val-3d-area');
     if (elArea) elArea.textContent = sphExcess.area.toFixed(2);
 
-    const m3d = scene3d.lastComputed3D;
-    const central3dDeg = (isSpatial && m3d) ? m3d.degCentral : g.centralDeg;
-    const inscribed3dDeg = (isSpatial && m3d) ? m3d.degInscribed : g.inscribedDeg;
-    const alpha3dDeg = (isSpatial && m3d) ? m3d.degAlpha : alphaDeg;
-    const beta3dDeg = (isSpatial && m3d) ? m3d.degBeta : betaDeg;
-    const ratio3d = (isSpatial && m3d) ? m3d.ratio : g.ratio;
+    const central3dDeg = m3d ? m3d.degCentral : g.centralDeg;
+    const inscribed3dDeg = m3d ? m3d.degInscribed : g.inscribedDeg;
+    const alpha3dDeg = m3d ? m3d.degAlpha : alphaDeg;
+    const beta3dDeg = m3d ? m3d.degBeta : betaDeg;
+    const ratio3d = m3d ? m3d.ratio : g.ratio;
 
     const elCentral = document.getElementById('val-3d-central');
     if (elCentral) elCentral.textContent = UnitSystemConverter.formatAngle(central3dDeg, angUnit);

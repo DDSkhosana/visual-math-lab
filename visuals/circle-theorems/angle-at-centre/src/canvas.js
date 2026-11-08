@@ -178,19 +178,59 @@ export class CanvasView {
       const bisLen = Math.hypot(bisX, bisY);
       const nBisX = bisLen > 0.001 ? bisX / bisLen : 0;
       const nBisY = bisLen > 0.001 ? bisY / bisLen : 1;
-      const inscBadgeX = g.P.x + 60 * nBisX;
-      const inscBadgeY = g.P.y + 60 * nBisY;
-      drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscBadgeX, inscBadgeY, PALETTE.green);
 
       // Base angle alpha and beta badges near P:
-      // Uses vector bisectors placed at 48px to clear 30px wedges
+      // Uses vector bisectors with dynamic collision avoidance
       const uPOx = Math.cos(angPO), uPOy = Math.sin(angPO);
       const bisAlphaPx = uPOx + uAx, bisAlphaPy = uPOy + uAy;
       const lAlphaP = Math.hypot(bisAlphaPx, bisAlphaPy) || 1;
       const bisBetaPx = uPOx + uBx, bisBetaPy = uPOy + uBy;
       const lBetaP = Math.hypot(bisBetaPx, bisBetaPy) || 1;
-      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, g.P.x + 48 * (bisAlphaPx / lAlphaP), g.P.y + 48 * (bisAlphaPy / lAlphaP), PALETTE.lime);
-      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, g.P.x + 48 * (bisBetaPx / lBetaP), g.P.y + 48 * (bisBetaPy / lBetaP), PALETTE.fuchsia);
+
+      const dirAlphaX = bisAlphaPx / lAlphaP, dirAlphaY = bisAlphaPy / lAlphaP;
+      const dirBetaX = bisBetaPx / lBetaP, dirBetaY = bisBetaPy / lBetaP;
+
+      let alphaDist = 48, betaDist = 48, inscDist = 60;
+      let alphaX = g.P.x + alphaDist * dirAlphaX;
+      let alphaY = g.P.y + alphaDist * dirAlphaY;
+      let betaX = g.P.x + betaDist * dirBetaX;
+      let betaY = g.P.y + betaDist * dirBetaY;
+      let inscX = g.P.x + inscDist * nBisX;
+      let inscY = g.P.y + inscDist * nBisY;
+
+      // Collision avoidance: if alpha and beta badges overlap (< 78px), spread them along their triangle interiors
+      const dAlphaBeta = Math.hypot(alphaX - betaX, alphaY - betaY);
+      if (dAlphaBeta < 78) {
+        inscDist = 44;
+        inscX = g.P.x + inscDist * nBisX;
+        inscY = g.P.y + inscDist * nBisY;
+
+        const maxArmA = Math.hypot(g.A.x - g.P.x, g.A.y - g.P.y);
+        const maxArmB = Math.hypot(g.B.x - g.P.x, g.B.y - g.P.y);
+        alphaDist = Math.min(84, Math.max(52, maxArmA * 0.35));
+        betaDist = Math.min(84, Math.max(52, maxArmB * 0.35));
+
+        alphaX = g.P.x + alphaDist * dirAlphaX;
+        alphaY = g.P.y + alphaDist * dirAlphaY;
+        betaX = g.P.x + betaDist * dirBetaX;
+        betaY = g.P.y + betaDist * dirBetaY;
+
+        const curD = Math.hypot(alphaX - betaX, alphaY - betaY);
+        if (curD < 78) {
+          const push = (78 - curD) * 0.5;
+          const perpX = -nBisY, perpY = nBisX;
+          const dotA = (g.A.x - g.P.x) * perpX + (g.A.y - g.P.y) * perpY;
+          const signA = dotA >= 0 ? 1 : -1;
+          alphaX += perpX * push * signA;
+          alphaY += perpY * push * signA;
+          betaX -= perpX * push * signA;
+          betaY -= perpY * push * signA;
+        }
+      }
+
+      drawTextBadge(ctx, `θ = ${g.inscribedDeg.toFixed(1)}°`, inscX, inscY, PALETTE.green);
+      drawTextBadge(ctx, `α = ${alphaDeg.toFixed(1)}°`, alphaX, alphaY, PALETTE.lime);
+      drawTextBadge(ctx, `β = ${betaDeg.toFixed(1)}°`, betaX, betaY, PALETTE.fuchsia);
 
       // Badges at base vertices A and B (outside 26px wedges along bisectors)
       const uAOx = Math.cos(angAO), uAOy = Math.sin(angAO);
@@ -251,7 +291,7 @@ export class CanvasView {
     off.height = this.height * 2;
     const offCtx = off.getContext('2d');
     offCtx.scale(2, 2);
-    offCtx.fillStyle = '#0f172a';
+    offCtx.fillStyle = '#121215';
     offCtx.fillRect(0, 0, this.width, this.height);
 
     const prevCtx = this.ctx;

@@ -51,9 +51,9 @@ export class Scene3DView {
         this.renderer.setClearColor(0x000000, 0);
       }
     } else {
-      if (this.objects.scene) this.objects.scene.background = new this.THREE.Color('#1e293b');
+      if (this.objects.scene) this.objects.scene.background = new this.THREE.Color('#121215');
       if (this.renderer && typeof this.renderer.setClearColor === 'function') {
-        this.renderer.setClearColor(0x1e293b, 1);
+        this.renderer.setClearColor(0x121215, 1);
       }
     }
   }
@@ -366,6 +366,17 @@ export class Scene3DView {
     const v = new this.THREE.Vector3(point.x, point.y, point.z).project(this.camera);
     if (v.z > 1) return null;
     return { x: (v.x * 0.5 + 0.5) * width, y: (v.y * -0.5 + 0.5) * height };
+  }
+
+  getLabelAnchors() {
+    const o = this.objects;
+    if (!o?.pointA || !o?.pointB || !o?.pointP) return null;
+    return {
+      a: o.pointA.position,
+      b: o.pointB.position,
+      p: o.pointP.position,
+      o: o.pointO ? o.pointO.position : new this.THREE.Vector3(0, 0, 0),
+    };
   }
 
   setOrbitEnabled(enabled) {

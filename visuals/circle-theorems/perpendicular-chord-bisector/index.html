@@ -109,7 +109,7 @@
         <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag toolbar (Double-click or Home to reset)" tabindex="0">
           <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/></svg>
         </div>
-        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand toolbar" aria-expanded="false" title="Expand viewport modes panel">
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand view options" aria-expanded="false" title="Expand view options (2D, 3D, Split, AR, Spatial, Play, Reset)">
           <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><polyline points="15 18 9 12 15 6"></polyline></svg>
           <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
@@ -388,7 +388,7 @@
             <div class="collapsible-section collapsed">
               <div class="collapsible-header" aria-expanded="false"><span>3D Overlays</span><span class="icon">▶</span></div>
               <div class="collapsible-content" style="display:flex; flex-direction:column; gap:0.5rem;">
-                <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span><span class="color-sky">Sphere mesh (<span class="color-indigo">4πr²</span>)</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere"><span class="checkmark"></span><span class="color-sky">Sphere mesh (<span class="color-indigo">4πr²</span>)</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-wire" checked><span class="checkmark"></span><span class="color-sky">Great circle wireframe</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-sky">O</span>, <span class="color-blue">A</span>, <span class="color-orange">B</span>, <span class="color-emerald">M</span>, <span class="color-teal">90°</span>)</label>
                 <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-lime">y</span>, <span class="color-steel">z</span>)</label>

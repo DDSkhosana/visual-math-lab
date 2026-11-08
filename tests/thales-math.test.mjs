@@ -453,5 +453,70 @@ test('Thales: Viewport Dimension Adaptation & Collapsible Modes Panel Contract',
   assert.ok(controlsCss.includes('display: none !important'), 'Collapsed toolbar content must have display: none !important');
 });
 
+test('Thales: Solid 3D label positions are mathematically coupled to rotated 3D mesh coordinates and invariants', async () => {
+  const { describeLabels } = await import('../visuals/circle-theorems/thales-theorem/src/views/LabelOverlayView.js');
+
+  const state = {
+    dimensionMode: 'solid',
+    radius: 10,
+    angle2D: Math.PI / 4,
+    solidTilt: 25 * Math.PI / 180,
+    solidAzimuth: 35 * Math.PI / 180,
+    solidSpin: 0,
+    baselineRotation: 0,
+    vis3d: { labels: true, angles: true, area: true, axes: true, reflex: true }
+  };
+
+  const labels = describeLabels(state);
+  const byKey = (k) => labels.find(l => l.key === k);
+
+  const labelP = byKey('p');
+  const labelA = byKey('a');
+  const labelB = byKey('b');
+  const labelRight = byKey('right');
+  const labelS = byKey('s');
+  const labelT = byKey('t');
+
+  assert.ok(labelP, 'Label P must exist');
+  assert.ok(labelA, 'Label A must exist');
+  assert.ok(labelB, 'Label B must exist');
+  assert.ok(labelRight, 'Label Right must exist');
+  assert.ok(labelS, 'Label s must exist');
+  assert.ok(labelT, 'Label t must exist');
+
+  // Verify non-zero Z coordinate in Solid 3D (not clamped to flat XY plane)
+  assert.ok(Math.abs(labelA.at.z) > 1.0, `Label A.z (${labelA.at.z}) must reflect 3D solid tilt`);
+  assert.ok(Math.abs(labelB.at.z) > 1.0, `Label B.z (${labelB.at.z}) must reflect 3D solid tilt`);
+  assert.ok(Math.abs(labelP.at.z) > 1.0, `Label P.z (${labelP.at.z}) must reflect 3D solid tilt`);
+
+  // Verify midpoint coupling of chords s and t
+  const midPA = {
+    x: (labelP.at.x / 1.15 + labelA.at.x / 1.15) / 2,
+    y: (labelP.at.y / 1.15 + labelA.at.y / 1.15) / 2 + 0.4,
+    z: (labelP.at.z / 1.15 + labelA.at.z / 1.15) / 2,
+  };
+  close(labelS.at.x, midPA.x, 1e-4);
+  close(labelS.at.y, midPA.y, 1e-4);
+  close(labelS.at.z, midPA.z, 1e-4);
+
+  // Verify anchors coupling when passed directly from Scene3D
+  const mockAnchors = {
+    a: { x: -8, y: 2, z: 5 },
+    b: { x: 8, y: -2, z: -5 },
+    p: { x: 0, y: 7, z: 2 },
+    o: { x: 0, y: 0, z: 0 },
+  };
+  const anchoredLabels = describeLabels(state, mockAnchors);
+  const ancP = anchoredLabels.find(l => l.key === 'p');
+  const ancA = anchoredLabels.find(l => l.key === 'a');
+  const ancB = anchoredLabels.find(l => l.key === 'b');
+  close(ancP.at.x, 0 * 1.15, 1e-4);
+  close(ancP.at.y, 7 * 1.15, 1e-4);
+  close(ancP.at.z, 2 * 1.15, 1e-4);
+  close(ancA.at.x, -8 * 1.15, 1e-4);
+  close(ancA.at.y, 2 * 1.15, 1e-4);
+  close(ancA.at.z, 5 * 1.15, 1e-4);
+});
+
 
 

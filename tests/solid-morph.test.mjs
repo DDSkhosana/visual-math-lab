@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extrudeTriangleSoup, extrudePolyline, isSolidMode, IdleParallax, SOLID_MODE } from '../js/solid-morph.js';
 import { getSolidOrientationFrame, rodriguesVector } from '../js/circle-3d.js';
 
@@ -291,6 +291,8 @@ test('Spatial mode 2D spherical surface draggability: all cases decouple Solid f
   // 4. Tangents from Point: apex P draggable in 3D around S² (latP, pointAngle)
   assert.ok(circle3D.includes("store.set({ pointAngle: angle, latP: lat });"), 'TangentsFromPoint3DView updates latP on drag');
   assert.ok(circle3D.includes("d * Math.sin(latP) * Math.cos(angP)"), 'TangentsFromPoint3DView positions apex P in 3D spherical coordinates');
+  assert.ok(circle3D.includes("store.set({ pointAngle: newAngle, latP: newLat });"), 'TangentsFromPoint3DView computes stable spatial spherical coordinates for external point P');
+  assert.ok(circle3D.includes("targetPos.lengthSq() > 1e-4) ? targetPos.length() : (this.R || 10)"), 'BaseScene3DView dynamically sizes raycast sphere for external points at distance d');
 
   // 5. Angle at Centre: points P, A, B draggable across full S² and feed Girard excess
   assert.ok(circle3D.includes("if (st.dimensionMode === 'spatial' && lat !== undefined) updates.latP = lat;"), 'AngleAtCentre3DView updates latP on drag in spatial mode');
@@ -335,4 +337,47 @@ test('Thales Theorem: Point P 3D interaction, solidOrient anti-hijack guard, and
   assert.ok(thalesMath.includes('const isSolid = dimensionMode === \'solid\';'), 'sphereStats recognizes solid mode');
   assert.ok(thalesMath.includes('const depth = (isSolid && Math.abs(p.z) < 0.05) ? (2 * h) : Math.max(Math.abs(p.z), 0.001);'), 'sphereStats computes 3D volume depth');
   assert.ok(thalesMath.includes('const volume = Math.abs(p.x * p.y * depth);'), 'sphereStats computes box volume for solid mode');
+});
+
+test('Universal Dimension Mode Badges and Initial Spatial Coordinates across all 12 visualizers', async () => {
+  // 1. Circle Theorems: createInitialState declarations & preset latitudes
+  const ctModules = [
+    { id: 'angle-at-centre', file: 'visuals/circle-theorems/angle-at-centre/src/model.js', lats: ['latA', 'latB', 'latP'] },
+    { id: 'angles-in-same-segment', file: 'visuals/circle-theorems/angles-in-same-segment/src/model.js', lats: ['latA', 'latB', 'latP1', 'latP2'] },
+    { id: 'cyclic-quadrilateral', file: 'visuals/circle-theorems/cyclic-quadrilateral/src/model.js', lats: ['latA', 'latB', 'latC', 'latD'] },
+    { id: 'tangent-radius', file: 'visuals/circle-theorems/tangent-radius/src/model.js', lats: ['latT', 'latT2', 'latT3', 'latT4'] },
+    { id: 'alternate-segment', file: 'visuals/circle-theorems/alternate-segment/src/model.js', lats: ['latT', 'latA', 'latB'] },
+    { id: 'tangents-from-external-point', file: 'visuals/circle-theorems/tangents-from-external-point/src/model.js', lats: ['latP', 'latT1', 'latT2'] },
+    { id: 'perpendicular-chord-bisector', file: 'visuals/circle-theorems/perpendicular-chord-bisector/src/model.js', lats: ['latA', 'latB'] },
+    { id: 'thales-theorem', file: 'visuals/circle-theorems/thales-theorem/src/config/defaults.js', lats: ['lat3D', 'lon3D'] },
+  ];
+
+  for (const m of ctModules) {
+    const mod = await import(pathToFileURL(path.join(ROOT, m.file)).href);
+    const init = mod.createInitialState();
+    assert.strictEqual(init.dimensionMode, 'planar', `${m.id} initial state must declare dimensionMode: 'planar'`);
+    for (const latKey of m.lats) {
+      assert.ok(typeof init[latKey] === 'number', `${m.id} initial state must preset spatial coordinate ${latKey}`);
+    }
+  }
+
+  // 2. Circle Core: Dynamic mode badges in 3D title
+  const circleCoreSrc = read('js/circle-core.js');
+  assert.ok(circleCoreSrc.includes('[Planar (Y=0)]'), 'circle-core must include [Planar (Y=0)] badge');
+  assert.ok(circleCoreSrc.includes('[Spatial S²]'), 'circle-core must include [Spatial S²] badge');
+  assert.ok(circleCoreSrc.includes('[Solid 3D]'), 'circle-core must include [Solid 3D] badge');
+  assert.ok(circleCoreSrc.includes('dimension-mode-badge'), 'circle-core must use dimension-mode-badge class');
+
+  // 3. Trigonometry suite: Dynamic mode badges in 3D titles
+  const trigCoreSrc = read('visuals/trigonometry/js/trig-core.js');
+  assert.ok(trigCoreSrc.includes('[Planar (Y=0)]'), 'trig-core must include [Planar (Y=0)] badge');
+  assert.ok(trigCoreSrc.includes('[Spatial S²]'), 'trig-core must include [Spatial S²] badge');
+  assert.ok(trigCoreSrc.includes('[Spatial SO(3)]'), 'trig-core must include [Spatial SO(3)] badge');
+  assert.ok(trigCoreSrc.includes('[Solid 3D]'), 'trig-core must include [Solid 3D] badge');
+
+  // 4. CSS: dimension-mode-badge styling
+  const circleCss = read('css/circle-visual.css');
+  assert.ok(circleCss.includes('.dimension-mode-badge'), 'circle-visual.css must style .dimension-mode-badge');
+  const trigCss = read('visuals/trigonometry/css/trig-suite.css');
+  assert.ok(trigCss.includes('.dimension-mode-badge'), 'trig-suite.css must style .dimension-mode-badge');
 });

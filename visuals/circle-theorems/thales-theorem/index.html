@@ -124,7 +124,7 @@
           <circle cx="10" cy="13" r="1.5"/>
         </svg>
       </div>
-      <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand toolbar" aria-expanded="false" title="Expand viewport modes panel">
+      <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand view options" aria-expanded="false" title="Expand view options (2D, 3D, Split, AR, Spatial, Play, Reset)">
         <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><polyline points="15 18 9 12 15 6"></polyline></svg>
         <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
@@ -263,7 +263,7 @@
                     <button type="button" class="stats-toggle-btn panel-minimize-btn" id="toggle-stats-3d" aria-expanded="false" title="Expand 3D Telemetry"><span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span></button>
                 </div>
                 <div class="stats-body hidden" id="stats-3d-body">
-                    <div class="stat-line" id="row-3d-mode"><span class="color-sky">3D Geometry:</span> <strong class="color-sky" id="val-3d-mode-label">Planar (Y = 0)</strong></div>
+                    <div class="stat-line" id="row-3d-mode"><span class="color-white">3D Geometry:</span> <strong class="color-white" id="val-3d-mode-label">Planar (<span class="color-lime">Y = 0</span>)</strong></div>
                     <div class="stat-line"><span class="color-indigo">Radius r:</span> <span class="stat-value color-indigo" id="val-3d-r">0.00</span></div>
                     <div class="stat-line"><span class="color-red">Diameter |d|:</span> <span class="stat-value color-red" id="val-3d-d">0.00</span></div>
                     <div class="stat-line"><span class="color-sky">Circumf. 2πr:</span> <span class="stat-value color-sky" id="val-3d-circ">0.00</span></div>
@@ -571,7 +571,7 @@
                     </div>
                     <div class="collapsible-content">
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere" checked><span class="checkmark"></span><span class="color-sky">Sphere Mesh (4πr²)</span></label>
+                            <label class="checkbox-container"><input type="checkbox" id="vis-3d-sphere"><span class="checkmark"></span><span class="color-sky">Sphere Mesh (4πr²)</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-circle-wire" checked><span class="checkmark"></span><span class="color-sky">Great Circle Wire</span></label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-labels" checked><span class="checkmark"></span>Labels (<span class="color-violet">P</span>, <span class="color-red">A</span>, <span class="color-orange">B</span>, <span class="color-indigo">O</span>, <span class="color-blue">s</span>, <span class="color-orange">t</span>, <span class="color-red">|d|</span>, <span class="color-indigo">r</span>)</label>
                             <label class="checkbox-container"><input type="checkbox" id="vis-3d-coords"><span class="checkmark"></span>Coordinates (<span class="color-amber">x</span>, <span class="color-emerald">y</span>, <span class="color-steel">z</span>)</label>

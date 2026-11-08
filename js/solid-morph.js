@@ -196,7 +196,7 @@ const smoothCoincidentNormals = (geometry) => {
 /** Adds a sky/ground hemisphere fill so lit solids show shaded side walls. */
 export function addSolidLighting(THREE, scene) {
   if (!THREE?.HemisphereLight || !scene?.add) return null;
-  const hemi = new THREE.HemisphereLight(0xdbeafe, 0x0f172a, 0.35);
+  const hemi = new THREE.HemisphereLight(0xdbeafe, 0x000000, 0.35);
   hemi.position?.set?.(0, 40, 0);
   scene.add(hemi);
   return hemi;
@@ -417,7 +417,7 @@ export class SolidMorph {
     const solid = new THREE.Mesh(surface, new THREE.MeshStandardMaterial({
       color,
       emissive: color,
-      emissiveIntensity: 0.16,
+      emissiveIntensity: 0.22,
       transparent: true,
       opacity: surfaceOpacity,
       roughness: 0.55,

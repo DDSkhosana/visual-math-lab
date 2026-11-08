@@ -30,10 +30,12 @@ const THEOREM_TIPS = {
     name: 'Angle at the Centre Theorem',
     interactionTip2D: 'Drag Point P or arc endpoints A and B. Central angle 2θ is always exactly twice the inscribed angle θ.',
     theoremSpecifics: [
-      'Drag Point P along the major arc; notice that inscribed angle θ remains constant for fixed A and B.',
-      'Drag endpoints A and B to change the subtended arc and see central angle 2θ dynamically scale.',
-      'Angle labels are vertically oriented and stacked to prevent overlapping badges and ensure mathematical clarity.',
-      'Move P past the baseline or toggle Reflex Angle at Centre to explore the major-arc reflex theorem.'
+      'Drag Point P along the major arc; notice that inscribed angle θ (green) remains constant for fixed endpoints A and B.',
+      'Drag endpoints A and B to change the subtended arc and see central angle 2θ (yellow) dynamically scale to exactly 2θ.',
+      'Auxiliary radius OP (lavender) splits the construction into two isosceles triangles: △OPA (blue) with base angle α (lime) and △OPB (orange) with base angle β (fuchsia), proving 2θ = 2(α + β).',
+      'Both 2D canvas and 3D views maintain clean unshaded segments outside the mathematical proof. The 3D Sphere Mesh (4πr²) can be toggled on demand in 3D View Overlays.',
+      'Angle labels feature automatic collision avoidance and lateral spreading so α, β, and θ badges never collide or obscure each other.',
+      'Move P past the baseline or toggle Reflex Angle at Centre to explore the major-arc reflex theorem (2θ* + 2θ = 360°).'
     ],
     highlightPoint: 'Point P, A, or B'
   },
@@ -42,8 +44,9 @@ const THEOREM_TIPS = {
     interactionTip2D: 'Drag points P₁ and P₂ anywhere along the same circular arc; angles ∠AP₁B and ∠AP₂B are identical.',
     theoremSpecifics: [
       'Drag Point P₁ or Point P₂ independently along the circular segment.',
-      'Notice that ∠AP₁B = ∠AP₂B = α holds true everywhere along the segment.',
-      'Toggle "Segment & Triangle Shading" to clearly highlight the circular segment subtended by chord AB.'
+      'Notice that ∠AP₁B = ∠AP₂B = θ holds true everywhere along the segment.',
+      'Toggle "Segment & Triangle Shading" to highlight the eponymous circular segment containing P₁ and P₂ in Sky Blue (#0284c7).',
+      'Consistent 2D/3D Parity: only the active segment and triangles are shaded; all outer circular segments remain dark and unshaded in both 2D and 3D views.'
     ],
     highlightPoint: 'Points P₁ and P₂'
   },
@@ -670,7 +673,7 @@ function createTourController(slug, theoremData) {
       placement: 'left',
     },
     {
-      title: 'Viewport Modes & Dockable Windowing Toolbar',
+      title: 'View Windowing Toolbar & Workspace Dock',
       selector: '#viewport-toolbar',
       content: `Use the floating toolbar to switch between <strong>Split</strong>, <strong>2D</strong>, and <strong>3D</strong> viewports.
         Click <strong>Flip</strong> to rotate layout horizontally or vertically.

@@ -171,7 +171,7 @@ test('3D Grid & Mesh Decoupling: grid, axes, sphere, and circleWire are independ
       this.latestVis3d = state?.vis3d || {};
       if (this.grid) this.grid.visible = state?.vis3d?.gridXZ !== false;
       if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
-      if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false;
+      if (this.sphere) this.sphere.visible = Boolean(state?.vis3d?.sphere);
       if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     },
   };

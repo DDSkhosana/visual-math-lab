@@ -26,9 +26,15 @@ export const PALETTE = Object.freeze({
   steel: '#6488b0',
   lavender: '#c4b5fd',
   platinum: '#f8fafc',
-  slate800: '#1e293b',
-  slate700: '#334155',
-  slate600: '#475569',
+  bgObsidian: '#0a0a0c',
+  bgBlackGrey: '#121215',
+  bgCardDark: '#141418',
+  bgShelfDark: '#1c1c22',
+  borderNeutral: '#27272a',
+  textWhite: '#f8fafc',
+  slate800: '#121215',
+  slate700: '#18181b',
+  slate600: '#27272a',
 });
 
 export const COMPACT_QUERY = '(max-width: 48rem), (max-height: 34rem) and (orientation: landscape)';
@@ -770,8 +776,8 @@ export class DraggableToolbar {
     this.toolbar.classList.toggle('tips-active', Boolean(collapsed && tipsOn));
     if (this.collapseBtn) {
       this.collapseBtn.setAttribute('aria-expanded', String(!collapsed));
-      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand toolbar' : 'Collapse toolbar');
-      this.collapseBtn.title = collapsed ? 'Expand viewport modes panel' : 'Collapse / expand viewport modes panel';
+      this.collapseBtn.setAttribute('aria-label', collapsed ? 'Expand view options' : 'Collapse view options');
+      this.collapseBtn.title = collapsed ? 'Expand view options (2D, 3D, Split, AR, Spatial, Play, Reset)' : 'Collapse view options';
       const iconCollapse = this.collapseBtn.querySelector('.icon-collapse');
       const iconExpand = this.collapseBtn.querySelector('.icon-expand');
       if (iconCollapse) iconCollapse.style.display = collapsed ? 'none' : 'inline-block';
@@ -822,7 +828,7 @@ export class DraggableToolbar {
         h.className = `toolbar-resize-handle handle-${dir}`;
         h.dataset.resizeDir = dir;
         h.setAttribute('aria-hidden', 'true');
-        h.title = 'Drag to resize modes panel (Double-click to reset size)';
+        h.title = 'Drag to resize view toolbar (Double-click to reset size)';
         this.toolbar.appendChild(h);
       }
       if (h) {
@@ -1269,11 +1275,8 @@ function _syncPanelExpandButton(header) {
   sections.forEach((s) => s.classList.toggle('is-subpanel-overlay', isSingle && !s.classList.contains('collapsed')));
   cards.forEach((c) => c.classList.toggle('is-subpanel-overlay', isSingle && (c.classList.contains('open') || Boolean(c.querySelector('.derivation-card-header')?.classList.contains('open')))));
 
-  const allSectionsOpen = sections.length === 0 || openSections.length === sections.length;
-  const allCardsOpen = cards.length === 0 || openCards.length === cards.length;
-
   if (expandBtn) {
-    setExpandButtonUI(expandBtn, allSectionsOpen && allCardsOpen);
+    setExpandButtonUI(expandBtn, totalOpen > 0);
   }
 
   syncPanelElevationTurn(panel, header.closest('.collapsible-section, .derivation-card'));
@@ -1421,7 +1424,7 @@ export function drawHaloText(ctx, text, x, y, color, font = 'bold 13px monospace
   ctx.miterLimit = 2;
   if (align) ctx.textAlign = align;
   ctx.textBaseline = 'middle';
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+  ctx.strokeStyle = 'rgba(18, 18, 21, 0.95)';
   ctx.lineWidth = 4.5;
 
   const str = String(text);
@@ -1546,7 +1549,7 @@ export function drawRadialLabelledPoint(ctx, at, center, color, label = '', dist
     // Protective dark halo ensures background geometry is not visible through letters
     ctx.lineJoin = 'round';
     ctx.miterLimit = 2;
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.strokeStyle = 'rgba(18, 18, 21, 0.95)';
     ctx.lineWidth = 4.5;
     ctx.strokeText(label, lx, ly);
 
@@ -1614,7 +1617,7 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
   if (showGrid) {
     ctx.lineWidth = 1;
     // Secondary grid lines
-    ctx.strokeStyle = 'rgba(51, 65, 85, 0.22)';
+    ctx.strokeStyle = 'rgba(63, 63, 70, 0.22)';
     ctx.beginPath();
     const startX = cx % step;
     for (let x = startX; x <= width; x += step) {
@@ -1632,7 +1635,7 @@ export function draw2DCartesianGrid(ctx, width, height, cx, cy, vis2d = {}, step
 
     // Primary grid lines every 4 steps
     const majorStep = step * 4;
-    ctx.strokeStyle = 'rgba(71, 85, 105, 0.35)';
+    ctx.strokeStyle = 'rgba(82, 82, 91, 0.35)';
     ctx.beginPath();
     const startMajorX = cx % majorStep;
     for (let x = startMajorX; x <= width; x += majorStep) {
@@ -2213,7 +2216,7 @@ export function createDefaultVisState() {
     vis3d: {
       gridXZ: true,
       axes: true,
-      sphere: true,
+      sphere: false,
       circleWire: true,
       labels: true,
       coords: false,
@@ -2605,7 +2608,7 @@ export function bindStandardToggles(store, ...args) {
     if (st.vis3d) {
       syncCheck(['vis-3d-grid', 'toggle-3d-grid', 'vis-3d-grid-xz'], st.vis3d.gridXZ !== false);
       syncCheck(['vis-3d-axes', 'toggle-3d-axes'], st.vis3d.axes !== false);
-      syncCheck(['vis-3d-sphere', 'toggle-3d-sphere'], st.vis3d.sphere !== false);
+      syncCheck(['vis-3d-sphere', 'toggle-3d-sphere'], Boolean(st.vis3d.sphere));
       syncCheck(['vis-3d-wire', 'toggle-3d-circle-wire', 'vis-3d-circle-wire'], st.vis3d.circleWire !== false);
       syncCheck(['vis-3d-labels', 'toggle-3d-labels'], st.vis3d.labels !== false);
       syncCheck(['vis-3d-coords', 'toggle-3d-coords'], Boolean(st.vis3d.coords));
@@ -2706,9 +2709,59 @@ export function bindStandardToggles(store, ...args) {
   // Universal Individual Labels Toggles & Filter Chips Across 2D & 3D Overlays
   mountIndividualLabelsUI(store, opts);
 
-  // 3D & 2D Synchronized Camera Perspective Presets
+  // 3D & 2D Synchronized Camera Perspective Presets & Dimension Mode Badges
   const cameraButtonSelector =
     '#toolbar-3d-panel [data-preset], .camera-presets-bar button, [data-camera-preset], #toolbar-2d-panel [data-preset], [data-plane]';
+
+  const perspectiveBadges = {
+    top: ' <span class="perspective-badge font-bold">[Top View: <span class="color-amber">X</span><span class="color-steel">Z</span> Plan]</span>',
+    front: ' <span class="perspective-badge font-bold">[Front View: <span class="color-amber">X</span><span class="color-lime">Y</span> Elevation]</span>',
+    side: ' <span class="perspective-badge font-bold">[Side View: <span class="color-lime">Y</span><span class="color-steel">Z</span> Profile]</span>',
+    iso: ' <span class="perspective-badge font-bold">[Isometric Perspective]</span>',
+  };
+
+  // Mode badges: [Planar (Y=0)], [Spatial S²], [Solid 3D]
+  const getDimensionBadge = (mode) => {
+    if (mode === 'spatial') {
+      return ' <span class="dimension-mode-badge font-bold">[Spatial <span class="color-violet">S²</span>]</span>';
+    }
+    if (mode === 'solid') {
+      return ' <span class="dimension-mode-badge font-bold">[Solid <span class="color-amber">3D</span>]</span>';
+    }
+    return ' <span class="dimension-mode-badge font-bold">[Planar (<span class="color-lime">Y=0</span>)]</span>';
+  };
+
+  let activePerspectivePreset = 'iso';
+
+  const updateContainerTitleBadges = (preset = activePerspectivePreset) => {
+    const p = normalizeCameraPreset(preset);
+    activePerspectivePreset = p;
+    const st = store.get() || {};
+    const mode = st.dimensionMode || 'planar';
+    const dimBadge = getDimensionBadge(mode);
+    const pBadge = perspectiveBadges[p] || '';
+
+    const updateEl = (containerId, is3D = false) => {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.classList.remove('perspective-top', 'perspective-front', 'perspective-side', 'perspective-iso');
+      container.classList.add(`perspective-${p}`);
+
+      const titleEl = container.querySelector('.view-title');
+      if (titleEl) {
+        if (!titleEl.dataset.origTitle) {
+          titleEl.dataset.origTitle = titleEl.innerHTML
+            .replace(/\s*<span class="[^"]*(?:color-|perspective-badge|dimension-mode-badge)[^"]*font-bold[^"]*">\[.*?\]<\/span>/gi, '')
+            .replace(/\s*\[.*?\]/g, '')
+            .trim();
+        }
+        titleEl.innerHTML = `${titleEl.dataset.origTitle}${is3D ? dimBadge : ''}${pBadge}`;
+      }
+    };
+
+    updateEl('canvas-2d-container', false);
+    updateEl('canvas-3d-container', true);
+  };
 
   const applyPerspective = (preset) => {
     const p = normalizeCameraPreset(preset);
@@ -2719,33 +2772,7 @@ export function bindStandardToggles(store, ...args) {
     sceneTarget?.setCameraPreset(p);
 
     // 2. Synchronize 2D and 3D container perspective and illuminated active view badges
-    const perspectiveBadges = {
-      top: ' <span class="perspective-badge color-yellow font-bold">[Top View: XZ Plan]</span>',
-      front: ' <span class="perspective-badge color-lime font-bold">[Front View: XY Elevation]</span>',
-      side: ' <span class="perspective-badge color-steel font-bold">[Side View: YZ Profile]</span>',
-      iso: ' <span class="perspective-badge color-sky font-bold">[Isometric Perspective]</span>',
-    };
-
-    const updateContainerBadge = (containerId) => {
-      const container = document.getElementById(containerId);
-      if (!container) return;
-      container.classList.remove('perspective-top', 'perspective-front', 'perspective-side', 'perspective-iso');
-      container.classList.add(`perspective-${p}`);
-
-      const titleEl = container.querySelector('.view-title');
-      if (titleEl) {
-        if (!titleEl.dataset.origTitle) {
-          titleEl.dataset.origTitle = titleEl.innerHTML
-            .replace(/\s*<span class="[^"]*(?:color-|perspective-badge)[^"]*font-bold[^"]*">\[.*?\]<\/span>/gi, '')
-            .replace(/\s*\[.*?\]/g, '')
-            .trim();
-        }
-        titleEl.innerHTML = `${titleEl.dataset.origTitle}${perspectiveBadges[p] || ''}`;
-      }
-    };
-
-    updateContainerBadge('canvas-2d-container');
-    updateContainerBadge('canvas-3d-container');
+    updateContainerTitleBadges(p);
 
     // 3. Update active classes across all buttons in 2D & 3D
     const allButtons = document.querySelectorAll(cameraButtonSelector);
@@ -2951,7 +2978,7 @@ export function bindStandardToggles(store, ...args) {
             Lifts the theorem from the planar equatorial disk (<b class="color-yellow">Y = 0</b>) into true spherical geometry on the 2-sphere <b class="color-sky">S²</b>, rendering geodesic great-circle arcs and Girard's excess invariants.
             <b class="color-sky">Solid 3D</b> keeps those free points and extrudes the figure along its own plane's normal into prisms inside a cylinder, so every slice is the theorem's figure.
           </p>
-          <div id="solid-orientation-controls" style="margin-top: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;">
+          <div id="solid-orientation-controls" style="margin-top: 10px; padding: 8px 10px; background: rgba(20, 20, 24, 0.65); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Solid 3D Orientation</span>
               <button type="button" class="btn btn--sm" id="btn-reset-solid-orientation" style="padding: 2px 6px; font-size: 10px;" title="Reset cylinder orientation to default tilt">Reset</button>
@@ -2996,7 +3023,7 @@ export function bindStandardToggles(store, ...args) {
     if (targetParent) {
       const solidDiv = document.createElement('div');
       solidDiv.id = 'solid-orientation-controls';
-      solidDiv.style.cssText = 'margin-top: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;';
+      solidDiv.style.cssText = 'margin-top: 10px; padding: 8px 10px; background: rgba(20, 20, 24, 0.65); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; display: none;';
       solidDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <span style="font-size: 11px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">Solid 3D Orientation</span>
@@ -3149,6 +3176,7 @@ export function bindStandardToggles(store, ...args) {
   }
 
   const syncDimensionUI = (st = {}) => {
+    updateContainerTitleBadges();
     const mode = st.dimensionMode || 'planar';
     const isOn = isSpatialGeometry(mode);
     const statusPill = document.getElementById('toolbar-dimension-status');

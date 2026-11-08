@@ -30,6 +30,8 @@ export class NullScene3DView {
   domElement = null;
   render() {}
   resize() {}
+  project() { return null; }
+  getLabelAnchors() { return null; }
   setCameraPreset() {}
   enableInteraction() {}
   setARMode() {}
@@ -834,6 +836,45 @@ export class BaseScene3DView {
     }
     return dataUrl;
   }
+
+  /** World point to container pixels, or null when behind camera. */
+  project(point) {
+    const { clientWidth: width, clientHeight: height } = this.container;
+    if (!width || !this.camera) return null;
+    const v = new this.THREE.Vector3(point.x, point.y, point.z).project(this.camera);
+    if (v.z > 1) return null;
+    return { x: (v.x * 0.5 + 0.5) * width, y: (v.y * -0.5 + 0.5) * height };
+  }
+
+  /** Live 3D anchor positions of primary scene meshes for dynamic label tracking. */
+  getLabelAnchors() {
+    const anchors = {};
+    if (this.markerO) anchors.o = this.markerO.position;
+    if (this.markerA) anchors.a = this.markerA.position;
+    if (this.markerB) anchors.b = this.markerB.position;
+    if (this.markerC) anchors.c = this.markerC.position;
+    if (this.markerD) anchors.d = this.markerD.position;
+    if (this.markerP) anchors.p = this.markerP.position;
+    if (this.markerP1) anchors.p1 = this.markerP1.position;
+    if (this.markerP2) anchors.p2 = this.markerP2.position;
+    if (this.markerT) anchors.t = this.markerT.position;
+    if (this.markerT1) anchors.t1 = this.markerT1.position;
+    if (this.markerT2) anchors.t2 = this.markerT2.position;
+    if (this.markerT3) anchors.t3 = this.markerT3.position;
+    if (this.markerM) anchors.m = this.markerM.position;
+    if (this.markerK) anchors.k = this.markerK.position;
+    if (this.markerQ) anchors.q = this.markerQ.position;
+    if (this.markerTx) anchors.tx = this.markerTx.position;
+    if (this.markerSx) anchors.sx = this.markerSx.position;
+    if (this.handleA) anchors.a = this.handleA.position;
+    if (this.handleB) anchors.b = this.handleB.position;
+    if (this.handleC) anchors.c = this.handleC.position;
+    if (this.handleP) anchors.p = this.handleP.position;
+    if (this.handleAp) anchors.ap = this.handleAp.position;
+    if (this.handleHelix) anchors.helixP = this.handleHelix.position;
+    return anchors;
+  }
+
   /** Per-frame depth cues: the solid prism morph and idle parallax. */
   updateDepthCues(now = performance.now()) {
     const solid = isSolidMode(this.dimensionMode);
@@ -857,7 +898,7 @@ export class BaseScene3DView {
     this.dimensionMode = state?.dimensionMode || 'planar';
     if (this.grid) this.grid.visible = this.isARActive ? false : (state?.vis3d?.gridXZ !== false);
     if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
-    if (this.sphere) this.sphere.visible = state?.vis3d?.sphere !== false && !isSolidMode(this.dimensionMode);
+    if (this.sphere) this.sphere.visible = Boolean(state?.vis3d?.sphere) && !isSolidMode(this.dimensionMode);
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     const scaleX = state?.affineMode ? (state?.affineStretch ?? 1.35) : 1.0;
     if (this.scene?.scale?.set) {
@@ -969,7 +1010,7 @@ export class BaseScene3DView {
     };
 
     const pickSphere = (ray, targetPos = null) => {
-      const r = this.R || 10;
+      const r = (targetPos && typeof targetPos.lengthSq === 'function' && targetPos.lengthSq() > 1e-4) ? targetPos.length() : (this.R || 10);
       const rayObj = ray.ray || ray;
       const vOrigin = rayObj.origin;
       const vDir = rayObj.direction;
@@ -1262,14 +1303,17 @@ export class BaseScene3DView {
         }
         if (hit) {
           let angle;
-          if (isSolid && this.circleInfo?.u && this.circleInfo?.v) {
+          if ((isSolid || isSpatialMode) && this.circleInfo?.u && this.circleInfo?.v) {
             const dHit = new this.THREE.Vector3().subVectors(hit, this.circleInfo.center || new this.THREE.Vector3());
             angle = Math.atan2(dHit.dot(this.circleInfo.v), dHit.dot(this.circleInfo.u));
           } else {
             angle = Math.atan2(hit.z, hit.x);
           }
           if (angle < 0) angle += Math.PI * 2;
-          const lat = Math.acos(clamp(hit.y / (this.R || 10), -1, 1));
+          const latRadius = (targetPos && typeof targetPos.lengthSq === 'function' && targetPos.lengthSq() > 1e-4)
+            ? targetPos.length()
+            : (this.R || 10);
+          const lat = Math.acos(clamp(hit.y / (latRadius || 10), -1, 1));
 
           if (store.get().playing) {
             store.set({ playing: false });
@@ -2472,7 +2516,7 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const isSpatial = state.dimensionMode === 'spatial';
     const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P, circleInfo;
-    if (isSolid) {
+    if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       const { u, v, normal } = frame;
       const toPt = (ang) => new THREE.Vector3()
@@ -2480,21 +2524,9 @@ export class AngleAtCentre3DView extends BaseScene3DView {
         .addScaledVector(v, R * Math.sin(ang));
       A = toPt(state.angleA);
       B = toPt(state.angleB);
-      P = toPt(state.angleP);
-      circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
-    } else if (isSpatial) {
-      const latA = state.latA ?? (Math.PI / 2);
-      const latB = state.latB ?? (Math.PI / 2);
-      const latP = state.latP ?? (Math.PI / 2);
-      A = new THREE.Vector3(R * Math.sin(latA) * Math.cos(state.angleA), R * Math.cos(latA), R * Math.sin(latA) * Math.sin(state.angleA));
-      B = new THREE.Vector3(R * Math.sin(latB) * Math.cos(state.angleB), R * Math.cos(latB), R * Math.sin(latB) * Math.sin(state.angleB));
-      P = new THREE.Vector3(R * Math.sin(latP) * Math.cos(state.angleP), R * Math.cos(latP), R * Math.sin(latP) * Math.sin(state.angleP));
-      let normal = new THREE.Vector3().crossVectors(A, B);
-      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3().crossVectors(A, P);
-      if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
-      normal.normalize();
-      const u = A.clone().normalize();
-      const v = normal.clone().cross(u).normalize();
+      P = new THREE.Vector3()
+        .addScaledVector(u, R * Math.cos(state.angleP))
+        .addScaledVector(v, R * Math.sin(state.angleP));
       circleInfo = { normal, center: new THREE.Vector3(0, 0, 0), radius: R, u, v };
     } else {
       A = new THREE.Vector3(R * Math.cos(state.angleA), 0, R * Math.sin(state.angleA));
@@ -2548,13 +2580,10 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     if (isSpatial) {
       const TAU = Math.PI * 2;
       const norm = (a) => ((a % TAU) + TAU) % TAU;
+      const psiA = norm(Math.atan2(A.dot(circleInfo.v), A.dot(circleInfo.u)));
       const psiB = norm(Math.atan2(B.dot(circleInfo.v), B.dot(circleInfo.u)));
       const psiP = norm(Math.atan2(P.dot(circleInfo.v), P.dot(circleInfo.u)));
-      const pInArc = psiP > 0 && psiP < psiB;
-      arcRange = {
-        start: pInArc ? psiB : 0,
-        sweep: pInArc ? (TAU - psiB) : psiB,
-      };
+      arcRange = getSubtendedArcRange3D(psiA, psiB, psiP);
     } else {
       arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP);
     }
@@ -2639,7 +2668,7 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const A_pos = A.clone().multiplyScalar(1.15);
     const B_pos = B.clone().multiplyScalar(1.15);
     const P_pos = P.clone().multiplyScalar(1.15);
-    const O_pos = isSpatial ? O.clone().add(new THREE.Vector3(0, 0.8, 0)) : new THREE.Vector3(0, 0.8, 0);
+    const O_pos = O.clone().addScaledVector(circleInfo.normal, 0.8);
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -2681,6 +2710,15 @@ export class AngleAtCentre3DView extends BaseScene3DView {
       R3D: R,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    return {
+      o: this.markerO?.position,
+      a: this.markerA?.position,
+      b: this.markerB?.position,
+      p: this.markerP?.position,
+    };
   }
 }
 
@@ -3014,9 +3052,8 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       this.sphericalCap2.visible = false;
 
       const arcRange = getSubtendedArcRange3D(state.angleA, state.angleB, state.angleP1);
-      const TAU = Math.PI * 2;
-      const segStart = (arcRange.start + arcRange.sweep) % TAU;
-      const segSweep = TAU - arcRange.sweep;
+      const segStart = arcRange.start;
+      const segSweep = arcRange.sweep;
       if (isSolid) {
         setSegment3DVertices(this.segmentMesh.geometry, circleInfo.center, circleInfo.u, circleInfo.v, circleInfo.radius, segStart, segSweep, 32, THREE);
       } else {
@@ -3076,7 +3113,7 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       { key: 'reflexP2', name: 'θ₂*', at: get3DReflexBisector(P2, A, B, 4.0, THREE), text: `θ₂* = ${(360 - degP2).toFixed(1)}°`, isAngle: true, color: 'color-emerald', show: showReflex && isP2AngleVisible && (state.vis3d?.labels !== false) },
     ];
     if (showCenter) {
-      const oPos = isSpatial ? O.clone().add(circleInfo.normal.clone().multiplyScalar(0.8)) : new THREE.Vector3(0, 0.8, 0);
+      const oPos = O.clone().addScaledVector(circleInfo.normal, 0.8);
       this.currentLabels.push(
         { key: 'O', at: oPos, name: 'O', text: 'O', coords: O, color: 'color-indigo' },
         { key: 'central', name: '2θ', at: centLabelPos, text: `2θ = ${degCent.toFixed(1)}°`, isAngle: true, color: 'color-yellow', show: isCentralVisible }
@@ -3121,6 +3158,20 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
       arcAB: isSpatial ? R * Math.acos(Math.max(-1, Math.min(1, A.clone().normalize().dot(B.clone().normalize())))) : R * Math.abs(state.angleB - state.angleA),
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    const anchors = {
+      o: this.markerO?.position,
+      t: this.markerT?.position,
+    };
+    if (this.markerT1) anchors.t1 = this.markerT1.position;
+    if (this.markerT2) anchors.t2 = this.markerT2.position;
+    if (this.markerT3) anchors.t3 = this.markerT3.position;
+    if (this.markerQ) anchors.q = this.markerQ.position;
+    if (this.markerTx) anchors.tx = this.markerTx.position;
+    if (this.markerSx) anchors.sx = this.markerSx.position;
+    return anchors;
   }
 }
 
@@ -3496,8 +3547,8 @@ export class CyclicQuad3DView extends BaseScene3DView {
       const sumACVal = (degA + degC).toFixed(1);
       const sumBDVal = (degB + degD).toFixed(1);
       this.currentLabels.push(
-        { key: 'sumAC', at: posAC.clone().add(new THREE.Vector3(0, 0.6, 0)), text: `AC (A+C = ${sumACVal}°)`, color: 'color-lavender', show: true },
-        { key: 'sumBD', at: posBD.clone().add(new THREE.Vector3(0, -0.6, 0)), text: `BD (B+D = ${sumBDVal}°)`, color: 'color-sky', show: true }
+        { key: 'sumAC', at: posAC.clone().addScaledVector(circleInfo.normal, 0.6), text: `AC (A+C = ${sumACVal}°)`, color: 'color-lavender', show: true },
+        { key: 'sumBD', at: posBD.clone().addScaledVector(circleInfo.normal, -0.6), text: `BD (B+D = ${sumBDVal}°)`, color: 'color-sky', show: true }
       );
     }
     if (isSpatial && quadCenter && excessQuad > 0) {
@@ -3542,6 +3593,15 @@ export class CyclicQuad3DView extends BaseScene3DView {
       R3D: R,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    return {
+      a: this.markerA?.position,
+      b: this.markerB?.position,
+      c: this.markerC?.position,
+      d: this.markerD?.position,
+    };
   }
 }
 
@@ -3739,6 +3799,7 @@ export class TangentRadius3DView extends BaseScene3DView {
     const quadStart = quadIndex * (Math.PI / 2);
 
     const isSolid = isSolidMode(state.dimensionMode);
+    const isOriented3D = isSolid || isSpatial;
     let primNormal, uFrame, vFrame;
     if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
@@ -3954,7 +4015,7 @@ export class TangentRadius3DView extends BaseScene3DView {
     this.secantMesh.visible = showSecant && showArea;
 
     // 3D Labels
-    const O_pos = new THREE.Vector3(0, 0.8, 0);
+    const O_pos = O.clone().addScaledVector(primNormal, 0.8);
     this.currentLabels = [
       ...AXES_3D_LABELS,
       { key: 'O', at: O_pos, name: 'O', text: 'O', coords: O, color: 'color-blue' },
@@ -4090,7 +4151,7 @@ export class TangentRadius3DView extends BaseScene3DView {
 
         this.currentLabels.push({
           key: 'Sx',
-          at: Sx.clone().add(new THREE.Vector3(0, 0.4, 0)),
+          at: Sx.clone().addScaledVector(primNormal, 0.4),
           name: 'Sx',
           text: 'Sx',
           color: 'color-rose',
@@ -4099,7 +4160,7 @@ export class TangentRadius3DView extends BaseScene3DView {
         const midTan = new THREE.Vector3().addVectors(prim.pos, Sx).multiplyScalar(0.5);
         this.currentLabels.push({
           key: 'tan_label',
-          at: midTan.clone().add(new THREE.Vector3(0, 0.4, 0)),
+          at: midTan.clone().addScaledVector(primNormal, 0.4),
           text: `|R tan θ| = ${(R * Math.abs(Math.tan(primaryAng))).toFixed(1)}u`,
           color: 'color-rose',
           show: state.vis3d?.lengths !== false,
@@ -4113,7 +4174,7 @@ export class TangentRadius3DView extends BaseScene3DView {
 
       this.currentLabels.push({
         key: 'Tx',
-        at: Tx.clone().add(new THREE.Vector3(0, 0.4, 0)),
+        at: Tx.clone().addScaledVector(primNormal, 0.4),
         name: 'Tx',
         text: 'Tx',
         color: 'color-sky',
@@ -4122,7 +4183,7 @@ export class TangentRadius3DView extends BaseScene3DView {
       const midCos = Tx.clone().multiplyScalar(0.5);
       this.currentLabels.push({
         key: 'cos_label',
-        at: midCos.clone().add(new THREE.Vector3(0, 0.3, 0)),
+        at: midCos.clone().addScaledVector(primNormal, 0.3),
         text: `cos θ = ${cosVal.toFixed(2)}`,
         color: 'color-sky',
         show: state.vis3d?.lengths !== false,
@@ -4130,12 +4191,12 @@ export class TangentRadius3DView extends BaseScene3DView {
       const midSin = new THREE.Vector3().addVectors(Tx, prim.pos).multiplyScalar(0.5);
       this.currentLabels.push({
         key: 'sin_label',
-        at: midSin.clone().add(new THREE.Vector3(0, 0.3, 0)),
+        at: midSin.clone().addScaledVector(primNormal, 0.3),
         text: `sin θ = ${sinVal.toFixed(2)}`,
         color: 'color-emerald',
         show: state.vis3d?.lengths !== false,
       });
-      const wedgeBisector = get3DAngleBisector(O, new THREE.Vector3(R * 0.35, 0, 0), prim.pos, R * 0.45, THREE);
+      const wedgeBisector = get3DAngleBisector(O, refX, prim.pos, R * 0.45, THREE);
       this.currentLabels.push({
         key: 'theta_label',
         at: wedgeBisector,
@@ -4182,6 +4243,20 @@ export class TangentRadius3DView extends BaseScene3DView {
       activeTangents,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    const anchors = {
+      o: this.markerO?.position,
+      t: this.markerT?.position,
+    };
+    if (this.markerT1) anchors.t1 = this.markerT1.position;
+    if (this.markerT2) anchors.t2 = this.markerT2.position;
+    if (this.markerT3) anchors.t3 = this.markerT3.position;
+    if (this.markerQ) anchors.q = this.markerQ.position;
+    if (this.markerTx) anchors.tx = this.markerTx.position;
+    if (this.markerSx) anchors.sx = this.markerSx.position;
+    return anchors;
   }
 }
 
@@ -4616,12 +4691,13 @@ export class AlternateSegment3DView extends BaseScene3DView {
     // Alternate segment centroid label positions (Maj in color-sky, Min in color-violet)
     const majorMidAng = (segStart + segSweep / 2) % TAU;
     const minorMidAng = (arcRange.start + arcRange.sweep / 2) % TAU;
-    const majorLabelPos = isSpatial
-      ? new THREE.Vector3().addScaledVector(u, R * 0.62 * Math.cos(majorMidAng)).addScaledVector(v, R * 0.62 * Math.sin(majorMidAng))
-      : new THREE.Vector3(R * 0.62 * Math.cos(majorMidAng), 0, R * 0.62 * Math.sin(majorMidAng));
-    const minorLabelPos = isSpatial
-      ? new THREE.Vector3().addScaledVector(u, R * 0.82 * Math.cos(minorMidAng)).addScaledVector(v, R * 0.82 * Math.sin(minorMidAng))
-      : new THREE.Vector3(R * 0.82 * Math.cos(minorMidAng), 0, R * 0.82 * Math.sin(minorMidAng));
+    const isOriented = isSpatial || isSolid;
+    const majorLabelPos = isOriented
+      ? new THREE.Vector3().addScaledVector(u, R * 0.62 * Math.cos(majorMidAng)).addScaledVector(v, R * 0.62 * Math.sin(majorMidAng)).addScaledVector(normal, 0.2)
+      : new THREE.Vector3(R * 0.62 * Math.cos(majorMidAng), 0.2, R * 0.62 * Math.sin(majorMidAng));
+    const minorLabelPos = isOriented
+      ? new THREE.Vector3().addScaledVector(u, R * 0.82 * Math.cos(minorMidAng)).addScaledVector(v, R * 0.82 * Math.sin(minorMidAng)).addScaledVector(normal, 0.2)
+      : new THREE.Vector3(R * 0.82 * Math.cos(minorMidAng), 0.2, R * 0.82 * Math.sin(minorMidAng));
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -4676,6 +4752,16 @@ export class AlternateSegment3DView extends BaseScene3DView {
       R3D: R,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    const anchors = {
+      t: this.markerT?.position,
+      a: this.markerA?.position,
+      b: this.markerB?.position,
+    };
+    if (this.markerD) anchors.d = this.markerD.position;
+    return anchors;
   }
 }
 
@@ -4754,7 +4840,26 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
         id: 'P',
         mesh: this.markerP,
         onDrag: (angle, hit, store, lat) => {
-          store.set({ pointAngle: angle, latP: lat });
+          if (!hit) {
+            store.set({ pointAngle: angle, latP: lat });
+            return;
+          }
+          const st = store.get();
+          if (isSolidMode(st.dimensionMode)) {
+            store.set({ pointAngle: angle });
+            return;
+          }
+          if (st.dimensionMode === 'spatial') {
+            const dHit = (typeof hit.length === 'function' ? hit.length() : Math.hypot(hit.x, hit.y, hit.z)) || 1;
+            const newLat = Math.acos(clamp(hit.y / dHit, -1, 1));
+            let newAngle = Math.atan2(hit.z, hit.x);
+            if (newAngle < 0) newAngle += Math.PI * 2;
+            store.set({ pointAngle: newAngle, latP: newLat });
+            return;
+          }
+          let newAngle = Math.atan2(hit.z, hit.x);
+          if (newAngle < 0) newAngle += Math.PI * 2;
+          store.set({ pointAngle: newAngle, latP: Math.PI / 2 });
         },
       },
       {
@@ -4924,8 +5029,8 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const T1_pos = T1.clone().multiplyScalar(1.15);
     const T2_pos = T2.clone().multiplyScalar(1.15);
     const P_pos = P.clone().multiplyScalar(1.08);
-    const O_pos = new THREE.Vector3(0, 0.8, 0);
-    const K_pos = K.clone().add(new THREE.Vector3(0, 0.7, 0));
+    const O_pos = O.clone().addScaledVector(normal, 0.8);
+    const K_pos = K.clone().addScaledVector(normal, 0.7);
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -4967,6 +5072,16 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
       R3D: R,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    return {
+      o: this.markerO?.position,
+      p: this.markerP?.position,
+      t1: this.markerT1?.position,
+      t2: this.markerT2?.position,
+      k: this.markerK?.position,
+    };
   }
 }
 
@@ -5043,6 +5158,16 @@ export class ChordBisector3DView extends BaseScene3DView {
         latField: 'latA',
         onDrag: (angle, hit, store, lat) => {
           const st = store.get();
+          if (st.dimensionMode === 'spatial' && hit) {
+            const hitLen = hit.length() || 1;
+            const newLat = Math.acos(clamp(hit.y / hitLen, -1, 1));
+            const TAU = Math.PI * 2;
+            const norm = (a) => ((a % TAU) + TAU) % TAU;
+            const newAngle = norm(Math.atan2(hit.z, hit.x));
+            const clampedA = clampMinAngleDistance(newAngle, st.angleB, 0.2);
+            store.set({ angleA: clampedA, latA: newLat });
+            return;
+          }
           const clampedA = clampMinAngleDistance(angle, st.angleB, 0.2);
           const updates = { angleA: clampedA };
           if (st.dimensionMode === 'spatial' && lat !== undefined) {
@@ -5058,6 +5183,16 @@ export class ChordBisector3DView extends BaseScene3DView {
         latField: 'latB',
         onDrag: (angle, hit, store, lat) => {
           const st = store.get();
+          if (st.dimensionMode === 'spatial' && hit) {
+            const hitLen = hit.length() || 1;
+            const newLat = Math.acos(clamp(hit.y / hitLen, -1, 1));
+            const TAU = Math.PI * 2;
+            const norm = (a) => ((a % TAU) + TAU) % TAU;
+            const newAngle = norm(Math.atan2(hit.z, hit.x));
+            const clampedB = clampMinAngleDistance(newAngle, st.angleA, 0.2);
+            store.set({ angleB: clampedB, latB: newLat });
+            return;
+          }
           const clampedB = clampMinAngleDistance(angle, st.angleA, 0.2);
           const updates = { angleB: clampedB };
           if (st.dimensionMode === 'spatial' && lat !== undefined) {
@@ -5071,6 +5206,30 @@ export class ChordBisector3DView extends BaseScene3DView {
         mesh: this.markerM,
         onDrag: (angle, hit, store, lat) => {
           const st = store.get();
+          if (st.dimensionMode === 'spatial' && hit) {
+            const hitLen = hit.length() || 1;
+            const newLat = Math.acos(clamp(hit.y / hitLen, -1, 1));
+            const TAU = Math.PI * 2;
+            const norm = (a) => ((a % TAU) + TAU) % TAU;
+            const newAngle = norm(Math.atan2(hit.z, hit.x));
+
+            const curLatA = st.latA ?? (Math.PI / 2);
+            const curLatB = st.latB ?? (Math.PI / 2);
+            const midLat = (curLatA + curLatB) / 2;
+            const deltaLat = newLat - midLat;
+
+            const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
+            const nextA = norm(newAngle - dAngle / 2);
+            const nextB = norm(newAngle + dAngle / 2);
+
+            store.set({
+              angleA: nextA,
+              angleB: nextB,
+              latA: Math.max(0.05, Math.min(Math.PI - 0.05, curLatA + deltaLat)),
+              latB: Math.max(0.05, Math.min(Math.PI - 0.05, curLatB + deltaLat)),
+            });
+            return;
+          }
           const dAngle = Math.atan2(Math.sin(st.angleB - st.angleA), Math.cos(st.angleB - st.angleA));
           const TAU = Math.PI * 2;
           const nextA = (angle - dAngle / 2 + TAU * 2) % TAU;
@@ -5132,8 +5291,15 @@ export class ChordBisector3DView extends BaseScene3DView {
       if (normal.lengthSq() < 1e-6) normal = new THREE.Vector3(0, 1, 0);
       normal.normalize();
       alignCircleWireToPlane(this.circleWire, normal, O, R, THREE);
-      const u = isSpatial ? A.clone().normalize() : new THREE.Vector3(1, 0, 0);
-      const v = isSpatial ? normal.clone().cross(u).normalize() : new THREE.Vector3(0, 0, 1);
+      let u, v;
+      if (isSpatial) {
+        const ref = Math.abs(normal.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+        u = new THREE.Vector3().crossVectors(ref, normal).normalize();
+        v = new THREE.Vector3().crossVectors(normal, u).normalize();
+      } else {
+        u = new THREE.Vector3(1, 0, 0);
+        v = new THREE.Vector3(0, 0, 1);
+      }
       this.circleInfo = { normal, center: O, radius: R, u, v };
     }
 
@@ -5241,7 +5407,11 @@ export class ChordBisector3DView extends BaseScene3DView {
     const A_pos = A.clone().multiplyScalar(1.15);
     const B_pos = B.clone().multiplyScalar(1.15);
     const M_pos = M.clone().add(dirOM.clone().multiplyScalar(1.2));
-    const O_pos = new THREE.Vector3(0, 0.8, 0);
+    const O_pos = O.clone().addScaledVector(normal, 0.8);
+
+    const lenAM = A.distanceTo(M);
+    const lenMB = B.distanceTo(M);
+    const showLengths = (state.vis3d?.lengths !== false) && (state.showLengths !== false);
 
     this.currentLabels = [
       ...AXES_3D_LABELS,
@@ -5254,6 +5424,14 @@ export class ChordBisector3DView extends BaseScene3DView {
       { key: 'right', at: rightPos, text: '90°', isAngle: true, color: 'color-teal', show: showAngles },
       { key: 'reflexM', at: get3DReflexBisector(M, O, A, 3.2, THREE), text: '270.0° (M*)', isAngle: true, color: 'color-cyan', show: showReflex && (state.vis3d?.labels !== false) },
     ];
+    if (showLengths) {
+      const midAM = new THREE.Vector3().addVectors(A, M).multiplyScalar(0.5).addScaledVector(normal, 0.35);
+      const midMB = new THREE.Vector3().addVectors(M, B).multiplyScalar(0.5).addScaledVector(normal, 0.35);
+      this.currentLabels.push(
+        { key: 'lenAM', at: midAM, name: '|AM|', text: `|AM| = ${lenAM.toFixed(1)}`, color: 'color-blue', show: true },
+        { key: 'lenMB', at: midMB, name: '|MB|', text: `|MB| = ${lenMB.toFixed(1)}`, color: 'color-orange', show: true }
+      );
+    }
     if (isSpatial) {
       const Msph = new THREE.Vector3().addVectors(A, B).normalize().multiplyScalar(R);
       this.currentLabels.push({
@@ -5274,6 +5452,15 @@ export class ChordBisector3DView extends BaseScene3DView {
       R3D: R,
     };
     this.overlay.render(this.currentLabels, state.vis3d);
+  }
+
+  getLabelAnchors() {
+    return {
+      o: this.markerO?.position,
+      a: this.markerA?.position,
+      b: this.markerB?.position,
+      m: this.markerM?.position,
+    };
   }
 }
 

@@ -9,6 +9,11 @@ export function createInitialState() {
     angleT2: toRadians(135),
     angleT3: toRadians(225),
     angleT4: toRadians(315),
+    dimensionMode: 'planar',
+    latT: 1.13,
+    latT2: 1.95,
+    latT3: 2.10,
+    latT4: 1.05,
     tangentCount: 1,
     showQuadrant: true,
     showTrigWedges: true,
@@ -289,7 +294,7 @@ export function generateSVG(state, width, height) {
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #0f172a; font-family: sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #121215; font-family: sans-serif;">
   ${quadrantSVG}
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2"/>
   ${trigSVG}

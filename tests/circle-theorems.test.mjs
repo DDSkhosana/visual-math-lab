@@ -1673,6 +1673,50 @@ test('3D Viewport Interaction & Gimbal-Lock Prevention: Top preset eliminates po
   }
 });
 
+test('3D View and 2D Canvas Parity: sphere mesh defaults to false and segments are unshaded across all visuals', async () => {
+  const rootDir = process.cwd();
+  const circleCore = fs.readFileSync(path.join(rootDir, 'js', 'circle-core.js'), 'utf8');
+  const circle3d = fs.readFileSync(path.join(rootDir, 'js', 'circle-3d.js'), 'utf8');
+
+  // 1. Core default state must have sphere disabled by default
+  assert.ok(
+    /vis3d:\s*\{[^}]*sphere:\s*false/s.test(circleCore),
+    'createDefaultVisState must set vis3d.sphere: false so 3D background is clean and consistent with 2D'
+  );
+
+  // 2. BaseScene3DView must guard sphere visibility with Boolean(state?.vis3d?.sphere)
+  assert.ok(
+    circle3d.includes('this.sphere.visible = Boolean(state?.vis3d?.sphere) && !isSolidMode(this.dimensionMode)'),
+    'BaseScene3DView.applyCommonVis must check Boolean(state?.vis3d?.sphere)'
+  );
+
+  // 3. AnglesInSameSegment3DView must shade the eponymous segment containing P1 and P2 (not the opposite segment)
+  assert.ok(
+    circle3d.includes('const segStart = arcRange.start;') && circle3d.includes('const segSweep = arcRange.sweep;'),
+    'AnglesInSameSegment3DView must shade arcRange.start and arcRange.sweep (matching 2D canvas)'
+  );
+
+  // 4. All 8 circle theorem HTML files must have unchecked sphere toggles
+  const visualSlugs = [
+    'thales-theorem',
+    'angle-at-centre',
+    'angles-in-same-segment',
+    'cyclic-quadrilateral',
+    'tangent-radius',
+    'alternate-segment',
+    'tangents-from-external-point',
+    'perpendicular-chord-bisector',
+  ];
+
+  for (const slug of visualSlugs) {
+    const html = fs.readFileSync(path.join(rootDir, 'visuals', 'circle-theorems', slug, 'index.html'), 'utf8');
+    assert.ok(
+      !/<input[^>]*id="vis-3d-sphere"[^>]*checked/i.test(html),
+      `${slug}/index.html must not have checked on #vis-3d-sphere by default`
+    );
+  }
+});
+
 test('Bidirectional 2D and 3D radius synchronization across all 8 Circle Theorems in Split View (450x420)', async () => {
   const width = 450;
   const height = 420;

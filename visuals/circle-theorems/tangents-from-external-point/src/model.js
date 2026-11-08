@@ -7,6 +7,10 @@ export function createInitialState() {
     pan: { x: 0, y: 0 },
     pointDist: 260,
     pointAngle: 0.15 * Math.PI,
+    dimensionMode: 'planar',
+    latP: Math.PI / 2,
+    latT1: 1.13,
+    latT2: 2.01,
     showCongruence: true,
     showArea: true,
     playing: false,
@@ -103,7 +107,7 @@ export function generateSVG(state, width, height) {
   const g = computeGeometry(state, width, height);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="#0f172a" />
+  <rect width="100%" height="100%" fill="#121215" />
   <circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="none" stroke="${PALETTE.sky}" stroke-width="2.5" />
   
   <!-- Right triangle fills (Kite structure) -->

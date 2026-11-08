@@ -1,4 +1,4 @@
-import { computeSphericalTriangleExcess } from '../../../../../js/circle-3d.js';
+import { computeSphericalTriangleExcess, getSolidOrientationFrame } from '../../../../../js/circle-3d.js';
 /** Pure geometry. No DOM, canvas or Three.js dependencies. */
 
 export const TAU = Math.PI * 2;
@@ -185,25 +185,19 @@ export function thalesStats2D(radius, angle, options = {}) {
 export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D = null, options = {}) {
   const isSpatial = dimensionMode === 'spatial';
   const isSolid = dimensionMode === 'solid';
-  let p;
+  let p, pA, pB;
   if (isSpatial) {
     p = sphericalToCartesian(radius, lat, lon);
+    const rot = options.baselineRotation || 0;
+    const cosR = Math.cos(rot), sinR = Math.sin(rot);
+    pA = { x: -radius * cosR, y: -radius * sinR, z: 0 };
+    pB = { x: radius * cosR, y: radius * sinR, z: 0 };
   } else if (isSolid) {
     const ang = typeof angle2D === 'number' ? angle2D : (Math.PI / 4);
-    const tilt = options.solidTilt !== undefined ? Number(options.solidTilt) : (25 * Math.PI / 180);
-    const azimuth = options.solidAzimuth !== undefined ? Number(options.solidAzimuth) : (35 * Math.PI / 180);
-    const spin = options.solidSpin !== undefined ? Number(options.solidSpin) : 0;
+    const frame = getSolidOrientationFrame(options, 'z');
+    const u = Array.isArray(frame.uArr) ? { x: frame.uArr[0], y: frame.uArr[1], z: frame.uArr[2] } : frame.u;
+    const v = Array.isArray(frame.vArr) ? { x: frame.vArr[0], y: frame.vArr[1], z: frame.vArr[2] } : frame.v;
     const rot = options.baselineRotation || 0;
-    const u = {
-      x: Math.cos(azimuth) * Math.cos(spin) - Math.cos(tilt) * Math.sin(azimuth) * Math.sin(spin),
-      y: -Math.sin(azimuth) * Math.cos(spin) - Math.cos(tilt) * Math.cos(azimuth) * Math.sin(spin),
-      z: Math.sin(tilt) * Math.sin(spin),
-    };
-    const v = {
-      x: -Math.cos(azimuth) * Math.sin(spin) - Math.cos(tilt) * Math.sin(azimuth) * Math.cos(spin),
-      y: Math.sin(azimuth) * Math.sin(spin) - Math.cos(tilt) * Math.cos(azimuth) * Math.cos(spin),
-      z: Math.sin(tilt) * Math.cos(spin),
-    };
     const cosR = Math.cos(rot), sinR = Math.sin(rot);
     const uRot = {
       x: u.x * cosR + v.x * sinR,
@@ -221,22 +215,26 @@ export function sphereStats(radius, lat, lon, dimensionMode = 'planar', angle2D 
       y: radius * (uRot.y * cosA + vRot.y * sinA),
       z: radius * (uRot.z * cosA + vRot.z * sinA),
     };
+    pA = { x: -radius * uRot.x, y: -radius * uRot.y, z: -radius * uRot.z };
+    pB = { x: radius * uRot.x, y: radius * uRot.y, z: radius * uRot.z };
   } else if (typeof angle2D === 'number') {
     const rot = options.baselineRotation || 0;
     const cosR = Math.cos(rot), sinR = Math.sin(rot);
     const cosA = Math.cos(angle2D), sinA = Math.sin(angle2D);
     const rawX = radius * cosA, rawY = radius * sinA;
     p = { x: rawX * cosR - rawY * sinR, y: rawX * sinR + rawY * cosR, z: 0 };
+    pA = { x: -radius * cosR, y: -radius * sinR, z: 0 };
+    pB = { x: radius * cosR, y: radius * sinR, z: 0 };
   } else {
     p = sphericalToCartesian(radius, lat, lon);
+    pA = { x: -radius, y: 0, z: 0 };
+    pB = { x: radius, y: 0, z: 0 };
   }
-  const s = Math.hypot(p.x + radius, p.y, p.z);
-  const t = Math.hypot(p.x - radius, p.y, p.z);
+  const s = Math.hypot(p.x - pA.x, p.y - pA.y, p.z - pA.z);
+  const t = Math.hypot(p.x - pB.x, p.y - pB.y, p.z - pB.z);
   const d = 2 * radius;
   const alpha = Math.asin(clamp(t / d, -1, 1));
   const beta = Math.asin(clamp(s / d, -1, 1));
-  const pA = { x: -radius, y: 0, z: 0 };
-  const pB = { x: radius, y: 0, z: 0 };
   const excessData = computeSphericalTriangleExcess(pA, pB, p, radius);
   const h = 0.3 * radius;
   const depth = (isSolid && Math.abs(p.z) < 0.05) ? (2 * h) : Math.max(Math.abs(p.z), 0.001);

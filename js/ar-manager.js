@@ -533,9 +533,9 @@ export class ARManager {
       if (typeof this.renderer.getClearColor === 'function') {
         try {
           const c = this.renderer.getClearColor();
-          this.originalClearColor = c?.getHex ? c.getHex() : 0x1e293b;
+          this.originalClearColor = c?.getHex ? c.getHex() : 0x121215;
         } catch (_) {
-          this.originalClearColor = 0x1e293b;
+          this.originalClearColor = 0x121215;
         }
         this.originalClearAlpha = typeof this.renderer.getClearAlpha === 'function' ? this.renderer.getClearAlpha() : 1.0;
       }
@@ -625,9 +625,9 @@ export class ARManager {
       if (typeof this.renderer.getClearColor === 'function') {
         try {
           const c = this.renderer.getClearColor();
-          this.originalClearColor = c?.getHex ? c.getHex() : 0x1e293b;
+          this.originalClearColor = c?.getHex ? c.getHex() : 0x121215;
         } catch (_) {
-          this.originalClearColor = 0x1e293b;
+          this.originalClearColor = 0x121215;
         }
         this.originalClearAlpha = typeof this.renderer.getClearAlpha === 'function' ? this.renderer.getClearAlpha() : 1.0;
       }

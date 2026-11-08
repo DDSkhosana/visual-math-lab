@@ -75,6 +75,8 @@ export class WorkspaceDockManager {
     this.dockSizeHorizontal = 340; // px
     this.dockSize = 380; // px
     this.dockSizeCustomized = { vertical: false, horizontal: false };
+    this.dockHeight = null; // px (null = auto fit content on left/right edges)
+    this.dockHeightCustomized = false;
     this.panels = new Map(); // id -> { element, header, title, isFloating, isHidden, lastPos, handles }
     this.topZIndex = 40;
     this.activePanelId = null;
@@ -83,11 +85,16 @@ export class WorkspaceDockManager {
     this.defaultDeckMode = options.deckMode || options.defaultDeckMode || 'deck';
 
     if (this.root && this.doc) {
+      this._isInitializing = true;
       this.#initContainers();
       if (this.isCollapsed) {
         this.setDockCollapsed(true);
       }
       this.#loadPersistedState();
+      if (this.isCollapsed) {
+        this.setDockCollapsed(true);
+      }
+      this._isInitializing = false;
       this.deduceViewport();
       this.#discoverAndRegisterPanels();
       this.collapseAllSubComponents();
@@ -122,7 +129,7 @@ export class WorkspaceDockManager {
       this.dockElement = this.doc.createElement('aside');
       this.dockElement.className = 'workspace-dock';
       this.dockElement.setAttribute('role', 'region');
-      this.dockElement.setAttribute('aria-label', 'Workspace Panels Dock');
+      this.dockElement.setAttribute('aria-label', 'Interactive Workspace Panels');
       this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
 
       // Header
@@ -131,9 +138,9 @@ export class WorkspaceDockManager {
 
       const titleGroup = this.doc.createElement('div');
       titleGroup.className = 'dock-title-group';
-      titleGroup.title = 'Workspace Window Manager (Drag dock header to snap to any margin, click arrow buttons to switch, double-click to collapse/expand)';
+      titleGroup.title = 'Interactive Workspace (Controls, Derivations & Telemetry — drag to snap to any margin, double-click to collapse/expand)';
       titleGroup.innerHTML = `
-        <span class="dock-drag-handle" title="Drag dock to snap to any margin (Left, Right, Top, Bottom)" aria-hidden="true">
+        <span class="dock-drag-handle" title="Drag workspace to snap to any margin (Left, Right, Top, Bottom)" aria-hidden="true">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/>
             <circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/>
@@ -144,7 +151,7 @@ export class WorkspaceDockManager {
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="9" y1="3" x2="9" y2="21"></line>
         </svg>
-        <span>Dock</span>
+        <span>Workspace</span>
       `;
       header.appendChild(titleGroup);
 
@@ -209,13 +216,13 @@ export class WorkspaceDockManager {
       trayWrapper.appendChild(trayDropdown);
       controlsGroup.appendChild(trayWrapper);
 
-      // Dock Collapse / Minimize Button
+      // Workspace Collapse / Minimize Button
       const collapseBtn = this.doc.createElement('button');
       collapseBtn.type = 'button';
       collapseBtn.className = 'dock-collapse-btn';
       collapseBtn.id = 'dock-collapse-btn';
-      collapseBtn.title = 'Collapse / Minimize Dock strip';
-      collapseBtn.setAttribute('aria-label', 'Collapse Dock');
+      collapseBtn.title = 'Collapse / Minimize Workspace';
+      collapseBtn.setAttribute('aria-label', 'Collapse Workspace');
       collapseBtn.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="11 19 4 12 11 5"></polyline>
@@ -248,6 +255,18 @@ export class WorkspaceDockManager {
       dockResizer.setAttribute('aria-controls', 'workspace-dock-body');
       this.dockElement.appendChild(dockResizer);
 
+      // Dock Vertical Height Resizer (for Left/Right edges)
+      const dockResizerVertical = this.doc.createElement('div');
+      dockResizerVertical.className = 'dock-resizer-vertical';
+      dockResizerVertical.id = 'workspace-dock-resizer-vertical';
+      dockResizerVertical.title = 'Drag to resize dock vertical height (double-click to auto-fit content)';
+      dockResizerVertical.setAttribute('role', 'separator');
+      dockResizerVertical.setAttribute('aria-orientation', 'horizontal');
+      dockResizerVertical.setAttribute('tabindex', '0');
+      dockResizerVertical.setAttribute('aria-label', 'Resize workspace dock height');
+      dockResizerVertical.setAttribute('aria-controls', 'workspace-dock-body');
+      this.dockElement.appendChild(dockResizerVertical);
+
       // Insert dock into explorer layout
       const viewContainer = this.root.querySelector('.view-container') || this.root.querySelector('#main-view');
       const parentOfView = viewContainer && (viewContainer.parentNode || viewContainer.parentElement);
@@ -260,6 +279,20 @@ export class WorkspaceDockManager {
 
     this.dockBody = this.dockElement.querySelector('#workspace-dock-body');
     this.dockResizer = this.dockElement.querySelector('#workspace-dock-resizer');
+    this.dockResizerVertical = this.dockElement.querySelector('#workspace-dock-resizer-vertical');
+    if (!this.dockResizerVertical && this.doc?.createElement && this.dockElement) {
+      const dockResizerVertical = this.doc.createElement('div');
+      dockResizerVertical.className = 'dock-resizer-vertical';
+      dockResizerVertical.id = 'workspace-dock-resizer-vertical';
+      dockResizerVertical.title = 'Drag to resize dock vertical height (double-click to auto-fit content)';
+      dockResizerVertical.setAttribute('role', 'separator');
+      dockResizerVertical.setAttribute('aria-orientation', 'horizontal');
+      dockResizerVertical.setAttribute('tabindex', '0');
+      dockResizerVertical.setAttribute('aria-label', 'Resize workspace dock height');
+      dockResizerVertical.setAttribute('aria-controls', 'workspace-dock-body');
+      this.dockElement.appendChild(dockResizerVertical);
+      this.dockResizerVertical = dockResizerVertical;
+    }
     this.trayBtn = this.dockElement.querySelector('#dock-panels-tray-btn');
     this.trayDropdown = this.dockElement.querySelector('#dock-panels-tray-dropdown');
     this.trayItemsContainer = this.dockElement.querySelector('#dock-tray-items-container');
@@ -273,6 +306,7 @@ export class WorkspaceDockManager {
 
     this.#bindDockHeaderEvents();
     this.#bindDockResizer();
+    this.#bindDockVerticalResizer();
     this.#bindDockHeaderDrag();
   }
 
@@ -285,8 +319,8 @@ export class WorkspaceDockManager {
     const dockCrumb = this.doc.createElement('button');
     dockCrumb.type = 'button';
     dockCrumb.className = 'breadcrumb-item breadcrumb-dock';
-    dockCrumb.textContent = 'Dock';
-    dockCrumb.title = 'Workspace Dock Level (Click to focus dock)';
+    dockCrumb.textContent = 'Workspace';
+    dockCrumb.title = 'Workspace Level (Click to focus active workspace panels)';
     dockCrumb.addEventListener('click', (e) => {
       e?.stopPropagation?.();
       const dockTitle = this.dockElement?.querySelector('.dock-title-group, #dock-collapse-btn');
@@ -415,6 +449,9 @@ export class WorkspaceDockManager {
     if (this.collapseBtn) {
       this.collapseBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!this.isCollapsed) {
+          this._hasUserDraggedCollapsedPos = false;
+        }
         this.setDockCollapsed(!this.isCollapsed);
       });
     }
@@ -443,6 +480,7 @@ export class WorkspaceDockManager {
           this.collapsedPos = pos;
           this.#persistState();
         } else {
+          this._hasUserDraggedCollapsedPos = false;
           this.setDockCollapsed(true);
         }
       });
@@ -579,6 +617,7 @@ export class WorkspaceDockManager {
               dists.sort((a, b) => a.dist - b.dist);
               targetEdge = dists[0].edge;
             }
+            this._hasUserDraggedCollapsedPos = false;
             this.setDockEdge(targetEdge);
           }
         }
@@ -600,7 +639,7 @@ export class WorkspaceDockManager {
       e.preventDefault();
       const sign = edge === 'right' || edge === 'bottom' ? -1 : 1;
       const delta = (e.key === keys[0] ? -1 : 1) * sign * (e.shiftKey ? 40 : 10);
-      this.#applyDockSize(e.key === 'Home' ? min : e.key === 'End' ? max : this.dockSize + delta);
+      this.#applyDockSize(e.key === 'Home' ? min : e.key === 'End' ? max : this.dockSize + delta, edge);
       this.#persistState();
     });
     this.dockResizer.addEventListener('pointerdown', (e) => {
@@ -609,6 +648,7 @@ export class WorkspaceDockManager {
         if (this.dockResizer.setPointerCapture) this.dockResizer.setPointerCapture(e.pointerId);
       } catch (_) {}
       this.dockResizer.classList.add('active');
+      this.dockElement?.classList?.add('is-resizing');
 
       const { edge } = this.#dockBounds();
       const startX = e.clientX;
@@ -618,7 +658,7 @@ export class WorkspaceDockManager {
       const onMove = (moveEv) => {
         const delta = edge === 'left' || edge === 'right'
           ? moveEv.clientX - startX : moveEv.clientY - startY;
-        this.#applyDockSize(startSize + delta * (edge === 'right' || edge === 'bottom' ? -1 : 1));
+        this.#applyDockSize(startSize + delta * (edge === 'right' || edge === 'bottom' ? -1 : 1), edge);
       };
 
       const onUp = (upEv) => {
@@ -628,6 +668,7 @@ export class WorkspaceDockManager {
           }
         } catch (_) {}
         this.dockResizer.classList.remove('active');
+        this.dockElement?.classList?.remove('is-resizing');
         this.win?.removeEventListener?.('pointermove', onMove);
         this.win?.removeEventListener?.('pointerup', onUp);
         this.win?.removeEventListener?.('pointercancel', onUp);
@@ -641,13 +682,131 @@ export class WorkspaceDockManager {
     });
   }
 
+  #bindDockVerticalResizer() {
+    if (!this.dockResizerVertical) return;
+    this.dockResizerVertical.addEventListener('dblclick', (e) => {
+      const { horizontal } = this.#dockBounds();
+      if (horizontal) return;
+      e?.stopPropagation?.();
+      e?.preventDefault?.();
+      this.#applyDockHeight('auto');
+      this.#persistState();
+      this.#dispatchResize();
+    });
+    this.dockResizerVertical.addEventListener('keydown', (e) => {
+      const { horizontal } = this.#dockBounds();
+      if (horizontal) return;
+      const { min, max } = this.#dockHeightBounds();
+      if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      const curH = Number.isFinite(this.dockHeight)
+        ? this.dockHeight
+        : (this.dockElement?.getBoundingClientRect?.()?.height || 340);
+      const delta = (e.key === 'ArrowUp' ? -1 : 1) * (e.shiftKey ? 40 : 10);
+      const target = e.key === 'Home' ? min : e.key === 'End' ? max : curH + delta;
+      this.#applyDockHeight(target);
+      this.#persistState();
+    });
+    this.dockResizerVertical.addEventListener('pointerdown', (e) => {
+      const { horizontal } = this.#dockBounds();
+      if (horizontal) return;
+      e.preventDefault();
+      e.stopPropagation?.();
+      try {
+        if (this.dockResizerVertical.setPointerCapture) this.dockResizerVertical.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      this.dockResizerVertical.classList.add('active');
+      this.dockElement?.classList?.add('is-resizing');
+
+      const startY = e.clientY;
+      const startHeight = Number.isFinite(this.dockHeight) && this.dockHeightCustomized
+        ? this.dockHeight
+        : (this.dockElement?.getBoundingClientRect?.()?.height || 340);
+
+      const onMove = (moveEv) => {
+        const deltaY = moveEv.clientY - startY;
+        this.#applyDockHeight(startHeight + deltaY);
+      };
+
+      const onUp = (upEv) => {
+        try {
+          if (this.dockResizerVertical.hasPointerCapture?.(upEv.pointerId)) {
+            this.dockResizerVertical.releasePointerCapture(upEv.pointerId);
+          }
+        } catch (_) {}
+        this.dockResizerVertical.classList.remove('active');
+        this.dockElement?.classList?.remove('is-resizing');
+        this.win?.removeEventListener?.('pointermove', onMove);
+        this.win?.removeEventListener?.('pointerup', onUp);
+        this.win?.removeEventListener?.('pointercancel', onUp);
+        this.#persistState();
+        this.#dispatchResize();
+      };
+
+      this.win?.addEventListener?.('pointermove', onMove);
+      this.win?.addEventListener?.('pointerup', onUp);
+      this.win?.addEventListener?.('pointercancel', onUp);
+    });
+  }
+
+  #dockHeightBounds() {
+    const rect = this.root?.getBoundingClientRect?.() || { height: 800, top: 0 };
+    const height = Math.min(
+      rect.height || 800,
+      (this.win?.innerHeight || 800) - Math.max(0, rect.top || 0)
+    );
+    const max = Math.max(160, Math.floor(height));
+    const min = Math.min(120, max);
+    return { min, max, extent: height };
+  }
+
+  #applyDockHeight(requested = null) {
+    if (!this.dockElement) return;
+    const { min, max } = this.#dockHeightBounds();
+    if (requested === 'auto' || (requested === null && !this.dockHeightCustomized)) {
+      this.dockHeight = null;
+      this.dockHeightCustomized = false;
+      this.dockElement.classList.remove('has-custom-height');
+      this.dockElement.style.setProperty('--dock-height', 'auto');
+      const { horizontal } = this.#dockBounds();
+      if (!horizontal && !this.isCollapsed) {
+        this.dockElement.style.height = '';
+      }
+      this.dockResizerVertical?.setAttribute('aria-valuemin', String(min));
+      this.dockResizerVertical?.setAttribute('aria-valuemax', String(max));
+      this.dockResizerVertical?.removeAttribute?.('aria-valuenow');
+      return;
+    }
+    if (Number.isFinite(requested)) {
+      this.dockHeight = clamp(Math.round(requested), min, max);
+      this.dockHeightCustomized = true;
+    } else if (this.dockHeightCustomized && Number.isFinite(this.dockHeight)) {
+      this.dockHeight = clamp(Math.round(this.dockHeight), min, max);
+    }
+    if (this.dockHeightCustomized && Number.isFinite(this.dockHeight)) {
+      this.dockElement.classList.add('has-custom-height');
+      this.dockElement.style.setProperty('--dock-height', `${this.dockHeight}px`);
+      const { horizontal } = this.#dockBounds();
+      if (!horizontal && !this.isCollapsed) {
+        this.dockElement.style.height = `${this.dockHeight}px`;
+      }
+      this.dockResizerVertical?.setAttribute('aria-valuemin', String(min));
+      this.dockResizerVertical?.setAttribute('aria-valuemax', String(max));
+      this.dockResizerVertical?.setAttribute('aria-valuenow', String(this.dockHeight));
+    }
+  }
+
   #dockBounds(overrideEdge = null) {
     const rect = this.root.getBoundingClientRect();
     const width = Math.min(rect.width || 1200, this.win?.innerWidth || 1200);
     const height = Math.min(rect.height || 800,
       (this.win?.innerHeight || 800) - Math.max(0, rect.top || 0));
     const isCompact = (this.win?.innerWidth || width) <= 768;
-    const edge = overrideEdge || (isCompact ? 'bottom' : this.dockEdge);
+    const baseEdge = overrideEdge || this.dockEdge;
+    // On compact viewports, vertical sidebars (left/right) adapt to bottom sheet,
+    // while top and bottom docks strictly preserve their physical edge so resizing
+    // never moves in the opposite direction.
+    const edge = isCompact && (baseEdge === 'left' || baseEdge === 'right') ? 'bottom' : baseEdge;
     const horizontal = edge === 'top' || edge === 'bottom';
     const extent = Math.max(0, horizontal ? height : width);
     const max = Math.floor(extent * 0.65);
@@ -672,25 +831,34 @@ export class WorkspaceDockManager {
     this.dockElement.style.setProperty('--dock-size', `${this.dockSize}px`);
     if (!this.isCollapsed) {
       this.dockElement.style.width = horizontal ? '100%' : `${this.dockSize}px`;
-      this.dockElement.style.height = horizontal ? `${this.dockSize}px` : '100%';
+      if (horizontal) {
+        this.dockElement.style.height = `${this.dockSize}px`;
+      } else if (this.dockHeightCustomized && Number.isFinite(this.dockHeight)) {
+        this.dockElement.style.height = `${this.dockHeight}px`;
+      } else {
+        this.dockElement.style.height = '';
+      }
     }
     this.dockResizer?.setAttribute('aria-orientation', horizontal ? 'horizontal' : 'vertical');
     this.dockResizer?.setAttribute('aria-valuemin', String(min));
     this.dockResizer?.setAttribute('aria-valuemax', String(max));
     this.dockResizer?.setAttribute('aria-valuenow', String(this.dockSize));
     this.dockResizer?.setAttribute('data-resize-edge', edge);
+    this.#applyDockHeight();
   }
 
   getEdgeDefaultCollapsedPos(edge) {
     const parentRect = this.root?.getBoundingClientRect?.() || { width: 1000, height: 700 };
+    const parentW = parentRect.width || this.win?.innerWidth || 1000;
+    const parentH = parentRect.height || this.win?.innerHeight || 700;
     let initX = 16;
     let initY = 56;
     if (edge === 'right') {
-      initX = Math.max(16, (parentRect.width || 1000) - 160);
+      initX = Math.max(16, parentW - 160);
       initY = 16;
     } else if (edge === 'bottom') {
       initX = 16;
-      initY = Math.max(16, (parentRect.height || 700) - 48);
+      initY = Math.max(16, parentH - 48);
     } else if (edge === 'top') {
       initX = 120;
       initY = 16;
@@ -705,6 +873,7 @@ export class WorkspaceDockManager {
     if (!['left', 'right', 'top', 'bottom'].includes(edge)) return;
     const edgeChanged = this.dockEdge !== edge;
     this.dockEdge = edge;
+    this._userCustomizedEdge = true;
     this.root.setAttribute('data-dock-edge', edge);
 
     if (!this.isCollapsed) {
@@ -725,13 +894,9 @@ export class WorkspaceDockManager {
     // Synchronize collapsed position with the new dock edge margin when expanded.
     // When collapsed, preserve the dragged / magnetically-snapped position.
     if (!this.isCollapsed) {
-      if (!this.collapsedPos || edgeChanged || !this._hasUserDraggedCollapsedPos) {
-        this.collapsedPos = this.getEdgeDefaultCollapsedPos(edge);
-        if (edgeChanged) {
-          this._hasUserDraggedCollapsedPos = false;
-        }
-      }
-    } else if (!this.collapsedPos) {
+      this._hasUserDraggedCollapsedPos = false;
+      this.collapsedPos = this.getEdgeDefaultCollapsedPos(edge);
+    } else if (!this.collapsedPos || !this._hasUserDraggedCollapsedPos) {
       this.collapsedPos = this.getEdgeDefaultCollapsedPos(edge);
     }
     if (this.isCollapsed && this.collapsedPos) {
@@ -755,8 +920,10 @@ export class WorkspaceDockManager {
         this.collapsedPos = this.getEdgeDefaultCollapsedPos(this.dockEdge);
       }
       const parentRect = this.root?.getBoundingClientRect?.() || { width: 1000, height: 700 };
-      const maxL = Math.max(8, (parentRect.width || 1000) - 100);
-      const maxT = Math.max(8, (parentRect.height || 700) - 45);
+      const parentW = parentRect.width || this.win?.innerWidth || 1000;
+      const parentH = parentRect.height || this.win?.innerHeight || 700;
+      const maxL = Math.max(8, parentW - 100);
+      const maxT = Math.max(8, parentH - 45);
       this.collapsedPos.x = clamp(this.collapsedPos.x, 8, maxL);
       this.collapsedPos.y = clamp(this.collapsedPos.y, 8, maxT);
       this.dockElement.style.left = `${this.collapsedPos.x}px`;
@@ -773,8 +940,8 @@ export class WorkspaceDockManager {
     }
 
     if (this.collapseBtn) {
-      this.collapseBtn.title = this.isCollapsed ? 'Expand Dock strip' : 'Collapse / Minimize Dock strip';
-      this.collapseBtn.setAttribute('aria-label', this.isCollapsed ? 'Expand Dock' : 'Collapse Dock');
+      this.collapseBtn.title = this.isCollapsed ? 'Expand Workspace' : 'Collapse / Minimize Workspace';
+      this.collapseBtn.setAttribute('aria-label', this.isCollapsed ? 'Expand Workspace' : 'Collapse Workspace');
       this.collapseBtn.innerHTML = this.isCollapsed
         ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>`
         : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 19 4 12 11 5"></polyline><polyline points="18 19 11 12 18 5"></polyline></svg>`;
@@ -857,6 +1024,20 @@ export class WorkspaceDockManager {
     if (body) {
       body.classList.remove('hidden');
       body.style.display = '';
+    }
+    if (!panelElement.classList.contains('is-shaded')) {
+      const minBtn = panelElement.querySelector('.panel-minimize-btn');
+      if (minBtn) {
+        minBtn.setAttribute('aria-expanded', 'true');
+        const icon = minBtn.querySelector?.('.minimize-icon, .panel-minimize-icon');
+        if (icon) {
+          icon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+        }
+      }
+      if (record.shadeBtn) {
+        record.shadeBtn.innerHTML = `─`;
+        record.shadeBtn.setAttribute('aria-expanded', 'true');
+      }
     }
 
     // Initial placement: default into the dock body unless marked floating
@@ -1083,6 +1264,20 @@ export class WorkspaceDockManager {
     }
     record.closeBtn = closeBtn;
 
+    // Wire expandBtn if present in header actions so unshading/expanding syncs dock shaded state
+    const expandBtn = actionsContainer.querySelector('.panel-expand-btn');
+    if (expandBtn && !expandBtn._hasWorkspaceDockSync) {
+      expandBtn._hasWorkspaceDockSync = true;
+      expandBtn.addEventListener('pointerdown', (e) => {
+        e?.stopPropagation?.();
+      });
+      expandBtn.addEventListener('click', () => {
+        record.isShaded = record.element.classList.contains('is-shaded');
+        this.syncDockShadedState();
+        this.updateBreadcrumb();
+      });
+    }
+
     // Wire minBtn if present in header actions
     const minBtn = actionsContainer.querySelector('.panel-minimize-btn');
     if (minBtn && !minBtn._hasWorkspaceDockBound) {
@@ -1093,8 +1288,9 @@ export class WorkspaceDockManager {
       minBtn.addEventListener('click', (e) => {
         e?.preventDefault?.();
         e?.stopPropagation?.();
+        e?.stopImmediatePropagation?.();
         this.setPanelShaded(record.id);
-      });
+      }, true);
     }
 
     // Header click to restore shaded panel, double-click to toggle shading
@@ -1552,13 +1748,28 @@ export class WorkspaceDockManager {
       }
     } else {
       this.syncSubpanelOverlayState();
+      this.syncDockShadedState();
     }
 
     this.#persistState();
   }
 
+  syncDockShadedState() {
+    if (!this.dockElement) return;
+    const visibleDocked = Array.from(this.panels.values()).filter((p) => !p.isFloating && !p.isHidden);
+    const allShaded = visibleDocked.length > 0 && visibleDocked.every((p) => {
+      const body = p.element.querySelector ? p.element.querySelector('.panel-body') : null;
+      return p.element.classList.contains('is-shaded') || Boolean(body?.classList?.contains('hidden'));
+    });
+    this.dockElement.classList.toggle('is-all-panels-shaded', allShaded);
+    if (allShaded && this.dockHeightCustomized) {
+      this.#applyDockHeight('auto');
+    }
+  }
+
   updateDockEmptyState() {
     if (!this.dockBody) return;
+    this.syncDockShadedState();
     const dockedPanels = Array.from(this.panels.values()).filter((p) => !p.isFloating);
     const visibleDocked = dockedPanels.filter((p) => !p.isHidden);
     let emptyNotice = this.dockBody.querySelector ? this.dockBody.querySelector('.dock-empty-notice') : null;
@@ -1942,6 +2153,13 @@ export class WorkspaceDockManager {
           if (innerScrollable) {
             return; // Allow the inner content to scroll vertically
           }
+          // If the dock body itself has room to scroll vertically, let native vertical scroll happen
+          const dockBodyHasVert = (this.dockBody.scrollHeight || 0) > (this.dockBody.clientHeight || 0) + 2;
+          const dockBodyCanScrollDown = e.deltaY > 0 && ((this.dockBody.scrollTop || 0) + (this.dockBody.clientHeight || 0) < (this.dockBody.scrollHeight || 0) - 2);
+          const dockBodyCanScrollUp = e.deltaY < 0 && (this.dockBody.scrollTop || 0) > 2;
+          if (dockBodyHasVert && (dockBodyCanScrollDown || dockBodyCanScrollUp)) {
+            return; // Allow the dock body to scroll vertically
+          }
           const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
           if (delta) {
             this.dockBody.scrollLeft += delta;
@@ -2219,12 +2437,13 @@ export class WorkspaceDockManager {
     this.root.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
     this.dockElement?.setAttribute?.('data-viewport', isCompact ? 'compact' : 'regular');
     this.#applyDockSize();
-    if (isCompact && !this._userCustomizedEdge) {
+    if (isCompact && !this._userCustomizedEdge && (this.dockEdge === 'left' || this.dockEdge === 'right')) {
       this.dockResizer?.setAttribute?.('data-resize-edge', 'bottom');
     }
   }
 
   #persistState() {
+    if (this._isInitializing) return;
     try {
       const storage = typeof localStorage !== 'undefined' ? localStorage : (this.win?.localStorage || null);
       if (!storage) return;
@@ -2243,7 +2462,10 @@ export class WorkspaceDockManager {
         dockSizeVertical: this.dockSizeVertical,
         dockSizeHorizontal: this.dockSizeHorizontal,
         dockSizeCustomized: this.dockSizeCustomized,
-        collapsedPos: this.collapsedPos,
+        dockHeight: this.dockHeight,
+        dockHeightCustomized: this.dockHeightCustomized,
+        hasUserDraggedCollapsedPos: Boolean(this._hasUserDraggedCollapsedPos),
+        collapsedPos: this._hasUserDraggedCollapsedPos ? this.collapsedPos : null,
         panels: panelStates,
       };
       storage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -2269,15 +2491,27 @@ export class WorkspaceDockManager {
         vertical: isCustomVert,
         horizontal: isCustomHoriz,
       };
+      if (Boolean(data.dockHeightCustomized) && Number.isFinite(data.dockHeight)) {
+        this.dockHeight = data.dockHeight;
+        this.dockHeightCustomized = true;
+      }
       if (Number.isFinite(data.dockSize) && !Number.isFinite(data.dockSizeVertical) && !Number.isFinite(data.dockSizeHorizontal)) {
         const horizontal = data.dockEdge === 'top' || data.dockEdge === 'bottom';
         this[horizontal ? 'dockSizeHorizontal' : 'dockSizeVertical'] = data.dockSize;
         this.dockSizeCustomized[horizontal ? 'horizontal' : 'vertical'] = true;
       }
       if (data.dockEdge) this.setDockEdge(data.dockEdge);
-      if (data.collapsedPos) {
+      if (
+        Boolean(data.hasUserDraggedCollapsedPos) &&
+        data.collapsedPos &&
+        Number.isFinite(data.collapsedPos.x) &&
+        Number.isFinite(data.collapsedPos.y)
+      ) {
         this.collapsedPos = data.collapsedPos;
         this._hasUserDraggedCollapsedPos = true;
+      } else {
+        this._hasUserDraggedCollapsedPos = false;
+        this.collapsedPos = this.getEdgeDefaultCollapsedPos(this.dockEdge);
       }
       if (data.isCollapsed !== undefined) {
         this.setDockCollapsed(data.isCollapsed);
@@ -2512,6 +2746,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         sub.removeAttribute?.('data-elevation-level');
       }
     });
+    syncPanelExpandAffordance(panel, body);
     return;
   }
 
@@ -2556,6 +2791,7 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
         : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel: activeSingle, title } };
       if (!options?.silent) panel.dispatchEvent?.(evt);
     } catch (_) {}
+    syncPanelExpandAffordance(panel, body);
     return;
   }
 
@@ -3011,6 +3247,8 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
     activeSubpanel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
 
+  syncPanelExpandAffordance(panel, body);
+
   try {
     const title = subpanelTitle(activeSubpanel) || null;
     const evt = typeof CustomEvent !== 'undefined'
@@ -3018,6 +3256,33 @@ export function syncPanelElevationTurn(panel, preferredActiveElement = null, opt
       : { type: 'panelelevationturn', bubbles: true, detail: { panel, activeSubpanel, title, direction } };
     if (!options?.silent) panel.dispatchEvent?.(evt);
   } catch (_) {}
+}
+
+const EXPAND_DOWN_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg>`;
+const EXPAND_UP_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 11 12 6 17 11"></polyline><polyline points="7 16 12 11 17 16"></polyline></svg>`;
+
+function syncPanelExpandAffordance(panel, body) {
+  if (!panel || !body) return;
+  const expandBtn = panel.querySelector ? panel.querySelector('.panel-expand-btn, [id$="-expand"]') : null;
+  if (!expandBtn) return;
+  const sections = Array.from(body.querySelectorAll ? body.querySelectorAll('.collapsible-section') : []);
+  const cards = Array.from(body.querySelectorAll ? body.querySelectorAll('.derivation-card') : []);
+  const openSections = sections.filter((s) => !s.classList.contains('collapsed'));
+  const openCards = cards.filter((c) => {
+    const h = c.querySelector ? c.querySelector('.derivation-card-header') : null;
+    return c.classList.contains('open') || Boolean(h?.classList.contains('open'));
+  });
+  const anyOpen = (openSections.length + openCards.length) > 0 && !panel.classList.contains('is-shaded') && !body.classList.contains('hidden');
+  expandBtn.setAttribute?.('aria-expanded', String(anyOpen));
+  expandBtn.title = anyOpen ? 'Collapse all sections' : 'Expand all sections';
+  const label = expandBtn.querySelector ? expandBtn.querySelector('.panel-expand-label') : null;
+  if (label) {
+    label.textContent = anyOpen ? 'Collapse All' : 'Expand All';
+  }
+  const icon = expandBtn.querySelector ? expandBtn.querySelector('.panel-expand-icon') : null;
+  if (icon) {
+    icon.innerHTML = anyOpen ? EXPAND_UP_SVG : EXPAND_DOWN_SVG;
+  }
 }
 
 export { stepSpring, VelocityTracker, computeEdgeSnapTarget } from './motion-physics.js';

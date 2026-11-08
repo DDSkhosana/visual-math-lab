@@ -377,8 +377,22 @@ function bootstrap() {
     // Sync 3D View Title mode badge
     const title3d = document.querySelector('#canvas-3d-container .view-title');
     if (title3d) {
-      const modeBadge = isSpatial ? 'Spatial S² Spherical' : state.dimensionMode === 'solid' ? 'Solid 3D Cylinder' : 'Planar Equatorial y=0';
-      title3d.innerHTML = `3D: Great-Circle Tangent &amp; Alternate Triangle <span class="${isSpatial ? 'color-violet' : 'color-sky'} font-bold">[${modeBadge}]</span>`;
+      const modeBadge = isSpatial
+        ? 'Spatial <span class="color-violet">S²</span>'
+        : state.dimensionMode === 'solid'
+          ? 'Solid <span class="color-amber">3D</span>'
+          : 'Planar (<span class="color-lime">Y=0</span>)';
+      const base = '3D: Great-Circle Tangent &amp; Alternate Triangle';
+      if (!title3d.dataset.origTitle) title3d.dataset.origTitle = base;
+      const dimBadge = ` <span class="dimension-mode-badge font-bold">[${modeBadge}]</span>`;
+      const p = state.cameraPerspective || 'iso';
+      const pBadgeMap = {
+        top: ' <span class="perspective-badge font-bold">[Top View: <span class="color-amber">X</span><span class="color-steel">Z</span> Plan]</span>',
+        front: ' <span class="perspective-badge font-bold">[Front View: <span class="color-amber">X</span><span class="color-lime">Y</span> Elevation]</span>',
+        side: ' <span class="perspective-badge font-bold">[Side View: <span class="color-lime">Y</span><span class="color-steel">Z</span> Profile]</span>',
+        iso: ' <span class="perspective-badge font-bold">[Isometric Perspective]</span>',
+      };
+      title3d.innerHTML = `${base}${dimBadge}${pBadgeMap[p] || ''}`;
     }
 
     // Sync Play button state

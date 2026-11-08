@@ -82,8 +82,8 @@ export class Accordion {
       if (body) {
         const headers = this.headers(body);
         const openHeaders = headers.filter((h) => h.classList.contains('open'));
-        const allOpen = headers.length > 0 && openHeaders.length === headers.length;
-        if (expandBtn) setExpandButtonUI(expandBtn, allOpen);
+        const anyOpen = openHeaders.length > 0;
+        if (expandBtn) setExpandButtonUI(expandBtn, anyOpen);
 
         const totalOpen = openHeaders.length;
         panel.classList.toggle('has-expanded-subpanel', totalOpen > 0);
