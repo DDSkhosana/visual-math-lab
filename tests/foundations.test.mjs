@@ -349,5 +349,86 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(moduleHtml.includes('analytic-viewport-container'), 'Must contain analytic viewport');
     assert.ok(moduleHtml.includes('composition-viewport-container'), 'Must contain composition viewport');
   });
+
+  test('Module 2 RelationsController manages closures, presets and toggles', async () => {
+    const { RelationsController } = await import('../visuals/foundations/relations-and-order/src/controller.js');
+    const ctrl = new RelationsController();
+
+    // Default is Equivalence
+    assert.equal(ctrl.state.activeMode, 'digraph');
+    assert.equal(ctrl.state.currentPresetId, 'equivalence');
+
+    // Toggle pair
+    ctrl.togglePair(1, 2); // removes (1, 2)
+    assert.equal(ctrl.state.pairs.some(([a, b]) => a === 1 && b === 2), false);
+    ctrl.togglePair(1, 2); // adds back (1, 2)
+    assert.equal(ctrl.state.pairs.some(([a, b]) => a === 1 && b === 2), true);
+
+    // Apply empty preset and test closures
+    ctrl.applyPreset('empty');
+    assert.equal(ctrl.state.pairs.length, 0);
+
+    // Reflexive closure: adds (1,1), (2,2), (3,3), (4,4)
+    ctrl.addReflexiveClosure();
+    assert.equal(ctrl.state.pairs.length, 4);
+
+    // Add asymmetric pair (1, 2) then symmetric closure: adds (2, 1)
+    ctrl.togglePair(1, 2);
+    ctrl.addSymmetricClosure();
+    assert.ok(ctrl.state.pairs.some(([a, b]) => a === 2 && b === 1));
+
+    // Test transitive closure: add (2, 3), transitive closure must add (1, 3)
+    ctrl.togglePair(2, 3);
+    ctrl.addTransitiveClosure();
+    assert.ok(ctrl.state.pairs.some(([a, b]) => a === 1 && b === 3));
+  });
+
+  test('PosetHasseView computes exact transitive reduction on Divisibility lattice', async () => {
+    const { PosetHasseView } = await import('../visuals/foundations/relations-and-order/src/views/PosetHasseView.js');
+    const hasse = new PosetHasseView({ innerHTML: '', querySelector: () => null });
+
+    const elements = [1, 2, 3, 4, 6];
+    const divisibilityPairs = [
+      [1, 1], [2, 2], [3, 3], [4, 4], [6, 6], // reflexive
+      [1, 2], [1, 3], [1, 4], [1, 6],         // 1 divides all
+      [2, 4], [2, 6],                         // 2 divides 4 and 6
+      [3, 6]                                  // 3 divides 6
+    ];
+
+    const covering = hasse.computeTransitiveReduction(elements, divisibilityPairs);
+    // Transitive shortcuts (1, 4) and (1, 6) must be pruned!
+    // Remaining covering relations: (1, 2), (1, 3), (2, 4), (2, 6), (3, 6)
+    assert.equal(covering.length, 5);
+    assert.ok(!covering.some(([a, b]) => a === 1 && b === 4));
+    assert.ok(!covering.some(([a, b]) => a === 1 && b === 6));
+    assert.ok(covering.some(([a, b]) => a === 1 && b === 2));
+    assert.ok(covering.some(([a, b]) => a === 2 && b === 4));
+    assert.ok(covering.some(([a, b]) => a === 3 && b === 6));
+
+    // Layout hierarchy: minimal element is 1 (level 0)
+    const layout = hasse.computeHasseLayout(elements, covering);
+    assert.deepEqual(layout.minimalElements, [1]);
+    assert.equal(layout.nodeCoords.get(1).level, 0);
+  });
+
+  test('Module 2 index.html and thumbnail exist and have valid structure', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const fileURLToPath = (await import('node:url')).fileURLToPath;
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const moduleHtmlPath = path.resolve(__dirname, '../visuals/foundations/relations-and-order/index.html');
+    const thumbnailPath = path.resolve(__dirname, '../assets/images/relations-and-order-thumbnail.svg');
+
+    assert.ok(fs.existsSync(moduleHtmlPath), 'relations-and-order/index.html must exist');
+    assert.ok(fs.existsSync(thumbnailPath), 'relations-and-order-thumbnail.svg must exist');
+
+    const html = fs.readFileSync(moduleHtmlPath, 'utf8');
+    assert.ok(html.includes('Content-Security-Policy'), 'Must have Content-Security-Policy');
+    assert.ok(html.includes('workspace-dock'), 'Must contain workspace dock');
+    assert.ok(html.includes('digraph-viewport-container'), 'Must contain digraph viewport');
+    assert.ok(html.includes('quotient-viewport-container'), 'Must contain quotient viewport');
+    assert.ok(html.includes('poset-viewport-container'), 'Must contain poset viewport');
+  });
 });
 

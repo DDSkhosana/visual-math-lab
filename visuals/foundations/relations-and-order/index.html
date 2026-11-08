@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.google-analytics.com; frame-src https://www.youtube-nocookie.com; media-src 'self' blob:; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <title>Relations, Order &amp; Equivalence Partitions | Visual Mathematics Lab</title>
+  <meta name="description" content="Explore binary relations, verify reflexivity, symmetry, and transitivity in real time, build quotient sets Z/nZ, and construct poset Hasse diagrams.">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/foundations/relations-and-order/">
+  <link rel="icon" type="image/svg+xml" href="../../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Relations, Order & Equivalence Partitions | Visual Mathematics Lab",
+    "headline": "Interactive Binary Relations, Axiomatic Closures, Quotients & Poset Hasse Diagrams",
+    "description": "Directly manipulate binary relation digraphs and incidence matrices, test reflexivity, symmetry, antisymmetry, and transitivity, explore Z/nZ modular clocks, and build Hasse diagrams.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/foundations/relations-and-order/"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="../../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
+  <script type="module">
+    import { mountRelationsVisual } from './src/controller.js';
+    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
+
+    const init = () => {
+      const digraphContainer = document.querySelector('#digraph-viewport-container');
+      const quotientContainer = document.querySelector('#quotient-viewport-container');
+      const posetContainer = document.querySelector('#poset-viewport-container');
+
+      mountRelationsVisual({
+        digraph: digraphContainer,
+        quotient: quotientContainer,
+        poset: posetContainer
+      });
+
+      // Mount Workspace Dock
+      const dockRoot = document.querySelector('#workspace-dock');
+      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
+        new WorkspaceDockManager(dockRoot);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</head>
+<body data-root="../../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
+
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Binary Relations, Order and Equivalence Partitions">
+      
+      <!-- Viewport Header Toolbar -->
+      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Relations visualizer modes">
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" data-view-mode="digraph" aria-pressed="true">Digraph &amp; Matrix</button>
+            <button type="button" class="btn" data-view-mode="quotient" aria-pressed="false">Quotient &amp; ℤ/nℤ Clock</button>
+            <button type="button" class="btn" data-view-mode="poset" aria-pressed="false">Poset Hasse Diagram</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="btn-refl-closure" title="Add all self-loops (a, a)">
+            +Refl Closure
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-symm-closure" title="Add all reverse edges (b, a)">
+            +Symm Closure
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-trans-closure" title="Add all transitive shortcuts (a, c)">
+            +Trans Closure
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset relation to default configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Visual Viewports -->
+      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+        <!-- Mode 1: Digraph & Matrix -->
+        <div id="digraph-viewport-container" style="width: 100%; height: 100%;"></div>
+
+        <!-- Mode 2: Quotient Set & Modular Clock -->
+        <div id="quotient-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+        <!-- Mode 3: Poset Hasse Diagram -->
+        <div id="poset-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+      </div>
+
+      <!-- Workspace Dock with Sub-Panels -->
+      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
+        <div class="dock-handle" title="Drag dock margin"></div>
+        <div class="dock-tray">
+
+          <!-- Sub-Panel 1: Axiomatic Invariants & Structure Classifier -->
+          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
+            <div class="panel-header">
+              <span class="panel-header-icon">⚖</span>
+              <h3 class="panel-header-title">Axiomatic Properties</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div style="margin-bottom: 8px;">
+                <span id="badge-structure-type" class="axiom-badge is-valid" style="font-size: 0.8rem; width: 100%; justify-content: center; box-sizing: border-box;">
+                  Equivalence Relation (Partition)
+                </span>
+              </div>
+              <div class="axiom-badge-group">
+                <span id="badge-reflexive" class="axiom-badge is-valid">Reflexive: YES</span>
+                <span id="badge-symmetric" class="axiom-badge is-valid">Symmetric: YES</span>
+                <span id="badge-antisymmetric" class="axiom-badge is-violated">Antisymmetric: NO</span>
+                <span id="badge-transitive" class="axiom-badge is-valid">Transitive: YES</span>
+                <span id="badge-totality" class="axiom-badge is-violated">Total: NO</span>
+              </div>
+              <div id="relation-telemetry-content" style="margin-top: 12px;"></div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 2: Presets & Closures -->
+          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
+            <div class="panel-header">
+              <span class="panel-header-icon">🎛</span>
+              <h3 class="panel-header-title">Relation Presets</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                Click any node to toggle its self-loop $(a, a)$. Click or drag between nodes to toggle $(a, b)$. Click matrix cells on the right to toggle entries.
+              </p>
+              <div class="preset-grid">
+                <button type="button" class="preset-chip active" data-preset="equivalence">Equivalence (~)</button>
+                <button type="button" class="preset-chip" data-preset="partial_order">Poset (Divides |)</button>
+                <button type="button" class="preset-chip" data-preset="total_order">Total Order (&le;)</button>
+                <button type="button" class="preset-chip" data-preset="strict_order">Strict Order (&lt;)</button>
+                <button type="button" class="preset-chip" data-preset="modular_z3">Modulo 3 (ℤ/3ℤ)</button>
+                <button type="button" class="preset-chip" data-preset="empty">Empty (∅)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 3: Mathematical Derivations & Axiomatic Definitions -->
+          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
+            <div class="panel-header">
+              <span class="panel-header-icon">📜</span>
+              <h3 class="panel-header-title">Axioms &amp; The Partition Theorem</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+                <p style="margin-top: 0;">
+                  <strong>Kuratowski Ordered Pair:</strong> $(a, b) := \{\{a\}, \{a, b\}\}$. A binary relation $R$ on $A$ is any subset $R \subseteq A \times A$.
+                </p>
+                <p>
+                  <strong>1. Reflexivity:</strong> $\forall a \in A, \, (a, a) \in R$ (all diagonal matrix entries $M_{ii} = 1$).
+                </p>
+                <p>
+                  <strong>2. Symmetry:</strong> $\forall a, b, \, (a, b) \in R \implies (b, a) \in R$ ($M = M^T$).
+                </p>
+                <p>
+                  <strong>3. Antisymmetry:</strong> $\forall a \neq b, \, \neg((a, b) \in R \land (b, a) \in R)$ (no bidirectional distinct edges).
+                </p>
+                <p>
+                  <strong>4. Transitivity:</strong> $\forall a, b, c, \, [(a, b) \in R \land (b, c) \in R] \implies (a, c) \in R$ ($M^2 \le M$).
+                </p>
+                <p>
+                  <strong>Partition Theorem:</strong> An equivalence relation $\sim$ partitions $A$ into equivalence classes $[a] := \{x \in A : x \sim a\}$. Distinct classes are strictly disjoint, and their union recovers $A$.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

@@ -25,8 +25,8 @@
     "badge": "Foundations 02",
     "formula": "a ~ b ⟹ [a] = [b]  |  Z/nZ",
     "description": "Analyze binary relations, verify reflexivity, symmetry, and transitivity in real time, build quotient sets Z/nZ, and construct poset Hasse diagrams.",
-    "thumbnail": "assets/images/thales-thumbnail.svg",
-    "published": false,
+    "thumbnail": "assets/images/relations-and-order-thumbnail.svg",
+    "published": true,
     "youtubeId": "",
     "video": {
       "enabled": true,

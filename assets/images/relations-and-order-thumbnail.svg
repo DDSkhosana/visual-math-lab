@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Relations, Order and Equivalence Partitions Illustration</title>
+  <desc id="desc">Directed relation graph showing equivalence classes, reflexive self-loops, and upward Hasse diagram order lattices.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+
+  <!-- Left: Equivalence Partition Bubbles & Digraph -->
+  <!-- Class 1 Bubble [1, 2] -->
+  <rect x="140" y="160" width="380" height="230" rx="40" fill="rgba(3, 105, 161, 0.12)" stroke="#0284c7" stroke-width="4" stroke-dasharray="8 6"/>
+  <text x="180" y="205" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0284c7">[1] = {1, 2}</text>
+
+  <!-- Node 1 -->
+  <circle cx="250" cy="280" r="38" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <text x="250" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">1</text>
+  <!-- Self-loop on 1 -->
+  <path d="M 220 255 C 190 200, 270 180, 275 245" fill="none" stroke="#38bdf8" stroke-width="6"/>
+
+  <!-- Node 2 -->
+  <circle cx="410" cy="280" r="38" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <text x="410" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">2</text>
+  <!-- Self-loop on 2 -->
+  <path d="M 390 250 C 370 190, 460 190, 435 248" fill="none" stroke="#38bdf8" stroke-width="6"/>
+
+  <!-- Bidirectional edges between 1 and 2 -->
+  <path d="M 290 265 Q 330 240 370 265" fill="none" stroke="#a855f7" stroke-width="6"/>
+  <path d="M 370 295 Q 330 320 290 295" fill="none" stroke="#a855f7" stroke-width="6"/>
+
+  <!-- Class 2 Bubble [3] -->
+  <rect x="220" y="440" width="220" height="210" rx="40" fill="rgba(219, 39, 119, 0.12)" stroke="#db2777" stroke-width="4" stroke-dasharray="8 6"/>
+  <text x="260" y="485" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#db2777">[3] = {3}</text>
+  <circle cx="330" cy="550" r="38" fill="#1e293b" stroke="#f472b6" stroke-width="8"/>
+  <text x="330" y="562" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">3</text>
+  <path d="M 305 520 C 275 460, 365 450, 355 515" fill="none" stroke="#f472b6" stroke-width="6"/>
+
+  <!-- Divider Line -->
+  <line x1="600" y1="120" x2="600" y2="680" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="8 8"/>
+
+  <!-- Right: Poset Hasse Diagram (Divisibility Lattice: 1, 2, 3, 6) -->
+  <text x="880" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#475569">
+    POSET HASSE LATTICE
+  </text>
+
+  <!-- Top element: 6 (cx=880, cy=220) -->
+  <!-- Middle elements: 2 (cx=760, cy=390), 3 (cx=1000, cy=390) -->
+  <!-- Bottom element: 1 (cx=880, cy=560) -->
+  <!-- Covering lines -->
+  <line x1="880" y1="560" x2="760" y2="390" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
+  <line x1="880" y1="560" x2="1000" y2="390" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
+  <line x1="760" y1="390" x2="880" y2="220" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
+  <line x1="1000" y1="390" x2="880" y2="220" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Node 6 -->
+  <circle cx="880" cy="220" r="38" fill="#1e293b" stroke="#10b981" stroke-width="8"/>
+  <text x="880" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">6</text>
+
+  <!-- Node 2 -->
+  <circle cx="760" cy="390" r="38" fill="#1e293b" stroke="#10b981" stroke-width="8"/>
+  <text x="760" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">2</text>
+
+  <!-- Node 3 -->
+  <circle cx="1000" cy="390" r="38" fill="#1e293b" stroke="#10b981" stroke-width="8"/>
+  <text x="1000" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">3</text>
+
+  <!-- Node 1 -->
+  <circle cx="880" cy="560" r="38" fill="#1e293b" stroke="#10b981" stroke-width="8"/>
+  <text x="880" y="572" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#ffffff">1</text>
+
+  <!-- Incomparability notation -->
+  <text x="880" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-style="italic" fill="#64748b">
+    2 ∥ 3 (incomparable)
+  </text>
+
+  <!-- Title Banner -->
+  <text x="600" y="750" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" font-weight="bold" fill="#111111">
+    RELATIONS, ORDER &amp; EQUIVALENCE PARTITIONS
+  </text>
+</svg>
