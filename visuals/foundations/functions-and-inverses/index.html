@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.google-analytics.com; frame-src https://www.youtube-nocookie.com; media-src 'self' blob:; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <title>Functions, Inverses &amp; Reversibility | Visual Mathematics Lab</title>
+  <meta name="description" content="Explore axiomatic functions, uniqueness quantifiers, injectivity, surjectivity, bijectivity, diagonal line y=x reflection, round-trip composition, and the 12 representation styles.">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/foundations/functions-and-inverses/">
+  <link rel="icon" type="image/svg+xml" href="../../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Functions, Inverses & Reversibility | Visual Mathematics Lab",
+    "headline": "Interactive Axiomatic Functions, Inverses, Diagonal Reflection & Composition",
+    "description": "Explore functions as relations with left-totality and right-uniqueness, test injectivity and surjectivity, reflect curves across y = x, and verify identity compositions.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/foundations/functions-and-inverses/"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="../../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
+  <script type="module">
+    import { mountFunctionsVisual } from './src/controller.js';
+    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
+
+    const init = () => {
+      const discreteContainer = document.querySelector('#discrete-viewport-container');
+      const analyticContainer = document.querySelector('#analytic-viewport-container');
+      const compositionContainer = document.querySelector('#composition-viewport-container');
+
+      mountFunctionsVisual({
+        discrete: discreteContainer,
+        analytic: analyticContainer,
+        composition: compositionContainer
+      });
+
+      // Mount Workspace Dock
+      const dockRoot = document.querySelector('#workspace-dock');
+      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
+        new WorkspaceDockManager(dockRoot);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</head>
+<body data-root="../../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
+
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Functions, Inverses and Reversibility Visualisation">
+      
+      <!-- Viewport Header Toolbar -->
+      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Functions visualizer modes">
+        <div class="toolbar-content" id="toolbar-content">
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" data-view-mode="discrete" aria-pressed="true">Discrete Bipartite</button>
+            <button type="button" class="btn" data-view-mode="analytic" aria-pressed="false">Continuous Mirror (y = x)</button>
+            <button type="button" class="btn" data-view-mode="composition" aria-pressed="false">Composition Machine</button>
+          </div>
+          <button type="button" class="btn-toolbar" id="btn-toggle-inverse" title="Invert mapping (enabled when bijective)">
+            Invert Mapping (f⁻¹)
+          </button>
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset mapping to initial configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Visual Viewports -->
+      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+        <!-- Mode 1: Discrete Bipartite Graph -->
+        <div id="discrete-viewport-container" style="width: 100%; height: 100%;"></div>
+
+        <!-- Mode 2: Continuous Analytic Mirror Plane -->
+        <div id="analytic-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+        <!-- Mode 3: Composition Machine Pipeline -->
+        <div id="composition-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+      </div>
+
+      <!-- Workspace Dock with Sub-Panels -->
+      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
+        <div class="dock-handle" title="Drag dock margin"></div>
+        <div class="dock-tray">
+
+          <!-- Sub-Panel 1: Axiomatic Invariants & Telemetry -->
+          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
+            <div class="panel-header">
+              <span class="panel-header-icon">⚖</span>
+              <h3 class="panel-header-title">Axiomatic Invariants</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div class="axiom-badge-group">
+                <span id="badge-is-function" class="axiom-badge is-valid">Function: YES</span>
+                <span id="badge-injective" class="axiom-badge is-valid">Injective: YES</span>
+                <span id="badge-surjective" class="axiom-badge is-valid">Surjective: YES</span>
+                <span id="badge-bijective" class="axiom-badge is-valid">Bijective: YES</span>
+              </div>
+              <div id="function-telemetry-content" style="margin-top: 12px;"></div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 2: Controls & Interactive Presets -->
+          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
+            <div class="panel-header">
+              <span class="panel-header-icon">🎛</span>
+              <h3 class="panel-header-title">Mapping Presets</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <!-- Discrete Controls -->
+              <div id="discrete-dock-controls">
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                  Click and drag from any Domain node $x$ to link it to a Codomain node $y$. Click an arrow to remove it.
+                </p>
+                <div class="preset-grid">
+                  <button type="button" class="preset-chip active" data-preset="bijection">Bijection (f⁻¹)</button>
+                  <button type="button" class="preset-chip" data-preset="injective">Injective only</button>
+                  <button type="button" class="preset-chip" data-preset="surjective">Surjective only</button>
+                  <button type="button" class="preset-chip" data-preset="neither">Neither</button>
+                  <button type="button" class="preset-chip" data-preset="partial">Partial (fails ∀)</button>
+                  <button type="button" class="preset-chip" data-preset="multivalued">Multi (fails ∃!)</button>
+                </div>
+              </div>
+
+              <!-- Analytic Controls -->
+              <div id="analytic-dock-controls" style="display: none;">
+                <label for="analytic-preset-select" style="font-size: 0.82rem; color: #94a3b8; display: block; margin-bottom: 6px;">
+                  Continuous Function Model:
+                </label>
+                <select id="analytic-preset-select" class="form-select" style="width: 100%; padding: 6px 10px; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 12px;">
+                  <option value="linear">Linear: f(x) = 2x + 1</option>
+                  <option value="exponential">Exponential: f(x) = e^x</option>
+                  <option value="cubic">Cubic: f(x) = x³</option>
+                  <option value="quadratic">Quadratic: f(x) = x²</option>
+                </select>
+
+                <div id="restrict-domain-wrapper" style="display: none; align-items: center; gap: 8px; margin-top: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px;">
+                  <input type="checkbox" id="toggle-restrict-domain" style="cursor: pointer;">
+                  <label for="toggle-restrict-domain" style="font-size: 0.8rem; color: #bae6fd; cursor: pointer;">
+                    Restrict domain to $[0, \infty)$ (Restores Bijectivity!)
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 3: Mathematical Derivations & 12 Styles -->
+          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
+            <div class="panel-header">
+              <span class="panel-header-icon">📜</span>
+              <h3 class="panel-header-title">The 12 Specification Styles</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-top: 0;">
+                A function $f: X \to Y$ is formally a relation $f \subseteq X \times Y$ satisfying <strong>totality</strong> ($\forall x$) and <strong>uniqueness</strong> ($\exists! y$). It can be specified in 12 distinct mathematical styles:
+              </p>
+              <div class="spec-styles-list">
+                <div class="spec-style-item"><strong>1. Set of Ordered Pairs:</strong> <code>f = {(1, a), (2, b), (3, c)}</code></div>
+                <div class="spec-style-item"><strong>2. Table Form:</strong> Input column paired directly with output column.</div>
+                <div class="spec-style-item"><strong>3. Explicit Formula:</strong> <code>f(x) = 2x + 1</code> with specified domain.</div>
+                <div class="spec-style-item"><strong>4. Piecewise Formula:</strong> Branching definitions on partitioned subdomains.</div>
+                <div class="spec-style-item"><strong>5. Implicit Equation:</strong> <code>F(x, y) = 0</code> (requires implicit function theorem).</div>
+                <div class="spec-style-item"><strong>6. Recursive / Inductive:</strong> Base case + induction step (e.g. factorial).</div>
+                <div class="spec-style-item"><strong>7. Algorithmic / Program:</strong> Deterministic halting Turing computation.</div>
+                <div class="spec-style-item"><strong>8. Lambda Abstraction:</strong> <code>&lambda;x. x&sup2; + 1</code> in pure lambda calculus.</div>
+                <div class="spec-style-item"><strong>9. Graphical Curve:</strong> 2D plot satisfying the vertical line test.</div>
+                <div class="spec-style-item"><strong>10. Categorical Arrow:</strong> Morphism making commutative diagrams commute.</div>
+                <div class="spec-style-item"><strong>11. Characteristic Indicator:</strong> <code>&chi;_A(x) &isin; {0, 1}</code> encoding subset membership.</div>
+                <div class="spec-style-item"><strong>12. Limit / Series / Integral:</strong> Convergent sequence of approximating maps.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

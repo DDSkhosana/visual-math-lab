@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Functions, Inverses and Reversibility Illustration</title>
+  <desc id="desc">Function curve f(x) and its inverse f⁻¹(x) reflected orthogonally across the diagonal line y = x.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+
+  <!-- Coordinate Axes -->
+  <line x1="160" y1="460" x2="1040" y2="460" stroke="#94a3b8" stroke-width="6" stroke-dasharray="10,8"/>
+  <line x1="600" y1="80" x2="600" y2="720" stroke="#94a3b8" stroke-width="6" stroke-dasharray="10,8"/>
+
+  <!-- Diagonal Mirror Line y = x -->
+  <line x1="220" y1="740" x2="980" y2="80" stroke="#475569" stroke-width="10" stroke-dasharray="16,12"/>
+  <text x="910" y="115" font-family="Arial, sans-serif" font-size="34" font-style="italic" font-weight="bold" fill="#334155">y = x</text>
+
+  <!-- Forward Curve f(x) = e^x (Exponential) -->
+  <path d="M 200 455 C 400 450, 520 440, 600 370 C 650 320, 710 220, 750 90" fill="none" stroke="#0284c7" stroke-width="16" stroke-linecap="round"/>
+  <text x="770" y="140" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#0284c7">f(x) = eˣ</text>
+
+  <!-- Inverse Curve f⁻¹(x) = ln(x) (Logarithmic) -->
+  <path d="M 605 700 C 610 500, 620 380, 690 300 C 740 250, 840 190, 970 150" fill="none" stroke="#db2777" stroke-width="16" stroke-linecap="round"/>
+  <text x="980" y="210" font-family="Arial, sans-serif" font-size="38" font-weight="bold" fill="#db2777">f⁻¹(x) = ln(x)</text>
+
+  <!-- Orthogonal Reflection Segment connecting P(0.8, 2.22) and P'(2.22, 0.8) -->
+  <!-- Scaled coordinates: Origin is (600, 460), scale = 90 px/unit -->
+  <!-- P(0.8, 2.2) -> (600 + 72, 460 - 198) = (672, 262) -->
+  <!-- P'(2.2, 0.8) -> (600 + 198, 460 - 72) = (798, 388) -->
+  <line x1="672" y1="262" x2="798" y2="388" stroke="#d97706" stroke-width="8" stroke-dasharray="10,8"/>
+
+  <!-- Midpoint on y = x -->
+  <circle cx="735" cy="325" r="12" fill="#d97706"/>
+
+  <!-- Point P on f(x) -->
+  <circle cx="672" cy="262" r="16" fill="#0284c7" stroke="#ffffff" stroke-width="4"/>
+  <text x="500" y="250" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#0369a1">P(x, f(x))</text>
+
+  <!-- Point P' on f⁻¹(x) -->
+  <circle cx="798" cy="388" r="16" fill="#db2777" stroke="#ffffff" stroke-width="4"/>
+  <text x="815" y="440" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#9d174d">P'(f(x), x)</text>
+
+  <!-- Title Banner -->
+  <text x="600" y="750" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="6" font-weight="bold" fill="#111111">FUNCTIONS, INVERSES &amp; REVERSIBILITY</text>
+</svg>

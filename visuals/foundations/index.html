@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.google-analytics.com; frame-src https://www.youtube-nocookie.com; media-src 'self' blob:; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <title>Abstract Mathematics &amp; Foundations Suite | Visual Mathematics Lab</title>
+  <meta name="description" content="Interactive visualisations for abstract mathematics, set theory, binary relations, permutation groups, and category theory.">
+  <link rel="icon" type="image/svg+xml" href="../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="css/foundations.css?v=20260523">
+  <script type="module" src="../../js/site.js?v=20260523"></script>
+</head>
+<body data-root="../..">
+  <header data-site-header></header>
+  <main>
+    <section class="hero" aria-labelledby="hero-heading">
+      <p class="eyebrow">Suite 03 &middot; Sets, Orders, Groups &amp; Categories</p>
+      <h1 id="hero-heading">Abstract Mathematics &amp; Foundations</h1>
+      <p class="lede">Explore the structural bedrock of modern mathematics: axiomatic mappings, uniqueness quantifiers, equivalence partitions, permutation cycle orbits, and categorical universal properties.</p>
+      <div class="actions">
+        <a class="button" href="#visuals">Explore Foundations</a>
+        <a class="button button--secondary" href="../circle-theorems/index.html">&larr; Circle Theorems</a>
+        <a class="button button--secondary" href="../trigonometry/index.html">Trigonometry &rarr;</a>
+      </div>
+      <div data-support-container></div>
+    </section>
+    <section class="section" id="visuals" aria-labelledby="visuals-heading">
+      <div class="section-heading">
+        <h2 id="visuals-heading">Foundations Suite</h2>
+        <span class="eyebrow">Abstract Mathematics (4 Visuals)</span>
+      </div>
+      <div class="catalog-grid" data-foundations-catalogue aria-live="polite"></div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

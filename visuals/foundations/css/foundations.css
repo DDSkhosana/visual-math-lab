@@ -1,0 +1,254 @@
+/* ==========================================================================
+   Abstract Mathematics & Foundations Suite — Shared Styles
+   Visual Mathematics Lab
+   ========================================================================== */
+
+:root {
+  --foundations-primary: #38bdf8;
+  --foundations-primary-glow: rgba(56, 189, 248, 0.25);
+  --foundations-accent: #a855f7;
+  --foundations-accent-glow: rgba(168, 85, 247, 0.25);
+  --foundations-success: #10b981;
+  --foundations-warning: #f59e0b;
+  --foundations-danger: #ef4444;
+  --foundations-domain: #38bdf8;
+  --foundations-codomain: #ec4899;
+  --foundations-mirror: #e2e8f0;
+}
+
+/* Status Badges */
+.axiom-badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.axiom-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.axiom-badge.is-valid {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34d399;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.axiom-badge.is-violated {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.axiom-badge.is-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.axiom-badge .badge-icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Discrete Bipartite Graph Styles */
+.bipartite-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+.bipartite-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.node-group {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.node-group:hover circle {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.node-domain circle {
+  fill: #0369a1;
+  stroke: #38bdf8;
+  stroke-width: 2.5px;
+}
+
+.node-codomain circle {
+  fill: #831843;
+  stroke: #f472b6;
+  stroke-width: 2.5px;
+}
+
+.node-codomain.is-unhit circle {
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.node-codomain.is-collision circle {
+  fill: #7f1d1d;
+  stroke: #f87171;
+  stroke-width: 3.5px;
+  animation: pulse-danger 1.5s infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { filter: drop-shadow(0 0 4px #ef4444); }
+  50% { filter: drop-shadow(0 0 12px #ef4444); }
+}
+
+.mapping-arrow {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2.5px;
+  transition: stroke 0.2s, stroke-width 0.2s;
+  marker-end: url(#arrow-head-domain);
+}
+
+.mapping-arrow.is-inverse {
+  stroke: #f472b6;
+  marker-end: url(#arrow-head-codomain);
+}
+
+.mapping-arrow.is-collision {
+  stroke: #f87171;
+  stroke-width: 3px;
+}
+
+.mapping-arrow:hover {
+  stroke-width: 4px;
+}
+
+/* Continuous Analytic Canvas */
+.analytic-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  touch-action: none;
+}
+
+.analytic-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Step Pipeline Animation */
+.pipeline-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.pipeline-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pipeline-step {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pipeline-step.is-active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+}
+
+.pipeline-arrow {
+  color: #64748b;
+  font-weight: bold;
+}
+
+/* Preset Cards Grid */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.preset-chip {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.preset-chip:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.preset-chip.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+/* 12 Styles Table / Accordion */
+.spec-styles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.spec-style-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+.spec-style-item strong {
+  color: #e2e8f0;
+}
+
+.spec-style-item code {
+  color: #38bdf8;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 5px;
+  border-radius: 4px;
+}

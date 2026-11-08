@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "functions-and-inverses",
+    "suite": "foundations",
+    "title": "Functions, Inverses & Reversibility",
+    "category": "Abstract Mathematics",
+    "badge": "Foundations 01",
+    "formula": "f⁻¹ ∘ f = id_X  |  f ∘ f⁻¹ = id_Y",
+    "description": "Explore axiomatic functions, totality and uniqueness quantifiers, injectivity, surjectivity, diagonal mirror line y=x reflections, and round-trip identity compositions.",
+    "thumbnail": "assets/images/functions-and-inverses-thumbnail.svg",
+    "published": true,
+    "youtubeId": "",
+    "video": {
+      "enabled": true,
+      "version": 1,
+      "script": "",
+      "thumbnailText": ""
+    }
+  },
+  {
+    "slug": "relations-and-order",
+    "suite": "foundations",
+    "title": "Relations, Order & Equivalence Partitions",
+    "category": "Abstract Mathematics",
+    "badge": "Foundations 02",
+    "formula": "a ~ b ⟹ [a] = [b]  |  Z/nZ",
+    "description": "Analyze binary relations, verify reflexivity, symmetry, and transitivity in real time, build quotient sets Z/nZ, and construct poset Hasse diagrams.",
+    "thumbnail": "assets/images/thales-thumbnail.svg",
+    "published": false,
+    "youtubeId": "",
+    "video": {
+      "enabled": true,
+      "version": 1,
+      "script": "",
+      "thumbnailText": ""
+    }
+  },
+  {
+    "slug": "permutations-and-groups",
+    "suite": "foundations",
+    "title": "Permutations & Symmetric Groups S_n",
+    "category": "Abstract Mathematics",
+    "badge": "Foundations 03",
+    "formula": "σ = (a₁ … a_k)  |  sgn(σ) = (-1)^m",
+    "description": "Decompose permutations into Cauchy matrices and disjoint cycle orbits, animate transposition braid crossings, and explore Cayley tables.",
+    "thumbnail": "assets/images/thales-thumbnail.svg",
+    "published": false,
+    "youtubeId": "",
+    "video": {
+      "enabled": true,
+      "version": 1,
+      "script": "",
+      "thumbnailText": ""
+    }
+  },
+  {
+    "slug": "category-theory-foundations",
+    "suite": "foundations",
+    "title": "Category Theory & Universal Properties",
+    "category": "Abstract Mathematics",
+    "badge": "Foundations 04",
+    "formula": "f ∘ g₁ = f ∘ g₂ ⟹ g₁ = g₂  |  X/ker(f) ≅ im(f)",
+    "description": "Test categorical monomorphisms and epimorphisms with interactive cancellation probe testers, verify commutative diagrams, and visualize adjunctions.",
+    "thumbnail": "assets/images/thales-thumbnail.svg",
+    "published": false,
+    "youtubeId": "",
+    "video": {
+      "enabled": true,
+      "version": 1,
+      "script": "",
+      "thumbnailText": ""
+    }
+  }
+]

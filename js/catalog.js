@@ -57,6 +57,21 @@ export async function renderTrigCatalogue(container, root = ".") {
     .join("");
 }
 
+export async function renderFoundationsCatalogue(container, root = ".") {
+  const response = await fetch(`${root}/visuals/foundations/data/foundations-visuals.json`);
+  if (!response.ok) {
+    throw new Error(`Could not load foundations catalogue (${response.status}).`);
+  }
+
+  const visuals = await response.json();
+  const published = visuals.filter(
+    (visual) => visual.published && visual.suite === "foundations"
+  );
+  container.innerHTML = published
+    .map((visual) => renderVisualCard(visual, root, "foundations"))
+    .join("");
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("vml:locale-changed", () => {
     document.querySelectorAll(".visual-card[data-slug]").forEach((card) => {
