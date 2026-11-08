@@ -125,6 +125,98 @@ describe('Foundations Suite — FunctionMath Axioms & Inverses (Module 1)', () =
     assert.equal(quadratic.forward(4), 16);
     assert.equal(quadratic.inverse(16), 4);
   });
+
+  test('parseOrderedPairs parses parenthesized tuples, CSV, TSV, and respects custom codomain', () => {
+    // 1. Parenthesized tuples
+    const res1 = FunctionMath.parseOrderedPairs('(1, a), (2, b), (3, c)');
+    assert.deepEqual(res1.domain, [1, 2, 3]);
+    assert.deepEqual(res1.codomain, ['a', 'b', 'c']);
+    assert.deepEqual(res1.pairs, [[1, 'a'], [2, 'b'], [3, 'c']]);
+
+    // 2. CSV format with header
+    const csvStr = `x,y\n1,alpha\n2,beta\n3,alpha`;
+    const res2 = FunctionMath.parseOrderedPairs(csvStr);
+    assert.deepEqual(res2.domain, [1, 2, 3]);
+    assert.deepEqual(res2.codomain, ['alpha', 'beta']);
+    assert.deepEqual(res2.pairs, [[1, 'alpha'], [2, 'beta'], [3, 'alpha']]);
+
+    // 3. Arrow notation with custom extended codomain (testing surjectivity deficit)
+    const arrowStr = `1 -> a\n2 -> b`;
+    const res3 = FunctionMath.parseOrderedPairs(arrowStr, 'a, b, c, d');
+    assert.deepEqual(res3.domain, [1, 2]);
+    assert.deepEqual(res3.codomain, ['a', 'b', 'c', 'd']);
+    assert.equal(res3.pairs.length, 2);
+  });
+
+  test('computeKernelEquivalenceRelation partitions domain into quotient fibers and satisfies First Isomorphism Theorem', () => {
+    const domain = [1, 2, 3, 4, 5];
+    const pairs = [
+      [1, 'a'],
+      [2, 'a'], // collision with 1
+      [3, 'b'],
+      [4, 'b'], // collision with 3
+      [5, 'c']
+    ];
+
+    const kernel = FunctionMath.computeKernelEquivalenceRelation(domain, pairs);
+    assert.equal(kernel.quotientSize, 3);
+    assert.equal(kernel.isTrivial, false);
+    assert.equal(kernel.nonTrivialClasses.length, 2);
+
+    // Verify First Isomorphism Theorem: |X/ker(f)| = |im(f)|
+    const analysis = FunctionMath.analyzeRelationAsFunction(domain, ['a', 'b', 'c', 'd'], pairs);
+    assert.equal(kernel.quotientSize, analysis.image.length);
+
+    // Trivial kernel for injective function
+    const injPairs = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e']];
+    const injKernel = FunctionMath.computeKernelEquivalenceRelation(domain, injPairs);
+    assert.equal(injKernel.isTrivial, true);
+    assert.equal(injKernel.quotientSize, domain.length);
+    assert.equal(injKernel.nonTrivialClasses.length, 0);
+  });
+
+  test('createSafeFormulaEvaluator evaluates arithmetic, powers, and math functions safely without eval()', () => {
+    // Polynomial
+    const poly = FunctionMath.createSafeFormulaEvaluator('x^3 - 3*x + 2');
+    assert.equal(poly(0), 2);
+    assert.equal(poly(1), 0);
+    assert.equal(poly(2), 4);
+
+    // Trigonometric and exponential
+    const trig = FunctionMath.createSafeFormulaEvaluator('sin(x) + cos(x)');
+    assert.ok(Math.abs(trig(0) - 1) < 1e-6);
+
+    // Exponential & Gaussian
+    const gauss = FunctionMath.createSafeFormulaEvaluator('exp(-x^2)');
+    assert.equal(gauss(0), 1);
+    assert.ok(Math.abs(gauss(1) - Math.exp(-1)) < 1e-6);
+
+    // Implicit multiplication
+    const impl = FunctionMath.createSafeFormulaEvaluator('2x + 1');
+    assert.equal(impl(3), 7);
+  });
+
+  test('analyzeContinuousFormula computes roots, fixed points, range, monotonicity, and extrema', () => {
+    const evalr = FunctionMath.createSafeFormulaEvaluator('x^3 - 3*x');
+    const analysis = FunctionMath.analyzeContinuousFormula(evalr, -3, 3);
+
+    // Roots of x^3 - 3x = x(x^2 - 3) are -sqrt(3), 0, sqrt(3)
+    assert.equal(analysis.roots.length, 3);
+    assert.ok(Math.abs(analysis.roots[0] - -Math.sqrt(3)) < 0.05);
+    assert.ok(Math.abs(analysis.roots[1] - 0) < 0.05);
+    assert.ok(Math.abs(analysis.roots[2] - Math.sqrt(3)) < 0.05);
+
+    // Fixed points x^3 - 3x = x <=> x(x^2 - 4) = 0 are -2, 0, 2
+    assert.equal(analysis.fixedPoints.length, 3);
+    assert.ok(Math.abs(analysis.fixedPoints[0].x - -2) < 0.05);
+    assert.ok(Math.abs(analysis.fixedPoints[1].x - 0) < 0.05);
+    assert.ok(Math.abs(analysis.fixedPoints[2].x - 2) < 0.05);
+
+    // Local extrema: max at x = -1, min at x = 1
+    assert.ok(analysis.extrema.length >= 2);
+    assert.equal(analysis.isStrictlyMonotonic, false);
+    assert.equal(analysis.isInjective, false);
+  });
 });
 
 describe('Foundations Suite — RelationMath Axiomatic Properties (Module 2)', () => {
@@ -356,6 +448,26 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     // Tracer position clamp
     ctrl.setTracerX(-3);
     assert.equal(ctrl.state.tracerX, 0); // clamped to 0 when domain is restricted!
+
+    // Custom Pairs Loading & CSV Export
+    ctrl.loadCustomPairs('(10, u), (20, v), (30, u)');
+    assert.equal(ctrl.state.currentPresetId, 'custom');
+    assert.deepEqual(ctrl.state.domain, [10, 20, 30]);
+    assert.deepEqual(ctrl.state.codomain, ['u', 'v']);
+    assert.equal(ctrl.state.pairs.length, 3);
+
+    const exportedCSV = ctrl.exportPairsCSV();
+    assert.ok(exportedCSV.includes('input_x,output_y'));
+    assert.ok(exportedCSV.includes('10,u'));
+    assert.ok(exportedCSV.includes('20,v'));
+
+    // Custom Formula Loading & Deductions
+    ctrl.loadCustomFormula('x^3 - 3*x', -3, 3);
+    assert.equal(ctrl.state.analyticPreset, 'custom');
+    assert.equal(ctrl.state.activeMode, 'analytic');
+    assert.ok(ctrl.state.customModel);
+    assert.equal(ctrl.state.formulaAnalysis.roots.length, 3);
+    assert.equal(ctrl.state.formulaAnalysis.fixedPoints.length, 3);
   });
 
   test('Module 1 index.html and suite index.html exist and contain valid CSP and structure', async () => {

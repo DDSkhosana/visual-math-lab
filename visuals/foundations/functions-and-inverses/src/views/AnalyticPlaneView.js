@@ -151,7 +151,7 @@ export class AnalyticPlaneView {
     ctx.clearRect(0, 0, this.width, this.height);
 
     const state = this.controller.state;
-    const model = FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
+    const model = this.getModel(state);
 
     // 1. Grid & Adaptive Coordinate Axes with Semantic Domain/Codomain Tokens
     this.drawAxes(ctx, model, state);
@@ -165,8 +165,88 @@ export class AnalyticPlaneView {
     // 4. Inverse Curve y = f⁻¹(x)
     this.drawInverseCurve(ctx, model, state);
 
-    // 5. Interactive Point Reflection & Semantic Coordinate Drop-Lines
+    // 5. Numerical Deductions (Roots, Fixed Points, Extrema)
+    this.drawNumericalDeductions(ctx, model, state);
+
+    // 6. Interactive Point Reflection & Semantic Coordinate Drop-Lines
     this.drawPointReflection(ctx, model, state);
+  }
+
+  getModel(state) {
+    if (state.analyticPreset === 'custom' && state.customModel) {
+      return state.customModel;
+    }
+    return FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
+  }
+
+  drawNumericalDeductions(ctx, model, state) {
+    const analysis = model.analysis || (model.id === 'custom' ? state.formulaAnalysis : null);
+    if (!analysis) return;
+
+    ctx.save();
+
+    // 1. Draw Roots f(x) = 0 (Emerald Diamonds on the Domain X Axis)
+    if (analysis.roots && analysis.roots.length > 0) {
+      analysis.roots.forEach((root) => {
+        const p = this.toScreen(root, 0);
+        ctx.fillStyle = PALETTE.success;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y - 6);
+        ctx.lineTo(p.x + 6, p.y);
+        ctx.lineTo(p.x, p.y + 6);
+        ctx.lineTo(p.x - 6, p.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = PALETTE.success;
+        ctx.fillText(`root: ${root.toFixed(2)}`, p.x - 18, p.y + 16);
+      });
+    }
+
+    // 2. Draw Fixed Points f(x) = x (Amber Stars on the Mirror Line y = x)
+    if (analysis.fixedPoints && analysis.fixedPoints.length > 0) {
+      analysis.fixedPoints.forEach((fp) => {
+        const p = this.toScreen(fp.x, fp.y);
+        ctx.fillStyle = PALETTE.tracerMid;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = PALETTE.tracerMid;
+        ctx.fillText(`fix: (${fp.x.toFixed(2)}, ${fp.y.toFixed(2)})`, p.x + 8, p.y - 8);
+      });
+    }
+
+    // 3. Draw Local Extrema
+    if (analysis.extrema && analysis.extrema.length > 0) {
+      analysis.extrema.forEach((ext) => {
+        const p = this.toScreen(ext.x, ext.y);
+        ctx.fillStyle = '#c084fc';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 9px monospace';
+        ctx.fillStyle = '#c084fc';
+        ctx.fillText(`${ext.type}: (${ext.x.toFixed(2)}, ${ext.y.toFixed(2)})`, p.x + 8, p.y + (ext.type.includes('max') ? -8 : 12));
+      });
+    }
+
+    ctx.restore();
   }
 
   /**
@@ -707,7 +787,7 @@ export class AnalyticPlaneView {
     };
 
     const state = this.controller.state;
-    const model = FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
+    const model = this.getModel(state);
     const x0 = state.tracerX;
     const y0 = model.forward(x0);
     const pForward = this.toScreen(x0, y0);
@@ -755,7 +835,7 @@ export class AnalyticPlaneView {
 
     // Hover affordance
     const state = this.controller.state;
-    const model = FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
+    const model = this.getModel(state);
     const x0 = state.tracerX;
     const y0 = model.forward(x0);
     const pForward = this.toScreen(x0, y0);

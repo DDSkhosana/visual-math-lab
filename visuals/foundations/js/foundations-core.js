@@ -290,6 +290,509 @@ export class FunctionMath {
       inverseFormulaText: "f^{-1}(y) = \\sqrt{y} \\quad (y \\ge 0)"
     }
   };
+
+  /**
+   * Computes the kernel equivalence relation ker(f) on domain X induced by f: X -> Y.
+   * x1 ~_f x2 <=> f(x1) = f(x2).
+   * Partitions X into fiber equivalence classes [x] = f⁻¹({f(x)}).
+   */
+  static computeKernelEquivalenceRelation(domain, pairs) {
+    const forwardMap = new Map();
+    for (const [x, y] of pairs) {
+      if (!forwardMap.has(x)) forwardMap.set(x, []);
+      forwardMap.get(x).push(y);
+    }
+
+    const fiberMap = new Map();
+    const unmapped = [];
+
+    for (const x of domain) {
+      const outputs = forwardMap.get(x);
+      if (!outputs || outputs.length === 0) {
+        unmapped.push(x);
+      } else {
+        const yKey = String(outputs[0]);
+        if (!fiberMap.has(yKey)) {
+          fiberMap.set(yKey, { output: outputs[0], elements: [] });
+        }
+        fiberMap.get(yKey).elements.push(x);
+      }
+    }
+
+    const classes = [];
+    let idx = 1;
+    for (const [, fiber] of fiberMap.entries()) {
+      classes.push({
+        id: `C${idx++}`,
+        rep: fiber.elements[0],
+        elements: fiber.elements,
+        output: fiber.output,
+        size: fiber.elements.length
+      });
+    }
+
+    const isTrivial = classes.every(c => c.size === 1);
+    const nonTrivialClasses = classes.filter(c => c.size > 1);
+
+    return {
+      classes,
+      quotientSize: classes.length,
+      isTrivial,
+      nonTrivialClasses,
+      unmapped,
+      kernelPairsCount: classes.reduce((sum, c) => sum + c.size * c.size, 0)
+    };
+  }
+
+  /**
+   * Flexible parser for ordered pairs, CSV, TSV, or raw text tables.
+   * Extracts domain, codomain, and mapping pairs.
+   */
+  static parseOrderedPairs(inputString, customCodomainStr = null) {
+    if (!inputString || typeof inputString !== 'string') {
+      throw new Error('Input must be a non-empty string of ordered pairs or CSV table.');
+    }
+
+    const cleaned = inputString.trim();
+    const pairs = [];
+
+    function parseElem(raw) {
+      const s = String(raw).trim();
+      if (!isNaN(s) && s !== '') {
+        return Number(s);
+      }
+      return s;
+    }
+
+    // Check parenthesized pairs e.g. (1, a), (2, b) or [1, a]
+    const parenRegex = /[\(\[]\s*([^,()\[\]]+?)\s*,\s*([^,()\[\]]+?)\s*[\)\]]/g;
+    let match;
+    let foundParen = false;
+
+    while ((match = parenRegex.exec(cleaned)) !== null) {
+      foundParen = true;
+      const x = parseElem(match[1]);
+      const y = parseElem(match[2]);
+      pairs.push([x, y]);
+    }
+
+    // If no parenthesized pairs found, try line-by-line CSV / TSV / delimiter parsing
+    if (!foundParen) {
+      const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (i === 0 && /^(x\s*[,;\t]\s*y|input\s*[,;\t]\s*output|domain\s*[,;\t]\s*codomain)/i.test(line)) {
+          continue;
+        }
+        let parts = [];
+        if (line.includes('->')) {
+          parts = line.split('->');
+        } else if (line.includes('\t')) {
+          parts = line.split('\t');
+        } else if (line.includes(';')) {
+          parts = line.split(';');
+        } else if (line.includes(',')) {
+          parts = line.split(',');
+        } else {
+          parts = line.split(/\s+/);
+        }
+
+        if (parts.length >= 2) {
+          const x = parseElem(parts[0]);
+          const y = parseElem(parts[1]);
+          pairs.push([x, y]);
+        }
+      }
+    }
+
+    if (pairs.length === 0) {
+      throw new Error('Could not find valid ordered pairs in input. Example formats: (1, a), (2, b) or CSV lines.');
+    }
+
+    const domain = [];
+    const domainSeen = new Set();
+    for (const [x] of pairs) {
+      if (!domainSeen.has(x)) {
+        domainSeen.add(x);
+        domain.push(x);
+      }
+    }
+
+    let codomain = [];
+    const cSeen = new Set();
+    if (customCodomainStr && customCodomainStr.trim()) {
+      const rawC = customCodomainStr.split(/[,;\s]+/).map(s => parseElem(s)).filter(s => s !== '');
+      for (const y of rawC) {
+        if (!cSeen.has(y)) {
+          cSeen.add(y);
+          codomain.push(y);
+        }
+      }
+    }
+    for (const [, y] of pairs) {
+      if (!cSeen.has(y)) {
+        cSeen.add(y);
+        codomain.push(y);
+      }
+    }
+
+    return { domain, codomain, pairs };
+  }
+
+  /**
+   * Deterministic, safe mathematical formula parser.
+   * Zero eval(), zero CSP violations.
+   * Supports: numbers, x, pi, e, +, -, *, /, %, ^, unary -, implicit multiplication,
+   * sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, ln, log, sqrt, cbrt, abs.
+   */
+  static createSafeFormulaEvaluator(formulaStr) {
+    if (!formulaStr || typeof formulaStr !== 'string') {
+      throw new Error('Formula must be a valid string');
+    }
+
+    const expr = formulaStr.trim();
+    const rawTokens = [];
+    let i = 0;
+
+    while (i < expr.length) {
+      const ch = expr[i];
+      if (/\s/.test(ch)) {
+        i++;
+        continue;
+      }
+      if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(expr[i + 1] || ''))) {
+        let numStr = '';
+        while (i < expr.length && /[0-9.]/.test(expr[i])) {
+          numStr += expr[i++];
+        }
+        rawTokens.push({ type: 'NUM', val: parseFloat(numStr) });
+        continue;
+      }
+      if (/[a-zA-Z_]/.test(ch)) {
+        let idStr = '';
+        while (i < expr.length && /[a-zA-Z0-9_]/.test(expr[i])) {
+          idStr += expr[i++];
+        }
+        rawTokens.push({ type: 'ID', val: idStr.toLowerCase() });
+        continue;
+      }
+      if ('+-*/%^()'.includes(ch)) {
+        rawTokens.push({ type: ch, val: ch });
+        i++;
+        continue;
+      }
+      throw new Error(`Unexpected character in formula: '${ch}'`);
+    }
+
+    // Token-based implicit multiplication insertion
+    const tokens = [];
+    for (let t = 0; t < rawTokens.length; t++) {
+      const curr = rawTokens[t];
+      const prev = tokens[tokens.length - 1];
+
+      if (prev) {
+        const prevCanMultiply =
+          prev.type === 'NUM' ||
+          prev.type === ')' ||
+          (prev.type === 'ID' && (prev.val === 'x' || prev.val === 'pi' || prev.val === 'e'));
+
+        const currCanMultiply =
+          curr.type === 'NUM' ||
+          curr.type === '(' ||
+          curr.type === 'ID';
+
+        if (prevCanMultiply && currCanMultiply) {
+          tokens.push({ type: '*', val: '*' });
+        }
+      }
+      tokens.push(curr);
+    }
+
+    let pos = 0;
+    function peek() {
+      return tokens[pos];
+    }
+    function consume(expected) {
+      const tok = tokens[pos];
+      if (!tok) throw new Error(`Unexpected end of expression${expected ? `, expected '${expected}'` : ''}`);
+      if (expected && tok.type !== expected) {
+        throw new Error(`Expected '${expected}', got '${tok.val}'`);
+      }
+      pos++;
+      return tok;
+    }
+
+    function parseExpression() {
+      let node = parseTerm();
+      while (peek() && (peek().type === '+' || peek().type === '-')) {
+        const op = consume().type;
+        const right = parseTerm();
+        const left = node;
+        node = (x) => (op === '+' ? left(x) + right(x) : left(x) - right(x));
+      }
+      return node;
+    }
+
+    function parseTerm() {
+      let node = parseUnary();
+      while (peek() && (peek().type === '*' || peek().type === '/' || peek().type === '%')) {
+        const op = consume().type;
+        const right = parseUnary();
+        const left = node;
+        if (op === '*') {
+          node = (x) => left(x) * right(x);
+        } else if (op === '/') {
+          node = (x) => left(x) / right(x);
+        } else {
+          node = (x) => left(x) % right(x);
+        }
+      }
+      return node;
+    }
+
+    function parseUnary() {
+      if (peek() && peek().type === '-') {
+        consume('-');
+        const operand = parseUnary();
+        return (x) => -operand(x);
+      }
+      if (peek() && peek().type === '+') {
+        consume('+');
+        return parseUnary();
+      }
+      return parsePower();
+    }
+
+    function parsePower() {
+      let node = parsePrimary();
+      if (peek() && peek().type === '^') {
+        consume('^');
+        const right = parseUnary();
+        const left = node;
+        node = (x) => Math.pow(left(x), right(x));
+      }
+      return node;
+    }
+
+    function parsePrimary() {
+      const tok = peek();
+      if (!tok) throw new Error('Unexpected end of formula');
+
+      if (tok.type === 'NUM') {
+        consume();
+        const num = tok.val;
+        return () => num;
+      }
+
+      if (tok.type === 'ID') {
+        consume();
+        const id = tok.val;
+        if (id === 'x') return (x) => x;
+        if (id === 'pi') return () => Math.PI;
+        if (id === 'e') return () => Math.E;
+
+        const fnMap = {
+          sin: Math.sin,
+          cos: Math.cos,
+          tan: Math.tan,
+          asin: Math.asin,
+          acos: Math.acos,
+          atan: Math.atan,
+          sinh: Math.sinh,
+          cosh: Math.cosh,
+          tanh: Math.tanh,
+          exp: Math.exp,
+          ln: Math.log,
+          log: Math.log10,
+          sqrt: Math.sqrt,
+          cbrt: Math.cbrt,
+          abs: Math.abs,
+          floor: Math.floor,
+          ceil: Math.ceil,
+          round: Math.round
+        };
+
+        if (fnMap[id]) {
+          consume('(');
+          const argExpr = parseExpression();
+          consume(')');
+          const fn = fnMap[id];
+          return (x) => fn(argExpr(x));
+        }
+
+        throw new Error(`Unknown function or variable: '${id}'`);
+      }
+
+      if (tok.type === '(') {
+        consume('(');
+        const node = parseExpression();
+        consume(')');
+        return node;
+      }
+
+      throw new Error(`Unexpected token: '${tok.val}'`);
+    }
+
+    const rootEvaluator = parseExpression();
+    if (pos < tokens.length) {
+      throw new Error(`Unexpected trailing tokens: '${tokens[pos].val}'`);
+    }
+
+    return (x) => {
+      try {
+        const res = rootEvaluator(x);
+        return typeof res === 'number' && !isNaN(res) ? res : NaN;
+      } catch (_) {
+        return NaN;
+      }
+    };
+  }
+
+  /**
+   * Continuous Numerical Deductions:
+   * Computes roots f(x)=0, fixed points f(x)=x, range [min, max],
+   * monotonicity, and local extrema on [minX, maxX].
+   */
+  static analyzeContinuousFormula(evaluator, minX = -4, maxX = 4, numSteps = 400) {
+    const step = (maxX - minX) / numSteps;
+    const samples = [];
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    for (let i = 0; i <= numSteps; i++) {
+      const x = minX + i * step;
+      const y = evaluator(x);
+      if (!isNaN(y) && isFinite(y)) {
+        samples.push({ x, y });
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+
+    // 1. Find Roots f(x) = 0
+    const roots = [];
+    for (let i = 0; i < samples.length - 1; i++) {
+      const s1 = samples[i];
+      const s2 = samples[i + 1];
+      if (s1.y * s2.y <= 0) {
+        let lo = s1.x;
+        let hi = s2.x;
+        for (let iter = 0; iter < 20; iter++) {
+          const mid = (lo + hi) / 2;
+          const midY = evaluator(mid);
+          if (evaluator(lo) * midY <= 0) {
+            hi = mid;
+          } else {
+            lo = mid;
+          }
+        }
+        const root = (lo + hi) / 2;
+        if (!roots.some(r => Math.abs(r - root) < 0.01)) {
+          roots.push(root);
+        }
+      }
+    }
+
+    // 2. Find Fixed Points f(x) = x (Intersections with diagonal mirror line y = x!)
+    const fixedPoints = [];
+    for (let i = 0; i < samples.length - 1; i++) {
+      const s1 = samples[i];
+      const s2 = samples[i + 1];
+      const g1 = s1.y - s1.x;
+      const g2 = s2.y - s2.x;
+      if (g1 * g2 <= 0) {
+        let lo = s1.x;
+        let hi = s2.x;
+        for (let iter = 0; iter < 20; iter++) {
+          const mid = (lo + hi) / 2;
+          const midG = evaluator(mid) - mid;
+          const loG = evaluator(lo) - lo;
+          if (loG * midG <= 0) {
+            hi = mid;
+          } else {
+            lo = mid;
+          }
+        }
+        const fix = (lo + hi) / 2;
+        if (!fixedPoints.some(fp => Math.abs(fp.x - fix) < 0.01)) {
+          fixedPoints.push({ x: fix, y: evaluator(fix) });
+        }
+      }
+    }
+
+    // 3. Monotonicity & Extrema via Derivative
+    const h = 0.001;
+    const extrema = [];
+    let prevDeriv = null;
+    let hasPositiveDeriv = false;
+    let hasNegativeDeriv = false;
+
+    for (let i = 0; i < samples.length; i++) {
+      const x = samples[i].x;
+      const yPlus = evaluator(x + h);
+      const yMinus = evaluator(x - h);
+      if (!isNaN(yPlus) && !isNaN(yMinus)) {
+        const deriv = (yPlus - yMinus) / (2 * h);
+        if (deriv > 0.05) hasPositiveDeriv = true;
+        if (deriv < -0.05) hasNegativeDeriv = true;
+
+        if (prevDeriv !== null) {
+          if (prevDeriv > 0 && deriv < 0) {
+            extrema.push({ type: 'local max', x, y: samples[i].y });
+          } else if (prevDeriv < 0 && deriv > 0) {
+            extrema.push({ type: 'local min', x, y: samples[i].y });
+          }
+        }
+        prevDeriv = deriv;
+      }
+    }
+
+    const isStrictlyMonotonic = (hasPositiveDeriv && !hasNegativeDeriv) || (!hasPositiveDeriv && hasNegativeDeriv);
+    const isInjective = isStrictlyMonotonic && extrema.length === 0;
+
+    return {
+      range: { minY, maxY },
+      roots,
+      fixedPoints,
+      extrema,
+      isStrictlyMonotonic,
+      isInjective,
+      monotonicType: hasPositiveDeriv && !hasNegativeDeriv ? 'strictly increasing' : (hasNegativeDeriv && !hasPositiveDeriv ? 'strictly decreasing' : 'non-monotonic (oscillating/extrema)')
+    };
+  }
+
+  /**
+   * Numerical inverse bisection solver for monotonic continuous functions.
+   * Finds x such that f(x) = targetY on [minX, maxX].
+   */
+  static numericalInverse(evaluator, targetY, minX = -10, maxX = 10, maxIter = 25) {
+    let lo = minX;
+    let hi = maxX;
+    const yLo = evaluator(lo);
+    const yHi = evaluator(hi);
+    if (isNaN(yLo) || isNaN(yHi)) return NaN;
+    const isIncreasing = yHi >= yLo;
+
+    if (isIncreasing) {
+      if (targetY < yLo || targetY > yHi) return NaN;
+    } else {
+      if (targetY > yLo || targetY < yHi) return NaN;
+    }
+
+    for (let i = 0; i < maxIter; i++) {
+      const mid = (lo + hi) / 2;
+      const yMid = evaluator(mid);
+      if (Math.abs(yMid - targetY) < 1e-6) return mid;
+      if (isIncreasing) {
+        if (yMid < targetY) lo = mid;
+        else hi = mid;
+      } else {
+        if (yMid > targetY) lo = mid;
+        else hi = mid;
+      }
+    }
+    return (lo + hi) / 2;
+  }
 }
 
 // ============================================================================
