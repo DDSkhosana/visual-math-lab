@@ -2928,12 +2928,12 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
 
     alignCircleWireToPlane(this.circleWire, circleInfo.normal, circleInfo.center, circleInfo.radius, THREE);
 
+    const TAU = Math.PI * 2;
+    const norm = (a) => ((a % TAU) + TAU) % TAU;
     let segStartSpatial = 0;
     let segSweepSpatial = Math.PI * 2;
     if (isSpatial) {
       // Keep P2 strictly concyclic on the small circle wire on S² AND in the exact SAME segment as P1
-      const TAU = Math.PI * 2;
-      const norm = (a) => ((a % TAU) + TAU) % TAU;
 
       // 2D relative position of P2 within the active segment arc
       const sweepCW2D = norm(state.angleB - state.angleA);
