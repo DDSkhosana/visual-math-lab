@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.google-analytics.com; frame-src https://www.youtube-nocookie.com; media-src 'self' blob:; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=()">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <title>Category Theory &amp; Universal Properties | Visual Mathematics Lab</title>
+  <meta name="description" content="Interactive commutative diagrams, monic/epic cancellation probes, First Isomorphism Theorem universal factorization, and Cartesian currying adjunction.">
+  <link rel="canonical" href="https://ddskhosana.github.io/visual-math-lab/visuals/foundations/category-theory-foundations/">
+  <link rel="icon" type="image/svg+xml" href="../../../assets/images/thales-thumbnail.svg">
+  <link rel="manifest" href="../../../site.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LearningResource", "WebApplication"],
+    "name": "Category Theory & Universal Properties | Visual Mathematics Lab",
+    "headline": "Commutative Diagrams, Monic/Epic Probes, Universal Factorization & Adjunctions",
+    "description": "Explore arrow-theoretic mathematics: path composition equality, cancellation probe test benches for monomorphisms and epimorphisms, First Isomorphism Theorem factorization, and Cartesian closed adjunction.",
+    "url": "https://ddskhosana.github.io/visual-math-lab/visuals/foundations/category-theory-foundations/"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="../../../css/site.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
+  <script type="module">
+    import { mountCategoryTheoryVisual } from './src/controller.js';
+    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
+
+    const init = () => {
+      const commContainer = document.querySelector('#commutative-viewport-container');
+      const probeContainer = document.querySelector('#probe-viewport-container');
+      const factContainer = document.querySelector('#factorization-viewport-container');
+
+      mountCategoryTheoryVisual({
+        commutative: commContainer,
+        probe: probeContainer,
+        factorization: factContainer
+      });
+
+      // Mount Workspace Dock
+      const dockRoot = document.querySelector('#workspace-dock');
+      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
+        new WorkspaceDockManager(dockRoot);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</head>
+<body data-root="../../.." class="visual-page-body">
+  <button type="button" class="header-restore-btn" id="header-restore-btn" aria-label="Show navigation header" title="Show navigation header" hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <span>Menu</span>
+  </button>
+  <header data-site-header></header>
+
+  <main class="visual-page">
+    <section class="circle-explorer" aria-label="Interactive Category Theory and Universal Properties">
+      
+      <!-- Viewport Header Toolbar -->
+      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Category theory visualizer modes">
+        <div class="toolbar-content" id="toolbar-content">
+          <!-- Main View Modes -->
+          <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn active" data-view-mode="commutative" aria-pressed="true">Commutative Diagrams</button>
+            <button type="button" class="btn" data-view-mode="probe" aria-pressed="false">Monic / Epic Probes</button>
+            <button type="button" class="btn" data-view-mode="factorization" aria-pressed="false">Universal Factorization</button>
+          </div>
+
+          <!-- Commutative Diagram Sub-Types -->
+          <div class="viewmode-segmented-group" id="diagram-type-group" role="group" aria-label="Diagram Type" style="margin-left: 8px;">
+            <button type="button" class="btn active" data-diagram-type="triangle" aria-pressed="true">Triangle (g ∘ f = h)</button>
+            <button type="button" class="btn" data-diagram-type="square" aria-pressed="false">Naturality Square</button>
+            <button type="button" class="btn" data-diagram-type="product" aria-pressed="false">Universal Product</button>
+          </div>
+
+          <button type="button" class="btn-toolbar" id="btn-toggle-comm" title="Toggle diagram commutativity">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            <span>Toggle Commutativity</span>
+          </button>
+
+          <button type="button" class="btn-toolbar" id="btn-reset" title="Reset diagram to canonical configuration">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Visual Viewports -->
+      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+        <!-- Mode 1: Commutative Diagrams & Path Composition -->
+        <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
+
+        <!-- Mode 2: Monic & Epic Cancellation Probes -->
+        <div id="probe-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+        <!-- Mode 3: Universal Factorization & Adjunction -->
+        <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+      </div>
+
+      <!-- Workspace Dock with Sub-Panels -->
+      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
+        <div class="dock-handle" title="Drag dock margin"></div>
+        <div class="dock-tray">
+
+          <!-- Sub-Panel 1: Categorical Invariants Telemetry -->
+          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
+            <div class="panel-header">
+              <span class="panel-header-icon">⚖</span>
+              <h3 class="panel-header-title">Categorical Invariants</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div class="axiom-badge-group">
+                <span id="badge-comm-status" class="axiom-badge is-valid">Diagram: Commutes</span>
+                <span id="badge-monic-status" class="axiom-badge is-violated">Monic: NO</span>
+                <span id="badge-epic-status" class="axiom-badge is-violated">Epic: NO</span>
+                <span id="badge-iso-status" class="axiom-badge is-violated">Isomorphism: NO</span>
+              </div>
+              <div id="category-telemetry-content" style="margin-top: 12px;"></div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 2: Morphism Presets -->
+          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
+            <div class="panel-header">
+              <span class="panel-header-icon">🎛</span>
+              <h3 class="panel-header-title">Morphism Presets</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                Select test morphisms to observe cancellation probe results and First Isomorphism Factorization.
+              </p>
+              <div class="preset-grid">
+                <button type="button" class="preset-chip active" data-preset="collapsing-quotient">Collapsing (4 &rarr; 2 classes)</button>
+                <button type="button" class="preset-chip" data-preset="injective-monic">Injective Monic (3 &rarr; 4)</button>
+                <button type="button" class="preset-chip" data-preset="surjective-epic">Surjective Epic (4 &rarr; 3)</button>
+                <button type="button" class="preset-chip" data-preset="bijective-isomorphism">Bijective Isomorphism (3 &rarr; 3)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-Panel 3: Categorical Foundations & Theory -->
+          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
+            <div class="panel-header">
+              <span class="panel-header-icon">📜</span>
+              <h3 class="panel-header-title">Category Theory Axioms</h3>
+              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+            </div>
+            <div class="panel-body">
+              <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+                <p style="margin-top: 0;">
+                  <strong>Commutative Diagram:</strong> A directed diagram of objects and arrows commutes iff for any two paths between the same pair of objects, the composite morphisms are identical.
+                </p>
+                <p>
+                  <strong>Monomorphism (Monic):</strong> A morphism $f: X \to Y$ is monic iff it satisfies left-cancellation: $f \circ g_1 = f \circ g_2 \implies g_1 = g_2$ for all test probes $g_1, g_2: W \to X$. In $\mathbf{Set}$, monic $\iff$ injective.
+                </p>
+                <p>
+                  <strong>Epimorphism (Epic):</strong> A morphism $f: X \to Y$ is epic iff it satisfies right-cancellation: $h_1 \circ f = h_2 \circ f \implies h_1 = h_2$ for all test probes $h_1, h_2: Y \to Z$. In $\mathbf{Set}$, epic $\iff$ surjective.
+                </p>
+                <p>
+                  <strong>Universal Quotient Factorization:</strong> Every morphism $f: X \to Y$ factors through the canonical projection $\pi: X \to X/\ker(f)$, the induced isomorphism $\bar{f}: X/\ker(f) \to \operatorname{im}(f)$, and inclusion $\iota: \operatorname{im}(f) \hookrightarrow Y$.
+                </p>
+                <p>
+                  <strong>Cartesian Adjunction:</strong> In Cartesian closed categories, taking the product is left adjoint to function exponentiation: $\operatorname{Hom}(A \times B, C) \cong \operatorname{Hom}(A, C^B)$.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+</body>
+</html>

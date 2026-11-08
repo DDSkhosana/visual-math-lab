@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Category Theory and Universal Properties Illustration</title>
+  <desc id="desc">Commutative diagram triangle and universal quotient factorization with cancellation probe testing.</desc>
+  <rect width="1200" height="800" fill="#ece9e1"/>
+
+  <defs>
+    <marker id="thumb-arrow-blue" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
+    </marker>
+    <marker id="thumb-arrow-gold" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#d97706" />
+    </marker>
+    <marker id="thumb-arrow-pink" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#db2777" />
+    </marker>
+    <marker id="thumb-arrow-green" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+    </marker>
+  </defs>
+
+  <!-- Left: Commutative Diagram Triangle g ∘ f = h -->
+  <text x="320" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#475569">
+    COMMUTATIVE DIAGRAM (g ∘ f = h)
+  </text>
+
+  <!-- Node A: (150, 460) -->
+  <!-- Node B: (320, 240) -->
+  <!-- Node C: (490, 460) -->
+
+  <!-- Arrow f: A -> B -->
+  <line x1="180" y1="425" x2="295" y2="275" stroke="#0284c7" stroke-width="8" marker-end="url(#thumb-arrow-blue)"/>
+  <text x="210" y="335" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0284c7">f</text>
+
+  <!-- Arrow g: B -> C -->
+  <line x1="345" y1="275" x2="460" y2="425" stroke="#0284c7" stroke-width="8" marker-end="url(#thumb-arrow-blue)"/>
+  <text x="430" y="335" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0284c7">g</text>
+
+  <!-- Arrow h: A -> C (bottom gold arrow) -->
+  <line x1="200" y1="460" x2="440" y2="460" stroke="#d97706" stroke-width="8" marker-end="url(#thumb-arrow-gold)"/>
+  <text x="320" y="515" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#d97706">h = g ∘ f</text>
+
+  <!-- Objects A, B, C -->
+  <circle cx="150" cy="460" r="44" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <text x="150" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">A</text>
+
+  <circle cx="320" cy="240" r="44" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <text x="320" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">B</text>
+
+  <circle cx="490" cy="460" r="44" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <text x="490" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">C</text>
+
+  <!-- Divider Line -->
+  <line x1="600" y1="110" x2="600" y2="680" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="8 8"/>
+
+  <!-- Right: Universal Factorization & Adjunction -->
+  <text x="900" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#475569">
+    UNIVERSAL FACTORIZATION X/ker(f) ≅ im(f)
+  </text>
+
+  <!-- Diamond Layout:
+       Top: X at (700, 260) and Y at (1100, 260)
+       Bottom: X/ker at (800, 480) and im(f) at (1000, 480)
+  -->
+  <!-- Direct f: X -> Y -->
+  <line x1="755" y1="260" x2="1045" y2="260" stroke="#0284c7" stroke-width="6" stroke-dasharray="10 6" marker-end="url(#thumb-arrow-blue)"/>
+  <text x="900" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#0284c7">f (original)</text>
+
+  <!-- Projection π: X -> X/ker -->
+  <line x1="730" y1="305" x2="775" y2="435" stroke="#059669" stroke-width="7" marker-end="url(#thumb-arrow-green)"/>
+  <text x="730" y="380" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#059669">π (epi)</text>
+
+  <!-- Isomorphism f_bar: X/ker -> im(f) -->
+  <line x1="855" y1="480" x2="945" y2="480" stroke="#d97706" stroke-width="8" marker-end="url(#thumb-arrow-gold)"/>
+  <text x="900" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#d97706">f̄ (iso ≅)</text>
+
+  <!-- Inclusion ι: im(f) -> Y -->
+  <line x1="1025" y1="435" x2="1070" y2="305" stroke="#db2777" stroke-width="7" marker-end="url(#thumb-arrow-pink)"/>
+  <text x="1070" y="380" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#db2777">ι (mono)</text>
+
+  <!-- Nodes for Factorization -->
+  <rect x="655" y="225" width="90" height="70" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="6"/>
+  <text x="700" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#ffffff">X</text>
+
+  <rect x="1055" y="225" width="90" height="70" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="6"/>
+  <text x="1100" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#ffffff">Y</text>
+
+  <rect x="740" y="445" width="120" height="70" rx="14" fill="#1e293b" stroke="#34d399" stroke-width="6"/>
+  <text x="800" y="488" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#34d399">X/ker(f)</text>
+
+  <rect x="940" y="445" width="120" height="70" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="6"/>
+  <text x="1000" y="488" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#fbbf24">im(f)</text>
+
+  <!-- Bottom Legend / Axiom Banners -->
+  <g transform="translate(140, 600)">
+    <rect width="920" height="72" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="460" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#334155">
+      PATH EQUALITY &nbsp;•&nbsp; MONIC (LEFT-CANCEL) &nbsp;•&nbsp; EPIC (RIGHT-CANCEL) &nbsp;•&nbsp; ADJUNCTION Hom(A × B, C) ≅ Hom(A, Cᴮ)
+    </text>
+  </g>
+</svg>

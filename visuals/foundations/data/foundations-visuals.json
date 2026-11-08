@@ -61,8 +61,8 @@
     "badge": "Foundations 04",
     "formula": "f ∘ g₁ = f ∘ g₂ ⟹ g₁ = g₂  |  X/ker(f) ≅ im(f)",
     "description": "Test categorical monomorphisms and epimorphisms with interactive cancellation probe testers, verify commutative diagrams, and visualize adjunctions.",
-    "thumbnail": "assets/images/thales-thumbnail.svg",
-    "published": false,
+    "thumbnail": "assets/images/category-theory-foundations-thumbnail.svg",
+    "published": true,
     "youtubeId": "",
     "video": {
       "enabled": true,

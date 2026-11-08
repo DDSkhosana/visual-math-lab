@@ -677,4 +677,105 @@ export class CategoryMath {
       reason: "Satisfies right-cancellation: h1 ∘ f = h2 ∘ f implies h1 = h2 for all probes."
     };
   }
+
+  /**
+   * First Isomorphism Theorem / Universal Factorization:
+   * Every function f: X -> Y factors uniquely through its quotient by the kernel relation:
+   * X --π--> X/~ --f_bar--> im(f) --ι--> Y
+   * where:
+   * - π: X -> X/~ is canonical epimorphism (surjection)
+   * - f_bar: X/~ -> im(f) is an isomorphism (bijection)
+   * - ι: im(f) -> Y is canonical monomorphism (injection)
+   * Hence f = ι ∘ f_bar ∘ π.
+   */
+  static computeQuotientFactorization(morphismF, domainX, codomainY) {
+    const fMap = new Map(morphismF);
+    const kernelClassesMap = new Map(); // y -> [x1, x2, ...]
+
+    for (const x of domainX) {
+      const y = fMap.get(x);
+      if (!kernelClassesMap.has(y)) {
+        kernelClassesMap.set(y, []);
+      }
+      kernelClassesMap.get(y).push(x);
+    }
+
+    // Quotient classes: array of classes e.g. { id: "[1,2]", elements: [1,2], targetY: y }
+    const quotientClasses = [];
+    const imageElements = [];
+    const fBarMapping = [];
+    const projectionMapping = [];
+    const inclusionMapping = [];
+
+    for (const [y, elements] of kernelClassesMap.entries()) {
+      const classId = `[${elements.join(',')}]`;
+      quotientClasses.push({ id: classId, elements, targetY: y });
+      imageElements.push(y);
+      fBarMapping.push([classId, y]);
+      inclusionMapping.push([y, y]);
+      for (const x of elements) {
+        projectionMapping.push([x, classId]);
+      }
+    }
+
+    const unhit = codomainY.filter((y) => !kernelClassesMap.has(y));
+
+    return {
+      domainX,
+      codomainY,
+      quotientClasses,
+      imageElements,
+      projectionMapping, // π: X -> X/~
+      fBarMapping,       // f_bar: X/~ -> im(f) (isomorphism)
+      inclusionMapping,  // ι: im(f) -> Y
+      unhitCodomain: unhit,
+      isIsomorphismDirect: quotientClasses.length === domainX.length && unhit.length === 0,
+      factorsCommute: true
+    };
+  }
+
+  /**
+   * Currying / Cartesian Adjunction:
+   * Natural isomorphism Hom(A × B, C) ≅ Hom(A, C^B).
+   * Uncurried: f: (a, b) -> c
+   * Curried: f_hat: a -> (b -> c)
+   * Evaluation: eval(f_hat(a), b) = f(a, b)
+   */
+  static testCurryingAdjunction(domainA, domainB, fn) {
+    const table2D = [];
+    const curriedMap = new Map();
+
+    for (const a of domainA) {
+      const row = [];
+      const sliceMap = new Map();
+      for (const b of domainB) {
+        const val = fn(a, b);
+        row.push({ a, b, val });
+        sliceMap.set(b, val);
+      }
+      table2D.push(row);
+      curriedMap.set(a, sliceMap);
+    }
+
+    // Verify round-trip evaluation
+    let allMatch = true;
+    for (const a of domainA) {
+      for (const b of domainB) {
+        const direct = fn(a, b);
+        const curriedSlice = curriedMap.get(a);
+        const curriedEval = curriedSlice.get(b);
+        if (direct !== curriedEval) {
+          allMatch = false;
+        }
+      }
+    }
+
+    return {
+      domainA,
+      domainB,
+      table2D,
+      curriedMap,
+      adjunctionHolds: allMatch
+    };
+  }
 }

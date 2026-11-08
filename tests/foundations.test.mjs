@@ -273,6 +273,36 @@ describe('Foundations Suite — CategoryMath & Universal Properties (Module 4)',
     assert.equal(failEpic.isEpic, false);
     assert.equal(failEpic.witness.orphaned, 'c');
   });
+
+  test('First Isomorphism Theorem factors functions through kernel quotient and image', () => {
+    const X = [1, 2, 3, 4];
+    const Y = ['a', 'b', 'c'];
+    const morphismF = [[1, 'a'], [2, 'a'], [3, 'b'], [4, 'b']];
+
+    const fact = CategoryMath.computeQuotientFactorization(morphismF, X, Y);
+    assert.equal(fact.quotientClasses.length, 2);
+    assert.deepEqual(fact.imageElements, ['a', 'b']);
+    assert.deepEqual(fact.unhitCodomain, ['c']);
+    assert.equal(fact.isIsomorphismDirect, false);
+
+    // Isomorphism test: 3 elements bijection
+    const bijectiveF = [[1, 'a'], [2, 'b'], [3, 'c']];
+    const factBio = CategoryMath.computeQuotientFactorization(bijectiveF, [1, 2, 3], ['a', 'b', 'c']);
+    assert.equal(factBio.isIsomorphismDirect, true);
+    assert.equal(factBio.unhitCodomain.length, 0);
+  });
+
+  test('Cartesian currying adjunction satisfies eval(f_hat(a), b) = f(a, b)', () => {
+    const A = ['x', 'y'];
+    const B = [1, 2];
+    const fn = (a, b) => `${a}:${b}`;
+
+    const res = CategoryMath.testCurryingAdjunction(A, B, fn);
+    assert.equal(res.adjunctionHolds, true);
+    const sliceX = res.curriedMap.get('x');
+    assert.equal(sliceX.get(1), 'x:1');
+    assert.equal(sliceX.get(2), 'x:2');
+  });
 });
 
 describe('Foundations Suite — File Integrity & Module 1 Controller Integration', () => {
@@ -504,6 +534,65 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('cauchy-viewport-container'), 'Must contain cauchy viewport');
     assert.ok(html.includes('braid-viewport-container'), 'Must contain braid viewport');
     assert.ok(html.includes('cayley-viewport-container'), 'Must contain cayley viewport');
+  });
+
+  test('Module 4 CategoryTheoryController manages presets, commutativity, and proof export', async () => {
+    const { CategoryTheoryController } = await import('../visuals/foundations/category-theory-foundations/src/controller.js');
+    const ctrl = new CategoryTheoryController();
+
+    // Default state: collapsing-quotient
+    assert.equal(ctrl.state.activeMode, 'commutative');
+    assert.equal(ctrl.state.currentPresetId, 'collapsing-quotient');
+    assert.equal(ctrl.state.diagramType, 'triangle');
+    assert.equal(ctrl.state.triangleCommutes, true);
+
+    // Switch presets
+    ctrl.applyPreset('injective-monic');
+    assert.equal(ctrl.state.domainX.length, 3);
+    assert.equal(ctrl.state.codomainY.length, 4);
+
+    ctrl.applyPreset('surjective-epic');
+    assert.equal(ctrl.state.domainX.length, 4);
+    assert.equal(ctrl.state.codomainY.length, 3);
+
+    ctrl.applyPreset('bijective-isomorphism');
+    assert.equal(ctrl.state.domainX.length, 3);
+    assert.equal(ctrl.state.codomainY.length, 3);
+
+    // Commutativity toggle
+    ctrl.toggleTriangleCommutativity(false);
+    assert.equal(ctrl.state.triangleCommutes, false);
+
+    // Diagram type
+    ctrl.setDiagramType('square');
+    assert.equal(ctrl.state.diagramType, 'square');
+    ctrl.setDiagramType('product');
+    assert.equal(ctrl.state.diagramType, 'product');
+
+    // Proof export
+    const proof = ctrl.exportProof();
+    assert.ok(proof.includes('Categorical Invariant & Universal Factorization'));
+    assert.ok(proof.includes('First Isomorphism Theorem'));
+  });
+
+  test('Module 4 index.html and thumbnail exist and have valid structure', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const fileURLToPath = (await import('node:url')).fileURLToPath;
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const moduleHtmlPath = path.resolve(__dirname, '../visuals/foundations/category-theory-foundations/index.html');
+    const thumbnailPath = path.resolve(__dirname, '../assets/images/category-theory-foundations-thumbnail.svg');
+
+    assert.ok(fs.existsSync(moduleHtmlPath), 'category-theory-foundations/index.html must exist');
+    assert.ok(fs.existsSync(thumbnailPath), 'category-theory-foundations-thumbnail.svg must exist');
+
+    const html = fs.readFileSync(moduleHtmlPath, 'utf8');
+    assert.ok(html.includes('Content-Security-Policy'), 'Must have Content-Security-Policy');
+    assert.ok(html.includes('workspace-dock'), 'Must contain workspace dock');
+    assert.ok(html.includes('commutative-viewport-container'), 'Must contain commutative viewport');
+    assert.ok(html.includes('probe-viewport-container'), 'Must contain probe viewport');
+    assert.ok(html.includes('factorization-viewport-container'), 'Must contain factorization viewport');
   });
 });
 
