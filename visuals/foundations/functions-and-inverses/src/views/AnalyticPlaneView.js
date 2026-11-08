@@ -1,9 +1,32 @@
 /**
  * AnalyticPlaneView — Continuous Cartesian Plane with Diagonal Mirror Reflection (y = x)
+ * Adaptive Coordinate Axis & Domain-to-Codomain Semantic Colour Tokens
  * Visual Mathematics Lab — Module 1: Functions, Inverses & Reversibility
  */
 
 import { FunctionMath } from '../../../js/foundations-core.js';
+
+// Semantic Colour Tokens matching Suite 03 Design System
+const PALETTE = {
+  domain: '#38bdf8',           // Sky Blue (Domain X inputs)
+  domainGlow: 'rgba(56, 189, 248, 0.45)',
+  domainDim: 'rgba(56, 189, 248, 0.15)',
+  codomain: '#f472b6',         // Pink / Rose (Codomain Y outputs)
+  codomainGlow: 'rgba(244, 114, 182, 0.45)',
+  codomainDim: 'rgba(244, 114, 182, 0.15)',
+  mirror: '#e2e8f0',           // Silver / Mirror Line y = x
+  mirrorGlow: 'rgba(226, 232, 240, 0.35)',
+  tracerChord: 'rgba(251, 191, 36, 0.85)', // Amber Reflection Chord
+  tracerMid: '#fbbf24',        // Amber Midpoint on y = x
+  gridMajor: 'rgba(255, 255, 255, 0.08)',
+  gridMinor: 'rgba(255, 255, 255, 0.025)',
+  axisBase: 'rgba(148, 163, 184, 0.35)',
+  textMuted: '#94a3b8',
+  textBright: '#f8fafc',
+  danger: '#f87171',
+  dangerDim: 'rgba(239, 68, 68, 0.18)',
+  success: '#34d399'
+};
 
 export class AnalyticPlaneView {
   constructor(container, controller) {
@@ -13,18 +36,33 @@ export class AnalyticPlaneView {
     this.ctx = null;
     this.width = 0;
     this.height = 0;
-    this.scale = 45; // pixels per unit
+
+    // Viewport & Scale State
+    this.scale = 55; // Pixels per unit
+    this.defaultScale = 55;
     this.originX = 0;
     this.originY = 0;
+    this.panOffsetX = 0;
+    this.panOffsetY = 0;
+
+    // Interaction State
     this.isDraggingPoint = false;
+    this.isPanning = false;
+    this.lastPointerPos = { x: 0, y: 0 };
 
     this.init();
   }
 
   init() {
     this.container.innerHTML = `
-      <div class="analytic-canvas-container" id="analytic-view">
-        <canvas class="analytic-canvas" id="analytic-canvas"></canvas>
+      <div class="analytic-canvas-container" id="analytic-view" style="position: relative; width: 100%; height: 100%;">
+        <canvas class="analytic-canvas" id="analytic-canvas" style="display: block; width: 100%; height: 100%; cursor: default;"></canvas>
+        <div class="canvas-floating-hints" style="position: absolute; bottom: 12px; left: 16px; font-size: 0.75rem; color: #64748b; pointer-events: none; display: flex; gap: 14px; background: rgba(15, 23, 42, 0.7); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <span><strong style="color: ${PALETTE.domain};">Horizontal Axis:</strong> Domain X</span>
+          <span><strong style="color: ${PALETTE.codomain};">Vertical Axis:</strong> Codomain Y</span>
+          <span><strong style="color: ${PALETTE.mirror};">y = x:</strong> Reflection Axis</span>
+          <span>Drag <b style="color: #fbbf24;">P</b> &bull; Wheel to Zoom &bull; Drag background to Pan</span>
+        </div>
       </div>
     `;
 
@@ -41,6 +79,8 @@ export class AnalyticPlaneView {
     this.canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup', () => this.onPointerUp());
+    this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+    this.canvas.addEventListener('dblclick', () => this.resetView());
   }
 
   resize() {
@@ -49,18 +89,31 @@ export class AnalyticPlaneView {
     this.width = rect.width || 600;
     this.height = rect.height || 450;
 
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
+    this.canvas.width = Math.floor(this.width * dpr);
+    this.canvas.height = Math.floor(this.height * dpr);
     this.canvas.style.width = `${this.width}px`;
     this.canvas.style.height = `${this.height}px`;
 
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
 
+    this.defaultScale = Math.min(this.width, this.height) / 9.5;
+    if (!this.scale || this.scale < 15) {
+      this.scale = this.defaultScale;
+    }
+
+    this.originX = this.width / 2 + this.panOffsetX;
+    this.originY = this.height / 2 + this.panOffsetY;
+
+    this.render();
+  }
+
+  resetView() {
+    this.scale = this.defaultScale;
+    this.panOffsetX = 0;
+    this.panOffsetY = 0;
     this.originX = this.width / 2;
     this.originY = this.height / 2;
-    this.scale = Math.min(this.width, this.height) / 10;
-
     this.render();
   }
 
@@ -78,6 +131,20 @@ export class AnalyticPlaneView {
     };
   }
 
+  /**
+   * Adaptive step computation: 1, 2, or 5 * 10^k
+   */
+  computeAdaptiveStep() {
+    const targetPx = 65; // Target pixel distance between primary ticks
+    const rawStep = targetPx / this.scale;
+    const power = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const fraction = rawStep / power;
+
+    if (fraction >= 5) return 5 * power;
+    if (fraction >= 2) return 2 * power;
+    return power;
+  }
+
   render() {
     if (!this.ctx || this.width === 0) return;
     const ctx = this.ctx;
@@ -86,8 +153,8 @@ export class AnalyticPlaneView {
     const state = this.controller.state;
     const model = FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
 
-    // 1. Grid & Coordinate Axes
-    this.drawAxes(ctx);
+    // 1. Grid & Adaptive Coordinate Axes with Semantic Domain/Codomain Tokens
+    this.drawAxes(ctx, model, state);
 
     // 2. Diagonal Reflection Line y = x
     this.drawDiagonalLine(ctx);
@@ -98,64 +165,228 @@ export class AnalyticPlaneView {
     // 4. Inverse Curve y = f⁻¹(x)
     this.drawInverseCurve(ctx, model, state);
 
-    // 5. Interactive Point Tracer & Orthogonal Reflection Chord
+    // 5. Interactive Point Reflection & Semantic Coordinate Drop-Lines
     this.drawPointReflection(ctx, model, state);
   }
 
-  drawAxes(ctx) {
+  /**
+   * Draw the adaptive Cartesian grid and semantically colored axes.
+   * - Horizontal Axis: Domain X (Sky Blue #38bdf8)
+   * - Vertical Axis: Codomain Y (Pink #f472b6)
+   */
+  drawAxes(ctx, model, state) {
     const minX = -this.originX / this.scale;
     const maxX = (this.width - this.originX) / this.scale;
     const minY = -(this.height - this.originY) / this.scale;
     const maxY = this.originY / this.scale;
 
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-    ctx.lineWidth = 1;
+    const step = this.computeAdaptiveStep();
+    const startX = Math.floor(minX / step) * step;
+    const endX = Math.ceil(maxX / step) * step;
+    const startY = Math.floor(minY / step) * step;
+    const endY = Math.ceil(maxY / step) * step;
 
-    // Grid lines
-    for (let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+    ctx.save();
+
+    // 1. Minor Sub-Grid
+    const subStep = step / 5;
+    ctx.strokeStyle = PALETTE.gridMinor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = Math.floor(minX / subStep) * subStep; x <= endX; x += subStep) {
       const p1 = this.toScreen(x, minY);
       const p2 = this.toScreen(x, maxY);
-      ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
     }
-
-    for (let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+    for (let y = Math.floor(minY / subStep) * subStep; y <= endY; y += subStep) {
       const p1 = this.toScreen(minX, y);
       const p2 = this.toScreen(maxX, y);
-      ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
+    }
+    ctx.stroke();
+
+    // 2. Major Grid
+    ctx.strokeStyle = PALETTE.gridMajor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = startX; x <= endX; x += step) {
+      const p1 = this.toScreen(x, minY);
+      const p2 = this.toScreen(x, maxY);
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+    }
+    for (let y = startY; y <= endY; y += step) {
+      const p1 = this.toScreen(minX, y);
+      const p2 = this.toScreen(maxX, y);
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.stroke();
+
+    // 3. Domain Restriction Shading (for non-injective domain pruning)
+    if (model.id === 'quadratic' && state.restrictDomain) {
+      const pExclStart = this.toScreen(minX, maxY);
+      const pExclEnd = this.toScreen(0, minY);
+      ctx.fillStyle = PALETTE.dangerDim;
+      ctx.fillRect(pExclStart.x, pExclStart.y, pExclEnd.x - pExclStart.x, pExclEnd.y - pExclStart.y);
+
+      // Warning text in pruned region
+      ctx.fillStyle = PALETTE.danger;
+      ctx.font = '10px monospace';
+      ctx.fillText('Pruned Domain (x < 0) to guarantee bijectivity', pExclStart.x + 12, this.originY - 14);
     }
 
-    // Main Axes
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 1.5;
-
-    // X Axis
+    // 4. Horizontal Axis: DOMAIN X (Sky Blue)
     const xAxisStart = this.toScreen(minX, 0);
     const xAxisEnd = this.toScreen(maxX, 0);
+
+    // Glowing base line
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(xAxisStart.x, xAxisStart.y);
     ctx.lineTo(xAxisEnd.x, xAxisEnd.y);
     ctx.stroke();
 
-    // Y Axis
+    // Core axis line
+    ctx.strokeStyle = PALETTE.domain;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(xAxisStart.x, xAxisStart.y);
+    ctx.lineTo(xAxisEnd.x, xAxisEnd.y);
+    ctx.stroke();
+
+    // Arrowhead at positive X end
+    ctx.fillStyle = PALETTE.domain;
+    ctx.beginPath();
+    ctx.moveTo(xAxisEnd.x - 2, xAxisEnd.y);
+    ctx.lineTo(xAxisEnd.x - 10, xAxisEnd.y - 4.5);
+    ctx.lineTo(xAxisEnd.x - 10, xAxisEnd.y + 4.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // 5. Vertical Axis: CODOMAIN Y (Pink)
     const yAxisStart = this.toScreen(0, minY);
     const yAxisEnd = this.toScreen(0, maxY);
+
+    // Glowing base line
+    ctx.strokeStyle = 'rgba(244, 114, 182, 0.2)';
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(yAxisStart.x, yAxisStart.y);
     ctx.lineTo(yAxisEnd.x, yAxisEnd.y);
     ctx.stroke();
 
-    // Labels
+    // Core axis line
+    ctx.strokeStyle = PALETTE.codomain;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(yAxisStart.x, yAxisStart.y);
+    ctx.lineTo(yAxisEnd.x, yAxisEnd.y);
+    ctx.stroke();
+
+    // Arrowhead at positive Y end
+    ctx.fillStyle = PALETTE.codomain;
+    ctx.beginPath();
+    ctx.moveTo(yAxisEnd.x, yAxisEnd.y + 2);
+    ctx.lineTo(yAxisEnd.x - 4.5, yAxisEnd.y + 10);
+    ctx.lineTo(yAxisEnd.x + 4.5, yAxisEnd.y + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // 6. Adaptive Ticks and Numerical Labels
+    ctx.font = '10px monospace';
+    const numDecimals = step < 1 ? 1 : 0;
+
+    // X Ticks (Domain Sky Blue)
+    for (let x = startX; x <= endX; x += step) {
+      if (Math.abs(x) < 0.0001) continue; // Skip origin
+      const p = this.toScreen(x, 0);
+
+      ctx.strokeStyle = PALETTE.domain;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - 4);
+      ctx.lineTo(p.x, p.y + 4);
+      ctx.stroke();
+
+      ctx.fillStyle = PALETTE.textMuted;
+      ctx.textAlign = 'center';
+      ctx.fillText(x.toFixed(numDecimals), p.x, p.y + 15);
+    }
+
+    // Y Ticks (Codomain Pink)
+    for (let y = startY; y <= endY; y += step) {
+      if (Math.abs(y) < 0.0001) continue; // Skip origin
+      const p = this.toScreen(0, y);
+
+      ctx.strokeStyle = PALETTE.codomain;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x - 4, p.y);
+      ctx.lineTo(p.x + 4, p.y);
+      ctx.stroke();
+
+      ctx.fillStyle = PALETTE.textMuted;
+      ctx.textAlign = 'right';
+      ctx.fillText(y.toFixed(numDecimals), p.x - 7, p.y + 3);
+    }
+
+    // Origin (0, 0) Marker
+    const pOrigin = this.toScreen(0, 0);
     ctx.fillStyle = '#64748b';
-    ctx.font = '11px sans-serif';
-    ctx.fillText('x', this.width - 15, this.originY - 6);
-    ctx.fillText('y', this.originX + 8, 15);
+    ctx.textAlign = 'right';
+    ctx.fillText('0', pOrigin.x - 6, pOrigin.y + 14);
+
+    // 7. Semantic Axis Badges
+    // Domain X Pill Badge
+    this.drawAxisPillBadge(
+      ctx,
+      xAxisEnd.x - 110,
+      xAxisEnd.y + 10,
+      'Domain X (inputs x)',
+      PALETTE.domain,
+      'rgba(56, 189, 248, 0.12)'
+    );
+
+    // Codomain Y Pill Badge
+    this.drawAxisPillBadge(
+      ctx,
+      yAxisEnd.x + 12,
+      yAxisEnd.y + 8,
+      'Codomain Y (outputs y)',
+      PALETTE.codomain,
+      'rgba(244, 114, 182, 0.12)'
+    );
+
+    ctx.restore();
+  }
+
+  drawAxisPillBadge(ctx, x, y, text, color, bg) {
+    ctx.save();
+    ctx.font = 'bold 10px monospace';
+    const textWidth = ctx.measureText(text).width;
+    const paddingX = 6;
+    const height = 18;
+
+    // Clamping to screen bounds
+    const safeX = Math.max(10, Math.min(this.width - textWidth - paddingX * 2 - 10, x));
+    const safeY = Math.max(10, Math.min(this.height - height - 10, y));
+
+    ctx.fillStyle = bg;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(safeX, safeY, textWidth + paddingX * 2, height, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, safeX + paddingX, safeY + height / 2);
     ctx.restore();
   }
 
@@ -165,7 +396,7 @@ export class AnalyticPlaneView {
     const p2 = this.toScreen(bound, bound);
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.4)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 6]);
 
@@ -174,8 +405,8 @@ export class AnalyticPlaneView {
     ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
 
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = 'italic 12px sans-serif';
+    ctx.fillStyle = PALETTE.mirror;
+    ctx.font = 'italic 11px sans-serif';
     const labelPos = this.toScreen(3.2, 3.2);
     ctx.fillText('mirror line y = x', labelPos.x + 8, labelPos.y - 8);
     ctx.restore();
@@ -183,12 +414,12 @@ export class AnalyticPlaneView {
 
   drawForwardCurve(ctx, model, state) {
     ctx.save();
-    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeStyle = PALETTE.domain;
     ctx.lineWidth = 2.5;
 
     const minX = -this.originX / this.scale;
     const maxX = (this.width - this.originX) / this.scale;
-    const step = 0.05;
+    const step = 0.04;
 
     ctx.beginPath();
     let started = false;
@@ -214,11 +445,15 @@ export class AnalyticPlaneView {
     }
     ctx.stroke();
 
-    // Label
-    const labelScreen = this.toScreen(1.8, model.forward(1.8));
-    ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText(model.forwardFormulaText, labelScreen.x + 10, labelScreen.y - 10);
+    // Curve Label
+    const sampleX = 1.8;
+    const sampleY = model.forward(sampleX);
+    if (!isNaN(sampleY) && isFinite(sampleY)) {
+      const labelScreen = this.toScreen(sampleX, sampleY);
+      ctx.fillStyle = PALETTE.domain;
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText(model.forwardFormulaText, labelScreen.x + 10, labelScreen.y - 10);
+    }
 
     ctx.restore();
   }
@@ -246,7 +481,7 @@ export class AnalyticPlaneView {
       }
       ctx.stroke();
 
-      ctx.fillStyle = '#f87171';
+      ctx.fillStyle = PALETTE.danger;
       ctx.font = 'italic 11px sans-serif';
       const warnPos = this.toScreen(2, -1.8);
       ctx.fillText('Reflected curve fails vertical line test (multivalued)', warnPos.x, warnPos.y);
@@ -255,12 +490,12 @@ export class AnalyticPlaneView {
       return;
     }
 
-    ctx.strokeStyle = '#f472b6';
+    ctx.strokeStyle = PALETTE.codomain;
     ctx.lineWidth = 2.5;
 
     const minX = -this.originX / this.scale;
     const maxX = (this.width - this.originX) / this.scale;
-    const step = 0.05;
+    const step = 0.04;
 
     ctx.beginPath();
     let started = false;
@@ -282,12 +517,13 @@ export class AnalyticPlaneView {
     }
     ctx.stroke();
 
-    // Label
-    const labelX = model.id === 'exponential' ? 2.5 : 2.5;
-    const labelY = model.inverse(labelX);
-    if (!isNaN(labelY)) {
-      const labelScreen = this.toScreen(labelX, labelY);
-      ctx.fillStyle = '#f472b6';
+    // Curve Label
+    const sampleY = 2.2;
+    const sampleX = model.id === 'exponential' ? Math.exp(1) : 2.2;
+    const invY = model.inverse(sampleX);
+    if (!isNaN(invY) && isFinite(invY)) {
+      const labelScreen = this.toScreen(sampleX, invY);
+      ctx.fillStyle = PALETTE.codomain;
       ctx.font = 'bold 12px monospace';
       ctx.fillText(model.inverseFormulaText, labelScreen.x + 10, labelScreen.y + 16);
     }
@@ -295,6 +531,10 @@ export class AnalyticPlaneView {
     ctx.restore();
   }
 
+  /**
+   * Interactive Point Tracer & Semantic Projections onto Domain & Codomain Axes
+   * Demonstrates the coordinate swap (x, y) ↔ (y, x) across y = x.
+   */
   drawPointReflection(ctx, model, state) {
     const x0 = state.tracerX;
     if (model.id === 'quadratic' && state.restrictDomain && x0 < 0) {
@@ -310,50 +550,152 @@ export class AnalyticPlaneView {
 
     ctx.save();
 
-    // 1. Orthogonal connecting chord
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
-    ctx.lineWidth = 1.5;
+    // 1. Semantic Projections for Forward Point P(x0, y0)
+    // Vertical Drop-Line to Domain X Axis: (x0, y0) → (x0, 0)
+    const pDomainDrop = this.toScreen(x0, 0);
+    ctx.strokeStyle = PALETTE.domain;
+    ctx.lineWidth = 1.2;
     ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pForward.x, pForward.y);
+    ctx.lineTo(pDomainDrop.x, pDomainDrop.y);
+    ctx.stroke();
+
+    // Horizontal Drop-Line to Codomain Y Axis: (x0, y0) → (0, y0)
+    const pCodomainDrop = this.toScreen(0, y0);
+    ctx.strokeStyle = PALETTE.codomain;
+    ctx.beginPath();
+    ctx.moveTo(pForward.x, pForward.y);
+    ctx.lineTo(pCodomainDrop.x, pCodomainDrop.y);
+    ctx.stroke();
+
+    // Highlight Axis Markers for Forward Point
+    // Domain marker on horizontal axis
+    ctx.fillStyle = PALETTE.domain;
+    ctx.beginPath();
+    ctx.arc(pDomainDrop.x, pDomainDrop.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Codomain marker on vertical axis
+    ctx.fillStyle = PALETTE.codomain;
+    ctx.beginPath();
+    ctx.arc(pCodomainDrop.x, pCodomainDrop.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Semantic Projections for Reflected Point P'(y0, x0)
+    if (model.id !== 'quadratic' || state.restrictDomain) {
+      // Vertical Drop-Line from P' to Horizontal Axis: (y0, x0) → (y0, 0)
+      // Visual proof: The codomain value y0 now acts as the input coordinate on the horizontal axis!
+      const pReflXDrop = this.toScreen(y0, 0);
+      ctx.strokeStyle = PALETTE.codomain;
+      ctx.beginPath();
+      ctx.moveTo(pReflected.x, pReflected.y);
+      ctx.lineTo(pReflXDrop.x, pReflXDrop.y);
+      ctx.stroke();
+
+      // Horizontal Drop-Line from P' to Vertical Axis: (y0, x0) → (0, x0)
+      // Visual proof: The domain value x0 now acts as the output coordinate on the vertical axis!
+      const pReflYDrop = this.toScreen(0, x0);
+      ctx.strokeStyle = PALETTE.domain;
+      ctx.beginPath();
+      ctx.moveTo(pReflected.x, pReflected.y);
+      ctx.lineTo(pReflYDrop.x, pReflYDrop.y);
+      ctx.stroke();
+
+      ctx.fillStyle = PALETTE.codomain;
+      ctx.beginPath();
+      ctx.arc(pReflXDrop.x, pReflXDrop.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = PALETTE.domain;
+      ctx.beginPath();
+      ctx.arc(pReflYDrop.x, pReflYDrop.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3. Orthogonal Connecting Chord between P and P'
+    ctx.strokeStyle = PALETTE.tracerChord;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([4, 4]);
     ctx.beginPath();
     ctx.moveTo(pForward.x, pForward.y);
     ctx.lineTo(pReflected.x, pReflected.y);
     ctx.stroke();
 
-    // 2. Midpoint on y = x
+    // Midpoint on line y = x
     const midX = (x0 + y0) / 2;
     const midY = (y0 + x0) / 2;
     const pMid = this.toScreen(midX, midY);
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = PALETTE.tracerMid;
     ctx.beginPath();
-    ctx.arc(pMid.x, pMid.y, 3, 0, Math.PI * 2);
+    ctx.arc(pMid.x, pMid.y, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3. Forward point (x0, f(x0))
+    // 4. Render Points P and P'
     ctx.setLineDash([]);
-    ctx.fillStyle = '#38bdf8';
+
+    // Forward Point P(x0, y0) on curve f
+    ctx.fillStyle = PALETTE.domain;
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(pForward.x, pForward.y, 6, 0, Math.PI * 2);
+    ctx.arc(pForward.x, pForward.y, 7, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Label forward point
-    ctx.fillStyle = '#e0f2fe';
+    // Forward Point Callout Pill
+    this.drawPointCallout(
+      ctx,
+      pForward.x + 10,
+      pForward.y - 14,
+      `P(${x0.toFixed(2)}, ${y0.toFixed(2)})`,
+      PALETTE.domain,
+      'rgba(15, 23, 42, 0.85)'
+    );
+
+    // Reflected Point P'(y0, x0) on inverse f⁻¹
+    if (model.id !== 'quadratic' || state.restrictDomain) {
+      ctx.fillStyle = PALETTE.codomain;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(pReflected.x, pReflected.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Reflected Point Callout Pill
+      this.drawPointCallout(
+        ctx,
+        pReflected.x + 10,
+        pReflected.y + 12,
+        `P'(${y0.toFixed(2)}, ${x0.toFixed(2)})`,
+        PALETTE.codomain,
+        'rgba(15, 23, 42, 0.85)'
+      );
+    }
+
+    ctx.restore();
+  }
+
+  drawPointCallout(ctx, x, y, text, color, bg) {
+    ctx.save();
     ctx.font = 'bold 11px monospace';
-    ctx.fillText(`P(${x0.toFixed(2)}, ${y0.toFixed(2)})`, pForward.x + 8, pForward.y - 8);
+    const textWidth = ctx.measureText(text).width;
+    const paddingX = 6;
+    const height = 18;
 
-    // 4. Reflected point (f(x0), x0)
-    ctx.fillStyle = '#f472b6';
+    ctx.fillStyle = bg;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(pReflected.x, pReflected.y, 6, 0, Math.PI * 2);
+    ctx.roundRect(x, y - height / 2, textWidth + paddingX * 2, height, 4);
     ctx.fill();
     ctx.stroke();
 
-    // Label reflected point
-    ctx.fillStyle = '#fce7f3';
-    ctx.fillText(`P'(${y0.toFixed(2)}, ${x0.toFixed(2)})`, pReflected.x + 8, pReflected.y + 14);
-
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + paddingX, y);
     ctx.restore();
   }
 
@@ -373,25 +715,83 @@ export class AnalyticPlaneView {
     const dist = Math.hypot(clickPos.x - pForward.x, clickPos.y - pForward.y);
     if (dist <= 25) {
       this.isDraggingPoint = true;
+      this.canvas.style.cursor = 'ew-resize';
+      return;
     }
+
+    // Otherwise initiate canvas panning
+    this.isPanning = true;
+    this.lastPointerPos = { x: e.clientX, y: e.clientY };
+    this.canvas.style.cursor = 'grabbing';
   }
 
   onPointerMove(e) {
-    if (!this.isDraggingPoint) return;
     const rect = this.canvas.getBoundingClientRect();
     const screenX = e.clientX - rect.left;
-    const mathPos = this.toMath(screenX, 0);
+    const screenY = e.clientY - rect.top;
 
-    let newX = Math.max(-5, Math.min(5, mathPos.x));
-    const state = this.controller.state;
-    if (state.analyticPreset === 'quadratic' && state.restrictDomain && newX < 0) {
-      newX = 0;
+    if (this.isDraggingPoint) {
+      const mathPos = this.toMath(screenX, screenY);
+      let newX = Math.max(-6, Math.min(6, mathPos.x));
+      const state = this.controller.state;
+      if (state.analyticPreset === 'quadratic' && state.restrictDomain && newX < 0) {
+        newX = 0;
+      }
+      this.controller.setTracerX(newX);
+      return;
     }
 
-    this.controller.setTracerX(newX);
+    if (this.isPanning) {
+      const dx = e.clientX - this.lastPointerPos.x;
+      const dy = e.clientY - this.lastPointerPos.y;
+      this.panOffsetX += dx;
+      this.panOffsetY += dy;
+      this.originX += dx;
+      this.originY += dy;
+      this.lastPointerPos = { x: e.clientX, y: e.clientY };
+      this.render();
+      return;
+    }
+
+    // Hover affordance
+    const state = this.controller.state;
+    const model = FunctionMath.continuousPresets[state.analyticPreset] || FunctionMath.continuousPresets.linear;
+    const x0 = state.tracerX;
+    const y0 = model.forward(x0);
+    const pForward = this.toScreen(x0, y0);
+    const dist = Math.hypot(screenX - pForward.x, screenY - pForward.y);
+
+    if (dist <= 25) {
+      this.canvas.style.cursor = 'ew-resize';
+    } else {
+      this.canvas.style.cursor = 'grab';
+    }
   }
 
   onPointerUp() {
     this.isDraggingPoint = false;
+    this.isPanning = false;
+    this.canvas.style.cursor = 'default';
+  }
+
+  onWheel(e) {
+    e.preventDefault();
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const mathBefore = this.toMath(mouseX, mouseY);
+    const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+    const newScale = Math.max(22, Math.min(200, this.scale * zoomFactor));
+
+    this.scale = newScale;
+
+    // Keep point under mouse fixed
+    this.originX = mouseX - mathBefore.x * this.scale;
+    this.originY = mouseY + mathBefore.y * this.scale;
+    this.panOffsetX = this.originX - this.width / 2;
+    this.panOffsetY = this.originY - this.height / 2;
+
+    this.render();
   }
 }
