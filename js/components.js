@@ -21,6 +21,13 @@ const DEFAULT_TRIG_VISUALS = [
   { slug: "angle-sum-identities", suite: "trigonometry", title: "Angle Sum, Difference & Rotation Matrix Composition", category: "Trigonometry", badge: "Trig 04", formula: "R(α + β) = R(α) ∘ R(β)" },
 ];
 
+const DEFAULT_FOUNDATIONS_VISUALS = [
+  { slug: "functions-and-inverses", suite: "foundations", title: "Functions, Inverses & Reversibility", category: "Abstract Mathematics", badge: "Foundations 01", formula: "f⁻¹ ∘ f = id_X  |  f ∘ f⁻¹ = id_Y" },
+  { slug: "relations-and-order", suite: "foundations", title: "Relations, Order & Equivalence Partitions", category: "Abstract Mathematics", badge: "Foundations 02", formula: "a ~ b ⟹ [a] = [b]  |  Z/nZ" },
+  { slug: "permutations-and-groups", suite: "foundations", title: "Permutations & Symmetric Groups S_n", category: "Abstract Mathematics", badge: "Foundations 03", formula: "σ = (a₁ … a_k)  |  sgn(σ) = (-1)^m" },
+  { slug: "category-theory-foundations", suite: "foundations", title: "Category Theory & Universal Properties", category: "Abstract Mathematics", badge: "Foundations 04", formula: "f ∘ g₁ = f ∘ g₂ ⟹ g₁ = g₂  |  X/ker(f) ≅ im(f)" },
+];
+
 function route(root, path) {
   return `${root}/${path}`.replace(/\/{2,}/g, "/");
 }
@@ -210,7 +217,7 @@ function renderLanguageItems() {
   }).join("");
 }
 
-function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS) {
+function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAULT_TRIG_VISUALS, foundationsVisuals = DEFAULT_FOUNDATIONS_VISUALS) {
   const renderItem = (v, defaultSuite) => {
     const suite = v.suite || defaultSuite;
     const isActive = v.slug === activeSlug;
@@ -235,6 +242,10 @@ function renderVisualsList(root, circleVisuals, activeSlug, trigVisuals = DEFAUL
       <span>Suite 02 &middot; Trigonometry (${trigVisuals.length})</span>
     </a>
     ${trigVisuals.map((v) => renderItem(v, "trigonometry")).join("")}
+    <a href="${route(root, "visuals/foundations/index.html")}" class="site-nav__dropdown-suite-label site-nav__dropdown-suite-label--divider" data-suite-header="foundations">
+      <span>Suite 03 &middot; Abstract Mathematics &amp; Foundations (${foundationsVisuals.length})</span>
+    </a>
+    ${foundationsVisuals.map((v) => renderItem(v, "foundations")).join("")}
   `;
 }
 
@@ -248,7 +259,7 @@ export function mountSharedChrome() {
 
   if (header) {
     header.className = "site-header";
-    const totalCount = DEFAULT_CIRCLE_VISUALS.length + DEFAULT_TRIG_VISUALS.length;
+    const totalCount = DEFAULT_CIRCLE_VISUALS.length + DEFAULT_TRIG_VISUALS.length + DEFAULT_FOUNDATIONS_VISUALS.length;
     header.innerHTML = `
       <a class="brand" href="${route(root, "index.html")}">${SITE_CONFIG.site.name}</a>
       <nav class="site-nav" aria-label="Primary navigation">
@@ -271,7 +282,7 @@ export function mountSharedChrome() {
               </button>
             </div>
             <div class="site-nav__dropdown-list" id="nav-visuals-list" role="none">
-              ${renderVisualsList(root, DEFAULT_CIRCLE_VISUALS, activeSlug, DEFAULT_TRIG_VISUALS)}
+              ${renderVisualsList(root, DEFAULT_CIRCLE_VISUALS, activeSlug, DEFAULT_TRIG_VISUALS, DEFAULT_FOUNDATIONS_VISUALS)}
             </div>
             <div class="site-nav__dropdown-empty" id="nav-visuals-empty" hidden>
               <span>No visualisations found</span>
@@ -710,6 +721,10 @@ export function mountSharedChrome() {
           const trigHeader = list.querySelector('[data-suite-header="trigonometry"] span');
           if (trigHeader) {
             trigHeader.textContent = `Suite 02 · ${t('nav.trigonometry', {}, 'Trigonometry')} (${DEFAULT_TRIG_VISUALS.length})`;
+          }
+          const foundationsHeader = list.querySelector('[data-suite-header="foundations"] span');
+          if (foundationsHeader) {
+            foundationsHeader.textContent = `Suite 03 · ${t('nav.foundations', {}, 'Abstract Mathematics & Foundations')} (${DEFAULT_FOUNDATIONS_VISUALS.length})`;
           }
         }
 
