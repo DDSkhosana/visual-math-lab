@@ -898,7 +898,31 @@ export class BaseScene3DView {
     this.dimensionMode = state?.dimensionMode || 'planar';
     if (this.grid) this.grid.visible = this.isARActive ? false : (state?.vis3d?.gridXZ !== false);
     if (this.axes) this.axes.visible = state?.vis3d?.axes !== false;
-    if (this.sphere) this.sphere.visible = Boolean(state?.vis3d?.sphere) && !isSolidMode(this.dimensionMode);
+    const isSolid = isSolidMode(this.dimensionMode);
+    if (this.sphere) {
+      this.sphere.visible = isSolid ? (state?.vis3d?.sphere !== false) : Boolean(state?.vis3d?.sphere);
+      if (isSolid) {
+        if (this.sphere.material) {
+          if (this.sphere.material.color?.set) this.sphere.material.color.set(PALETTE.slate700);
+          this.sphere.material.opacity = 0.12;
+          this.sphere.material.roughness = 0.15;
+          this.sphere.material.metalness = 0.05;
+        }
+        if (this.R) {
+          this.sphere.scale.setScalar(Math.hypot(this.R, 0.3 * this.R));
+        }
+      } else {
+        if (this.sphere.material) {
+          if (this.sphere.material.color?.set) this.sphere.material.color.set(PALETTE.sky);
+          this.sphere.material.opacity = 0.12;
+          this.sphere.material.roughness = 0.3;
+          this.sphere.material.metalness = 0.0;
+        }
+        if (this.R) {
+          this.sphere.scale.setScalar(this.R);
+        }
+      }
+    }
     if (this.circleWire) this.circleWire.visible = state?.vis3d?.circleWire !== false;
     const scaleX = state?.affineMode ? (state?.affineStretch ?? 1.35) : 1.0;
     if (this.scene?.scale?.set) {
@@ -2511,10 +2535,11 @@ export class AngleAtCentre3DView extends BaseScene3DView {
     const default2D = 180;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
-    const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P, circleInfo;
     if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
@@ -2900,10 +2925,11 @@ export class AnglesInSameSegment3DView extends BaseScene3DView {
     const default2D = 180;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
-    const isSolid = isSolidMode(state.dimensionMode);
     let A, B, P1, P2, circleInfo;
     if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
@@ -3335,10 +3361,11 @@ export class CyclicQuad3DView extends BaseScene3DView {
     const default2D = 180;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
-    const isSolid = isSolidMode(state.dimensionMode);
     let A, B, C, D, circleInfo;
     if (isSolid || isSpatial) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
@@ -3761,7 +3788,9 @@ export class TangentRadius3DView extends BaseScene3DView {
     const default2D = 180;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
 
@@ -3798,7 +3827,6 @@ export class TangentRadius3DView extends BaseScene3DView {
     const quadIndex = Math.floor(primaryAng / (Math.PI / 2));
     const quadStart = quadIndex * (Math.PI / 2);
 
-    const isSolid = isSolidMode(state.dimensionMode);
     const isOriented3D = isSolid || isSpatial;
     let primNormal, uFrame, vFrame;
     if (isSolid) {
@@ -4427,7 +4455,9 @@ export class AlternateSegment3DView extends BaseScene3DView {
     const default2D = 180;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
@@ -4445,7 +4475,6 @@ export class AlternateSegment3DView extends BaseScene3DView {
     let tanDir;
     let u, v;
     let A, B;
-    const isSolid = isSolidMode(state.dimensionMode);
     if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);
       normal = frame.normal;
@@ -4896,7 +4925,9 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const baseR = 120;
     const R = ((state?.radius || baseR) / baseR) * 8;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const O = new THREE.Vector3(0, 0, 0);
@@ -4905,7 +4936,6 @@ export class TangentsFromPoint3DView extends BaseScene3DView {
     const angP = state.pointAngle || 0;
     const latP = state.latP ?? (Math.PI / 2);
 
-    const isSolid = isSolidMode(state.dimensionMode);
     let P, u, v, normal, T1, T2, K;
     const alpha = Math.acos(Math.min(1, Math.max(-1, R / d)));
     if (isSolid) {
@@ -5254,13 +5284,14 @@ export class ChordBisector3DView extends BaseScene3DView {
     const default2D = 170;
     const R = ((state?.radius || default2D) / default2D) * 10;
     this.R = R;
-    this.sphere.scale.setScalar(R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(R, 0.3 * R) : R;
+    this.sphere.scale.setScalar(rSphere);
     const { THREE } = this;
     const isSpatial = state.dimensionMode === 'spatial';
     const latA = state.latA ?? (Math.PI / 2);
     const latB = state.latB ?? (Math.PI / 2);
     const O = new THREE.Vector3(0, 0, 0);
-    const isSolid = isSolidMode(state.dimensionMode);
     let A, B, M, normal, uFrame, vFrame;
     if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'y', THREE);

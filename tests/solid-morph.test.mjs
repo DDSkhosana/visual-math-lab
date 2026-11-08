@@ -381,3 +381,35 @@ test('Universal Dimension Mode Badges and Initial Spatial Coordinates across all
   const trigCss = read('visuals/trigonometry/css/trig-suite.css');
   assert.ok(trigCss.includes('.dimension-mode-badge'), 'trig-suite.css must style .dimension-mode-badge');
 });
+
+test('Solid 3D Mode Model 1: Inscribed cylinder inside circumscribed dielectric glass sphere (B³)', () => {
+  const circle3D = read('js/circle-3d.js');
+  const thalesScene = read('visuals/circle-theorems/thales-theorem/src/views/Scene3DView.js');
+  const trigCore = read('visuals/trigonometry/js/trig-core.js');
+
+  // 1. BaseScene3DView enables dielectric glass sphere in solid mode
+  assert.ok(
+    circle3D.includes('this.sphere.visible = isSolid ? (state?.vis3d?.sphere !== false) : Boolean(state?.vis3d?.sphere);'),
+    'circle-3d.js BaseScene3DView enables sphere containment in solid mode'
+  );
+  assert.ok(
+    circle3D.includes('Math.hypot(R, 0.3 * R)'),
+    'circle-3d.js circumscribes sphere of radius sqrt(R² + h²) enclosing the extruded cylinder'
+  );
+
+  // 2. Thales Scene3DView circumscribes sphere in solid mode
+  assert.ok(
+    thalesScene.includes('o.sphere.visible = o.sphereLines.visible = isSolid ? (state.vis3d.sphere !== false) : Boolean(state.vis3d.sphere);'),
+    'Thales Scene3DView enables sphere containment in solid mode'
+  );
+  assert.ok(
+    thalesScene.includes('Math.hypot(r, 0.3 * r)'),
+    'Thales Scene3DView circumscribes sphere enclosing the extruded cylinder'
+  );
+
+  // 3. Trigonometry suite circumscribes sphere in solid mode
+  assert.ok(
+    trigCore.includes('Math.hypot(this.R, 0.3 * this.R)'),
+    'trig-core.js circumscribes sphere enclosing the extruded cylinder'
+  );
+});

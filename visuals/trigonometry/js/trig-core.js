@@ -2253,7 +2253,9 @@ export class TrigScene3DView extends BaseScene3DView {
   render(state) {
     if (!state) return;
     this.R = getModelRadius(state);
-    this.sphere.scale.setScalar(this.R);
+    const isSolid = isSolidMode(state?.dimensionMode);
+    const rSphere = isSolid ? Math.hypot(this.R, 0.3 * this.R) : this.R;
+    this.sphere.scale.setScalar(rSphere);
     this.circleWire.scale.setScalar(this.R);
 
     this.applyCommonVis(state);

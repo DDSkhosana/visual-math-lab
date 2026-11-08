@@ -1684,10 +1684,14 @@ test('3D View and 2D Canvas Parity: sphere mesh defaults to false and segments a
     'createDefaultVisState must set vis3d.sphere: false so 3D background is clean and consistent with 2D'
   );
 
-  // 2. BaseScene3DView must guard sphere visibility with Boolean(state?.vis3d?.sphere)
+  // 2. BaseScene3DView must guard sphere visibility in planar/spatial and enable dielectric glass sphere in solid mode
   assert.ok(
-    circle3d.includes('this.sphere.visible = Boolean(state?.vis3d?.sphere) && !isSolidMode(this.dimensionMode)'),
-    'BaseScene3DView.applyCommonVis must check Boolean(state?.vis3d?.sphere)'
+    circle3d.includes('this.sphere.visible = isSolid ? (state?.vis3d?.sphere !== false) : Boolean(state?.vis3d?.sphere);'),
+    'BaseScene3DView.applyCommonVis must check isSolid ? (state?.vis3d?.sphere !== false) : Boolean(state?.vis3d?.sphere)'
+  );
+  assert.ok(
+    circle3d.includes('this.sphere.material.color.set(PALETTE.slate700)'),
+    'BaseScene3DView must style circumscribing dielectric sphere with PALETTE.slate700 in Solid mode'
   );
 
   // 3. AnglesInSameSegment3DView must shade the eponymous segment containing P1 and P2 (not the opposite segment)

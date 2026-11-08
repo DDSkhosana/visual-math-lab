@@ -97,9 +97,25 @@ export class Scene3DView {
     if (o.axes) {
       o.axes.visible = state.vis3d.axes !== undefined ? Boolean(state.vis3d.axes) : true;
     }
-    o.sphere.visible = o.sphereLines.visible = Boolean(state.vis3d.sphere) && !isSolidMode(this.dimensionMode);
-    o.sphere.scale.set(r * scaleX, r * scaleY, r * scaleZ);
-    o.sphereLines.scale.set(r * scaleX, r * scaleY, r * scaleZ);
+    o.sphere.visible = o.sphereLines.visible = isSolid ? (state.vis3d.sphere !== false) : Boolean(state.vis3d.sphere);
+    const rSphere = isSolid ? Math.hypot(r, 0.3 * r) : r;
+    o.sphere.scale.set(rSphere * scaleX, rSphere * scaleY, rSphere * scaleZ);
+    o.sphereLines.scale.set(rSphere * scaleX, rSphere * scaleY, rSphere * scaleZ);
+    if (isSolid) {
+      if (o.sphere.material?.color?.set) {
+        o.sphere.material.color.set(PALETTE.slate700);
+        o.sphere.material.opacity = 0.12;
+        o.sphere.material.roughness = 0.15;
+        o.sphere.material.metalness = 0.05;
+      }
+    } else {
+      if (o.sphere.material?.color?.set) {
+        o.sphere.material.color.set(PALETTE.sky);
+        o.sphere.material.opacity = 0.12;
+        o.sphere.material.roughness = 0.3;
+        o.sphere.material.metalness = 0.0;
+      }
+    }
 
     if (isSolid) {
       const frame = getSolidOrientationFrame(state, 'z', THREE);
