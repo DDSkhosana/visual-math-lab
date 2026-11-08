@@ -32,13 +32,12 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
-  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountCategoryTheoryVisual } from './src/controller.js';
-    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
 
     const init = () => {
       const commContainer = document.querySelector('#commutative-viewport-container');
@@ -50,12 +49,6 @@
         probe: probeContainer,
         factorization: factContainer
       });
-
-      // Mount Workspace Dock
-      const dockRoot = document.querySelector('#workspace-dock');
-      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
-        new WorkspaceDockManager(dockRoot);
-      }
     };
 
     if (document.readyState === 'loading') {
@@ -73,7 +66,7 @@
   <header data-site-header></header>
 
   <main class="visual-page">
-    <section class="circle-explorer" aria-label="Interactive Category Theory and Universal Properties">
+    <section class="circle-explorer" data-workspace-dock="true" aria-label="Interactive Category Theory and Universal Properties">
       
       <!-- Viewport Header Toolbar -->
       <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Category theory visualizer modes">
@@ -105,7 +98,7 @@
       </div>
 
       <!-- Main Visual Viewports -->
-      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+      <div class="view-container visual-viewport" id="main-view" style="background: #090d16;">
         <!-- Mode 1: Commutative Diagrams & Path Composition -->
         <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
 
@@ -116,77 +109,84 @@
         <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
       </div>
 
-      <!-- Workspace Dock with Sub-Panels -->
-      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
-        <div class="dock-handle" title="Drag dock margin"></div>
-        <div class="dock-tray">
-
-          <!-- Sub-Panel 1: Categorical Invariants Telemetry -->
-          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
-            <div class="panel-header">
-              <span class="panel-header-icon">⚖</span>
-              <h3 class="panel-header-title">Categorical Invariants</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
-            </div>
-            <div class="panel-body">
-              <div class="axiom-badge-group">
-                <span id="badge-comm-status" class="axiom-badge is-valid">Diagram: Commutes</span>
-                <span id="badge-monic-status" class="axiom-badge is-violated">Monic: NO</span>
-                <span id="badge-epic-status" class="axiom-badge is-violated">Epic: NO</span>
-                <span id="badge-iso-status" class="axiom-badge is-violated">Isomorphism: NO</span>
-              </div>
-              <div id="category-telemetry-content" style="margin-top: 12px;"></div>
+      <!-- Panel 1: Categorical Invariants Telemetry -->
+      <div class="ui-panel" id="panel-telemetry">
+        <div class="panel-content">
+          <div class="panel-header" id="telemetry-header">
+            <h1 class="color-sky">Categorical Invariants</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Invariants Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
             </div>
           </div>
-
-          <!-- Sub-Panel 2: Morphism Presets -->
-          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
-            <div class="panel-header">
-              <span class="panel-header-icon">🎛</span>
-              <h3 class="panel-header-title">Morphism Presets</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+          <div class="panel-body">
+            <div class="axiom-badge-group">
+              <span id="badge-comm-status" class="axiom-badge is-valid">Diagram: Commutes</span>
+              <span id="badge-monic-status" class="axiom-badge is-violated">Monic: NO</span>
+              <span id="badge-epic-status" class="axiom-badge is-violated">Epic: NO</span>
+              <span id="badge-iso-status" class="axiom-badge is-violated">Isomorphism: NO</span>
             </div>
-            <div class="panel-body">
-              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
-                Select test morphisms to observe cancellation probe results and First Isomorphism Factorization.
+            <div id="category-telemetry-content" style="margin-top: 12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Morphism Presets -->
+      <div class="ui-panel" id="panel-controls">
+        <div class="panel-content">
+          <div class="panel-header" id="controls-header">
+            <h1 class="color-sky">Morphism Presets</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Presets Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+              Select test morphisms to observe cancellation probe results and First Isomorphism Factorization.
+            </p>
+            <div class="preset-grid">
+              <button type="button" class="preset-chip active" data-preset="collapsing-quotient">Collapsing (4 &rarr; 2 classes)</button>
+              <button type="button" class="preset-chip" data-preset="injective-monic">Injective Monic (3 &rarr; 4)</button>
+              <button type="button" class="preset-chip" data-preset="surjective-epic">Surjective Epic (4 &rarr; 3)</button>
+              <button type="button" class="preset-chip" data-preset="bijective-isomorphism">Bijective Isomorphism (3 &rarr; 3)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Categorical Foundations & Theory -->
+      <div class="ui-panel" id="panel-derivations">
+        <div class="panel-content">
+          <div class="panel-header" id="derivations-header">
+            <h1 class="color-indigo">Category Theory Axioms</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Derivations Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+              <p style="margin-top: 0;">
+                <strong>Commutative Diagram:</strong> A directed diagram of objects and arrows commutes iff for any two paths between the same pair of objects, the composite morphisms are identical.
               </p>
-              <div class="preset-grid">
-                <button type="button" class="preset-chip active" data-preset="collapsing-quotient">Collapsing (4 &rarr; 2 classes)</button>
-                <button type="button" class="preset-chip" data-preset="injective-monic">Injective Monic (3 &rarr; 4)</button>
-                <button type="button" class="preset-chip" data-preset="surjective-epic">Surjective Epic (4 &rarr; 3)</button>
-                <button type="button" class="preset-chip" data-preset="bijective-isomorphism">Bijective Isomorphism (3 &rarr; 3)</button>
-              </div>
+              <p>
+                <strong>Monomorphism (Monic):</strong> A morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> is monic iff it satisfies left-cancellation: <var>f</var> &comp; <var>g</var><sub>1</sub> = <var>f</var> &comp; <var>g</var><sub>2</sub> &rArr; <var>g</var><sub>1</sub> = <var>g</var><sub>2</sub> for all test probes <var>g</var><sub>1</sub>, <var>g</var><sub>2</sub>: <var>W</var> &rarr; <var>X</var>. In <strong>Set</strong>, monic &hArr; injective.
+              </p>
+              <p>
+                <strong>Epimorphism (Epic):</strong> A morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> is epic iff it satisfies right-cancellation: <var>h</var><sub>1</sub> &comp; <var>f</var> = <var>h</var><sub>2</sub> &comp; <var>f</var> &rArr; <var>h</var><sub>1</sub> = <var>h</var><sub>2</sub> for all test probes <var>h</var><sub>1</sub>, <var>h</var><sub>2</sub>: <var>Y</var> &rarr; <var>Z</var>. In <strong>Set</strong>, epic &hArr; surjective.
+              </p>
+              <p>
+                <strong>Universal Quotient Factorization:</strong> Every morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> factors through the canonical projection &pi;: <var>X</var> &rarr; <var>X</var>/ker(<var>f</var>), the induced isomorphism <span style="text-decoration: overline;"><var>f</var></span>: <var>X</var>/ker(<var>f</var>) &rarr; im(<var>f</var>), and inclusion &iota;: im(<var>f</var>) &rarr; <var>Y</var>.
+              </p>
+              <p>
+                <strong>Cartesian Adjunction:</strong> In Cartesian closed categories, taking the product is left adjoint to function exponentiation: Hom(<var>A</var> &times; <var>B</var>, <var>C</var>) &cong; Hom(<var>A</var>, <var>C</var><sup><var>B</var></sup>).
+              </p>
             </div>
           </div>
-
-          <!-- Sub-Panel 3: Categorical Foundations & Theory -->
-          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
-            <div class="panel-header">
-              <span class="panel-header-icon">📜</span>
-              <h3 class="panel-header-title">Category Theory Axioms</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
-            </div>
-            <div class="panel-body">
-              <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-                <p style="margin-top: 0;">
-                  <strong>Commutative Diagram:</strong> A directed diagram of objects and arrows commutes iff for any two paths between the same pair of objects, the composite morphisms are identical.
-                </p>
-                <p>
-                  <strong>Monomorphism (Monic):</strong> A morphism $f: X \to Y$ is monic iff it satisfies left-cancellation: $f \circ g_1 = f \circ g_2 \implies g_1 = g_2$ for all test probes $g_1, g_2: W \to X$. In $\mathbf{Set}$, monic $\iff$ injective.
-                </p>
-                <p>
-                  <strong>Epimorphism (Epic):</strong> A morphism $f: X \to Y$ is epic iff it satisfies right-cancellation: $h_1 \circ f = h_2 \circ f \implies h_1 = h_2$ for all test probes $h_1, h_2: Y \to Z$. In $\mathbf{Set}$, epic $\iff$ surjective.
-                </p>
-                <p>
-                  <strong>Universal Quotient Factorization:</strong> Every morphism $f: X \to Y$ factors through the canonical projection $\pi: X \to X/\ker(f)$, the induced isomorphism $\bar{f}: X/\ker(f) \to \operatorname{im}(f)$, and inclusion $\iota: \operatorname{im}(f) \hookrightarrow Y$.
-                </p>
-                <p>
-                  <strong>Cartesian Adjunction:</strong> In Cartesian closed categories, taking the product is left adjoint to function exponentiation: $\operatorname{Hom}(A \times B, C) \cong \operatorname{Hom}(A, C^B)$.
-                </p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
 

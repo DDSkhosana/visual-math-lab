@@ -32,13 +32,12 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
-  <link rel="stylesheet" href="../../css/foundations.css?v=20260523">
+  <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountPermutationsVisual } from './src/controller.js';
-    import { WorkspaceDockManager } from '../../../js/workspace-dock.js';
 
     const init = () => {
       const cauchyContainer = document.querySelector('#cauchy-viewport-container');
@@ -50,12 +49,6 @@
         braid: braidContainer,
         cayley: cayleyContainer
       });
-
-      // Mount Workspace Dock
-      const dockRoot = document.querySelector('#workspace-dock');
-      if (dockRoot && typeof WorkspaceDockManager !== 'undefined') {
-        new WorkspaceDockManager(dockRoot);
-      }
     };
 
     if (document.readyState === 'loading') {
@@ -73,7 +66,7 @@
   <header data-site-header></header>
 
   <main class="visual-page">
-    <section class="circle-explorer" aria-label="Interactive Permutations and Symmetric Groups S_n">
+    <section class="circle-explorer" data-workspace-dock="true" aria-label="Interactive Permutations and Symmetric Groups S_n">
       
       <!-- Viewport Header Toolbar -->
       <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Permutations visualizer modes">
@@ -91,7 +84,7 @@
       </div>
 
       <!-- Main Visual Viewports -->
-      <div class="visual-viewport" id="viewport-main" style="position: relative; width: 100%; height: calc(100vh - 120px); min-height: 480px; background: #090d16;">
+      <div class="view-container visual-viewport" id="main-view" style="background: #090d16;">
         <!-- Mode 1: Cauchy Matrix & Cycle Orbits -->
         <div id="cauchy-viewport-container" style="width: 100%; height: 100%;"></div>
 
@@ -102,75 +95,82 @@
         <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
       </div>
 
-      <!-- Workspace Dock with Sub-Panels -->
-      <div class="workspace-dock is-docked is-right" id="workspace-dock" data-dock-edge="right">
-        <div class="dock-handle" title="Drag dock margin"></div>
-        <div class="dock-tray">
-
-          <!-- Sub-Panel 1: Cycle Forms & Parity Telemetry -->
-          <div class="dock-panel" id="panel-telemetry" data-panel-id="telemetry">
-            <div class="panel-header">
-              <span class="panel-header-icon">⚖</span>
-              <h3 class="panel-header-title">Permutation Invariants</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
-            </div>
-            <div class="panel-body">
-              <div class="axiom-badge-group">
-                <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
-                <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
-                <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
-                <span id="badge-parity" class="axiom-badge is-valid">Parity: EVEN (+1)</span>
-              </div>
-              <div id="permutation-telemetry-content" style="margin-top: 12px;"></div>
+      <!-- Panel 1: Cycle Forms & Parity Telemetry -->
+      <div class="ui-panel" id="panel-telemetry">
+        <div class="panel-content">
+          <div class="panel-header" id="telemetry-header">
+            <h1 class="color-sky">Permutation Invariants</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Invariants Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
             </div>
           </div>
-
-          <!-- Sub-Panel 2: Permutation Presets -->
-          <div class="dock-panel" id="panel-controls" data-panel-id="controls">
-            <div class="panel-header">
-              <span class="panel-header-icon">🎛</span>
-              <h3 class="panel-header-title">Permutation Presets</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
+          <div class="panel-body">
+            <div class="axiom-badge-group">
+              <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
+              <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
+              <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
+              <span id="badge-parity" class="axiom-badge is-valid">Parity: EVEN (+1)</span>
             </div>
-            <div class="panel-body">
-              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
-                Select classic permutations to inspect their cycle decompositions, order, parity, and string braiding crossovers.
+            <div id="permutation-telemetry-content" style="margin-top: 12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Permutation Presets -->
+      <div class="ui-panel" id="panel-controls">
+        <div class="panel-content">
+          <div class="panel-header" id="controls-header">
+            <h1 class="color-sky">Permutation Presets</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Presets Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+              Select classic permutations to inspect their cycle decompositions, order, parity, and string braiding crossovers.
+            </p>
+            <div class="preset-grid">
+              <button type="button" class="preset-chip active" data-preset="compound">Compound (1 3 2)(4 5)</button>
+              <button type="button" class="preset-chip" data-preset="three_cycle">3-Cycle (1 2 3)</button>
+              <button type="button" class="preset-chip" data-preset="single_swap">Transposition (1 2)</button>
+              <button type="button" class="preset-chip" data-preset="full_cycle">5-Cycle (1 2 3 4 5)</button>
+              <button type="button" class="preset-chip" data-preset="identity">Identity e = ()</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Mathematical Derivations & Group Axioms -->
+      <div class="ui-panel" id="panel-derivations">
+        <div class="panel-content">
+          <div class="panel-header" id="derivations-header">
+            <h1 class="color-indigo">Theory &amp; Group Axioms</h1>
+            <div class="panel-header-actions">
+              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Derivations Panel">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+              <p style="margin-top: 0;">
+                <strong>Symmetric Group (<var>S</var><sub>n</sub>, &comp;):</strong> The set of all bijections <var>&sigma;</var>: {1, &hellip;, <var>n</var>} &rarr; {1, &hellip;, <var>n</var>} under function composition forms a non-abelian group of size |<var>S</var><sub>n</sub>| = <var>n</var>!.
               </p>
-              <div class="preset-grid">
-                <button type="button" class="preset-chip active" data-preset="compound">Compound (1 3 2)(4 5)</button>
-                <button type="button" class="preset-chip" data-preset="three_cycle">3-Cycle (1 2 3)</button>
-                <button type="button" class="preset-chip" data-preset="single_swap">Transposition (1 2)</button>
-                <button type="button" class="preset-chip" data-preset="full_cycle">5-Cycle (1 2 3 4 5)</button>
-                <button type="button" class="preset-chip" data-preset="identity">Identity e = ()</button>
-              </div>
+              <p>
+                <strong>Cycle Order:</strong> The order of <var>&sigma;</var> is the smallest integer <var>k</var> &ge; 1 such that <var>&sigma;</var><sup>k</sup> = id. In disjoint cycle notation, ord(<var>&sigma;</var>) = lcm(|<var>c</var><sub>1</sub>|, |<var>c</var><sub>2</sub>|, &hellip;, |<var>c</var><sub>m</sub>|).
+              </p>
+              <p>
+                <strong>Transpositions &amp; Parity:</strong> Every permutation decomposes into a product of 2-cycles (<var>i</var> <var>j</var>). While the factorization is not unique, its parity mod 2 is invariant: sgn(<var>&sigma;</var>) = (-1)<sup>transpositions</sup> = (-1)<sup>inversions</sup>.
+              </p>
+              <p>
+                <strong>Alternating Group <var>A</var><sub>n</sub>:</strong> The subgroup of even permutations has index 2 with |<var>A</var><sub>n</sub>| = <var>n</var>! / 2.
+              </p>
             </div>
           </div>
-
-          <!-- Sub-Panel 3: Mathematical Derivations & Group Axioms -->
-          <div class="dock-panel" id="panel-derivations" data-panel-id="derivations">
-            <div class="panel-header">
-              <span class="panel-header-icon">📜</span>
-              <h3 class="panel-header-title">Theory &amp; Group Axioms</h3>
-              <button type="button" class="panel-header-minimize" aria-label="Minimize panel"></button>
-            </div>
-            <div class="panel-body">
-              <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-                <p style="margin-top: 0;">
-                  <strong>Symmetric Group $(S_n, \circ)$:</strong> The set of all bijections $\sigma: \{1, \dots, n\} \to \{1, \dots, n\}$ under function composition forms a non-abelian group of size $|S_n| = n!$.
-                </p>
-                <p>
-                  <strong>Cycle Order:</strong> The order of $\sigma$ is the smallest integer $k \ge 1$ such that $\sigma^k = \operatorname{id}$. In disjoint cycle notation, $\operatorname{ord}(\sigma) = \operatorname{lcm}(|c_1|, |c_2|, \dots, |c_m|)$.
-                </p>
-                <p>
-                  <strong>Transpositions &amp; Parity:</strong> Every permutation decomposes into a product of 2-cycles $(i \, j)$. While the factorization is not unique, its parity mod 2 is invariant: $\operatorname{sgn}(\sigma) = (-1)^{\text{transpositions}} = (-1)^{\text{inversions}}$.
-                </p>
-                <p>
-                  <strong>Alternating Group $A_n$:</strong> The subgroup of even permutations has index 2 with $|A_n| = \frac{n!}{2}$.
-                </p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
 
