@@ -5,6 +5,7 @@
  */
 
 import { CategoryMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { CategoryDerivations } from '../../js/foundations-derivations.js';
 import { CommutativeDiagramView } from './views/CommutativeDiagramView.js';
 import { CompositionGridView } from './views/CompositionGridView.js';
 import { MonoEpiProbeView } from './views/MonoEpiProbeView.js';
@@ -176,6 +177,10 @@ export class CategoryTheoryController {
       const explorer = document.querySelector('.circle-explorer');
       if (fullscreenBtn && explorer) {
         bindFullscreen(fullscreenBtn, explorer);
+      }
+      const liveDerivContainer = document.getElementById('live-derivations-content');
+      if (liveDerivContainer) {
+        this.derivations = new CategoryDerivations(liveDerivContainer);
       }
       initCollapsibleSections(explorer || document);
     }
@@ -826,6 +831,10 @@ export class CategoryTheoryController {
       } else {
         elSpatialStat.textContent = '2D Planar Projection active';
       }
+    }
+
+    if (this.derivations) {
+      this.derivations.render(this.state, monicTest, epicTest, fact);
     }
 
     if (this.threeView && this.state.spatial3D) {

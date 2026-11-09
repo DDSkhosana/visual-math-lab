@@ -4,6 +4,7 @@
  */
 
 import { FunctionMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { FunctionsDerivations } from '../../js/foundations-derivations.js';
 import { DiscreteMappingView } from './views/DiscreteMappingView.js';
 import { AnalyticPlaneView } from './views/AnalyticPlaneView.js';
 import { CompositionView } from './views/CompositionView.js';
@@ -160,6 +161,10 @@ export class FunctionsController {
       const explorer = document.querySelector('.circle-explorer');
       if (fullscreenBtn && explorer) {
         bindFullscreen(fullscreenBtn, explorer);
+      }
+      const liveDerivContainer = document.getElementById('live-derivations-content');
+      if (liveDerivContainer) {
+        this.derivations = new FunctionsDerivations(liveDerivContainer);
       }
       initCollapsibleSections(explorer || document);
       this.renderSpecStyleWorkbench();
@@ -1289,6 +1294,10 @@ export class FunctionsController {
     const elDualSpatial = document.querySelector('#val-dual-spatial-stat');
     if (elDualSpatial) {
       elDualSpatial.textContent = `${pairs.length} Conduits, ${analysis.collisionOutputs.length} Collision Halos, ${analysis.unhitOutputs.length} Unhit Nodes`;
+    }
+
+    if (this.derivations) {
+      this.derivations.render(this.state, analysis, model);
     }
 
     if (this.threeView && this.state.spatial3D) {

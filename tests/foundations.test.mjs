@@ -1176,5 +1176,119 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     ctrl.perturbTriangleDirectMorphism();
     assert.equal(ctrl.state.triangleCommutes, false);
   });
+
+  test('Suite 3 Live Dynamic Derivations Engine (Modules 1, 2, 3, 4)', async () => {
+    const {
+      cardTemplate,
+      tag,
+      FunctionsDerivations,
+      RelationsDerivations,
+      PermutationsDerivations,
+      CategoryDerivations
+    } = await import('../visuals/foundations/js/foundations-derivations.js');
+
+    // 1. Template & Tag tests
+    const cardHtml = cardTemplate('test-step', 'Step 1', 'Test Title', 'x + y = z', true);
+    assert.ok(cardHtml.includes('class="derivation-card" id="test-step"'));
+    assert.ok(cardHtml.includes('class="derivation-math-row"'));
+    assert.ok(cardHtml.includes('data-sub'));
+    assert.ok(cardHtml.includes('data-eval'));
+
+    assert.equal(tag('sky', 'Domain'), '<span class="color-sky">Domain</span>');
+    assert.equal(tag('emerald', 'Equal'), '<span class="color-emerald">Equal</span>');
+
+    // Helper to create a minimal DOM container mock
+    function createMockContainer() {
+      const elementsMap = new Map();
+      const container = {
+        innerHTML: '',
+        firstElementChild: null,
+        querySelector(sel) {
+          if (!elementsMap.has(sel)) {
+            const el = { innerHTML: '', textContent: '', className: '', style: {} };
+            elementsMap.set(sel, el);
+          }
+          return elementsMap.get(sel);
+        }
+      };
+      // When innerHTML is set, populate firstElementChild
+      Object.defineProperty(container, 'innerHTML', {
+        set(val) {
+          this._html = val;
+          this.firstElementChild = { id: 'root' };
+        },
+        get() {
+          return this._html || '';
+        }
+      });
+      return container;
+    }
+
+    // 2. Module 1: FunctionsDerivations
+    const funcContainer = createMockContainer();
+    const funcDeriv = new FunctionsDerivations(funcContainer);
+    funcDeriv.render(
+      { domain: [1, 2, 3], codomain: ['a', 'b', 'c'], pairs: [{ x: 1, y: 'a' }, { x: 2, y: 'b' }, { x: 3, y: 'c' }] },
+      { isTotal: true, isUnique: true, isInjective: true, isSurjective: true, isBijective: true, image: ['a', 'b', 'c'] },
+      { fn: x => x * x, df: x => 2 * x }
+    );
+    assert.ok(funcContainer.querySelector('#func-step-1 [data-sub]').innerHTML.includes('Domain'));
+    assert.ok(funcContainer.querySelector('#func-step-1 [data-eval]').innerHTML.includes('Totality Satisfied'));
+    assert.ok(funcContainer.querySelector('#func-step-5 [data-eval]').innerHTML.includes('Bijective Isomorphism'));
+
+    // 3. Module 2: RelationsDerivations
+    const relContainer = createMockContainer();
+    const relDeriv = new RelationsDerivations(relContainer);
+    relDeriv.render(
+      { elements: [1, 2, 3], pairs: [[1, 1], [2, 2], [3, 3], [1, 2], [2, 1]] },
+      { isReflexive: true, isSymmetric: true, isAntisymmetric: false, isTransitive: false, isEquivalence: false }
+    );
+    assert.ok(relContainer.querySelector('#rel-step-1 [data-sub]').innerHTML.includes('Matrix diagonal trace'));
+    assert.ok(relContainer.querySelector('#rel-step-1 [data-eval]').innerHTML.includes('Reflexive'));
+    assert.ok(relContainer.querySelector('#rel-step-2 [data-eval]').innerHTML.includes('Symmetric'));
+
+    // 4. Module 3: PermutationsDerivations
+    const permContainer = createMockContainer();
+    const permDeriv = new PermutationsDerivations(permContainer);
+    permDeriv.render(
+      { n: 3, mapping: [2, 3, 1] },
+      [[1, 2, 3]],
+      3,
+      { inversions: 2, isEven: true },
+      []
+    );
+    assert.ok(permContainer.querySelector('#perm-step-1 [data-sub]').innerHTML.includes('Disjoint cycle decomposition'));
+    assert.ok(permContainer.querySelector('#perm-step-2 [data-eval]').innerHTML.includes('ord(&sigma;) = 3'));
+    assert.ok(permContainer.querySelector('#perm-step-3 [data-eval]').innerHTML.includes('Even Permutation'));
+
+    // 5. Module 4: CategoryDerivations
+    const catContainer = createMockContainer();
+    const catDeriv = new CategoryDerivations(catContainer);
+    catDeriv.render(
+      { triangleCommutes: true, domainX: [1, 2], codomainY: [1, 2], morphismF: [[1, 1], [2, 2]] },
+      { isMonic: true, collisionCount: 0 },
+      { isEpic: true, unhitCount: 0 },
+      { quotientBlocks: [[1], [2]], imageBlocks: [1, 2] }
+    );
+    assert.ok(catContainer.querySelector('#cat-step-1 [data-sub]').innerHTML.includes('IDENTICAL'));
+    assert.ok(catContainer.querySelector('#cat-step-1 [data-eval]').innerHTML.includes('Diagram Commutes'));
+    assert.ok(catContainer.querySelector('#cat-step-3 [data-eval]').innerHTML.includes('Monomorphism'));
+    assert.ok(catContainer.querySelector('#cat-step-4 [data-eval]').innerHTML.includes('Epimorphism'));
+
+    // 6. Verify all 4 module HTML index files contain #live-derivations-content
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const modules = [
+      'functions-and-inverses',
+      'relations-and-order',
+      'permutations-and-groups',
+      'category-theory-foundations'
+    ];
+    for (const mod of modules) {
+      const htmlPath = path.join(process.cwd(), 'visuals', 'foundations', mod, 'index.html');
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      assert.ok(html.includes('id="live-derivations-content"'), `${mod} must have live-derivations-content container`);
+    }
+  });
 });
 

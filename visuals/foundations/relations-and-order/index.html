@@ -328,42 +328,7 @@
             </div>
           </div>
           <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Formal Relation Axioms</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-                  <p style="margin-top: 0;">
-                    <strong>Kuratowski Ordered Pair:</strong> (<var>a</var>, <var>b</var>) := {{<var>a</var>}, {<var>a</var>, <var>b</var>}}. A binary relation <var>R</var> on <var>A</var> is any subset <var>R</var> &sube; <var>A</var> &times; <var>A</var>.
-                  </p>
-                  <p>
-                    <strong>1. Reflexivity:</strong> &forall;<var>a</var> &isin; <var>A</var>, (<var>a</var>, <var>a</var>) &isin; <var>R</var> (all diagonal matrix entries <var>M</var><sub>ii</sub> = 1).
-                  </p>
-                  <p>
-                    <strong>2. Symmetry:</strong> &forall;<var>a</var>, <var>b</var>, (<var>a</var>, <var>b</var>) &isin; <var>R</var> &rArr; (<var>b</var>, <var>a</var>) &isin; <var>R</var> (<var>M</var> = <var>M</var><sup>T</sup>).
-                  </p>
-                  <p>
-                    <strong>3. Antisymmetry:</strong> &forall;<var>a</var> &ne; <var>b</var>, &not;((<var>a</var>, <var>b</var>) &isin; <var>R</var> &and; (<var>b</var>, <var>a</var>) &isin; <var>R</var>) (no bidirectional distinct edges).
-                  </p>
-                  <p>
-                    <strong>4. Transitivity:</strong> &forall;<var>a</var>, <var>b</var>, <var>c</var>, [(<var>a</var>, <var>b</var>) &isin; <var>R</var> &and; (<var>b</var>, <var>c</var>) &isin; <var>R</var>] &rArr; (<var>a</var>, <var>c</var>) &isin; <var>R</var> (<var>M</var>&sup2; &le; <var>M</var>).
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>The Partition Theorem</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-                  <p style="margin-top: 0;">
-                    <strong>Partition Theorem:</strong> An equivalence relation ~ partitions <var>A</var> into equivalence classes [<var>a</var>] := {<var>x</var> &isin; <var>A</var> : <var>x</var> ~ <var>a</var>}. Distinct classes are strictly disjoint, and their union recovers <var>A</var>.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <div id="live-derivations-content"></div>
           </div>
         </div>
       </div>

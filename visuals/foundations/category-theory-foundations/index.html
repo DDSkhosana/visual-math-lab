@@ -328,30 +328,7 @@
             </div>
           </div>
           <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Diagrams, Monic &amp; Epic Axioms</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-                  <p style="margin-top: 0;">
-                    <strong>Commutative Diagram:</strong> A directed diagram of objects and arrows commutes iff for any two paths between the same pair of objects, the composite morphisms are identical.
-                  </p>
-                  <p>
-                    <strong>Monomorphism (Monic):</strong> A morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> is monic iff it satisfies left-cancellation: <var>f</var> &comp; <var>g</var><sub>1</sub> = <var>f</var> &comp; <var>g</var><sub>2</sub> &rArr; <var>g</var><sub>1</sub> = <var>g</var><sub>2</sub> for all test probes <var>g</var><sub>1</sub>, <var>g</var><sub>2</sub>: <var>W</var> &rarr; <var>X</var>. In <strong>Set</strong>, monic &hArr; injective.
-                  </p>
-                  <p>
-                    <strong>Epimorphism (Epic):</strong> A morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> is epic iff it satisfies right-cancellation: <var>h</var><sub>1</sub> &comp; <var>f</var> = <var>h</var><sub>2</sub> &comp; <var>f</var> &rArr; <var>h</var><sub>1</sub> = <var>h</var><sub>2</sub> for all test probes <var>h</var><sub>1</sub>, <var>h</var><sub>2</sub>: <var>Y</var> &rarr; <var>Z</var>. In <strong>Set</strong>, epic &hArr; surjective.
-                  </p>
-                  <p>
-                    <strong>Universal Quotient Factorization:</strong> Every morphism <var>f</var>: <var>X</var> &rarr; <var>Y</var> factors through the canonical projection &pi;: <var>X</var> &rarr; <var>X</var>/ker(<var>f</var>), the induced isomorphism <span style="text-decoration: overline;"><var>f</var></span>: <var>X</var>/ker(<var>f</var>) &rarr; im(<var>f</var>), and inclusion &iota;: im(<var>f</var>) &rarr; <var>Y</var>.
-                  </p>
-                  <p>
-                    <strong>Cartesian Adjunction:</strong> In Cartesian closed categories, taking the product is left adjoint to function exponentiation: Hom(<var>A</var> &times; <var>B</var>, <var>C</var>) &cong; Hom(<var>A</var>, <var>C</var><sup><var>B</var></sup>).
-                  </p>
-                </div>
-              </div>
-            </div>
+            <div id="live-derivations-content"></div>
           </div>
         </div>
       </div>

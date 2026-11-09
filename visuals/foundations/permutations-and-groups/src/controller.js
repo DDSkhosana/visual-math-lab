@@ -4,6 +4,7 @@
  */
 
 import { PermutationMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { PermutationsDerivations } from '../../js/foundations-derivations.js';
 import { PermutationGridView } from './views/PermutationGridView.js';
 import { CauchyCycleView } from './views/CauchyCycleView.js';
 import { BraidDiagramView } from './views/BraidDiagramView.js';
@@ -127,6 +128,10 @@ export class PermutationsController {
       const explorer = document.querySelector('.circle-explorer');
       if (fullscreenBtn && explorer) {
         bindFullscreen(fullscreenBtn, explorer);
+      }
+      const liveDerivContainer = document.getElementById('live-derivations-content');
+      if (liveDerivContainer) {
+        this.derivations = new PermutationsDerivations(liveDerivContainer);
       }
       initCollapsibleSections(explorer || document);
     }
@@ -695,6 +700,10 @@ export class PermutationsController {
       } else {
         elSpatialStat.textContent = '2D Planar Projection active';
       }
+    }
+
+    if (this.derivations) {
+      this.derivations.render(this.state, cycles, order, parity, fixedPoints);
     }
 
     if (this.threeView && this.state.spatial3D) {

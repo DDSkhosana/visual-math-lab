@@ -4,6 +4,7 @@
  */
 
 import { RelationMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { RelationsDerivations } from '../../js/foundations-derivations.js';
 import { RelationDigraphView } from './views/RelationDigraphView.js';
 import { QuotientClockView } from './views/QuotientClockView.js';
 import { PosetHasseView } from './views/PosetHasseView.js';
@@ -159,6 +160,10 @@ export class RelationsController {
       const explorer = document.querySelector('.circle-explorer');
       if (fullscreenBtn && explorer) {
         bindFullscreen(fullscreenBtn, explorer);
+      }
+      const liveDerivContainer = document.getElementById('live-derivations-content');
+      if (liveDerivContainer) {
+        this.derivations = new RelationsDerivations(liveDerivContainer);
       }
       initCollapsibleSections(explorer || document);
     }
@@ -874,6 +879,10 @@ export class RelationsController {
       } else {
         elSpatialStat.textContent = '2D Planar Projection active';
       }
+    }
+
+    if (this.derivations) {
+      this.derivations.render(this.state, analysis);
     }
 
     // Render 3D if active
