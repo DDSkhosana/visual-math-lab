@@ -9,6 +9,7 @@ import { CommutativeDiagramView } from './views/CommutativeDiagramView.js';
 import { CompositionGridView } from './views/CompositionGridView.js';
 import { MonoEpiProbeView } from './views/MonoEpiProbeView.js';
 import { FactorizationView } from './views/FactorizationView.js';
+import { Category3DView } from './views/Category3DView.js';
 
 export class CategoryTheoryController {
   constructor() {
@@ -17,6 +18,10 @@ export class CategoryTheoryController {
       splitDirection: 'horizontal', // 'horizontal' | 'vertical'
       splitRatio: 50,
       dualMode: 'composition',      // 'composition' | 'factorization' | 'probe'
+      primaryMode: 'diagram',       // 'diagram' | 'composition' | 'factorization' | 'probe'
+      threeMode: 'spatial-simplex', // 'spatial-simplex' | 'composition-3d' | 'universal-cone' | 'functor-3d'
+      spatial3D: true,              // true (3D WebGL) | false (2D planar)
+      cameraPreset: 'iso',
 
       activeMode: 'commutative',    // backward compatibility: 'commutative' | 'probe' | 'factorization'
       diagramType: 'triangle',      // 'triangle' | 'square' | 'product'
@@ -59,6 +64,10 @@ export class CategoryTheoryController {
     this.compositionGridView = null;
     this.probeView = null;
     this.factorizationView = null;
+    this.threeView = null;
+    this.primaryCompositionView = null;
+    this.primaryFactorizationView = null;
+    this.primaryProbeView = null;
 
     this.presets = {
       'collapsing-quotient': {
@@ -123,6 +132,18 @@ export class CategoryTheoryController {
     if (containers.factorization) {
       this.factorizationView = new FactorizationView(containers.factorization, this);
     }
+    if (containers.three) {
+      this.threeView = new Category3DView(containers.three);
+    }
+    if (containers.primaryComposition) {
+      this.primaryCompositionView = new CompositionGridView(containers.primaryComposition, this);
+    }
+    if (containers.primaryProbe) {
+      this.primaryProbeView = new MonoEpiProbeView(containers.primaryProbe, this);
+    }
+    if (containers.primaryFactorization) {
+      this.primaryFactorizationView = new FactorizationView(containers.primaryFactorization, this);
+    }
 
     this.bindDomControls();
     this.enableResizerDrag();
@@ -179,12 +200,41 @@ export class CategoryTheoryController {
       });
     }
 
-    // Dual Mode Switcher (Composition Grid | Universal Factorization | Monic/Epic Probes)
-    document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+    // Primary Representation Mode Bar
+    document.querySelectorAll('[data-primary-view]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const primaryView = e.currentTarget.dataset.primaryView;
+        this.setPrimaryView(primaryView);
+      });
+    });
+
+    // Secondary 3D Counterpart Mode Bar
+    document.querySelectorAll('[data-3d-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const threeMode = e.currentTarget.dataset['3dMode'];
+        this.set3DMode(threeMode);
+      });
+    });
+
+    // Dual Mode Switcher (2D Fallback)
+    document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const dualMode = e.currentTarget.dataset.dualMode;
         this.setDualMode(dualMode);
       });
+    });
+
+    // Camera Presets Bar
+    document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const preset = e.currentTarget.dataset.preset;
+        this.setCameraPreset(preset);
+      });
+    });
+
+    // Spatial 3D Toggle
+    document.querySelector('#btn-toggle-dimension-mode')?.addEventListener('click', () => {
+      this.toggleSpatial3D();
     });
 
     // Diagram Type Switcher in Toolbar (Triangle / Square / Product)
@@ -303,8 +353,128 @@ export class CategoryTheoryController {
     this.resizeAllViews();
   }
 
+  setPrimaryView(view) {
+    this.state.primaryMode = view;
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#primary-mode-bar [data-primary-view]').forEach(btn => {
+        const isMatch = btn.dataset.primaryView === view;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-pressed', String(isMatch));
+      });
+
+      const commEl = document.querySelector('#commutative-viewport-container');
+      const compEl = document.querySelector('#primary-composition-container');
+      const factEl = document.querySelector('#primary-factorization-container');
+      const probeEl = document.querySelector('#primary-probe-container');
+
+      if (commEl) commEl.style.display = view === 'diagram' ? 'block' : 'none';
+      if (compEl) compEl.style.display = view === 'composition' ? 'block' : 'none';
+      if (factEl) factEl.style.display = view === 'factorization' ? 'block' : 'none';
+      if (probeEl) probeEl.style.display = view === 'probe' ? 'block' : 'none';
+    }
+
+    if (view === 'diagram') this.commutativeView?.render();
+    if (view === 'composition') (this.primaryCompositionView || this.compositionGridView)?.render();
+    if (view === 'factorization') (this.primaryFactorizationView || this.factorizationView)?.render();
+    if (view === 'probe') (this.primaryProbeView || this.probeView)?.render();
+
+    this.updateTelemetry();
+  }
+
+  set3DMode(threeMode) {
+    this.state.threeMode = threeMode;
+    this.state.spatial3D = true;
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        const isMatch = btn.dataset['3dMode'] === threeMode;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-pressed', String(isMatch));
+      });
+      document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const compSec = document.querySelector('#composition-grid-container');
+      const probeSec = document.querySelector('#probe-viewport-container');
+      const factSec = document.querySelector('#factorization-viewport-container');
+
+      if (threeContainer) threeContainer.style.display = 'block';
+      if (compSec) compSec.style.display = 'none';
+      if (probeSec) probeSec.style.display = 'none';
+      if (factSec) factSec.style.display = 'none';
+
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = 'ON';
+        statusEl.className = 'color-sky';
+      }
+
+      const titleName = document.querySelector('#title-secondary-name');
+      if (titleName) {
+        if (threeMode === 'spatial-simplex') titleName.textContent = 'Spatial Commutative Simplex';
+        else if (threeMode === 'composition-3d') titleName.textContent = '3D Composition Landscape';
+        else if (threeMode === 'universal-cone') titleName.textContent = '3D Universal Cone & Factorization';
+        else if (threeMode === 'functor-3d') titleName.textContent = '3D Functorial Sheets & Transformations';
+      }
+    }
+
+    if (this.threeView) {
+      this.threeView.setMode(threeMode);
+      this.threeView.render(this.state);
+    }
+    this.updateTelemetry();
+  }
+
+  setCameraPreset(preset) {
+    this.state.cameraPreset = preset;
+    if (this.threeView) {
+      this.threeView.setCameraPreset(preset);
+    }
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === preset);
+      });
+    }
+  }
+
+  toggleSpatial3D() {
+    this.state.spatial3D = !this.state.spatial3D;
+
+    if (typeof document !== 'undefined') {
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = this.state.spatial3D ? 'ON' : 'OFF';
+        statusEl.className = this.state.spatial3D ? 'color-sky' : 'color-slate';
+      }
+
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const compSec = document.querySelector('#composition-grid-container');
+      const probeSec = document.querySelector('#probe-viewport-container');
+      const factSec = document.querySelector('#factorization-viewport-container');
+
+      if (this.state.spatial3D) {
+        if (threeContainer) threeContainer.style.display = 'block';
+        if (compSec) compSec.style.display = 'none';
+        if (probeSec) probeSec.style.display = 'none';
+        if (factSec) factSec.style.display = 'none';
+        if (this.threeView) this.threeView.render(this.state);
+      } else {
+        if (threeContainer) threeContainer.style.display = 'none';
+        if (compSec) compSec.style.display = this.state.dualMode === 'composition' ? 'block' : 'none';
+        if (probeSec) probeSec.style.display = this.state.dualMode === 'probe' ? 'block' : 'none';
+        if (factSec) factSec.style.display = this.state.dualMode === 'factorization' ? 'block' : 'none';
+      }
+    }
+    this.updateTelemetry();
+  }
+
   setDualMode(dualMode) {
     this.state.dualMode = dualMode;
+    this.state.spatial3D = false;
 
     if (dualMode === 'probe') {
       this.state.activeMode = 'probe';
@@ -315,16 +485,28 @@ export class CategoryTheoryController {
     }
 
     if (typeof document !== 'undefined') {
-      document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+      document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
         const isActive = btn.dataset.dualMode === dualMode;
         btn.classList.toggle('active', isActive);
-        btn.setAttribute('aria-pressed', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
       });
 
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = 'OFF';
+        statusEl.className = 'color-slate';
+      }
+
+      const threeContainer = document.querySelector('#three-viewport-container');
       const compGridSec = document.querySelector('#composition-grid-container');
       const probeSec = document.querySelector('#probe-viewport-container');
       const factSec = document.querySelector('#factorization-viewport-container');
 
+      if (threeContainer) threeContainer.style.display = 'none';
       if (compGridSec) compGridSec.style.display = dualMode === 'composition' ? 'block' : 'none';
       if (probeSec) probeSec.style.display = dualMode === 'probe' ? 'block' : 'none';
       if (factSec) factSec.style.display = dualMode === 'factorization' ? 'block' : 'none';
@@ -472,9 +654,17 @@ export class CategoryTheoryController {
 
   resizeAllViews() {
     this.commutativeView?.render();
-    this.compositionGridView?.resize();
-    this.probeView?.render();
-    this.factorizationView?.render();
+    if (this.state.primaryMode === 'composition') (this.primaryCompositionView || this.compositionGridView)?.render();
+    if (this.state.primaryMode === 'factorization') (this.primaryFactorizationView || this.factorizationView)?.render();
+    if (this.state.primaryMode === 'probe') (this.primaryProbeView || this.probeView)?.render();
+
+    if (this.state.spatial3D && this.threeView) {
+      this.threeView.resize();
+    } else {
+      if (this.state.dualMode === 'composition') this.compositionGridView?.render();
+      if (this.state.dualMode === 'probe') this.probeView?.render();
+      if (this.state.dualMode === 'factorization') this.factorizationView?.render();
+    }
   }
 
   enableResizerDrag() {
@@ -523,7 +713,7 @@ export class CategoryTheoryController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { triangleCommutes, dualMode, domainX, codomainY, morphismF } = this.state;
+    const { triangleCommutes, dualMode, domainX, codomainY, morphismF, spatial3D, threeMode } = this.state;
     const monicTest = CategoryMath.testMonomorphism(morphismF, domainX, codomainY);
     const epicTest = CategoryMath.testEpimorphism(morphismF, domainX, codomainY);
     const fact = CategoryMath.computeQuotientFactorization(morphismF, domainX, codomainY);
@@ -543,35 +733,52 @@ export class CategoryTheoryController {
 
     const elMonic = document.querySelector('#tel-cat-monic');
     if (elMonic) {
-      elMonic.textContent = monicTest.isMonic ? 'YES (Injective / Left-Cancellative)' : 'NO';
-      elMonic.className = monicTest.isMonic ? 'color-sky font-bold' : 'color-slate font-bold';
+      elMonic.textContent = monicTest.isMonic ? 'YES (Injective / Left-Cancellative)' : 'NO (Collision Fibers Exist)';
+      elMonic.className = monicTest.isMonic ? 'color-sky font-bold' : 'color-rose font-bold';
     }
 
     const elEpic = document.querySelector('#tel-cat-epic');
     if (elEpic) {
-      elEpic.textContent = epicTest.isEpic ? 'YES (Surjective / Right-Cancellative)' : 'NO';
-      elEpic.className = epicTest.isEpic ? 'color-fuchsia font-bold' : 'color-slate font-bold';
+      elEpic.textContent = epicTest.isEpic ? 'YES (Surjective / Right-Cancellative)' : 'NO (Uncovered Codomain Targets)';
+      elEpic.className = epicTest.isEpic ? 'color-fuchsia font-bold' : 'color-amber font-bold';
     }
 
     const elIso = document.querySelector('#tel-cat-iso');
     if (elIso) {
       const isIso = monicTest.isMonic && epicTest.isEpic;
-      elIso.textContent = isIso ? 'YES (Isomorphism ≅)' : 'NO';
+      elIso.textContent = isIso ? 'YES (Isomorphism ≅, Invertible)' : 'NO';
       elIso.className = isIso ? 'color-lime font-bold' : 'color-slate font-bold';
     }
 
     const elObjs = document.querySelector('#tel-cat-objects');
-    if (elObjs) elObjs.textContent = 'Obj(C) = { A, B, C }';
+    if (elObjs) elObjs.textContent = 'Obj(C) = { A, B, C }, |Hom| = 6';
 
     const elComp = document.querySelector('#tel-cat-comp');
-    if (elComp) elComp.textContent = triangleCommutes ? 'g ∘ f = h (Commutative Triangle)' : 'g ∘ f ≠ h';
+    if (elComp) elComp.textContent = triangleCommutes ? 'g ∘ f = h (Commutative Triangle)' : 'g ∘ f ≠ h (Discrepancy active)';
+
+    const elUniversalPrimary = document.querySelector('#tel-cat-universal');
+    if (elUniversalPrimary) {
+      elUniversalPrimary.textContent = `∃! u : X/ker(f) ≅ im(f) [${fact.quotientClasses.length} fibers] ✓`;
+    }
+
+    const elAdjPrimary = document.querySelector('#tel-cat-adjunction');
+    if (elAdjPrimary) {
+      elAdjPrimary.textContent = 'Hom(A × B, C) ≅ Hom(A, Cᴮ) (Adjunction)';
+    }
 
     // 2. Secondary Dual / 3D Telemetry Panel
     const elDualName = document.querySelector('#val-cat-dual-name');
     if (elDualName) {
-      elDualName.textContent = dualMode === 'composition'
-        ? 'Composition Grid (A × C)'
-        : (dualMode === 'probe' ? 'Monic & Epic Cancellation Probes' : 'Universal Factorization & Adjunction');
+      if (spatial3D) {
+        if (threeMode === 'spatial-simplex') elDualName.textContent = '3D Commutative Simplex';
+        else if (threeMode === 'composition-3d') elDualName.textContent = '3D Composition Landscape Grid';
+        else if (threeMode === 'universal-cone') elDualName.textContent = '3D Universal Cone & Factorization';
+        else if (threeMode === 'functor-3d') elDualName.textContent = '3D Functorial Sheets & Transformations';
+      } else {
+        elDualName.textContent = dualMode === 'composition'
+          ? 'Composition Grid (A × C)'
+          : (dualMode === 'probe' ? 'Monic & Epic Cancellation Probes' : 'Universal Factorization & Adjunction');
+      }
     }
 
     const elPath1 = document.querySelector('#val-cat-path1');
@@ -602,6 +809,27 @@ export class CategoryTheoryController {
     const elCurry = document.querySelector('#val-cat-curry');
     if (elCurry) {
       elCurry.textContent = 'Hom(A × B, C) ≅ Hom(A, Cᴮ)';
+    }
+
+    const elSpatialStat = document.querySelector('#val-cat-spatial-stat');
+    if (elSpatialStat) {
+      if (spatial3D) {
+        if (threeMode === 'spatial-simplex') {
+          elSpatialStat.textContent = '3 Object Vertices, 3 Morphism Conduits, Commuting Facet';
+        } else if (threeMode === 'composition-3d') {
+          elSpatialStat.textContent = '9 Composition Height Towers on 3×3 Grid';
+        } else if (threeMode === 'universal-cone') {
+          elSpatialStat.textContent = '4 Cone Vertices, Golden Ray ∃! u, Product Halo';
+        } else if (threeMode === 'functor-3d') {
+          elSpatialStat.textContent = '2 Parallel Functor Planes, Natural Transformation Bridges';
+        }
+      } else {
+        elSpatialStat.textContent = '2D Planar Projection active';
+      }
+    }
+
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
     }
   }
 

@@ -36,6 +36,8 @@
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountPermutationsVisual } from './src/controller.js';
@@ -45,12 +47,20 @@
       const cauchyContainer = document.querySelector('#cauchy-viewport-container');
       const braidContainer = document.querySelector('#braid-viewport-container');
       const cayleyContainer = document.querySelector('#cayley-viewport-container');
+      const primaryCauchy = document.querySelector('#primary-cauchy-container');
+      const primaryBraid = document.querySelector('#primary-braid-container');
+      const primaryCayley = document.querySelector('#primary-cayley-container');
+      const threeContainer = document.querySelector('#three-viewport-container');
 
       mountPermutationsVisual({
         grid: gridContainer,
         cauchy: cauchyContainer,
         braid: braidContainer,
-        cayley: cayleyContainer
+        cayley: cayleyContainer,
+        primaryCauchy: primaryCauchy,
+        primaryBraid: primaryBraid,
+        primaryCayley: primaryCayley,
+        three: threeContainer
       });
     };
 
@@ -128,6 +138,12 @@
 
           <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
 
+          <button type="button" class="btn-toolbar" id="btn-toggle-dimension-mode" title="Toggle between 3D Spatial and 2D Planar Mode">
+            <span>Spatial 3D: <strong class="color-sky" id="toolbar-dimension-status">ON</strong></span>
+          </button>
+
+          <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
+
           <button type="button" class="btn-toolbar" id="btn-invert-perm" title="Invert permutation (reflect across diagonal line y = x)">
             Invert (σ⁻¹)
           </button>
@@ -145,28 +161,51 @@
 
       <!-- Main Visual Viewports -->
       <div class="view-container layout-split horizontal-split" id="main-view" style="background: #090d16;">
-        <!-- Left: Permutation Coordinate Grid (Primary) -->
+        <!-- Left: Permutation Coordinate Grid & Representations (Primary) -->
         <div id="canvas-2d-container">
           <div class="view-title" id="view-title-grid">
             Coordinate Grid (n &times; n): (<span class="color-sky">X: Input</span>, <span class="color-fuchsia">&sigma;(X): Output</span>) &amp; <span class="color-lime">y = x Fixed Points</span>
           </div>
+
+          <!-- Primary Mode Bar: Select ANY Representation on Primary Viewport -->
+          <div class="dimension-mode-bar" id="primary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-primary-view="grid" title="Interactive n × n Coordinate Grid (y = x Reflection, Bijection Rook cells)">Coordinate Grid</button>
+              <button type="button" class="btn" data-primary-view="cauchy" title="Cauchy Two-Row Matrix &amp; Disjoint Cycle Orbits">Cauchy &amp; Cycles</button>
+              <button type="button" class="btn" data-primary-view="braid" title="String Braiding &amp; Crossover Wire Intersections">Braid Strands</button>
+              <button type="button" class="btn" data-primary-view="cayley" title="S₃ Permutation Group Cayley Multiplication Table">S₃ Cayley</button>
+            </div>
+          </div>
+
+          <!-- Mode 1: Primary Coordinate Grid Container -->
           <div id="grid-viewport-container" style="width: 100%; height: 100%;"></div>
 
-          <!-- Primary 2D Telemetry Panel -->
+          <!-- Mode 2: Primary Cauchy Container -->
+          <div id="primary-cauchy-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 3: Primary Braid Container -->
+          <div id="primary-braid-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 4: Primary Cayley Container -->
+          <div id="primary-cayley-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Primary 2D Telemetry Panel: Mathematical Group Invariants & Parity -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
             <div class="stats-header" id="telemetry-header">
-              <span class="stats-title">Permutation Telemetry</span>
+              <span class="stats-title">Group Axioms &amp; Invariants Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Permutation Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
               <div class="stat-line"><span class="color-yellow">Symmetric Group:</span><strong class="color-yellow" id="tel-perm-group">S_5 (|S_5| = 120)</strong></div>
-              <div class="stat-line"><span class="color-sky">Inversions I(&sigma;):</span><strong class="color-sky" id="tel-perm-inversions">4 inversions</strong></div>
-              <div class="stat-line"><span class="color-fuchsia">Parity sgn(&sigma;):</span><strong class="color-fuchsia" id="tel-perm-parity">EVEN (+1)</strong></div>
-              <div class="stat-line"><span class="color-emerald">Alternating Group:</span><strong class="color-emerald" id="tel-perm-alternating">&sigma; &isin; A_5 &check;</strong></div>
-              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Fixed Points (y = x):</span><strong class="color-lime" id="tel-perm-fixed">{ 1 } (1 fixed)</strong></div>
-              <div class="stat-line"><span class="color-amber">Matrix Permutation:</span><span class="color-amber" id="tel-perm-matrix">Orthogonal P Pᵀ = I</span></div>
+              <div class="stat-line"><span class="color-sky">Inversions I(&sigma;):</span><strong class="color-sky" id="tel-perm-inversions">4 inversions (40% of max 10)</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Parity sgn(&sigma;):</span><strong class="color-fuchsia" id="tel-perm-parity">EVEN (+1, (-1)⁴ = 1)</strong></div>
+              <div class="stat-line"><span class="color-emerald">Alternating Group:</span><strong class="color-emerald" id="tel-perm-alternating">&sigma; &isin; A_5 (|A_5| = 60)</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-amber">Disjoint Cycles:</span><strong class="color-amber" id="tel-perm-cycles">(1 3 2)(4 5) [Partition: 3+2]</strong></div>
+              <div class="stat-line"><span class="color-violet">Permutation Order:</span><strong class="color-violet" id="tel-perm-order">ord(&sigma;) = 6 (lcm(3, 2) = 6, &sigma;⁶ = id)</strong></div>
+              <div class="stat-line"><span class="color-lime">Fixed Points (y = x):</span><strong class="color-lime" id="tel-perm-fixed">{ } (0 fixed, Derangement D₅)</strong></div>
+              <div class="stat-line"><span class="color-teal">Matrix Permutation:</span><span class="color-teal" id="tel-perm-matrix">Orthogonal P Pᵀ = I, det(P) = +1, Tr(P) = 0</span></div>
             </div>
           </div>
         </div>
@@ -176,33 +215,58 @@
         <!-- Right: Dual Representation Viewport (Secondary) -->
         <div id="canvas-3d-container">
           <div class="view-title" id="view-title-dual">
-            Dual Representation: <span class="color-sky">Cauchy Matrix &amp; Cycle Orbits</span> &amp; <span class="color-lavender">Braid Strands</span>
+            3D Spatial: <span class="color-sky" id="title-secondary-name">Spatial Cycle Orbits</span> &amp; <span class="color-lime">3D Braiding</span>
           </div>
 
-          <!-- Mode 1: Cauchy Matrix & Cycle Orbits -->
-          <div id="cauchy-viewport-container" style="width: 100%; height: 100%;"></div>
+          <!-- Secondary Mode Bar (Choose Any 3D Counterpart or 2D Alternative) -->
+          <div class="dimension-mode-bar" id="secondary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-3d-mode="spatial-orbits" title="3D Spatial Disjoint Cycle Orbits with Elevated Torus Halos, Directed Conduits, and Fixed Beacons">3D Orbits</button>
+              <button type="button" class="btn" data-3d-mode="braid-3d" title="True 3D Artin Braid Strands with Physical Depth Over/Under Crossings">3D Braid Strands</button>
+              <button type="button" class="btn" data-3d-mode="matrix-voxels" title="3D Permutation Matrix Grid with Illuminated Beacons and Transposition Arches">3D Matrix Voxels</button>
+              <button type="button" class="btn" data-3d-mode="cayley-3d" title="3D S₃ Permutohedron / Cayley Polyhedron with Colored Generator Edges">3D Cayley Polyhedron</button>
+              <button type="button" class="btn" data-dual-mode="cauchy" title="2D Cauchy Two-Row Matrix &amp; Cycle Orbits">2D Cauchy</button>
+              <button type="button" class="btn" data-dual-mode="braid" title="2D String Braiding &amp; Inversions">2D Braid</button>
+              <button type="button" class="btn" data-dual-mode="cayley" title="2D S₃ Cayley Multiplication Table">2D Cayley</button>
+            </div>
+          </div>
 
-          <!-- Mode 2: String Braiding & Inversions -->
+          <!-- 3D Camera Presets Bar -->
+          <div class="camera-presets-bar" id="camera-presets-bar">
+            <button type="button" data-preset="top" title="Top View (Plan)">Top</button>
+            <button type="button" data-preset="front" title="Front View (Elevation)">Front</button>
+            <button type="button" data-preset="side" title="Side View (Profile)">Side</button>
+            <button type="button" data-preset="iso" class="active" title="Isometric Perspective View">Iso</button>
+          </div>
+
+          <!-- Mode 0: True 3D Spatial WebGL Three.js Viewport (Default active) -->
+          <div id="three-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 1: Cauchy Matrix & Cycle Orbits (2D Fallback) -->
+          <div id="cauchy-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: String Braiding & Inversions (2D Fallback) -->
           <div id="braid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
-          <!-- Mode 3: S_3 Cayley Table -->
+          <!-- Mode 3: S_3 Cayley Table (2D Fallback) -->
           <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
           <!-- Secondary Dual / 3D Telemetry Panel -->
           <div class="stats-overlay collapsed" id="stats-3d">
             <div class="stats-header" id="stats-3d-header">
-              <span class="stats-title">Dual Representation Telemetry</span>
+              <span class="stats-title">3D Spatial &amp; Group Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
-              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-perm-dual-name">Cauchy Two-Row &amp; Cycle Orbits</strong></div>
+              <div class="stat-line"><span class="color-white">Representation:</span><strong class="color-white" id="val-perm-dual-name">3D Spatial Orbits &amp; Halos</strong></div>
               <div class="stat-line"><span class="color-sky">Disjoint Cycles:</span><strong class="color-sky" id="val-perm-cycles">(1 3 2)(4 5)</strong></div>
               <div class="stat-line"><span class="color-yellow">Permutation Order:</span><strong class="color-yellow" id="val-perm-order">ord(&sigma;) = 6 (lcm)</strong></div>
               <div class="stat-line"><span class="color-violet">Braid Wire Crossings:</span><strong class="color-violet" id="val-perm-crossings">4 intersections</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-teal">Cayley Crosshair:</span><span class="color-teal" id="val-perm-cayley">&tau;₁ &compfn; &tau;₂ &ne; &tau;₂ &compfn; &tau;₁</span></div>
               <div class="stat-line"><span class="color-lime">Identity Return:</span><strong class="color-lime" id="val-perm-id-return">&sigma;⁶ = id &check;</strong></div>
+              <div class="stat-line"><span class="color-indigo">Spatial 3D Invariant:</span><span class="color-indigo" id="val-perm-spatial-stat">2 Torus Halos, 5 Elevated Nodes</span></div>
             </div>
           </div>
         </div>

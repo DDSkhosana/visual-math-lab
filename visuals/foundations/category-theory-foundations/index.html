@@ -36,6 +36,8 @@
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
     import { mountCategoryTheoryVisual } from './src/controller.js';
@@ -45,12 +47,20 @@
       const compGridContainer = document.querySelector('#composition-grid-container');
       const probeContainer = document.querySelector('#probe-viewport-container');
       const factContainer = document.querySelector('#factorization-viewport-container');
+      const primaryComp = document.querySelector('#primary-composition-container');
+      const primaryFact = document.querySelector('#primary-factorization-container');
+      const primaryProbe = document.querySelector('#primary-probe-container');
+      const threeContainer = document.querySelector('#three-viewport-container');
 
       mountCategoryTheoryVisual({
         commutative: commContainer,
         compositionGrid: compGridContainer,
         probe: probeContainer,
-        factorization: factContainer
+        factorization: factContainer,
+        primaryComposition: primaryComp,
+        primaryFactorization: primaryFact,
+        primaryProbe: primaryProbe,
+        three: threeContainer
       });
     };
 
@@ -129,6 +139,12 @@
             <button type="button" class="btn" data-diagram-type="product" aria-pressed="false">Universal Product</button>
           </div>
 
+          <button type="button" class="btn-toolbar" id="btn-toggle-dimension-mode" title="Toggle between 3D Spatial and 2D Planar Mode">
+            <span>Spatial 3D: <strong class="color-sky" id="toolbar-dimension-status">ON</strong></span>
+          </button>
+
+          <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
+
           <button type="button" class="btn-toolbar" id="btn-toggle-comm" title="Toggle diagram commutativity">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
             <span>Toggle Commutativity</span>
@@ -152,25 +168,47 @@
           <div class="view-title" id="view-title-diagram">
             Commutative Diagram: <span class="color-sky">Objects &amp; Morphism Flow</span> &amp; <span class="color-emerald">Equality Invariant</span>
           </div>
+
+          <!-- Primary Mode Bar: Select ANY Representation on Primary Viewport -->
+          <div class="dimension-mode-bar" id="primary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-primary-view="diagram" title="Commutative Diagram with Object Vertices and Directed Morphisms">Commutative Diagram</button>
+              <button type="button" class="btn" data-primary-view="composition" title="Composition Coordinate Grid (A × C Morphism Matrix Product)">Composition Grid</button>
+              <button type="button" class="btn" data-primary-view="factorization" title="Universal Product Factorization &amp; Currying Adjunction">Universal Factorization</button>
+              <button type="button" class="btn" data-primary-view="probe" title="Monic (Left-Cancellative) &amp; Epic (Right-Cancellative) Probes">Monic / Epic Probes</button>
+            </div>
+          </div>
+
           <!-- Mode 1: Commutative Diagrams & Path Composition -->
           <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
 
-          <!-- Primary 2D Telemetry Panel -->
+          <!-- Mode 2: Primary Composition Container -->
+          <div id="primary-composition-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 3: Primary Factorization Container -->
+          <div id="primary-factorization-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 4: Primary Probe Container -->
+          <div id="primary-probe-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Primary 2D Telemetry Panel: Categorical Invariants & Universal Properties -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
             <div class="stats-header" id="telemetry-header">
-              <span class="stats-title">Category Telemetry</span>
+              <span class="stats-title">Categorical Invariants &amp; Universal Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Category Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
-              <div class="stat-line"><span class="color-yellow">Diagram Status:</span><strong class="color-yellow" id="tel-cat-commutes">Commutes &check;</strong></div>
-              <div class="stat-line"><span class="color-emerald">Discrepancy &Delta;:</span><strong class="color-emerald" id="tel-cat-discrepancy">&Delta; = 0.000</strong></div>
-              <div class="stat-line"><span class="color-sky">Monic (Left-Cancellative):</span><strong class="color-sky" id="tel-cat-monic">YES</strong></div>
-              <div class="stat-line"><span class="color-fuchsia">Epic (Right-Cancellative):</span><strong class="color-fuchsia" id="tel-cat-epic">YES</strong></div>
-              <div class="stat-line"><span class="color-lime">Isomorphism:</span><strong class="color-lime" id="tel-cat-iso">YES (&cong;)</strong></div>
-              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Objects:</span><span class="color-indigo" id="tel-cat-objects">Obj(C) = {A, B, C}</span></div>
-              <div class="stat-line"><span class="color-amber">Composition:</span><span class="color-amber" id="tel-cat-comp">g &compfn; f = h</span></div>
+              <div class="stat-line"><span class="color-yellow">Diagram Status:</span><strong class="color-yellow" id="tel-cat-commutes">Commutes ✓ (g ∘ f = h)</strong></div>
+              <div class="stat-line"><span class="color-emerald">Discrepancy &Delta;:</span><strong class="color-emerald" id="tel-cat-discrepancy">&Delta; = 0.000 (Exact Agreement)</strong></div>
+              <div class="stat-line"><span class="color-sky">Monic (Left-Cancellative):</span><strong class="color-sky" id="tel-cat-monic">YES (f ∘ g₁ = f ∘ g₂ ⇒ g₁ = g₂)</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Epic (Right-Cancellative):</span><strong class="color-fuchsia" id="tel-cat-epic">YES (h₁ ∘ f = h₂ ∘ f ⇒ h₁ = h₂)</strong></div>
+              <div class="stat-line"><span class="color-lime">Isomorphism:</span><strong class="color-lime" id="tel-cat-iso">YES (f ∘ f⁻¹ = id, f⁻¹ ∘ f = id)</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Objects &amp; Hom-Sets:</span><span class="color-indigo" id="tel-cat-objects">Obj(C) = {A, B, C}, |Hom| = 6</span></div>
+              <div class="stat-line"><span class="color-amber">Composition Law:</span><span class="color-amber" id="tel-cat-comp">g ∘ f : A → C via B</span></div>
+              <div class="stat-line"><span class="color-teal">Universal Factorization:</span><strong class="color-teal" id="tel-cat-universal">∃! u: P → A × B (Unique Mediating Morphism)</strong></div>
+              <div class="stat-line"><span class="color-violet">Currying Adjunction:</span><span class="color-violet" id="tel-cat-adjunction">Hom(A × B, C) ≅ Hom(A, Cᴮ)</span></div>
             </div>
           </div>
         </div>
@@ -180,34 +218,59 @@
         <!-- Right: Dual Representation Viewport (Secondary) -->
         <div id="canvas-3d-container">
           <div class="view-title" id="view-title-dual">
-            Dual Representation: <span class="color-sky">Composition Grid (A &times; C)</span> &amp; <span class="color-lavender">Universal Factorization</span>
+            3D Spatial: <span class="color-sky" id="title-secondary-name">Spatial Commutative Simplex</span> &amp; <span class="color-lime">Universal Cones</span>
           </div>
 
-          <!-- Mode 1: Composition Coordinate Grid -->
-          <div id="composition-grid-container" style="width: 100%; height: 100%;"></div>
+          <!-- Secondary Mode Bar (Choose Any 3D Counterpart or 2D Alternative) -->
+          <div class="dimension-mode-bar" id="secondary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-3d-mode="spatial-simplex" title="3D Spatial Commutative Simplex with Morphism Conduits, Object Spheres, and Commuting Facets">3D Simplex</button>
+              <button type="button" class="btn" data-3d-mode="composition-3d" title="3D Morphism Composition Landscape Grid with Height Comparison Towers">3D Composition Grid</button>
+              <button type="button" class="btn" data-3d-mode="universal-cone" title="3D Universal Cone &amp; Product Adjunction with Golden Mediating Ray ∃! u">3D Universal Cone</button>
+              <button type="button" class="btn" data-3d-mode="functor-3d" title="3D Functorial Parallel Hyper-Planes with Natural Transformation Bridges">3D Functorial Sheets</button>
+              <button type="button" class="btn" data-dual-mode="composition" title="2D Composition Coordinate Grid (A × C)">2D Composition</button>
+              <button type="button" class="btn" data-dual-mode="factorization" title="2D Universal Factorization &amp; Currying">2D Factorization</button>
+              <button type="button" class="btn" data-dual-mode="probe" title="2D Monic &amp; Epic Cancellation Probes">2D Probes</button>
+            </div>
+          </div>
 
-          <!-- Mode 2: Monic & Epic Cancellation Probes -->
+          <!-- 3D Camera Presets Bar -->
+          <div class="camera-presets-bar" id="camera-presets-bar">
+            <button type="button" data-preset="top" title="Top View (Plan)">Top</button>
+            <button type="button" data-preset="front" title="Front View (Elevation)">Front</button>
+            <button type="button" data-preset="side" title="Side View (Profile)">Side</button>
+            <button type="button" data-preset="iso" class="active" title="Isometric Perspective View">Iso</button>
+          </div>
+
+          <!-- Mode 0: True 3D Spatial WebGL Three.js Viewport (Default active) -->
+          <div id="three-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 1: Composition Coordinate Grid (2D Fallback) -->
+          <div id="composition-grid-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: Monic & Epic Cancellation Probes (2D Fallback) -->
           <div id="probe-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
-          <!-- Mode 3: Universal Factorization & Adjunction -->
+          <!-- Mode 3: Universal Factorization & Adjunction (2D Fallback) -->
           <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
           <!-- Secondary Dual / 3D Telemetry Panel -->
           <div class="stats-overlay collapsed" id="stats-3d">
             <div class="stats-header" id="stats-3d-header">
-              <span class="stats-title">Dual Representation Telemetry</span>
+              <span class="stats-title">3D Spatial &amp; Category Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
-              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-cat-dual-name">Composition Grid (A &times; C)</strong></div>
+              <div class="stat-line"><span class="color-white">Representation:</span><strong class="color-white" id="val-cat-dual-name">3D Commutative Simplex</strong></div>
               <div class="stat-line"><span class="color-sky">Path 1 (g &compfn; f):</span><strong class="color-sky" id="val-cat-path1">A &rarr; B &rarr; C</strong></div>
               <div class="stat-line"><span class="color-amber">Path 2 (Direct h):</span><strong class="color-amber" id="val-cat-path2">A &rarr; C</strong></div>
               <div class="stat-line"><span class="color-teal">Monic Probe Test:</span><strong class="color-teal" id="val-cat-probe-monic">f &compfn; g₁ = f &compfn; g₂ &rArr; g₁ = g₂ &check;</strong></div>
               <div class="stat-line"><span class="color-fuchsia">Epic Probe Test:</span><strong class="color-fuchsia" id="val-cat-probe-epic">h₁ &compfn; f = h₂ &compfn; f &rArr; h₁ = h₂ &check;</strong></div>
               <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Universal Property:</span><strong class="color-lime" id="val-cat-universal">&exist;! u (Unique Factorization) &check;</strong></div>
               <div class="stat-line"><span class="color-indigo">Currying Adjunction:</span><span class="color-indigo" id="val-cat-curry">Hom(A &times; B, C) &cong; Hom(A, Cᴮ)</span></div>
+              <div class="stat-line"><span class="color-violet">Spatial 3D Invariant:</span><span class="color-violet" id="val-cat-spatial-stat">3 Object Vertices, 3 Morphism Conduits, Commuting Facet</span></div>
             </div>
           </div>
         </div>

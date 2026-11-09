@@ -8,6 +8,7 @@ import { PermutationGridView } from './views/PermutationGridView.js';
 import { CauchyCycleView } from './views/CauchyCycleView.js';
 import { BraidDiagramView } from './views/BraidDiagramView.js';
 import { CayleyTableView } from './views/CayleyTableView.js';
+import { Permutations3DView } from './views/Permutations3DView.js';
 
 export class PermutationsController {
   constructor() {
@@ -17,6 +18,10 @@ export class PermutationsController {
       splitRatio: 50,
       activeMode: 'cauchy', // backwards compat with tests ('cauchy' | 'braid' | 'cayley')
       dualMode: 'cauchy', // 'cauchy' | 'braid' | 'cayley'
+      primaryMode: 'grid', // 'grid' | 'cauchy' | 'braid' | 'cayley'
+      threeMode: 'spatial-orbits', // 'spatial-orbits' | 'braid-3d' | 'matrix-voxels' | 'cayley-3d'
+      spatial3D: true, // true (3D WebGL) | false (2D planar)
+      cameraPreset: 'iso',
       n: 5,
       mapping: [3, 1, 2, 5, 4], // (1 3 2)(4 5)
       currentPresetId: 'compound'
@@ -26,6 +31,10 @@ export class PermutationsController {
     this.cauchyView = null;
     this.braidView = null;
     this.cayleyView = null;
+    this.threeView = null;
+    this.primaryCauchyView = null;
+    this.primaryBraidView = null;
+    this.primaryCayleyView = null;
 
     this.presets = {
       compound: {
@@ -73,6 +82,18 @@ export class PermutationsController {
     }
     if (containers.cayley) {
       this.cayleyView = new CayleyTableView(containers.cayley, this);
+    }
+    if (containers.three) {
+      this.threeView = new Permutations3DView(containers.three);
+    }
+    if (containers.primaryCauchy) {
+      this.primaryCauchyView = new CauchyCycleView(containers.primaryCauchy, this);
+    }
+    if (containers.primaryBraid) {
+      this.primaryBraidView = new BraidDiagramView(containers.primaryBraid, this);
+    }
+    if (containers.primaryCayley) {
+      this.primaryCayleyView = new CayleyTableView(containers.primaryCayley, this);
     }
 
     this.bindDomControls();
@@ -132,12 +153,41 @@ export class PermutationsController {
       this.toggleSplitDirection();
     });
 
-    // Dual Representation Mode Switcher
-    document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+    // Primary Representation Mode Bar
+    document.querySelectorAll('[data-primary-view]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const primaryView = e.currentTarget.dataset.primaryView;
+        this.setPrimaryView(primaryView);
+      });
+    });
+
+    // Secondary 3D Counterpart Mode Bar
+    document.querySelectorAll('[data-3d-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const threeMode = e.currentTarget.dataset['3dMode'];
+        this.set3DMode(threeMode);
+      });
+    });
+
+    // Dual 2D Mode Switcher
+    document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const dualMode = e.currentTarget.dataset.dualMode;
         this.setDualMode(dualMode);
       });
+    });
+
+    // Camera Presets Bar
+    document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const preset = e.currentTarget.dataset.preset;
+        this.setCameraPreset(preset);
+      });
+    });
+
+    // Spatial 3D Toggle
+    document.querySelector('#btn-toggle-dimension-mode')?.addEventListener('click', () => {
+      this.toggleSpatial3D();
     });
 
     // Degree n Selector
@@ -212,21 +262,153 @@ export class PermutationsController {
     this.resizeAllViews();
   }
 
-  setDualMode(dualMode) {
-    this.state.dualMode = dualMode;
-    this.state.activeMode = dualMode;
+  setPrimaryView(view) {
+    this.state.primaryMode = view;
 
     if (typeof document !== 'undefined') {
-      document.querySelectorAll('[data-dual-mode]').forEach(btn => {
-        const isMatch = btn.dataset.dualMode === dualMode;
+      document.querySelectorAll('#primary-mode-bar [data-primary-view]').forEach(btn => {
+        const isMatch = btn.dataset.primaryView === view;
         btn.classList.toggle('active', isMatch);
         btn.setAttribute('aria-pressed', String(isMatch));
       });
 
+      const gridEl = document.querySelector('#grid-viewport-container');
+      const cauchyEl = document.querySelector('#primary-cauchy-container');
+      const braidEl = document.querySelector('#primary-braid-container');
+      const cayleyEl = document.querySelector('#primary-cayley-container');
+
+      if (gridEl) gridEl.style.display = view === 'grid' ? 'block' : 'none';
+      if (cauchyEl) cauchyEl.style.display = view === 'cauchy' ? 'block' : 'none';
+      if (braidEl) braidEl.style.display = view === 'braid' ? 'block' : 'none';
+      if (cayleyEl) cayleyEl.style.display = view === 'cayley' ? 'block' : 'none';
+    }
+
+    if (view === 'grid') this.gridView?.render();
+    if (view === 'cauchy') (this.primaryCauchyView || this.cauchyView)?.render();
+    if (view === 'braid') (this.primaryBraidView || this.braidView)?.render();
+    if (view === 'cayley') (this.primaryCayleyView || this.cayleyView)?.render();
+
+    this.updateTelemetry();
+  }
+
+  set3DMode(threeMode) {
+    this.state.threeMode = threeMode;
+    this.state.spatial3D = true;
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        const isMatch = btn.dataset['3dMode'] === threeMode;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-pressed', String(isMatch));
+      });
+      document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const cauchyEl = document.querySelector('#cauchy-viewport-container');
+      const braidEl = document.querySelector('#braid-viewport-container');
+      const cayleyEl = document.querySelector('#cayley-viewport-container');
+
+      if (threeContainer) threeContainer.style.display = 'block';
+      if (cauchyEl) cauchyEl.style.display = 'none';
+      if (braidEl) braidEl.style.display = 'none';
+      if (cayleyEl) cayleyEl.style.display = 'none';
+
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = 'ON';
+        statusEl.className = 'color-sky';
+      }
+
+      const titleName = document.querySelector('#title-secondary-name');
+      if (titleName) {
+        if (threeMode === 'spatial-orbits') titleName.textContent = 'Spatial Cycle Orbits';
+        else if (threeMode === 'braid-3d') titleName.textContent = '3D Artin Braid Strands';
+        else if (threeMode === 'matrix-voxels') titleName.textContent = '3D Permutation Matrix & Rail';
+        else if (threeMode === 'cayley-3d') titleName.textContent = '3D S₃ Permutohedron';
+      }
+    }
+
+    if (this.threeView) {
+      this.threeView.setMode(threeMode);
+      this.threeView.render(this.state);
+    }
+    this.updateTelemetry();
+  }
+
+  setCameraPreset(preset) {
+    this.state.cameraPreset = preset;
+    if (this.threeView) {
+      this.threeView.setCameraPreset(preset);
+    }
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === preset);
+      });
+    }
+  }
+
+  toggleSpatial3D() {
+    this.state.spatial3D = !this.state.spatial3D;
+
+    if (typeof document !== 'undefined') {
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = this.state.spatial3D ? 'ON' : 'OFF';
+        statusEl.className = this.state.spatial3D ? 'color-sky' : 'color-slate';
+      }
+
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const cauchyEl = document.querySelector('#cauchy-viewport-container');
+      const braidEl = document.querySelector('#braid-viewport-container');
+      const cayleyEl = document.querySelector('#cayley-viewport-container');
+
+      if (this.state.spatial3D) {
+        if (threeContainer) threeContainer.style.display = 'block';
+        if (cauchyEl) cauchyEl.style.display = 'none';
+        if (braidEl) braidEl.style.display = 'none';
+        if (cayleyEl) cayleyEl.style.display = 'none';
+        if (this.threeView) this.threeView.render(this.state);
+      } else {
+        if (threeContainer) threeContainer.style.display = 'none';
+        if (cauchyEl) cauchyEl.style.display = this.state.dualMode === 'cauchy' ? 'block' : 'none';
+        if (braidEl) braidEl.style.display = this.state.dualMode === 'braid' ? 'block' : 'none';
+        if (cayleyEl) cayleyEl.style.display = this.state.dualMode === 'cayley' ? 'block' : 'none';
+      }
+    }
+    this.updateTelemetry();
+  }
+
+  setDualMode(dualMode) {
+    this.state.dualMode = dualMode;
+    this.state.activeMode = dualMode;
+    this.state.spatial3D = false;
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
+        const isMatch = btn.dataset.dualMode === dualMode;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-pressed', String(isMatch));
+      });
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+
+      const statusEl = document.querySelector('#toolbar-dimension-status');
+      if (statusEl) {
+        statusEl.textContent = 'OFF';
+        statusEl.className = 'color-slate';
+      }
+
+      const threeContainer = document.querySelector('#three-viewport-container');
       const cauchySec = document.querySelector('#cauchy-viewport-container');
       const braidSec = document.querySelector('#braid-viewport-container');
       const cayleySec = document.querySelector('#cayley-viewport-container');
 
+      if (threeContainer) threeContainer.style.display = 'none';
       if (cauchySec) cauchySec.style.display = dualMode === 'cauchy' ? 'block' : 'none';
       if (braidSec) braidSec.style.display = dualMode === 'braid' ? 'block' : 'none';
       if (cayleySec) cayleySec.style.display = dualMode === 'cayley' ? 'block' : 'none';
@@ -332,9 +514,17 @@ export class PermutationsController {
 
   resizeAllViews() {
     this.gridView?.resize();
-    if (this.state.dualMode === 'cauchy') this.cauchyView?.render();
-    if (this.state.dualMode === 'braid') this.braidView?.render();
-    if (this.state.dualMode === 'cayley') this.cayleyView?.render();
+    if (this.state.primaryMode === 'cauchy') (this.primaryCauchyView || this.cauchyView)?.render();
+    if (this.state.primaryMode === 'braid') (this.primaryBraidView || this.braidView)?.render();
+    if (this.state.primaryMode === 'cayley') (this.primaryCayleyView || this.cayleyView)?.render();
+
+    if (this.state.spatial3D && this.threeView) {
+      this.threeView.resize();
+    } else {
+      if (this.state.dualMode === 'cauchy') this.cauchyView?.render();
+      if (this.state.dualMode === 'braid') this.braidView?.render();
+      if (this.state.dualMode === 'cayley') this.cayleyView?.render();
+    }
   }
 
   enableResizerDrag() {
@@ -404,56 +594,112 @@ export class PermutationsController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { n, mapping, dualMode } = this.state;
+    const { n, mapping, dualMode, spatial3D, threeMode } = this.state;
     const cycles = PermutationMath.toCycleNotation(mapping);
     const order = PermutationMath.computeOrder(cycles);
     const parity = PermutationMath.computeParityAndSign(mapping);
     const fixedPoints = PermutationMath.computeFixedPoints(mapping);
 
+    const maxInversions = Math.max(1, (n * (n - 1)) / 2);
+    const invPct = Math.round((parity.inversions / maxInversions) * 100);
+    const groupSize = this.factorial(n);
+    const altSize = groupSize / 2;
+    const cycleLengths = cycles.map(c => c.length).sort((a, b) => b - a);
+
     // 1. Primary 2D Telemetry Panel
     const elGroup = document.querySelector('#tel-perm-group');
-    if (elGroup) elGroup.textContent = `S_${n} (|S_${n}| = ${this.factorial(n)})`;
+    if (elGroup) elGroup.textContent = `S_${n} (|S_${n}| = ${groupSize})`;
 
     const elInv = document.querySelector('#tel-perm-inversions');
-    if (elInv) elInv.textContent = `${parity.inversions} inversion(s)`;
+    if (elInv) elInv.textContent = `${parity.inversions} inversion(s) (${invPct}% of max ${maxInversions})`;
 
     const elParity = document.querySelector('#tel-perm-parity');
     if (elParity) {
-      elParity.textContent = parity.isEven ? 'EVEN (+1)' : 'ODD (-1)';
+      elParity.textContent = parity.isEven ? 'EVEN (+1, (-1)⁴ = +1)' : 'ODD (-1, (-1)³ = -1)';
       elParity.className = parity.isEven ? 'color-fuchsia font-bold' : 'color-rose font-bold';
     }
 
     const elAlt = document.querySelector('#tel-perm-alternating');
     if (elAlt) {
-      elAlt.textContent = parity.isEven ? `σ ∈ A_${n} ✓ (kernel of sgn)` : `σ ∉ A_${n} (odd coset)`;
+      elAlt.textContent = parity.isEven
+        ? `σ ∈ A_${n} ✓ (|A_${n}| = ${altSize})`
+        : `σ ∉ A_${n} (Odd coset (1 2)A_${n})`;
       elAlt.className = parity.isEven ? 'color-emerald font-bold' : 'color-amber font-bold';
+    }
+
+    const elCycles = document.querySelector('#tel-perm-cycles');
+    if (elCycles) {
+      const formatted = PermutationMath.formatCycles(cycles);
+      elCycles.textContent = `${formatted} [Partition: ${cycleLengths.join('+')}]`;
+    }
+
+    const elOrder = document.querySelector('#tel-perm-order');
+    if (elOrder) {
+      elOrder.textContent = `ord(σ) = ${order} (lcm(${cycleLengths.join(',')}) = ${order}, σ^${order} = id)`;
     }
 
     const elFixed = document.querySelector('#tel-perm-fixed');
     if (elFixed) {
-      const fixedStr = fixedPoints.length > 0 ? `{ ${fixedPoints.join(', ')} }` : '∅ (Derangement)';
-      elFixed.textContent = `${fixedStr} (${fixedPoints.length} fixed)`;
+      const fixedStr = fixedPoints.length > 0 ? `{ ${fixedPoints.join(', ')} }` : '∅';
+      elFixed.textContent = `${fixedStr} (${fixedPoints.length} fixed${fixedPoints.length === 0 ? `, Derangement D_${n}` : ''})`;
+      elFixed.className = fixedPoints.length > 0 ? 'color-lime font-bold' : 'color-violet font-bold';
+    }
+
+    const elMatrix = document.querySelector('#tel-perm-matrix');
+    if (elMatrix) {
+      elMatrix.textContent = `Orthogonal P Pᵀ = I, det(P) = ${parity.sign > 0 ? '+1' : '-1'}, Tr(P) = ${fixedPoints.length}`;
     }
 
     // 2. Secondary Dual / 3D Telemetry Panel
     const elDualName = document.querySelector('#val-perm-dual-name');
     if (elDualName) {
-      elDualName.textContent = dualMode === 'cauchy'
-        ? 'Cauchy Matrix & Cycle Orbits'
-        : (dualMode === 'braid' ? 'String Braiding Wire Diagram' : 'S₃ Cayley Group Table');
+      if (spatial3D) {
+        if (threeMode === 'spatial-orbits') elDualName.textContent = '3D Spatial Orbits & Halos';
+        else if (threeMode === 'braid-3d') elDualName.textContent = '3D Artin Braid Strands';
+        else if (threeMode === 'matrix-voxels') elDualName.textContent = '3D Permutation Matrix & Rail';
+        else if (threeMode === 'cayley-3d') elDualName.textContent = '3D S₃ Permutohedron';
+      } else {
+        elDualName.textContent = dualMode === 'cauchy'
+          ? 'Cauchy Matrix & Cycle Orbits'
+          : (dualMode === 'braid' ? 'String Braiding Wire Diagram' : 'S₃ Cayley Group Table');
+      }
     }
 
-    const elCycles = document.querySelector('#val-perm-cycles');
-    if (elCycles) elCycles.textContent = PermutationMath.formatCycles(cycles);
+    const elDualCycles = document.querySelector('#val-perm-cycles');
+    if (elDualCycles) elDualCycles.textContent = PermutationMath.formatCycles(cycles);
 
-    const elOrder = document.querySelector('#val-perm-order');
-    if (elOrder) elOrder.textContent = `ord(σ) = ${order} (lcm of cycles)`;
+    const elDualOrder = document.querySelector('#val-perm-order');
+    if (elDualOrder) elDualOrder.textContent = `ord(σ) = ${order} (lcm of cycles)`;
 
     const elCrossings = document.querySelector('#val-perm-crossings');
     if (elCrossings) elCrossings.textContent = `${parity.inversions} wire crossing(s)`;
 
+    const elCayley = document.querySelector('#val-perm-cayley');
+    if (elCayley) elCayley.textContent = 'τ₁ ∘ τ₂ ≠ τ₂ ∘ τ₁ (Non-abelian)';
+
     const elReturn = document.querySelector('#val-perm-id-return');
     if (elReturn) elReturn.textContent = `σ^${order} = id ✓`;
+
+    const elSpatialStat = document.querySelector('#val-perm-spatial-stat');
+    if (elSpatialStat) {
+      if (spatial3D) {
+        if (threeMode === 'spatial-orbits') {
+          elSpatialStat.textContent = `${cycles.length} Torus Halos, ${n} Elevated Spheres`;
+        } else if (threeMode === 'braid-3d') {
+          elSpatialStat.textContent = `${n} 3D Tubes, ${parity.inversions} Depth Over/Under Crossings`;
+        } else if (threeMode === 'matrix-voxels') {
+          elSpatialStat.textContent = `${n} Rook Crystal Beacons, 1 Gold y=x Reflection Rail`;
+        } else if (threeMode === 'cayley-3d') {
+          elSpatialStat.textContent = '6 S₃ Permutohedron Vertices, 6 Generator Conduits';
+        }
+      } else {
+        elSpatialStat.textContent = '2D Planar Projection active';
+      }
+    }
+
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
+    }
   }
 
   factorial(num) {

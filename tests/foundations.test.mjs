@@ -909,6 +909,67 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
     assert.ok(html.includes('canvas-2d-container'), 'Must contain primary canvas container');
     assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas container');
+    assert.ok(html.includes('three-viewport-container'), 'Must contain 3D WebGL container');
+    assert.ok(html.includes('primary-mode-bar'), 'Must contain primary canvas mode bar');
+    assert.ok(html.includes('secondary-mode-bar'), 'Must contain secondary canvas mode bar');
+    assert.ok(html.includes('camera-presets-bar'), 'Must contain camera presets bar');
+    assert.ok(html.includes('btn-toggle-dimension-mode'), 'Must contain spatial 3D toggle button');
+    assert.ok(html.includes('tel-perm-cycles'), 'Must contain disjoint cycles telemetry');
+    assert.ok(html.includes('tel-perm-order'), 'Must contain permutation order telemetry');
+    assert.ok(html.includes('tel-perm-matrix'), 'Must contain permutation matrix telemetry');
+  });
+
+  test('Module 3 PermutationsController manages primary modes, 3D counterparts, and camera presets', async () => {
+    const { PermutationsController } = await import('../visuals/foundations/permutations-and-groups/src/controller.js');
+    const { Permutations3DView } = await import('../visuals/foundations/permutations-and-groups/src/views/Permutations3DView.js');
+    const ctrl = new PermutationsController();
+
+    assert.equal(ctrl.state.primaryMode, 'grid');
+    assert.equal(ctrl.state.threeMode, 'spatial-orbits');
+    assert.equal(ctrl.state.spatial3D, true);
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Primary representation mode switching
+    ctrl.setPrimaryView('cauchy');
+    assert.equal(ctrl.state.primaryMode, 'cauchy');
+    ctrl.setPrimaryView('braid');
+    assert.equal(ctrl.state.primaryMode, 'braid');
+    ctrl.setPrimaryView('cayley');
+    assert.equal(ctrl.state.primaryMode, 'cayley');
+    ctrl.setPrimaryView('grid');
+    assert.equal(ctrl.state.primaryMode, 'grid');
+
+    // 3D counterpart mode switching
+    ctrl.set3DMode('braid-3d');
+    assert.equal(ctrl.state.threeMode, 'braid-3d');
+    ctrl.set3DMode('matrix-voxels');
+    assert.equal(ctrl.state.threeMode, 'matrix-voxels');
+    ctrl.set3DMode('cayley-3d');
+    assert.equal(ctrl.state.threeMode, 'cayley-3d');
+    ctrl.set3DMode('spatial-orbits');
+    assert.equal(ctrl.state.threeMode, 'spatial-orbits');
+
+    // Camera presets
+    ctrl.setCameraPreset('top');
+    assert.equal(ctrl.state.cameraPreset, 'top');
+    ctrl.setCameraPreset('front');
+    assert.equal(ctrl.state.cameraPreset, 'front');
+    ctrl.setCameraPreset('side');
+    assert.equal(ctrl.state.cameraPreset, 'side');
+    ctrl.setCameraPreset('iso');
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Spatial 3D toggle
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, false);
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, true);
+
+    // Permutations3DView instantiation contract
+    const mockContainer = { clientWidth: 400, clientHeight: 400, appendChild: () => {}, querySelector: () => null };
+    const threeView = new Permutations3DView(mockContainer);
+    assert.ok(threeView);
+    assert.equal(threeView.container, mockContainer);
   });
 
   test('Module 4 CategoryTheoryController manages presets, commutativity, and proof export', async () => {
@@ -971,8 +1032,68 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('composition-grid-container'), 'Must contain composition coordinate grid viewport');
     assert.ok(html.includes('canvas-2d-container'), 'Must contain primary 2D canvas viewport');
     assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas viewport');
+    assert.ok(html.includes('three-viewport-container'), 'Must contain 3D WebGL container');
+    assert.ok(html.includes('primary-mode-bar'), 'Must contain primary canvas mode bar');
+    assert.ok(html.includes('secondary-mode-bar'), 'Must contain secondary canvas mode bar');
+    assert.ok(html.includes('camera-presets-bar'), 'Must contain camera presets bar');
+    assert.ok(html.includes('btn-toggle-dimension-mode'), 'Must contain spatial 3D toggle button');
+    assert.ok(html.includes('tel-cat-universal'), 'Must contain universal factorization telemetry');
+    assert.ok(html.includes('tel-cat-adjunction'), 'Must contain currying adjunction telemetry');
     assert.ok(html.includes('viewport-resizer'), 'Must contain viewport resizer');
     assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
+  });
+
+  test('Module 4 CategoryTheoryController coordinates primary mode bars, 3D counterparts, and camera presets', async () => {
+    const { CategoryTheoryController } = await import('../visuals/foundations/category-theory-foundations/src/controller.js');
+    const { Category3DView } = await import('../visuals/foundations/category-theory-foundations/src/views/Category3DView.js');
+    const ctrl = new CategoryTheoryController();
+
+    assert.equal(ctrl.state.primaryMode, 'diagram');
+    assert.equal(ctrl.state.threeMode, 'spatial-simplex');
+    assert.equal(ctrl.state.spatial3D, true);
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Primary representation mode bar switching
+    ctrl.setPrimaryView('composition');
+    assert.equal(ctrl.state.primaryMode, 'composition');
+    ctrl.setPrimaryView('factorization');
+    assert.equal(ctrl.state.primaryMode, 'factorization');
+    ctrl.setPrimaryView('probe');
+    assert.equal(ctrl.state.primaryMode, 'probe');
+    ctrl.setPrimaryView('diagram');
+    assert.equal(ctrl.state.primaryMode, 'diagram');
+
+    // 3D counterpart mode bar switching
+    ctrl.set3DMode('composition-3d');
+    assert.equal(ctrl.state.threeMode, 'composition-3d');
+    ctrl.set3DMode('universal-cone');
+    assert.equal(ctrl.state.threeMode, 'universal-cone');
+    ctrl.set3DMode('functor-3d');
+    assert.equal(ctrl.state.threeMode, 'functor-3d');
+    ctrl.set3DMode('spatial-simplex');
+    assert.equal(ctrl.state.threeMode, 'spatial-simplex');
+
+    // Camera presets
+    ctrl.setCameraPreset('top');
+    assert.equal(ctrl.state.cameraPreset, 'top');
+    ctrl.setCameraPreset('front');
+    assert.equal(ctrl.state.cameraPreset, 'front');
+    ctrl.setCameraPreset('side');
+    assert.equal(ctrl.state.cameraPreset, 'side');
+    ctrl.setCameraPreset('iso');
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Spatial 3D toggle
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, false);
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, true);
+
+    // Category3DView instantiation contract
+    const mockContainer = { clientWidth: 400, clientHeight: 400, appendChild: () => {}, querySelector: () => null };
+    const threeView = new Category3DView(mockContainer);
+    assert.ok(threeView);
+    assert.equal(threeView.container, mockContainer);
   });
 
   test('Module 4 CategoryMath implements morphism composition, boolean matrix products, and path comparison', async () => {
