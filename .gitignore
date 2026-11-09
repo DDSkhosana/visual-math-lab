@@ -112,3 +112,7 @@ generated/
 *.bak
 *.orig
 *.rej
+
+# Suite 3: Abstract Mathematics & Foundations (temporary ignore)
+visuals/foundations/
+tests/foundations.test.mjs
