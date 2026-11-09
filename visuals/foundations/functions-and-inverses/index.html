@@ -35,6 +35,8 @@
   <link rel="stylesheet" href="../../../css/circle-visual.css?v=20260523">
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
   <script type="module" src="../../../js/visual-page.js?v=20260523"></script>
   <script type="module">
@@ -45,12 +47,18 @@
       const gridContainer = document.querySelector('#mapping-grid-viewport-container');
       const analyticContainer = document.querySelector('#analytic-viewport-container');
       const compositionContainer = document.querySelector('#composition-viewport-container');
+      const threeContainer = document.querySelector('#three-viewport-container');
 
       mountFunctionsVisual({
         discrete: discreteContainer,
         grid: gridContainer,
         analytic: analyticContainer,
-        composition: compositionContainer
+        composition: compositionContainer,
+        three: threeContainer,
+        primaryDiscrete: discreteContainer,
+        primaryAnalytic: document.querySelector('#primary-analytic-container'),
+        primaryGrid: document.querySelector('#primary-grid-container'),
+        primaryComposition: document.querySelector('#primary-composition-container')
       });
     };
 
@@ -115,6 +123,11 @@
             <span>Flip</span>
           </button>
 
+          <button type="button" class="btn-toolbar" id="btn-toggle-dimension-mode" title="Toggle between Planar 2D and True 3D Spatial Viewports" aria-pressed="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+            <span>Spatial 3D: <b class="toggle-state-text is-on" id="toolbar-dimension-status">ON</b></span>
+          </button>
+
           <!-- Dual Representation Modes -->
           <div class="viewmode-segmented-group" id="dual-mode-group" role="group" aria-label="Dual Representation">
             <button type="button" class="btn active" data-dual-mode="analytic" aria-pressed="true">Continuous Mirror (y = x)</button>
@@ -138,75 +151,123 @@
 
       <!-- Main Visual Viewports -->
       <div class="view-container layout-split horizontal-split" id="main-view" style="background: #090d16;">
-        <!-- Left: Discrete Bipartite Graph (Primary) -->
+        <!-- Left: Primary Viewport (Toggleable Representations) -->
         <div id="canvas-2d-container">
           <div class="view-title" id="view-title-primary">
-            Discrete Mapping: <span class="color-sky">Domain X</span> &rarr; <span class="color-fuchsia">Codomain Y</span> (<span class="color-emerald">Totality &amp; Uniqueness</span>)
+            Primary: <span class="color-sky" id="title-primary-name">Discrete Bipartite Graph</span> &amp; <span class="color-lime">Venn Sets</span>
           </div>
-          <!-- Mode 1: Discrete Bipartite Graph -->
+
+          <!-- Primary View Mode Bar (Select Any Representation) -->
+          <div class="dimension-mode-bar" id="primary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-primary-view="discrete" title="Interactive Discrete Bipartite Graph &amp; Venn Sets">Venn / Discrete</button>
+              <button type="button" class="btn" data-primary-view="analytic" title="Continuous Cartesian Plane with y = x Reflection">Continuous Plane</button>
+              <button type="button" class="btn" data-primary-view="grid" title="Discrete Cartesian Coordinate Grid (X × Y)">Coordinate Grid</button>
+              <button type="button" class="btn" data-primary-view="composition" title="Round-Trip Composition Pipeline">Composition Pipe</button>
+            </div>
+          </div>
+
+          <!-- Primary Mode 1: Discrete Bipartite Graph (Default) -->
           <div id="discrete-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Primary Mode 2: Continuous Analytic Plane -->
+          <div id="primary-analytic-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Primary Mode 3: Coordinate Grid -->
+          <div id="primary-grid-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Primary Mode 4: Composition Pipeline -->
+          <div id="primary-composition-container" style="display: none; width: 100%; height: 100%;"></div>
 
           <!-- Telemetry Stats Panel (Primary 2D) -->
           <div class="stats-overlay collapsed" id="telemetry-panel">
             <div class="stats-header" id="telemetry-header">
-              <span class="stats-title">Mapping Telemetry</span>
-              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Mapping Telemetry">
+              <span class="stats-title">Mathematical Invariants Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="telemetry-body">
               <div class="stat-line"><span class="color-yellow">Function Axiom:</span><strong class="color-yellow" id="tel-is-function">YES (Well-Defined)</strong></div>
-              <div class="stat-line"><span class="color-sky">Totality (&forall;x &isin; X):</span><strong class="color-sky" id="tel-totality">Satisfied</strong></div>
-              <div class="stat-line"><span class="color-emerald">Uniqueness (&exist;!y &isin; Y):</span><strong class="color-emerald" id="tel-uniqueness">Satisfied</strong></div>
-              <div class="stat-line"><span class="color-teal">Injective (One-to-One):</span><strong class="color-teal" id="tel-injective">YES</strong></div>
-              <div class="stat-line"><span class="color-fuchsia">Surjective (Onto):</span><strong class="color-fuchsia" id="tel-surjective">YES</strong></div>
-              <div class="stat-line"><span class="color-lime">Bijective (Invertible):</span><strong class="color-lime" id="tel-bijective">YES (f⁻¹ exists)</strong></div>
-              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Domain |X|:</span><span class="color-indigo" id="tel-domain-card">5 elements</span></div>
-              <div class="stat-line"><span class="color-violet">Codomain |Y|:</span><span class="color-violet" id="tel-codomain-card">5 elements</span></div>
-              <div class="stat-line"><span class="color-amber">Image Im(f):</span><span class="color-amber" id="tel-image-card">{a, b, c, d, e}</span></div>
-              <div class="stat-line"><span class="color-lavender">Kernel X / ker(f):</span><span class="color-lavender" id="tel-kernel-classes">5 classes</span></div>
+              <div class="stat-line"><span class="color-sky">Totality (&forall;x &isin; X):</span><strong class="color-sky" id="tel-totality">SATISFIED (5/5 mapped)</strong></div>
+              <div class="stat-line"><span class="color-emerald">Uniqueness (&exist;!y &isin; Y):</span><strong class="color-emerald" id="tel-uniqueness">SATISFIED (Single-valued)</strong></div>
+              <div class="stat-line"><span class="color-teal">Injective (1-to-1):</span><strong class="color-teal" id="tel-injective">YES (ker(f) is diagonal)</strong></div>
+              <div class="stat-line"><span class="color-blue">Left Inverse (g &compfn; f):</span><strong class="color-blue" id="tel-left-inverse">EXISTS (&forall;x, g(f(x))=x)</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Surjective (Onto):</span><strong class="color-fuchsia" id="tel-surjective">YES (im(f) = Y)</strong></div>
+              <div class="stat-line"><span class="color-violet">Right Inverse (f &compfn; h):</span><strong class="color-violet" id="tel-right-inverse">EXISTS (&forall;y, f(h(y))=y)</strong></div>
+              <div class="stat-line"><span class="color-lime">Bijective (Invertible):</span><strong class="color-lime" id="tel-bijective">YES (f⁻¹ exists &amp; unique)</strong></div>
+              <div class="stat-line"><span class="color-amber">Round-Trip (f⁻¹ &compfn; f):</span><strong class="color-amber" id="tel-roundtrip">(f⁻¹ &compfn; f)(x) = x &check;</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Cardinality Invariant:</span><span class="color-indigo" id="tel-domain-card">|X|=5, |Y|=5, |im(f)|=5</span></div>
+              <div class="stat-line"><span class="color-lavender">Kernel Partition X/ker(f):</span><span class="color-lavender" id="tel-kernel-classes">5 singleton classes</span></div>
             </div>
           </div>
         </div>
 
         <div class="viewport-resizer" id="viewport-resizer"></div>
 
-        <!-- Right: Dual Representation Viewport (Secondary) -->
+        <!-- Right: Secondary / 3D Spatial Viewport (Toggleable 3D Counterparts) -->
         <div id="canvas-3d-container">
           <div class="view-title" id="view-title-secondary">
-            Continuous Plane: <span class="color-sky">y = f(x) Curve</span> &amp; <span class="color-lime">y = x Reflection</span>
+            3D Spatial: <span class="color-sky" id="title-secondary-name">Parallel-Plane Bipartite</span> &amp; <span class="color-lime">Spatial Conduits</span>
           </div>
 
-          <!-- Mode 1: Continuous Analytic Mirror Plane -->
-          <div id="analytic-viewport-container" style="width: 100%; height: 100%;"></div>
+          <!-- Secondary Mode Bar (Choose Any 3D Counterpart or 2D Alternative) -->
+          <div class="dimension-mode-bar" id="secondary-mode-bar">
+            <div class="btn-group btn-group--pill">
+              <button type="button" class="btn active" data-3d-mode="spatial-bipartite" title="True 3D Spatial Parallel-Plane Bipartite with 3D Tubes">3D Spatial Venn</button>
+              <button type="button" class="btn" data-3d-mode="analytic-surface" title="True 3D Analytic Curve with Amber y = x Identity Sheet">3D Analytic &amp; y=x</button>
+              <button type="button" class="btn" data-3d-mode="grid-beacons" title="3D Coordinate Matrix with Rising Beacons &amp; Line Scanners">3D Matrix Grid</button>
+              <button type="button" class="btn" data-3d-mode="pipeline-3d" title="3D Round-Trip Composition Helical Chamber Loop">3D Composition Loop</button>
+              <button type="button" class="btn" data-dual-mode="analytic" title="2D Continuous Cartesian Plane (Classic)">2D Plane</button>
+              <button type="button" class="btn" data-dual-mode="grid" title="2D Coordinate Matrix Grid">2D Grid</button>
+              <button type="button" class="btn" data-dual-mode="composition" title="2D Composition Pipeline">2D Pipe</button>
+            </div>
+          </div>
 
-          <!-- Mode 2: Cartesian Discrete Mapping Grid (X × Y) -->
+          <!-- 3D Camera Presets Bar -->
+          <div class="camera-presets-bar" id="camera-presets-bar">
+            <button type="button" data-preset="top" title="Top View (XZ Plan)">Top</button>
+            <button type="button" data-preset="front" title="Front View (XY Elevation)">Front</button>
+            <button type="button" data-preset="side" title="Side View (YZ Profile)">Side</button>
+            <button type="button" data-preset="iso" class="active" title="Isometric Perspective View">Iso</button>
+          </div>
+
+          <!-- Mode 0: True 3D Spatial WebGL Three.js Viewport (Default active) -->
+          <div id="three-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 1: Continuous Analytic Mirror Plane (2D fallback/alternative) -->
+          <div id="analytic-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: Cartesian Discrete Mapping Grid (X × Y) (2D fallback/alternative) -->
           <div id="mapping-grid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
-          <!-- Mode 3: Composition Machine Pipeline -->
+          <!-- Mode 3: Composition Machine Pipeline (2D fallback/alternative) -->
           <div id="composition-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
 
           <!-- Telemetry Stats Panel (Dual / 3D Secondary) -->
           <div class="stats-overlay collapsed" id="stats-3d">
             <div class="stats-header" id="stats-3d-header">
-              <span class="stats-title">Dual Representation Telemetry</span>
+              <span class="stats-title">3D / Spatial Telemetry</span>
               <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
             <div class="stats-body hidden" id="stats-3d-body">
-              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-dual-name">Continuous Plane</strong></div>
+              <div class="stat-line"><span class="color-white">Representation:</span><strong class="color-white" id="val-dual-name">3D Spatial Venn (Z = ±4.5)</strong></div>
+              <div class="stat-line"><span class="color-teal">Vertical Line Test:</span><strong class="color-teal" id="val-vert-line-test">PASSED (max 1 output/x)</strong></div>
+              <div class="stat-line"><span class="color-amber">Horizontal Line Test:</span><strong class="color-amber" id="val-horiz-line-test">PASSED (max 1 input/y)</strong></div>
               <div class="stat-line"><span class="color-sky">Model Equation:</span><strong class="color-sky" id="val-dual-formula">f(x) = 2x + 1</strong></div>
-              <div class="stat-line"><span class="color-yellow">Tracer P(x, y):</span><span class="color-yellow" id="val-dual-p">(2.00, 5.00)</span></div>
-              <div class="stat-line"><span class="color-fuchsia">Inverse P'(y, x):</span><span class="color-fuchsia" id="val-dual-pinv">(5.00, 2.00)</span></div>
-              <div class="stat-line"><span class="color-amber">Midpoint on y = x:</span><span class="color-amber" id="val-dual-pmid">(3.50, 3.50)</span></div>
-              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-teal">Roots f(x) = 0:</span><strong class="color-teal" id="val-dual-roots">{ -0.50 }</strong></div>
-              <div class="stat-line"><span class="color-emerald">Fixed Points f(x) = x:</span><strong class="color-emerald" id="val-dual-fixed">{ -1.00 }</strong></div>
-              <div class="stat-line"><span class="color-indigo">Numerical Range:</span><span class="color-indigo" id="val-dual-range">[-7.00, 9.00]</span></div>
-              <div class="stat-line"><span class="color-lime">Identity Check:</span><strong class="color-lime" id="val-dual-identity">(f⁻¹ &compfn; f)(x) = x &check;</strong></div>
+              <div class="stat-line"><span class="color-emerald">Fixed Points (f(x) = x):</span><strong class="color-emerald" id="val-dual-fixed">{ -1.00 } (Intersects Amber Sheet)</strong></div>
+              <div class="stat-line"><span class="color-teal">Roots (f(x) = 0):</span><strong class="color-teal" id="val-dual-roots">{ -0.50 }</strong></div>
+              <div class="stat-line"><span class="color-yellow">Tracer P(x, y, 0):</span><span class="color-yellow" id="val-dual-p">(2.00, 5.00, 0.00)</span></div>
+              <div class="stat-line"><span class="color-fuchsia">Inverse P'(y, x, 0):</span><span class="color-fuchsia" id="val-dual-pinv">(5.00, 2.00, 0.00)</span></div>
+              <div class="stat-line"><span class="color-amber">Distance to y = x:</span><span class="color-amber" id="val-dual-distance">2.12 units</span></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Round-Trip Discrepancy:</span><strong class="color-lime" id="val-dual-identity">||f⁻¹(f(x)) − x|| = 0.000 &check;</strong></div>
+              <div class="stat-line"><span class="color-indigo">Spatial 3D Invariant:</span><span class="color-indigo" id="val-dual-spatial-stat">5 Conduits, 0 Collisions, 0 Unhit Nodes</span></div>
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- Panel 2: Controls & Interactive Presets -->

@@ -8,6 +8,7 @@ import { DiscreteMappingView } from './views/DiscreteMappingView.js';
 import { AnalyticPlaneView } from './views/AnalyticPlaneView.js';
 import { CompositionView } from './views/CompositionView.js';
 import { FunctionGridView } from './views/FunctionGridView.js';
+import { Functions3DView } from './views/Functions3DView.js';
 
 export class FunctionsController {
   constructor() {
@@ -16,6 +17,10 @@ export class FunctionsController {
       splitDirection: 'horizontal', // 'horizontal' | 'vertical'
       splitRatio: 50,
       dualMode: 'analytic',         // 'analytic' | 'grid' | 'composition'
+      primaryMode: 'discrete',      // 'discrete' | 'analytic' | 'grid' | 'composition'
+      threeMode: 'spatial-bipartite', // 'spatial-bipartite' | 'analytic-surface' | 'grid-beacons' | 'pipeline-3d'
+      spatial3D: true,              // whether secondary canvas displays 3D WebGL (true) or 2D (false)
+      cameraPreset: 'iso',
 
       activeMode: 'discrete', // backward compatibility: 'discrete' | 'analytic' | 'composition'
       domain: [1, 2, 3, 4, 5],
@@ -45,6 +50,11 @@ export class FunctionsController {
     this.gridView = null;
     this.analyticView = null;
     this.compositionView = null;
+    this.threeView = null;
+    this.primaryAnalyticView = null;
+    this.primaryGridView = null;
+    this.primaryCompositionView = null;
+    this.containers = null;
 
     this.presets = {
       bijection: {
@@ -93,6 +103,7 @@ export class FunctionsController {
   }
 
   mount(containers) {
+    this.containers = containers;
     if (containers.discrete) {
       this.discreteView = new DiscreteMappingView(containers.discrete, this);
     }
@@ -104,6 +115,18 @@ export class FunctionsController {
     }
     if (containers.composition) {
       this.compositionView = new CompositionView(containers.composition, this);
+    }
+    if (containers.three) {
+      this.threeView = new Functions3DView(containers.three, this);
+    }
+    if (containers.primaryAnalytic) {
+      this.primaryAnalyticView = new AnalyticPlaneView(containers.primaryAnalytic, this);
+    }
+    if (containers.primaryGrid) {
+      this.primaryGridView = new FunctionGridView(containers.primaryGrid, this);
+    }
+    if (containers.primaryComposition) {
+      this.primaryCompositionView = new CompositionView(containers.primaryComposition, this);
     }
 
     this.bindDomControls();
@@ -159,6 +182,38 @@ export class FunctionsController {
     if (splitDirBtn) {
       splitDirBtn.addEventListener('click', () => {
         this.toggleSplitDirection();
+      });
+    }
+
+    // Primary View Mode Bar (Select Any Representation on Left Canvas)
+    document.querySelectorAll('[data-primary-view]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const mode = e.currentTarget.dataset.primaryView;
+        this.setPrimaryView(mode);
+      });
+    });
+
+    // Secondary 3D Mode Bar (Select Any 3D Counterpart on Right Canvas)
+    document.querySelectorAll('[data-3d-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const mode = e.currentTarget.dataset['3dMode'];
+        this.set3DMode(mode);
+      });
+    });
+
+    // 3D Camera Presets (Top, Front, Side, Iso)
+    document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const preset = e.currentTarget.dataset.preset;
+        this.setCameraPreset(preset);
+      });
+    });
+
+    // Spatial 3D Toggle Button (#btn-toggle-dimension-mode)
+    const btnToggleDim = document.querySelector('#btn-toggle-dimension-mode');
+    if (btnToggleDim) {
+      btnToggleDim.addEventListener('click', () => {
+        this.toggleSpatial3D();
       });
     }
 
@@ -590,8 +645,134 @@ export class FunctionsController {
     this.resizeAllViews();
   }
 
+  setPrimaryView(mode) {
+    this.state.primaryMode = mode;
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('[data-primary-view]').forEach(btn => {
+        const isActive = btn.dataset.primaryView === mode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+
+      const discreteEl = document.querySelector('#discrete-viewport-container');
+      const analyticEl = document.querySelector('#primary-analytic-container');
+      const gridEl = document.querySelector('#primary-grid-container');
+      const compEl = document.querySelector('#primary-composition-container');
+
+      if (discreteEl) discreteEl.style.display = mode === 'discrete' ? 'block' : 'none';
+      if (analyticEl) analyticEl.style.display = mode === 'analytic' ? 'block' : 'none';
+      if (gridEl) gridEl.style.display = mode === 'grid' ? 'block' : 'none';
+      if (compEl) compEl.style.display = mode === 'composition' ? 'block' : 'none';
+
+      const titleName = document.querySelector('#title-primary-name');
+      if (titleName) {
+        if (mode === 'discrete') titleName.textContent = 'Discrete Bipartite Graph';
+        else if (mode === 'analytic') titleName.textContent = 'Continuous Plane & Mirror';
+        else if (mode === 'grid') titleName.textContent = 'Coordinate Grid (X × Y)';
+        else if (mode === 'composition') titleName.textContent = 'Composition Pipeline';
+      }
+    }
+
+    if (mode === 'discrete') this.discreteView?.resize();
+    if (mode === 'analytic') this.primaryAnalyticView?.resize();
+    if (mode === 'grid') this.primaryGridView?.resize();
+    if (mode === 'composition') this.primaryCompositionView?.render();
+
+    this.updateTelemetry();
+  }
+
+  set3DMode(mode) {
+    this.state.threeMode = mode;
+    this.state.spatial3D = true;
+
+    if (typeof document !== 'undefined') {
+      const dimStatus = document.querySelector('#toolbar-dimension-status');
+      if (dimStatus) {
+        dimStatus.textContent = 'ON';
+        dimStatus.className = 'toggle-state-text is-on';
+      }
+
+      const btnToggleDim = document.querySelector('#btn-toggle-dimension-mode');
+      if (btnToggleDim) {
+        btnToggleDim.setAttribute('aria-pressed', 'true');
+      }
+
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        const isActive = btn.dataset['3dMode'] === mode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+
+      document.querySelectorAll('#secondary-mode-bar [data-dual-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const analyticSec = document.querySelector('#analytic-viewport-container');
+      const gridSec = document.querySelector('#mapping-grid-viewport-container');
+      const compSec = document.querySelector('#composition-viewport-container');
+      const cameraBar = document.querySelector('#camera-presets-bar');
+
+      if (threeContainer) threeContainer.style.display = 'block';
+      if (analyticSec) analyticSec.style.display = 'none';
+      if (gridSec) gridSec.style.display = 'none';
+      if (compSec) compSec.style.display = 'none';
+      if (cameraBar) cameraBar.style.display = 'flex';
+
+      const titleSec = document.querySelector('#title-secondary-name');
+      const valDual = document.querySelector('#val-dual-name');
+      let titleText = 'Parallel-Plane Bipartite';
+      let statsText = '3D Spatial Venn (Z = ±4.5)';
+
+      if (mode === 'analytic-surface') {
+        titleText = '3D Analytic Curve & Amber y = x Sheet';
+        statsText = '3D Analytic & Amber Identity Plane';
+      } else if (mode === 'grid-beacons') {
+        titleText = '3D Coordinate Grid & Matrix Beacons';
+        statsText = '3D Matrix Grid (X × Y Beacons)';
+      } else if (mode === 'pipeline-3d') {
+        titleText = '3D Round-Trip Helical Chamber Loop';
+        statsText = '3D Round-Trip Pipeline Loop';
+      }
+
+      if (titleSec) titleSec.textContent = titleText;
+      if (valDual) valDual.textContent = statsText;
+    }
+
+    if (this.threeView) {
+      this.threeView.setMode(mode);
+      this.threeView.render(this.state);
+    }
+    this.updateTelemetry();
+  }
+
+  toggleSpatial3D() {
+    this.state.spatial3D = !this.state.spatial3D;
+    if (this.state.spatial3D) {
+      this.set3DMode(this.state.threeMode);
+    } else {
+      this.setDualMode(this.state.dualMode);
+    }
+  }
+
+  setCameraPreset(preset) {
+    this.state.cameraPreset = preset;
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('#camera-presets-bar [data-preset]').forEach(btn => {
+        const isActive = btn.dataset.preset === preset;
+        btn.classList.toggle('active', isActive);
+      });
+    }
+    if (this.threeView) {
+      this.threeView.setCameraPreset(preset);
+    }
+  }
+
   setDualMode(dualMode) {
     this.state.dualMode = dualMode;
+    this.state.spatial3D = false;
 
     if (dualMode === 'analytic') {
       this.state.activeMode = 'analytic';
@@ -602,30 +783,54 @@ export class FunctionsController {
     }
 
     if (typeof document !== 'undefined') {
+      const dimStatus = document.querySelector('#toolbar-dimension-status');
+      if (dimStatus) {
+        dimStatus.textContent = 'OFF';
+        dimStatus.className = 'toggle-state-text is-off';
+      }
+
+      const btnToggleDim = document.querySelector('#btn-toggle-dimension-mode');
+      if (btnToggleDim) {
+        btnToggleDim.setAttribute('aria-pressed', 'false');
+      }
+
+      document.querySelectorAll('#secondary-mode-bar [data-3d-mode]').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      });
+
       document.querySelectorAll('[data-dual-mode]').forEach(btn => {
         const isActive = btn.dataset.dualMode === dualMode;
         btn.classList.toggle('active', isActive);
-        btn.setAttribute('aria-pressed', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
       });
 
+      const threeContainer = document.querySelector('#three-viewport-container');
+      const cameraBar = document.querySelector('#camera-presets-bar');
       const analyticSec = document.querySelector('#analytic-viewport-container');
       const gridSec = document.querySelector('#mapping-grid-viewport-container');
       const compSec = document.querySelector('#composition-viewport-container');
 
+      if (threeContainer) threeContainer.style.display = 'none';
+      if (cameraBar) cameraBar.style.display = 'none';
       if (analyticSec) analyticSec.style.display = dualMode === 'analytic' ? 'block' : 'none';
       if (gridSec) gridSec.style.display = dualMode === 'grid' ? 'block' : 'none';
       if (compSec) compSec.style.display = dualMode === 'composition' ? 'block' : 'none';
 
       // Update secondary view title
       const titleSec = document.querySelector('#view-title-secondary');
-      if (titleSec) {
-        if (dualMode === 'analytic') {
-          titleSec.innerHTML = 'Continuous Plane: <span class="color-sky">y = f(x) Curve</span> &amp; <span class="color-lime">y = x Reflection</span>';
-        } else if (dualMode === 'grid') {
-          titleSec.innerHTML = 'Coordinate Grid: <span class="color-sky">Domain X</span> &times; <span class="color-fuchsia">Codomain Y</span> (<span class="color-emerald">Line Tests</span>)';
-        } else if (dualMode === 'composition') {
-          titleSec.innerHTML = 'Composition Pipeline: <span class="color-sky">Machine f ∘ g</span> &amp; <span class="color-lavender">Evaluation Flow</span>';
-        }
+      const titleName = document.querySelector('#title-secondary-name');
+      const valDual = document.querySelector('#val-dual-name');
+
+      if (titleName) {
+        if (dualMode === 'analytic') titleName.textContent = 'Continuous Plane (2D)';
+        else if (dualMode === 'grid') titleName.textContent = 'Coordinate Grid (2D)';
+        else if (dualMode === 'composition') titleName.textContent = 'Composition Pipeline (2D)';
+      }
+      if (valDual) {
+        if (dualMode === 'analytic') valDual.textContent = '2D Continuous Plane (y = f(x))';
+        else if (dualMode === 'grid') valDual.textContent = '2D Coordinate Grid (X × Y)';
+        else if (dualMode === 'composition') valDual.textContent = '2D Composition Machine';
       }
     }
 
@@ -684,6 +889,10 @@ export class FunctionsController {
     this.analyticView?.resize();
     this.gridView?.resize();
     this.compositionView?.render();
+    this.primaryAnalyticView?.resize();
+    this.primaryGridView?.resize();
+    this.primaryCompositionView?.render();
+    this.threeView?.resize();
   }
 
   applyPreset(presetId) {
@@ -861,13 +1070,19 @@ export class FunctionsController {
     this.analyticView?.render();
     this.gridView?.render();
     this.compositionView?.render();
+    this.primaryAnalyticView?.render();
+    this.primaryGridView?.render();
+    this.primaryCompositionView?.render();
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
+    }
     this.updateTelemetry();
   }
 
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { domain, codomain, pairs, showInverse, analyticPreset, customModel, formulaAnalysis, dualMode, tracerX } = this.state;
+    const { domain, codomain, pairs, showInverse, analyticPreset, customModel, formulaAnalysis, dualMode, tracerX, spatial3D, threeMode } = this.state;
 
     // 1. Compute discrete analysis
     const analysis = FunctionMath.analyzeRelationAsFunction(domain, codomain, pairs);
@@ -882,36 +1097,81 @@ export class FunctionsController {
 
     const elTotality = document.querySelector('#tel-totality');
     if (elTotality) {
-      elTotality.textContent = analysis.isTotal ? 'Satisfied (∀x ∈ X)' : `Fails: Missing {${analysis.missingInputs.join(', ')}}`;
-      elTotality.className = analysis.isTotal ? 'color-emerald' : 'color-rose font-bold';
+      elTotality.textContent = analysis.isTotal
+        ? `SATISFIED (${domain.length}/${domain.length} mapped)`
+        : `FAILS: Missing {${analysis.missingInputs.join(', ')}}`;
+      elTotality.className = analysis.isTotal ? 'color-emerald font-bold' : 'color-rose font-bold';
     }
 
     const elUniq = document.querySelector('#tel-uniqueness');
     if (elUniq) {
-      elUniq.textContent = analysis.isUnique ? 'Satisfied (∃!y ∈ Y)' : 'Fails: Multivalued output';
-      elUniq.className = analysis.isUnique ? 'color-emerald' : 'color-rose font-bold';
+      elUniq.textContent = analysis.isUnique
+        ? 'SATISFIED (Single-valued)'
+        : `FAILS: Multi-valued at {${analysis.multiValuedInputs.map(m => m.x).join(', ')}}`;
+      elUniq.className = analysis.isUnique ? 'color-emerald font-bold' : 'color-rose font-bold';
     }
 
     const elInj = document.querySelector('#tel-injective');
     if (elInj) {
-      elInj.textContent = analysis.isInjective ? 'YES (One-to-One)' : `NO (${analysis.collisionOutputs.length} collision output(s))`;
+      elInj.textContent = analysis.isInjective
+        ? 'YES (One-to-One, ker(f) is diagonal)'
+        : `NO (${analysis.collisionOutputs.length} collision output(s))`;
       elInj.className = analysis.isInjective ? 'color-teal font-bold' : 'color-rose font-bold';
+    }
+
+    const elLeftInv = document.querySelector('#tel-left-inverse');
+    if (elLeftInv) {
+      if (analysis.isInjective && domain.length > 0) {
+        elLeftInv.textContent = 'EXISTS (∀x ∈ X, g(f(x)) = x)';
+        elLeftInv.className = 'color-blue font-bold';
+      } else {
+        elLeftInv.textContent = 'NONE (Collisions destroy left-invertibility)';
+        elLeftInv.className = 'color-rose font-bold';
+      }
     }
 
     const elSurj = document.querySelector('#tel-surjective');
     if (elSurj) {
-      elSurj.textContent = analysis.isSurjective ? 'YES (Onto)' : `NO (Unhit: {${analysis.unhitOutputs.join(', ')}})`;
+      elSurj.textContent = analysis.isSurjective
+        ? 'YES (Onto, im(f) = Y)'
+        : `NO (Unhit: {${analysis.unhitOutputs.join(', ')}})`;
       elSurj.className = analysis.isSurjective ? 'color-fuchsia font-bold' : 'color-amber font-bold';
+    }
+
+    const elRightInv = document.querySelector('#tel-right-inverse');
+    if (elRightInv) {
+      if (analysis.isSurjective) {
+        elRightInv.textContent = 'EXISTS (∀y ∈ Y, f(h(y)) = y)';
+        elRightInv.className = 'color-violet font-bold';
+      } else {
+        elRightInv.textContent = 'NONE (Unhit outputs have no preimage)';
+        elRightInv.className = 'color-rose font-bold';
+      }
     }
 
     const elBij = document.querySelector('#tel-bijective');
     if (elBij) {
-      elBij.textContent = analysis.isBijective ? 'YES (Invertible f⁻¹)' : 'NO (Non-Invertible)';
+      elBij.textContent = analysis.isBijective ? 'YES (f⁻¹ exists, unique & two-sided)' : 'NO (Isomorphism in Set fails)';
       elBij.className = analysis.isBijective ? 'color-lime font-bold' : 'color-slate font-bold';
     }
 
+    const elRoundtrip = document.querySelector('#tel-roundtrip');
+    if (elRoundtrip) {
+      if (analysis.isBijective) {
+        elRoundtrip.textContent = '(f⁻¹ ∘ f)(x) = x ✓ (Identity preserved)';
+        elRoundtrip.className = 'color-lime font-bold';
+      } else {
+        elRoundtrip.textContent = 'Non-reversible (Information / entropy loss)';
+        elRoundtrip.className = 'color-rose font-bold';
+      }
+    }
+
     const elDomCard = document.querySelector('#tel-domain-card');
-    if (elDomCard) elDomCard.textContent = `${domain.length} elements: { ${domain.join(', ')} }`;
+    if (elDomCard) {
+      const injCand = domain.length <= codomain.length ? '|X|≤|Y| (Inj ok)' : '|X|>|Y| (Inj imp)';
+      const surjCand = domain.length >= codomain.length ? '|X|≥|Y| (Surj ok)' : '|X|<|Y| (Surj imp)';
+      elDomCard.textContent = `|X|=${domain.length}, |Y|=${codomain.length}, |im(f)|=${analysis.image.length} (${injCand}, ${surjCand})`;
+    }
 
     const elCodCard = document.querySelector('#tel-codomain-card');
     if (elCodCard) elCodCard.textContent = `${codomain.length} elements: { ${codomain.join(', ')} }`;
@@ -943,9 +1203,38 @@ export class FunctionsController {
 
     const elDualName = document.querySelector('#val-dual-name');
     if (elDualName) {
-      elDualName.textContent = dualMode === 'analytic'
-        ? 'Continuous Plane'
-        : (dualMode === 'grid' ? 'Coordinate Grid (X × Y)' : 'Composition Machine');
+      if (spatial3D) {
+        if (threeMode === 'spatial-bipartite') elDualName.textContent = '3D Spatial Venn (Z = ±4.5)';
+        else if (threeMode === 'analytic-surface') elDualName.textContent = '3D Analytic & Amber Identity Sheet';
+        else if (threeMode === 'grid-beacons') elDualName.textContent = '3D Matrix Grid (X × Y Beacons)';
+        else if (threeMode === 'pipeline-3d') elDualName.textContent = '3D Round-Trip Composition Loop';
+      } else {
+        elDualName.textContent = dualMode === 'analytic'
+          ? 'Continuous Plane (2D)'
+          : (dualMode === 'grid' ? 'Coordinate Grid (2D)' : 'Composition Machine (2D)');
+      }
+    }
+
+    const elVertLine = document.querySelector('#val-vert-line-test');
+    if (elVertLine) {
+      if (analysis.isUnique) {
+        elVertLine.textContent = 'PASSED (max 1 output/x)';
+        elVertLine.className = 'color-teal font-bold';
+      } else {
+        elVertLine.textContent = `FAILED (${analysis.multiValuedInputs.length} multi-valued vertical intersection(s))`;
+        elVertLine.className = 'color-rose font-bold';
+      }
+    }
+
+    const elHorizLine = document.querySelector('#val-horiz-line-test');
+    if (elHorizLine) {
+      if (analysis.isInjective) {
+        elHorizLine.textContent = 'PASSED (max 1 input/y)';
+        elHorizLine.className = 'color-emerald font-bold';
+      } else {
+        elHorizLine.textContent = `FAILED (${analysis.collisionOutputs.length} collision horizontal intersection(s))`;
+        elHorizLine.className = 'color-amber font-bold';
+      }
     }
 
     const elDualFormula = document.querySelector('#val-dual-formula');
@@ -955,10 +1244,14 @@ export class FunctionsController {
 
     const pY = model.forward ? model.forward(tracerX) : 0;
     const elDualP = document.querySelector('#val-dual-p');
-    if (elDualP) elDualP.textContent = `(${tracerX.toFixed(2)}, ${pY.toFixed(2)})`;
+    if (elDualP) elDualP.textContent = `(${tracerX.toFixed(2)}, ${pY.toFixed(2)}, 0.00)`;
 
     const elDualPinv = document.querySelector('#val-dual-pinv');
-    if (elDualPinv) elDualPinv.textContent = `(${pY.toFixed(2)}, ${tracerX.toFixed(2)})`;
+    if (elDualPinv) elDualPinv.textContent = `(${pY.toFixed(2)}, ${tracerX.toFixed(2)}, 0.00)`;
+
+    const distToMirror = Math.abs(pY - tracerX) / Math.SQRT2;
+    const elDualDist = document.querySelector('#val-dual-distance');
+    if (elDualDist) elDualDist.textContent = `${distToMirror.toFixed(2)} units (normal to y = x)`;
 
     const pMid = (tracerX + pY) / 2;
     const elDualPmid = document.querySelector('#val-dual-pmid');
@@ -988,9 +1281,18 @@ export class FunctionsController {
     const elDualIdentity = document.querySelector('#val-dual-identity');
     if (elDualIdentity) {
       elDualIdentity.textContent = cAnalysis.isInjective
-        ? '(f⁻¹ ∘ f)(x) = x ✓'
+        ? '||f⁻¹(f(x)) − x|| = 0.000 ✓ (Identity conserved)'
         : 'f⁻¹ multi-valued (not reversible)';
       elDualIdentity.className = cAnalysis.isInjective ? 'color-lime font-bold' : 'color-rose font-bold';
+    }
+
+    const elDualSpatial = document.querySelector('#val-dual-spatial-stat');
+    if (elDualSpatial) {
+      elDualSpatial.textContent = `${pairs.length} Conduits, ${analysis.collisionOutputs.length} Collision Halos, ${analysis.unhitOutputs.length} Unhit Nodes`;
+    }
+
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
     }
   }
 }

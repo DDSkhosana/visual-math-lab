@@ -558,6 +558,55 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.equal(ctrl.state.dualMode, 'analytic');
   });
 
+  test('Module 1 supports toggleable primary representations, 3D counterparts, and camera presets', async () => {
+    const { FunctionsController } = await import('../visuals/foundations/functions-and-inverses/src/controller.js');
+    const ctrl = new FunctionsController();
+
+    // Primary representation modes
+    assert.equal(ctrl.state.primaryMode, 'discrete');
+    ctrl.setPrimaryView('analytic');
+    assert.equal(ctrl.state.primaryMode, 'analytic');
+    ctrl.setPrimaryView('grid');
+    assert.equal(ctrl.state.primaryMode, 'grid');
+    ctrl.setPrimaryView('composition');
+    assert.equal(ctrl.state.primaryMode, 'composition');
+    ctrl.setPrimaryView('discrete');
+    assert.equal(ctrl.state.primaryMode, 'discrete');
+
+    // 3D mode selections
+    assert.equal(ctrl.state.threeMode, 'spatial-bipartite');
+    assert.equal(ctrl.state.spatial3D, true);
+
+    ctrl.set3DMode('analytic-surface');
+    assert.equal(ctrl.state.threeMode, 'analytic-surface');
+    assert.equal(ctrl.state.spatial3D, true);
+
+    ctrl.set3DMode('grid-beacons');
+    assert.equal(ctrl.state.threeMode, 'grid-beacons');
+    assert.equal(ctrl.state.spatial3D, true);
+
+    ctrl.set3DMode('pipeline-3d');
+    assert.equal(ctrl.state.threeMode, 'pipeline-3d');
+    assert.equal(ctrl.state.spatial3D, true);
+
+    // Camera presets
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+    ctrl.setCameraPreset('top');
+    assert.equal(ctrl.state.cameraPreset, 'top');
+    ctrl.setCameraPreset('front');
+    assert.equal(ctrl.state.cameraPreset, 'front');
+    ctrl.setCameraPreset('side');
+    assert.equal(ctrl.state.cameraPreset, 'side');
+    ctrl.setCameraPreset('iso');
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Dimension toggle (3D ON/OFF)
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, false);
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, true);
+  });
+
   test('Module 2 RelationsController manages closures, presets and toggles', async () => {
     const { RelationsController } = await import('../visuals/foundations/relations-and-order/src/controller.js');
     const ctrl = new RelationsController();
