@@ -41,11 +41,13 @@
 
     const init = () => {
       const discreteContainer = document.querySelector('#discrete-viewport-container');
+      const gridContainer = document.querySelector('#mapping-grid-viewport-container');
       const analyticContainer = document.querySelector('#analytic-viewport-container');
       const compositionContainer = document.querySelector('#composition-viewport-container');
 
       mountFunctionsVisual({
         discrete: discreteContainer,
+        grid: gridContainer,
         analytic: analyticContainer,
         composition: compositionContainer
       });
@@ -91,11 +93,25 @@
       <!-- Viewport Header Toolbar -->
       <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Functions visualizer modes">
         <div class="toolbar-content" id="toolbar-content">
+          <!-- View Modes -->
           <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-            <button type="button" class="btn active" data-view-mode="discrete" aria-pressed="true">Discrete Bipartite</button>
-            <button type="button" class="btn" data-view-mode="analytic" aria-pressed="false">Continuous Mirror (y = x)</button>
-            <button type="button" class="btn" data-view-mode="composition" aria-pressed="false">Composition Machine</button>
+            <button type="button" class="btn active" id="btn-split" data-view-mode="split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">Bipartite</button>
+            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">Dual Canvas</button>
           </div>
+
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
+            <span>Flip</span>
+          </button>
+
+          <!-- Dual Representation Modes -->
+          <div class="viewmode-segmented-group" id="dual-mode-group" role="group" aria-label="Dual Representation">
+            <button type="button" class="btn active" data-dual-mode="analytic" aria-pressed="true">Continuous Mirror (y = x)</button>
+            <button type="button" class="btn" data-dual-mode="grid" aria-pressed="false">Coordinate Grid (X &times; Y)</button>
+            <button type="button" class="btn" data-dual-mode="composition" aria-pressed="false">Composition Machine</button>
+          </div>
+
           <button type="button" class="btn-toolbar" id="btn-toggle-inverse" title="Invert mapping (enabled when bijective)">
             Invert Mapping (f⁻¹)
           </button>
@@ -107,15 +123,33 @@
       </div>
 
       <!-- Main Visual Viewports -->
-      <div class="view-container visual-viewport" id="main-view" style="background: #090d16;">
-        <!-- Mode 1: Discrete Bipartite Graph -->
-        <div id="discrete-viewport-container" style="width: 100%; height: 100%;"></div>
+      <div class="view-container layout-split horizontal-split" id="main-view" style="background: #090d16;">
+        <!-- Left: Discrete Bipartite Graph (Primary) -->
+        <div id="canvas-2d-container">
+          <div class="view-title" id="view-title-primary">
+            Discrete Mapping: <span class="color-sky">Domain X</span> &rarr; <span class="color-fuchsia">Codomain Y</span> (<span class="color-emerald">Totality &amp; Uniqueness</span>)
+          </div>
+          <!-- Mode 1: Discrete Bipartite Graph -->
+          <div id="discrete-viewport-container" style="width: 100%; height: 100%;"></div>
+        </div>
 
-        <!-- Mode 2: Continuous Analytic Mirror Plane -->
-        <div id="analytic-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <div class="viewport-resizer" id="viewport-resizer"></div>
 
-        <!-- Mode 3: Composition Machine Pipeline -->
-        <div id="composition-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <!-- Right: Dual Representation Viewport (Secondary) -->
+        <div id="canvas-3d-container">
+          <div class="view-title" id="view-title-secondary">
+            Continuous Plane: <span class="color-sky">y = f(x) Curve</span> &amp; <span class="color-lime">y = x Reflection</span>
+          </div>
+
+          <!-- Mode 1: Continuous Analytic Mirror Plane -->
+          <div id="analytic-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: Cartesian Discrete Mapping Grid (X × Y) -->
+          <div id="mapping-grid-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 3: Composition Machine Pipeline -->
+          <div id="composition-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        </div>
       </div>
 
       <!-- Panel 1: Axiomatic Invariants & Telemetry -->

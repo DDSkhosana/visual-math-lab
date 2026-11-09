@@ -525,6 +525,37 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(moduleHtml.includes('discrete-viewport-container'), 'Must contain discrete viewport');
     assert.ok(moduleHtml.includes('analytic-viewport-container'), 'Must contain analytic viewport');
     assert.ok(moduleHtml.includes('composition-viewport-container'), 'Must contain composition viewport');
+    assert.ok(moduleHtml.includes('mapping-grid-viewport-container'), 'Must contain mapping coordinate grid viewport');
+    assert.ok(moduleHtml.includes('canvas-2d-container'), 'Must contain primary canvas container');
+    assert.ok(moduleHtml.includes('canvas-3d-container'), 'Must contain secondary dual canvas container');
+    assert.ok(moduleHtml.includes('viewport-resizer'), 'Must contain viewport resizer');
+    assert.ok(moduleHtml.includes('split-dir-btn'), 'Must contain split direction flip button');
+  });
+
+  test('Module 1 FunctionsController coordinates split viewport, orientation flip, and dual modes', async () => {
+    const { FunctionsController } = await import('../visuals/foundations/functions-and-inverses/src/controller.js');
+    const ctrl = new FunctionsController();
+
+    // Default canonical split mode
+    assert.equal(ctrl.state.viewMode, 'split');
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+    assert.equal(ctrl.state.dualMode, 'analytic');
+
+    // Toggle split orientation
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'vertical');
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+
+    // Dual representation modes
+    ctrl.setDualMode('grid');
+    assert.equal(ctrl.state.dualMode, 'grid');
+
+    ctrl.setDualMode('composition');
+    assert.equal(ctrl.state.dualMode, 'composition');
+
+    ctrl.setDualMode('analytic');
+    assert.equal(ctrl.state.dualMode, 'analytic');
   });
 
   test('Module 2 RelationsController manages closures, presets and toggles', async () => {

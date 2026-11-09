@@ -7,11 +7,17 @@ import { FunctionMath } from '../../js/foundations-core.js';
 import { DiscreteMappingView } from './views/DiscreteMappingView.js';
 import { AnalyticPlaneView } from './views/AnalyticPlaneView.js';
 import { CompositionView } from './views/CompositionView.js';
+import { FunctionGridView } from './views/FunctionGridView.js';
 
 export class FunctionsController {
   constructor() {
     this.state = {
-      activeMode: 'discrete', // 'discrete' | 'analytic' | 'composition'
+      viewMode: 'split',            // 'split' | '2d' | '3d'
+      splitDirection: 'horizontal', // 'horizontal' | 'vertical'
+      splitRatio: 50,
+      dualMode: 'analytic',         // 'analytic' | 'grid' | 'composition'
+
+      activeMode: 'discrete', // backward compatibility: 'discrete' | 'analytic' | 'composition'
       domain: [1, 2, 3, 4, 5],
       codomain: ['a', 'b', 'c', 'd', 'e'],
       pairs: [
@@ -35,6 +41,7 @@ export class FunctionsController {
     };
 
     this.discreteView = null;
+    this.gridView = null;
     this.analyticView = null;
     this.compositionView = null;
 
@@ -88,6 +95,9 @@ export class FunctionsController {
     if (containers.discrete) {
       this.discreteView = new DiscreteMappingView(containers.discrete, this);
     }
+    if (containers.grid) {
+      this.gridView = new FunctionGridView(containers.grid, this);
+    }
     if (containers.analytic) {
       this.analyticView = new AnalyticPlaneView(containers.analytic, this);
     }
@@ -96,17 +106,34 @@ export class FunctionsController {
     }
 
     this.bindDomControls();
+    this.enableResizerDrag();
     this.updateAll();
   }
 
   bindDomControls() {
     if (typeof document === 'undefined') return;
 
-    // Mode Switcher Buttons
+    // View Mode Switcher ('split' | '2d' | '3d' or legacy 'discrete' | 'analytic' | 'composition')
     document.querySelectorAll('[data-view-mode]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const mode = e.currentTarget.dataset.viewMode;
         this.setViewMode(mode);
+      });
+    });
+
+    // Split Direction Flip button (#split-dir-btn)
+    const splitDirBtn = document.querySelector('#split-dir-btn');
+    if (splitDirBtn) {
+      splitDirBtn.addEventListener('click', () => {
+        this.toggleSplitDirection();
+      });
+    }
+
+    // Dual Mode Switcher (Continuous Mirror | Coordinate Grid | Composition Machine)
+    document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const dualMode = e.currentTarget.dataset.dualMode;
+        this.setDualMode(dualMode);
       });
     });
 
@@ -202,35 +229,188 @@ export class FunctionsController {
   }
 
   setViewMode(mode) {
-    this.state.activeMode = mode;
-
-    if (typeof document !== 'undefined') {
-      document.querySelectorAll('[data-view-mode]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.viewMode === mode);
-        btn.setAttribute('aria-pressed', btn.dataset.viewMode === mode);
-      });
-
-      // Toggle viewport sections
-      const discreteSection = document.querySelector('#discrete-viewport-container');
-      const analyticSection = document.querySelector('#analytic-viewport-container');
-      const compSection = document.querySelector('#composition-viewport-container');
-
-      if (discreteSection) discreteSection.style.display = mode === 'discrete' ? 'block' : 'none';
-      if (analyticSection) analyticSection.style.display = mode === 'analytic' ? 'block' : 'none';
-      if (compSection) compSection.style.display = mode === 'composition' ? 'block' : 'none';
-
-      // Show/hide relevant dock controls
-      const discreteControls = document.querySelector('#discrete-dock-controls');
-      const analyticControls = document.querySelector('#analytic-dock-controls');
-      if (discreteControls) discreteControls.style.display = mode === 'discrete' ? 'block' : 'none';
-      if (analyticControls) analyticControls.style.display = mode === 'analytic' ? 'block' : 'none';
+    if (typeof document === 'undefined') {
+      if (['discrete', 'analytic', 'composition'].includes(mode)) {
+        this.state.activeMode = mode;
+      }
+      return;
     }
 
-    if (mode === 'discrete') this.discreteView?.resize();
-    if (mode === 'analytic') this.analyticView?.resize();
-    if (mode === 'composition') this.compositionView?.render();
+    // Handle legacy view modes
+    if (mode === 'discrete') {
+      this.state.activeMode = 'discrete';
+      mode = 'split';
+    } else if (mode === 'analytic') {
+      this.state.activeMode = 'analytic';
+      this.setDualMode('analytic');
+      return;
+    } else if (mode === 'composition') {
+      this.state.activeMode = 'composition';
+      this.setDualMode('composition');
+      return;
+    }
+
+    this.state.viewMode = mode;
+
+    document.querySelectorAll('[data-view-mode]').forEach(btn => {
+      const bMode = btn.dataset.viewMode;
+      const isActive = bMode === mode || (mode === 'split' && bMode === 'discrete');
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive);
+    });
+
+    const mainView = document.querySelector('#main-view');
+    const container2D = document.querySelector('#canvas-2d-container');
+    const resizer = document.querySelector('#viewport-resizer');
+    const container3D = document.querySelector('#canvas-3d-container');
+
+    if (mode === 'split') {
+      if (mainView) {
+        mainView.classList.remove('layout-2d-only', 'layout-3d-only');
+        mainView.classList.add('layout-split');
+      }
+      if (container2D) {
+        container2D.style.display = 'block';
+        container2D.style.flex = `0 0 ${this.state.splitRatio}%`;
+      }
+      if (resizer) resizer.style.display = 'block';
+      if (container3D) {
+        container3D.style.display = 'block';
+        container3D.style.flex = `1 1 0%`;
+      }
+    } else if (mode === '2d') {
+      if (mainView) {
+        mainView.classList.remove('layout-split', 'layout-3d-only');
+        mainView.classList.add('layout-2d-only');
+      }
+      if (container2D) {
+        container2D.style.display = 'block';
+        container2D.style.flex = '1 1 100%';
+      }
+      if (resizer) resizer.style.display = 'none';
+      if (container3D) container3D.style.display = 'none';
+    } else if (mode === '3d') {
+      if (mainView) {
+        mainView.classList.remove('layout-split', 'layout-2d-only');
+        mainView.classList.add('layout-3d-only');
+      }
+      if (container2D) container2D.style.display = 'none';
+      if (resizer) resizer.style.display = 'none';
+      if (container3D) {
+        container3D.style.display = 'block';
+        container3D.style.flex = '1 1 100%';
+      }
+    }
+
+    this.resizeAllViews();
+  }
+
+  toggleSplitDirection() {
+    this.state.splitDirection = this.state.splitDirection === 'horizontal' ? 'vertical' : 'horizontal';
+    if (typeof document !== 'undefined') {
+      const mainView = document.querySelector('#main-view');
+      if (mainView) {
+        mainView.classList.toggle('horizontal-split', this.state.splitDirection === 'horizontal');
+        mainView.classList.toggle('vertical-split', this.state.splitDirection === 'vertical');
+      }
+    }
+    this.resizeAllViews();
+  }
+
+  setDualMode(dualMode) {
+    this.state.dualMode = dualMode;
+
+    if (dualMode === 'analytic') {
+      this.state.activeMode = 'analytic';
+    } else if (dualMode === 'composition') {
+      this.state.activeMode = 'composition';
+    } else {
+      this.state.activeMode = 'discrete';
+    }
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+        const isActive = btn.dataset.dualMode === dualMode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive);
+      });
+
+      const analyticSec = document.querySelector('#analytic-viewport-container');
+      const gridSec = document.querySelector('#mapping-grid-viewport-container');
+      const compSec = document.querySelector('#composition-viewport-container');
+
+      if (analyticSec) analyticSec.style.display = dualMode === 'analytic' ? 'block' : 'none';
+      if (gridSec) gridSec.style.display = dualMode === 'grid' ? 'block' : 'none';
+      if (compSec) compSec.style.display = dualMode === 'composition' ? 'block' : 'none';
+
+      // Update secondary view title
+      const titleSec = document.querySelector('#view-title-secondary');
+      if (titleSec) {
+        if (dualMode === 'analytic') {
+          titleSec.innerHTML = 'Continuous Plane: <span class="color-sky">y = f(x) Curve</span> &amp; <span class="color-lime">y = x Reflection</span>';
+        } else if (dualMode === 'grid') {
+          titleSec.innerHTML = 'Coordinate Grid: <span class="color-sky">Domain X</span> &times; <span class="color-fuchsia">Codomain Y</span> (<span class="color-emerald">Line Tests</span>)';
+        } else if (dualMode === 'composition') {
+          titleSec.innerHTML = 'Composition Pipeline: <span class="color-sky">Machine f ∘ g</span> &amp; <span class="color-lavender">Evaluation Flow</span>';
+        }
+      }
+    }
+
+    if (dualMode === 'analytic') this.analyticView?.resize();
+    if (dualMode === 'grid') this.gridView?.resize();
+    if (dualMode === 'composition') this.compositionView?.render();
 
     this.updateTelemetry();
+  }
+
+  enableResizerDrag() {
+    if (typeof document === 'undefined') return;
+    const resizer = document.querySelector('#viewport-resizer');
+    const mainView = document.querySelector('#main-view');
+    const container2D = document.querySelector('#canvas-2d-container');
+
+    if (!resizer || !mainView || !container2D) return;
+
+    let isDragging = false;
+
+    resizer.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      resizer.setPointerCapture(e.pointerId);
+      document.body.style.cursor = this.state.splitDirection === 'horizontal' ? 'col-resize' : 'row-resize';
+      e.preventDefault();
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const rect = mainView.getBoundingClientRect();
+      let percent = 50;
+
+      if (this.state.splitDirection === 'horizontal') {
+        percent = ((e.clientX - rect.left) / rect.width) * 100;
+      } else {
+        percent = ((e.clientY - rect.top) / rect.height) * 100;
+      }
+
+      percent = Math.max(20, Math.min(80, percent));
+      this.state.splitRatio = percent;
+      container2D.style.flex = `0 0 ${percent}%`;
+      this.resizeAllViews();
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+        this.resizeAllViews();
+      }
+    });
+  }
+
+  resizeAllViews() {
+    this.discreteView?.resize();
+    this.analyticView?.resize();
+    this.gridView?.resize();
+    this.compositionView?.render();
   }
 
   applyPreset(presetId) {
@@ -317,6 +497,8 @@ export class FunctionsController {
     this.state.restrictDomain = false;
     this.applyPreset('bijection');
     this.setAnalyticPreset('linear');
+    this.setViewMode('split');
+    this.setDualMode('analytic');
   }
 
   loadCustomPairs(inputString, customCodomainStr = null) {
@@ -404,6 +586,7 @@ export class FunctionsController {
   updateAll() {
     this.discreteView?.render();
     this.analyticView?.render();
+    this.gridView?.render();
     this.compositionView?.render();
     this.updateTelemetry();
   }

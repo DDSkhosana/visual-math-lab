@@ -290,10 +290,13 @@ export class RelationDigraphView {
     const pairSet = new Set(state.pairs.map(([a, b]) => `${a}->${b}`));
 
     let gridHtml = `
-      <table style="border-collapse: collapse; text-align: center; font-family: monospace; font-size: 0.85rem; color: #cbd5e1;">
+      <div style="font-size: 0.72rem; color: #64748b; text-align: center; margin-bottom: 6px; letter-spacing: 0.04em;">
+        Incidence Plane A &times; A: <span style="color: #38bdf8;">(Source Row i, Target Column j) &in; R</span>
+      </div>
+      <table style="border-collapse: collapse; text-align: center; font-family: monospace; font-size: 0.85rem; color: #cbd5e1; margin: 0 auto;">
         <thead>
           <tr>
-            <th style="padding: 4px; color: #64748b;">R</th>
+            <th style="padding: 4px; color: #64748b; font-size: 0.7rem;">i \\ j</th>
             ${elements.map(e => `<th style="padding: 4px; color: #38bdf8;">${e}</th>`).join('')}
           </tr>
         </thead>
