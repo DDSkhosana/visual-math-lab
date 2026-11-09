@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 1
  */
 
-import { FunctionMath } from '../../js/foundations-core.js';
+import { FunctionMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { DiscreteMappingView } from './views/DiscreteMappingView.js';
 import { AnalyticPlaneView } from './views/AnalyticPlaneView.js';
 import { CompositionView } from './views/CompositionView.js';
@@ -108,6 +108,20 @@ export class FunctionsController {
     this.bindDomControls();
     this.enableResizerDrag();
     this.updateAll();
+
+    if (typeof document !== 'undefined') {
+      const toolbarEl = document.getElementById('viewport-toolbar');
+      const handleEl = document.getElementById('toolbar-drag-handle');
+      if (toolbarEl) {
+        this.draggableToolbar = new DraggableToolbar(toolbarEl, handleEl);
+      }
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const explorer = document.querySelector('.circle-explorer');
+      if (fullscreenBtn && explorer) {
+        bindFullscreen(fullscreenBtn, explorer);
+      }
+      initCollapsibleSections(explorer || document);
+    }
   }
 
   bindDomControls() {

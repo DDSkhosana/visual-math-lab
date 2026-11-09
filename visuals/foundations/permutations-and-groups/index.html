@@ -91,12 +91,21 @@
     <section class="circle-explorer" data-workspace-dock="true" aria-label="Interactive Permutations and Symmetric Groups S_n">
       
       <!-- Viewport Header Toolbar -->
-      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Permutations visualizer modes">
+      <div class="viewport-header-toolbar is-collapsed" id="viewport-toolbar" role="toolbar" aria-label="Permutations visualizer modes">
+        <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag to reposition toolbar (Double-click or press Home to reset)" aria-label="Drag to reposition toolbar" tabindex="0">
+          <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor" aria-hidden="true">
+            <circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/>
+          </svg>
+        </div>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand view options" aria-expanded="false" title="Expand view options (Split, 2D, 3D, Flip, Reset, Fullscreen)">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
         <div class="toolbar-content" id="toolbar-content">
           <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
             <button type="button" class="btn active" id="btn-split" data-view-mode="split" aria-pressed="true">Split</button>
-            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">Grid</button>
-            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">Dual Canvas</button>
+            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">3D</button>
           </div>
 
           <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
@@ -125,6 +134,10 @@
           <button type="button" class="btn-toolbar" id="btn-reset" title="Reset permutation to default configuration">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <span>Reset</span>
+          </button>
+          <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
           </button>
         </div>
       </div>
@@ -164,19 +177,37 @@
           <div class="panel-header" id="telemetry-header">
             <h1 class="color-sky">Permutation Invariants</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Invariants Panel">
+              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Invariants Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="axiom-badge-group">
-              <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
-              <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
-              <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
-              <span id="badge-parity" class="axiom-badge is-violated">Parity: ODD (-1)</span>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Cycle Form &amp; Group Parity</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div class="axiom-badge-group">
+                  <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
+                  <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
+                  <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
+                  <span id="badge-parity" class="axiom-badge is-violated">Parity: ODD (-1)</span>
+                </div>
+              </div>
             </div>
-            <div id="permutation-telemetry-content" style="margin-top: 12px;"></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Orbit Stepping &amp; Inversion Stats</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div id="permutation-telemetry-content" style="margin-top: 4px;"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -187,21 +218,32 @@
           <div class="panel-header" id="controls-header">
             <h1 class="color-sky">Permutation Presets</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Presets Panel">
+              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Presets Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-controls-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
-            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
-              Select classic permutations to inspect their cycle decompositions, order, parity, and string braiding crossovers.
-            </p>
-            <div class="preset-grid">
-              <button type="button" class="preset-chip active" data-preset="compound">Compound (1 3 2)(4 5)</button>
-              <button type="button" class="preset-chip" data-preset="three_cycle">3-Cycle (1 2 3)</button>
-              <button type="button" class="preset-chip" data-preset="single_swap">Transposition (1 2)</button>
-              <button type="button" class="preset-chip" data-preset="full_cycle">5-Cycle (1 2 3 4 5)</button>
-              <button type="button" class="preset-chip" data-preset="identity">Identity e = ()</button>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Canonical Group Permutations</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                  Select classic permutations to inspect their cycle decompositions, order, parity, and string braiding crossovers.
+                </p>
+                <div class="preset-grid">
+                  <button type="button" class="preset-chip active" data-preset="compound">Compound (1 3 2)(4 5)</button>
+                  <button type="button" class="preset-chip" data-preset="three_cycle">3-Cycle (1 2 3)</button>
+                  <button type="button" class="preset-chip" data-preset="single_swap">Transposition (1 2)</button>
+                  <button type="button" class="preset-chip" data-preset="full_cycle">5-Cycle (1 2 3 4 5)</button>
+                  <button type="button" class="preset-chip" data-preset="identity">Identity e = ()</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -213,25 +255,36 @@
           <div class="panel-header" id="derivations-header">
             <h1 class="color-indigo">Theory &amp; Group Axioms</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Derivations Panel">
+              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Derivations Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-derivations-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
-            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
-              <p style="margin-top: 0;">
-                <strong>Symmetric Group (<var>S</var><sub>n</sub>, &comp;):</strong> The set of all bijections <var>&sigma;</var>: {1, &hellip;, <var>n</var>} &rarr; {1, &hellip;, <var>n</var>} under function composition forms a non-abelian group of size |<var>S</var><sub>n</sub>| = <var>n</var>!.
-              </p>
-              <p>
-                <strong>Cycle Order:</strong> The order of <var>&sigma;</var> is the smallest integer <var>k</var> &ge; 1 such that <var>&sigma;</var><sup>k</sup> = id. In disjoint cycle notation, ord(<var>&sigma;</var>) = lcm(|<var>c</var><sub>1</sub>|, |<var>c</var><sub>2</sub>|, &hellip;, |<var>c</var><sub>m</sub>|).
-              </p>
-              <p>
-                <strong>Transpositions &amp; Parity:</strong> Every permutation decomposes into a product of 2-cycles (<var>i</var> <var>j</var>). While the factorization is not unique, its parity mod 2 is invariant: sgn(<var>&sigma;</var>) = (-1)<sup>transpositions</sup> = (-1)<sup>inversions</sup>.
-              </p>
-              <p>
-                <strong>Alternating Group <var>A</var><sub>n</sub>:</strong> The subgroup of even permutations has index 2 with |<var>A</var><sub>n</sub>| = <var>n</var>! / 2.
-              </p>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Symmetric Group Axioms &amp; Disjoint Cycles</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6;">
+                  <p style="margin-top: 0;">
+                    <strong>Symmetric Group (<var>S</var><sub>n</sub>, &comp;):</strong> The set of all bijections <var>&sigma;</var>: {1, &hellip;, <var>n</var>} &rarr; {1, &hellip;, <var>n</var>} under function composition forms a non-abelian group of size |<var>S</var><sub>n</sub>| = <var>n</var>!.
+                  </p>
+                  <p>
+                    <strong>Cycle Order:</strong> The order of <var>&sigma;</var> is the smallest integer <var>k</var> &ge; 1 such that <var>&sigma;</var><sup>k</sup> = id. In disjoint cycle notation, ord(<var>&sigma;</var>) = lcm(|<var>c</var><sub>1</sub>|, |<var>c</var><sub>2</sub>|, &hellip;, |<var>c</var><sub>m</sub>|).
+                  </p>
+                  <p>
+                    <strong>Transpositions &amp; Parity:</strong> Every permutation decomposes into a product of 2-cycles (<var>i</var> <var>j</var>). While the factorization is not unique, its parity mod 2 is invariant: sgn(<var>&sigma;</var>) = (-1)<sup>transpositions</sup> = (-1)<sup>inversions</sup>.
+                  </p>
+                  <p>
+                    <strong>Alternating Group <var>A</var><sub>n</sub>:</strong> The subgroup of even permutations has index 2 with |<var>A</var><sub>n</sub>| = <var>n</var>! / 2.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

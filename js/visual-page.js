@@ -21,12 +21,26 @@ function isValidYouTubeId(value) {
 
 async function getVisual(slug) {
   const root = document.body?.dataset?.root || "../../..";
-  const response = await fetch(`${root}/data/visuals.json`, { cache: "no-cache" });
-  if (!response.ok) {
-    throw new Error(`Could not load visual metadata (${response.status}).`);
-  }
-  const visuals = await response.json();
-  return visuals.find((visual) => visual.slug === slug && visual.published);
+  try {
+    const response = await fetch(`${root}/data/visuals.json`, { cache: "no-cache" });
+    if (response.ok) {
+      const visuals = await response.json();
+      const match = visuals.find((visual) => visual.slug === slug && visual.published);
+      if (match) return match;
+    }
+  } catch (_) {}
+
+  // Fallback to Suite 03 Foundations catalog
+  try {
+    const fResp = await fetch(`${root}/visuals/foundations/data/foundations-visuals.json`, { cache: "no-cache" });
+    if (fResp.ok) {
+      const fVisuals = await fResp.json();
+      const fMatch = fVisuals.find((visual) => visual.slug === slug && visual.published);
+      if (fMatch) return fMatch;
+    }
+  } catch (_) {}
+
+  return null;
 }
 
 function renderVideo(visual) {

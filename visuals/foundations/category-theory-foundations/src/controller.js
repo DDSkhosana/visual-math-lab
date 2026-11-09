@@ -4,7 +4,7 @@
  * Visual Mathematics Lab — Module 4: Category Theory & Universal Properties
  */
 
-import { CategoryMath } from '../../js/foundations-core.js';
+import { CategoryMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { CommutativeDiagramView } from './views/CommutativeDiagramView.js';
 import { CompositionGridView } from './views/CompositionGridView.js';
 import { MonoEpiProbeView } from './views/MonoEpiProbeView.js';
@@ -127,6 +127,20 @@ export class CategoryTheoryController {
     this.bindDomControls();
     this.enableResizerDrag();
     this.updateAll();
+
+    if (typeof document !== 'undefined') {
+      const toolbarEl = document.getElementById('viewport-toolbar');
+      const handleEl = document.getElementById('toolbar-drag-handle');
+      if (toolbarEl) {
+        this.draggableToolbar = new DraggableToolbar(toolbarEl, handleEl);
+      }
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const explorer = document.querySelector('.circle-explorer');
+      if (fullscreenBtn && explorer) {
+        bindFullscreen(fullscreenBtn, explorer);
+      }
+      initCollapsibleSections(explorer || document);
+    }
   }
 
   bindDomControls() {

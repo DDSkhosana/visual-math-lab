@@ -91,13 +91,22 @@
     <section class="circle-explorer" data-workspace-dock="true" aria-label="Interactive Functions, Inverses and Reversibility Visualisation">
       
       <!-- Viewport Header Toolbar -->
-      <div class="viewport-header-toolbar" id="viewport-toolbar" role="toolbar" aria-label="Functions visualizer modes">
+      <div class="viewport-header-toolbar is-collapsed" id="viewport-toolbar" role="toolbar" aria-label="Functions visualizer modes">
+        <div class="toolbar-drag-handle" id="toolbar-drag-handle" title="Drag to reposition toolbar (Double-click or press Home to reset)" aria-label="Drag to reposition toolbar" tabindex="0">
+          <svg viewBox="0 0 16 16" width="10" height="14" fill="currentColor" aria-hidden="true">
+            <circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="10" cy="13" r="1.5"/>
+          </svg>
+        </div>
+        <button type="button" class="toolbar-collapse-btn" id="toolbar-collapse-btn" aria-label="Expand view options" aria-expanded="false" title="Expand view options (Split, 2D, 3D, Flip, Reset, Fullscreen)">
+          <svg class="icon-collapse" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <svg class="icon-expand" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
         <div class="toolbar-content" id="toolbar-content">
           <!-- View Modes -->
           <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
             <button type="button" class="btn active" id="btn-split" data-view-mode="split" aria-pressed="true">Split</button>
-            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">Bipartite</button>
-            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">Dual Canvas</button>
+            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">2D</button>
+            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">3D</button>
           </div>
 
           <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
@@ -118,6 +127,10 @@
           <button type="button" class="btn-toolbar" id="btn-reset" title="Reset mapping to initial configuration">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <span>Reset</span>
+          </button>
+          <span class="toolbar-divider" aria-hidden="true" style="display: inline-block; width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 2px;"></span>
+          <button type="button" id="fullscreen-btn" class="btn-toolbar btn-toolbar--icon" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
           </button>
         </div>
       </div>
@@ -158,19 +171,37 @@
           <div class="panel-header" id="telemetry-header">
             <h1 class="color-sky">Axiomatic Invariants</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Invariants Panel">
+              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Invariants Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="axiom-badge-group">
-              <span id="badge-is-function" class="axiom-badge is-valid">Function: YES</span>
-              <span id="badge-injective" class="axiom-badge is-valid">Injective: YES</span>
-              <span id="badge-surjective" class="axiom-badge is-valid">Surjective: YES</span>
-              <span id="badge-bijective" class="axiom-badge is-valid">Bijective: YES</span>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Function Axiom Status</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div class="axiom-badge-group">
+                  <span id="badge-is-function" class="axiom-badge is-valid">Function: YES</span>
+                  <span id="badge-injective" class="axiom-badge is-valid">Injective: YES</span>
+                  <span id="badge-surjective" class="axiom-badge is-valid">Surjective: YES</span>
+                  <span id="badge-bijective" class="axiom-badge is-valid">Bijective: YES</span>
+                </div>
+              </div>
             </div>
-            <div id="function-telemetry-content" style="margin-top: 12px;"></div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Cardinality &amp; Kernel Telemetry</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div id="function-telemetry-content" style="margin-top: 4px;"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -179,92 +210,114 @@
       <div class="ui-panel" id="panel-controls">
         <div class="panel-content">
           <div class="panel-header" id="controls-header">
-            <h1 class="color-sky">Mapping Presets</h1>
+            <h1 class="color-sky">Mapping Presets &amp; Inputs</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Controls Panel">
+              <button type="button" id="toggle-controls-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Controls Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-controls-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
+          <div class="panel-body hidden">
             <!-- Discrete Controls -->
-            <div id="discrete-dock-controls">
-              <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
-                Click and drag from any Domain node <var>x</var> to link it to a Codomain node <var>y</var>. Click an arrow to remove it.
-              </p>
-              <div class="preset-grid">
-                <button type="button" class="preset-chip active" data-preset="bijection">Bijection (f⁻¹)</button>
-                <button type="button" class="preset-chip" data-preset="injective">Injective only</button>
-                <button type="button" class="preset-chip" data-preset="surjective">Surjective only</button>
-                <button type="button" class="preset-chip" data-preset="neither">Neither</button>
-                <button type="button" class="preset-chip" data-preset="partial">Partial (fails &forall;)</button>
-                <button type="button" class="preset-chip" data-preset="multivalued">Multi (fails &exist;!)</button>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Discrete Mapping Presets</span><span class="icon">▶</span>
               </div>
+              <div class="collapsible-content">
+                <div id="discrete-dock-controls">
+                  <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0;">
+                    Click and drag from any Domain node <var>x</var> to link it to a Codomain node <var>y</var>. Click an arrow to remove it.
+                  </p>
+                  <div class="preset-grid">
+                    <button type="button" class="preset-chip active" data-preset="bijection">Bijection (f⁻¹)</button>
+                    <button type="button" class="preset-chip" data-preset="injective">Injective only</button>
+                    <button type="button" class="preset-chip" data-preset="surjective">Surjective only</button>
+                    <button type="button" class="preset-chip" data-preset="neither">Neither</button>
+                    <button type="button" class="preset-chip" data-preset="partial">Partial (fails &forall;)</button>
+                    <button type="button" class="preset-chip" data-preset="multivalued">Multi (fails &exist;!)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-              <!-- Custom Data Import Section -->
-              <div class="custom-data-section" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="font-size: 0.82rem; font-weight: 600; color: #38bdf8; display: block; margin-bottom: 6px;">
-                  Custom Ordered Pairs &amp; CSV Upload:
-                </span>
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                  <input type="file" id="input-file-pairs" accept=".csv,.tsv,.txt" style="display: none;">
-                  <button type="button" id="btn-trigger-upload-pairs" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.78rem; background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; cursor: pointer;">
-                    📁 Upload CSV / TSV
-                  </button>
-                  <button type="button" id="btn-export-pairs-csv" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.78rem; background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; cursor: pointer;">
-                    💾 Export CSV
+            <!-- Custom Data Import Section -->
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Custom Ordered Pairs &amp; CSV</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div class="custom-data-section">
+                  <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="file" id="input-file-pairs" accept=".csv,.tsv,.txt" style="display: none;">
+                    <button type="button" id="btn-trigger-upload-pairs" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.78rem; background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; cursor: pointer;">
+                      📁 Upload CSV / TSV
+                    </button>
+                    <button type="button" id="btn-export-pairs-csv" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.78rem; background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; cursor: pointer;">
+                      💾 Export CSV
+                    </button>
+                  </div>
+                  <textarea id="input-custom-pairs" rows="2" placeholder="(1, a), (2, b), (3, c) or CSV lines..." style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem; margin-bottom: 6px; resize: vertical;"></textarea>
+                  <input type="text" id="input-custom-codomain" placeholder="Optional Codomain Y e.g. a, b, c, d, e (for surjectivity testing)" style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem; margin-bottom: 8px;">
+                  <button type="button" id="btn-apply-custom-pairs" class="btn btn-sm" style="width: 100%; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; border-radius: 4px; cursor: pointer;">
+                    Apply Custom Pairs &amp; Compute Kernel
                   </button>
                 </div>
-                <textarea id="input-custom-pairs" rows="2" placeholder="(1, a), (2, b), (3, c) or CSV lines..." style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem; margin-bottom: 6px; resize: vertical;"></textarea>
-                <input type="text" id="input-custom-codomain" placeholder="Optional Codomain Y e.g. a, b, c, d, e (for surjectivity testing)" style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem; margin-bottom: 8px;">
-                <button type="button" id="btn-apply-custom-pairs" class="btn btn-sm" style="width: 100%; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; border-radius: 4px; cursor: pointer;">
-                  Apply Custom Pairs &amp; Compute Kernel
-                </button>
               </div>
             </div>
 
             <!-- Analytic Controls -->
-            <div id="analytic-dock-controls" style="display: none;">
-              <label for="analytic-preset-select" style="font-size: 0.82rem; color: #94a3b8; display: block; margin-bottom: 6px;">
-                Continuous Function Model:
-              </label>
-              <select id="analytic-preset-select" class="form-select" style="width: 100%; padding: 6px 10px; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 12px;">
-                <option value="linear">Linear: f(x) = 2x + 1</option>
-                <option value="exponential">Exponential: f(x) = eˣ</option>
-                <option value="cubic">Cubic: f(x) = x³</option>
-                <option value="quadratic">Quadratic: f(x) = x²</option>
-                <option value="custom">Custom Formula (Plot &amp; Deduce)</option>
-              </select>
-
-              <div id="restrict-domain-wrapper" style="display: none; align-items: center; gap: 8px; margin-top: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px;">
-                <input type="checkbox" id="toggle-restrict-domain" style="cursor: pointer;">
-                <label for="toggle-restrict-domain" style="font-size: 0.8rem; color: #bae6fd; cursor: pointer;">
-                  Restrict domain to [0, &infin;) (Restores Bijectivity!)
-                </label>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Continuous Models &amp; Formula Plotter</span><span class="icon">▶</span>
               </div>
+              <div class="collapsible-content">
+                <div id="analytic-dock-controls">
+                  <label for="analytic-preset-select" style="font-size: 0.82rem; color: #94a3b8; display: block; margin-bottom: 6px;">
+                    Continuous Function Model:
+                  </label>
+                  <select id="analytic-preset-select" class="form-select" style="width: 100%; padding: 6px 10px; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 12px;">
+                    <option value="linear">Linear: f(x) = 2x + 1</option>
+                    <option value="exponential">Exponential: f(x) = eˣ</option>
+                    <option value="cubic">Cubic: f(x) = x³</option>
+                    <option value="quadratic">Quadratic: f(x) = x²</option>
+                    <option value="custom">Custom Formula (Plot &amp; Deduce)</option>
+                  </select>
 
-              <!-- Custom Explicit Formula Section -->
-              <div class="custom-formula-section" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="font-size: 0.82rem; font-weight: 600; color: #38bdf8; display: block; margin-bottom: 6px;">
-                  Custom Explicit Formula:
-                </span>
-                <input type="text" id="input-custom-formula" value="x^3 - 3*x" placeholder="e.g. x^3 - 3*x, sin(x), exp(-x^2), sqrt(x+4)" style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.82rem; margin-bottom: 8px;">
-                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-                  <span style="font-size: 0.78rem; color: #94a3b8;">Domain:</span>
-                  <input type="number" id="input-formula-min" value="-4" step="0.5" style="width: 50px; padding: 4px 6px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem;">
-                  <span style="font-size: 0.78rem; color: #94a3b8;">to</span>
-                  <input type="number" id="input-formula-max" value="4" step="0.5" style="width: 50px; padding: 4px 6px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem;">
-                  <button type="button" id="btn-apply-formula" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.8rem; font-weight: 600; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; border-radius: 4px; cursor: pointer;">
-                    Plot &amp; Deduce
-                  </button>
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
-                  <span style="font-size: 0.72rem; color: #64748b; width: 100%;">Quick presets:</span>
-                  <button type="button" class="preset-chip" data-formula-preset="x^3 - 3*x" style="padding: 2px 6px; font-size: 0.72rem;">x³ - 3x</button>
-                  <button type="button" class="preset-chip" data-formula-preset="sin(x)" style="padding: 2px 6px; font-size: 0.72rem;">sin(x)</button>
-                  <button type="button" class="preset-chip" data-formula-preset="exp(-x^2)" style="padding: 2px 6px; font-size: 0.72rem;">exp(-x²)</button>
-                  <button type="button" class="preset-chip" data-formula-preset="2*x - 1" style="padding: 2px 6px; font-size: 0.72rem;">2x - 1</button>
-                  <button type="button" class="preset-chip" data-formula-preset="x^2 - 2" style="padding: 2px 6px; font-size: 0.72rem;">x² - 2</button>
+                  <div id="restrict-domain-wrapper" style="display: none; align-items: center; gap: 8px; margin-top: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 10px; border-radius: 6px;">
+                    <input type="checkbox" id="toggle-restrict-domain" style="cursor: pointer;">
+                    <label for="toggle-restrict-domain" style="font-size: 0.8rem; color: #bae6fd; cursor: pointer;">
+                      Restrict domain to [0, &infin;) (Restores Bijectivity!)
+                    </label>
+                  </div>
+
+                  <!-- Custom Explicit Formula Section -->
+                  <div class="custom-formula-section" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <span style="font-size: 0.82rem; font-weight: 600; color: #38bdf8; display: block; margin-bottom: 6px;">
+                      Custom Explicit Formula:
+                    </span>
+                    <input type="text" id="input-custom-formula" value="x^3 - 3*x" placeholder="e.g. x^3 - 3*x, sin(x), exp(-x^2), sqrt(x+4)" style="width: 100%; box-sizing: border-box; padding: 6px 8px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.82rem; margin-bottom: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                      <span style="font-size: 0.78rem; color: #94a3b8;">Domain:</span>
+                      <input type="number" id="input-formula-min" value="-4" step="0.5" style="width: 50px; padding: 4px 6px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem;">
+                      <span style="font-size: 0.78rem; color: #94a3b8;">to</span>
+                      <input type="number" id="input-formula-max" value="4" step="0.5" style="width: 50px; padding: 4px 6px; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: monospace; font-size: 0.78rem;">
+                      <button type="button" id="btn-apply-formula" class="btn btn-sm" style="flex: 1; padding: 5px 8px; font-size: 0.8rem; font-weight: 600; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; border-radius: 4px; cursor: pointer;">
+                        Plot &amp; Deduce
+                      </button>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;">
+                      <span style="font-size: 0.72rem; color: #64748b; width: 100%;">Quick presets:</span>
+                      <button type="button" class="preset-chip" data-formula-preset="x^3 - 3*x" style="padding: 2px 6px; font-size: 0.72rem;">x³ - 3x</button>
+                      <button type="button" class="preset-chip" data-formula-preset="sin(x)" style="padding: 2px 6px; font-size: 0.72rem;">sin(x)</button>
+                      <button type="button" class="preset-chip" data-formula-preset="exp(-x^2)" style="padding: 2px 6px; font-size: 0.72rem;">exp(-x²)</button>
+                      <button type="button" class="preset-chip" data-formula-preset="2*x - 1" style="padding: 2px 6px; font-size: 0.72rem;">2x - 1</button>
+                      <button type="button" class="preset-chip" data-formula-preset="x^2 - 2" style="padding: 2px 6px; font-size: 0.72rem;">x² - 2</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -278,28 +331,46 @@
           <div class="panel-header" id="derivations-header">
             <h1 class="color-indigo">The 12 Specification Styles</h1>
             <div class="panel-header-actions">
-              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="true" title="Minimize Derivations Panel">
+              <button type="button" id="toggle-derivations-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Derivations Panel">
                 <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+              <button type="button" id="toggle-derivations-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
+                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
+                <span class="panel-expand-label">Expand All</span>
               </button>
             </div>
           </div>
-          <div class="panel-body">
-            <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-top: 0;">
-              A function <var>f</var>: <var>X</var> &rarr; <var>Y</var> is formally a relation <var>f</var> &sube; <var>X</var> &times; <var>Y</var> satisfying <strong>totality</strong> (&forall;<var>x</var> &isin; <var>X</var>) and <strong>uniqueness</strong> (&exist;!<var>y</var> &isin; <var>Y</var>). It can be specified in 12 distinct mathematical styles:
-            </p>
-            <div class="spec-styles-list">
-              <div class="spec-style-item"><strong>1. Set of Ordered Pairs:</strong> <code>f = {(1, a), (2, b), (3, c)}</code></div>
-              <div class="spec-style-item"><strong>2. Table Form:</strong> Input column paired directly with output column.</div>
-              <div class="spec-style-item"><strong>3. Explicit Formula:</strong> <code>f(x) = 2x + 1</code> with specified domain.</div>
-              <div class="spec-style-item"><strong>4. Piecewise Formula:</strong> Branching definitions on partitioned subdomains.</div>
-              <div class="spec-style-item"><strong>5. Implicit Equation:</strong> <code>F(x, y) = 0</code> (requires implicit function theorem).</div>
-              <div class="spec-style-item"><strong>6. Recursive / Inductive:</strong> Base case + induction step (e.g. factorial).</div>
-              <div class="spec-style-item"><strong>7. Algorithmic / Program:</strong> Deterministic halting Turing computation.</div>
-              <div class="spec-style-item"><strong>8. Lambda Abstraction:</strong> <code>&lambda;x. x&sup2; + 1</code> in pure lambda calculus.</div>
-              <div class="spec-style-item"><strong>9. Graphical Curve:</strong> 2D plot satisfying the vertical line test.</div>
-              <div class="spec-style-item"><strong>10. Categorical Arrow:</strong> Morphism making commutative diagrams commute.</div>
-              <div class="spec-style-item"><strong>11. Characteristic Indicator:</strong> <code>&chi;_A(x) &isin; {0, 1}</code> encoding subset membership.</div>
-              <div class="spec-style-item"><strong>12. Limit / Series / Integral:</strong> Convergent sequence of approximating maps.</div>
+          <div class="panel-body hidden">
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>Formal Totality &amp; Uniqueness</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-top: 0;">
+                  A function <var>f</var>: <var>X</var> &rarr; <var>Y</var> is formally a relation <var>f</var> &sube; <var>X</var> &times; <var>Y</var> satisfying <strong>totality</strong> (&forall;<var>x</var> &isin; <var>X</var>) and <strong>uniqueness</strong> (&exist;!<var>y</var> &isin; <var>Y</var>). It can be specified in 12 distinct mathematical styles:
+                </p>
+              </div>
+            </div>
+            <div class="collapsible-section collapsed">
+              <div class="collapsible-header" aria-expanded="false">
+                <span>The 12 Representation Styles</span><span class="icon">▶</span>
+              </div>
+              <div class="collapsible-content">
+                <div class="spec-styles-list">
+                  <div class="spec-style-item"><strong>1. Set of Ordered Pairs:</strong> <code>f = {(1, a), (2, b), (3, c)}</code></div>
+                  <div class="spec-style-item"><strong>2. Table Form:</strong> Input column paired directly with output column.</div>
+                  <div class="spec-style-item"><strong>3. Explicit Formula:</strong> <code>f(x) = 2x + 1</code> with specified domain.</div>
+                  <div class="spec-style-item"><strong>4. Piecewise Formula:</strong> Branching definitions on partitioned subdomains.</div>
+                  <div class="spec-style-item"><strong>5. Implicit Equation:</strong> <code>F(x, y) = 0</code> (requires implicit function theorem).</div>
+                  <div class="spec-style-item"><strong>6. Recursive / Inductive:</strong> Base case + induction step (e.g. factorial).</div>
+                  <div class="spec-style-item"><strong>7. Algorithmic / Program:</strong> Deterministic halting Turing computation.</div>
+                  <div class="spec-style-item"><strong>8. Lambda Abstraction:</strong> <code>&lambda;x. x&sup2; + 1</code> in pure lambda calculus.</div>
+                  <div class="spec-style-item"><strong>9. Graphical Curve:</strong> 2D plot satisfying the vertical line test.</div>
+                  <div class="spec-style-item"><strong>10. Categorical Arrow:</strong> Morphism making commutative diagrams commute.</div>
+                  <div class="spec-style-item"><strong>11. Characteristic Indicator:</strong> <code>&chi;_A(x) &isin; {0, 1}</code> encoding subset membership.</div>
+                  <div class="spec-style-item"><strong>12. Limit / Series / Integral:</strong> Convergent sequence of approximating maps.</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

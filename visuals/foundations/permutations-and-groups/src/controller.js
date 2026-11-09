@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 3
  */
 
-import { PermutationMath } from '../../js/foundations-core.js';
+import { PermutationMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { PermutationGridView } from './views/PermutationGridView.js';
 import { CauchyCycleView } from './views/CauchyCycleView.js';
 import { BraidDiagramView } from './views/BraidDiagramView.js';
@@ -78,6 +78,20 @@ export class PermutationsController {
     this.bindDomControls();
     this.enableResizerDrag();
     this.updateAll();
+
+    if (typeof document !== 'undefined') {
+      const toolbarEl = document.getElementById('viewport-toolbar');
+      const handleEl = document.getElementById('toolbar-drag-handle');
+      if (toolbarEl) {
+        this.draggableToolbar = new DraggableToolbar(toolbarEl, handleEl);
+      }
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const explorer = document.querySelector('.circle-explorer');
+      if (fullscreenBtn && explorer) {
+        bindFullscreen(fullscreenBtn, explorer);
+      }
+      initCollapsibleSections(explorer || document);
+    }
   }
 
   bindDomControls() {

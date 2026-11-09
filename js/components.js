@@ -774,8 +774,10 @@ export function mountSharedChrome() {
               const circle = published.filter((v) => (v.suite || "circle-theorems") === "circle-theorems");
               const trig = published.filter((v) => v.suite === "trigonometry");
               const trigList = trig.length > 0 ? trig : DEFAULT_TRIG_VISUALS;
-              list.innerHTML = renderVisualsList(root, circle, activeSlug, trigList);
-              if (count) count.textContent = `${circle.length + trigList.length} Visuals`;
+              const foundations = published.filter((v) => v.suite === "foundations");
+              const foundationsList = foundations.length > 0 ? foundations : DEFAULT_FOUNDATIONS_VISUALS;
+              list.innerHTML = renderVisualsList(root, circle, activeSlug, trigList, foundationsList);
+              if (count) count.textContent = `${circle.length + trigList.length + foundationsList.length} Visuals`;
               initListOrder();
               if (searchInput && searchInput.value) {
                 filterVisuals(searchInput.value);

@@ -1481,3 +1481,15 @@ export class CategoryMath {
     return result;
   }
 }
+
+// ============================================================================
+// UI & TOOLBAR RE-EXPORTS (Synchronized with Suite 01 & 02 Architecture)
+// ============================================================================
+export {
+  DraggableToolbar,
+  bindFullscreen,
+  initCollapsibleSections,
+  setPanelMinimizeButtonUI,
+  setExpandButtonUI
+} from '../../../js/circle-core.js';
+

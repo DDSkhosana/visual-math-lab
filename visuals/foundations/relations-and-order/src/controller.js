@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 2
  */
 
-import { RelationMath } from '../../js/foundations-core.js';
+import { RelationMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { RelationDigraphView } from './views/RelationDigraphView.js';
 import { QuotientClockView } from './views/QuotientClockView.js';
 import { PosetHasseView } from './views/PosetHasseView.js';
@@ -108,6 +108,20 @@ export class RelationsController {
     this.bindDomControls();
     this.enableResizerDrag();
     this.updateAll();
+
+    if (typeof document !== 'undefined') {
+      const toolbarEl = document.getElementById('viewport-toolbar');
+      const handleEl = document.getElementById('toolbar-drag-handle');
+      if (toolbarEl) {
+        this.draggableToolbar = new DraggableToolbar(toolbarEl, handleEl);
+      }
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const explorer = document.querySelector('.circle-explorer');
+      if (fullscreenBtn && explorer) {
+        bindFullscreen(fullscreenBtn, explorer);
+      }
+      initCollapsibleSections(explorer || document);
+    }
   }
 
   bindDomControls() {
