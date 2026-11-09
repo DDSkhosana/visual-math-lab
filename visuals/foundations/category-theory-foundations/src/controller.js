@@ -563,17 +563,13 @@ export class CategoryTheoryController {
     );
     this.state.triangleCommutes = comp.commutes;
 
-    this.commutativeView?.render();
-    this.compositionGridView?.render();
-    this.updateTelemetry();
+    this.updateAll();
   }
 
   syncTriangleComposition() {
     this.state.triangleH = CategoryMath.composeMorphisms(this.state.triangleF, this.state.triangleG);
     this.state.triangleCommutes = true;
-    this.commutativeView?.render();
-    this.compositionGridView?.render();
-    this.updateTelemetry();
+    this.updateAll();
   }
 
   perturbTriangleDirectMorphism() {
@@ -592,9 +588,7 @@ export class CategoryTheoryController {
     else this.state.triangleH.push([lastA, diffTarget]);
 
     this.state.triangleCommutes = false;
-    this.commutativeView?.render();
-    this.compositionGridView?.render();
-    this.updateTelemetry();
+    this.updateAll();
   }
 
   toggleTriangleCommutativity(commutes) {
@@ -654,6 +648,9 @@ export class CategoryTheoryController {
     this.compositionGridView?.render();
     this.probeView?.render();
     this.factorizationView?.render();
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
+    }
     this.updateTelemetry();
   }
 

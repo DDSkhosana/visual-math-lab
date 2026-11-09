@@ -514,6 +514,9 @@ export class PermutationsController {
     this.cauchyView?.render();
     this.braidView?.render();
     this.cayleyView?.render();
+    if (this.threeView && this.state.spatial3D) {
+      this.threeView.render(this.state);
+    }
     this.updateTelemetry();
   }
 

@@ -1290,5 +1290,91 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
       assert.ok(html.includes('id="live-derivations-content"'), `${mod} must have live-derivations-content container`);
     }
   });
+
+  test('Bidirectional 2D and 3D counterpart synchronization across all Suite 3 modules', async () => {
+    // 1. Module 1: FunctionsController 2D/3D Synchronization
+    const { FunctionsController } = await import('../visuals/foundations/functions-and-inverses/src/controller.js');
+    const ctrl1 = new FunctionsController();
+    const renderLog1 = [];
+    ctrl1.threeView = {
+      mode: 'spatial-bipartite',
+      cameraPreset: 'iso',
+      setMode(m) { this.mode = m; },
+      setCameraPreset(p) { this.cameraPreset = p; },
+      render(state) { renderLog1.push({ pairs: JSON.parse(JSON.stringify(state.pairs)), mode: this.mode }); },
+      resize() {}
+    };
+
+    ctrl1.applyPreset('bijection');
+    assert.ok(renderLog1.length > 0);
+    assert.equal(ctrl1.threeView.cameraPreset, 'iso');
+    ctrl1.setCameraPreset('top');
+    assert.equal(ctrl1.threeView.cameraPreset, 'top');
+    ctrl1.set3DMode('grid-beacons');
+    assert.equal(ctrl1.threeView.mode, 'grid-beacons');
+
+    // 2. Module 2: RelationsController 2D/3D Synchronization
+    const { RelationsController } = await import('../visuals/foundations/relations-and-order/src/controller.js');
+    const ctrl2 = new RelationsController();
+    const renderLog2 = [];
+    ctrl2.threeView = {
+      mode: 'spatial-digraph',
+      cameraPreset: 'iso',
+      setMode(m) { this.mode = m; },
+      setCameraPreset(p) { this.cameraPreset = p; },
+      render(state) { renderLog2.push({ pairs: JSON.parse(JSON.stringify(state.pairs)), mode: this.mode }); },
+      resize() {}
+    };
+
+    ctrl2.togglePair(1, 2);
+    assert.ok(renderLog2.length > 0);
+    ctrl2.setCameraPreset('side');
+    assert.equal(ctrl2.threeView.cameraPreset, 'side');
+    ctrl2.set3DMode('poset-3d');
+    assert.equal(ctrl2.threeView.mode, 'poset-3d');
+
+    // 3. Module 3: PermutationsController 2D/3D Synchronization
+    const { PermutationsController } = await import('../visuals/foundations/permutations-and-groups/src/controller.js');
+    const ctrl3 = new PermutationsController();
+    const renderLog3 = [];
+    ctrl3.threeView = {
+      mode: 'spatial-orbits',
+      cameraPreset: 'iso',
+      setMode(m) { this.mode = m; },
+      setCameraPreset(p) { this.cameraPreset = p; },
+      render(state) { renderLog3.push({ mapping: [...state.mapping], mode: this.mode }); },
+      resize() {}
+    };
+
+    ctrl3.applyTransposition(1, 2);
+    assert.ok(renderLog3.length > 0);
+    ctrl3.setCameraPreset('front');
+    assert.equal(ctrl3.threeView.cameraPreset, 'front');
+    ctrl3.set3DMode('braid-3d');
+    assert.equal(ctrl3.threeView.mode, 'braid-3d');
+
+    // 4. Module 4: CategoryTheoryController 2D/3D Synchronization
+    const { CategoryTheoryController } = await import('../visuals/foundations/category-theory-foundations/src/controller.js');
+    const ctrl4 = new CategoryTheoryController();
+    const renderLog4 = [];
+    ctrl4.threeView = {
+      mode: 'spatial-simplex',
+      cameraPreset: 'iso',
+      setMode(m) { this.mode = m; },
+      setCameraPreset(p) { this.cameraPreset = p; },
+      render(state) { renderLog4.push({ triangleCommutes: state.triangleCommutes, mode: this.mode }); },
+      resize() {}
+    };
+
+    ctrl4.perturbTriangleDirectMorphism();
+    assert.ok(renderLog4.length > 0);
+    assert.equal(renderLog4[renderLog4.length - 1].triangleCommutes, false);
+    ctrl4.syncTriangleComposition();
+    assert.equal(renderLog4[renderLog4.length - 1].triangleCommutes, true);
+    ctrl4.setCameraPreset('top');
+    assert.equal(ctrl4.threeView.cameraPreset, 'top');
+    ctrl4.set3DMode('universal-cone');
+    assert.equal(ctrl4.threeView.mode, 'universal-cone');
+  });
 });
 
