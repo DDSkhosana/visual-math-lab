@@ -690,15 +690,29 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
     assert.ok(html.includes('canvas-2d-container'), 'Must contain primary canvas container');
     assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas container');
+    assert.ok(html.includes('three-viewport-container'), 'Must contain 3D WebGL Three.js container');
+    assert.ok(html.includes('primary-mode-bar'), 'Must contain primary canvas mode bar');
+    assert.ok(html.includes('secondary-mode-bar'), 'Must contain secondary canvas mode bar');
+    assert.ok(html.includes('camera-presets-bar'), 'Must contain camera presets bar');
+    assert.ok(html.includes('btn-toggle-dimension-mode'), 'Must contain spatial 3D toggle button');
+    assert.ok(html.includes('tel-rel-kuratowski-sample'), 'Must contain Kuratowski sample telemetry');
+    assert.ok(html.includes('tel-rel-idempotence'), 'Must contain algebraic idempotence telemetry');
+    assert.ok(html.includes('tel-rel-complement'), 'Must contain complement relation telemetry');
+    assert.ok(html.includes('tel-rel-converse'), 'Must contain converse relation telemetry');
   });
 
-  test('Module 2 RelationsController manages canonical split viewport modes and dual canvas switching', async () => {
+  test('Module 2 RelationsController manages canonical split viewport modes, 3D counterparts, and mode bars', async () => {
     const { RelationsController } = await import('../visuals/foundations/relations-and-order/src/controller.js');
+    const { Relations3DView } = await import('../visuals/foundations/relations-and-order/src/views/Relations3DView.js');
     const ctrl = new RelationsController();
 
     assert.equal(ctrl.state.viewMode, 'split');
     assert.equal(ctrl.state.splitDirection, 'horizontal');
     assert.equal(ctrl.state.dualMode, 'matrix');
+    assert.equal(ctrl.state.primaryMode, 'digraph');
+    assert.equal(ctrl.state.threeMode, 'spatial-digraph');
+    assert.equal(ctrl.state.spatial3D, true);
+    assert.equal(ctrl.state.cameraPreset, 'iso');
 
     // View mode switching
     ctrl.setViewMode('2d');
@@ -713,6 +727,42 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.equal(ctrl.state.splitDirection, 'vertical');
     ctrl.toggleSplitDirection();
     assert.equal(ctrl.state.splitDirection, 'horizontal');
+
+    // Primary representation mode bar switching
+    ctrl.setPrimaryView('matrix');
+    assert.equal(ctrl.state.primaryMode, 'matrix');
+    ctrl.setPrimaryView('quotient');
+    assert.equal(ctrl.state.primaryMode, 'quotient');
+    ctrl.setPrimaryView('poset');
+    assert.equal(ctrl.state.primaryMode, 'poset');
+    ctrl.setPrimaryView('digraph');
+    assert.equal(ctrl.state.primaryMode, 'digraph');
+
+    // 3D representation mode bar switching
+    ctrl.set3DMode('matrix-beacons');
+    assert.equal(ctrl.state.threeMode, 'matrix-beacons');
+    ctrl.set3DMode('quotient-3d');
+    assert.equal(ctrl.state.threeMode, 'quotient-3d');
+    ctrl.set3DMode('poset-3d');
+    assert.equal(ctrl.state.threeMode, 'poset-3d');
+    ctrl.set3DMode('spatial-digraph');
+    assert.equal(ctrl.state.threeMode, 'spatial-digraph');
+
+    // Camera preset switching
+    ctrl.setCameraPreset('top');
+    assert.equal(ctrl.state.cameraPreset, 'top');
+    ctrl.setCameraPreset('front');
+    assert.equal(ctrl.state.cameraPreset, 'front');
+    ctrl.setCameraPreset('side');
+    assert.equal(ctrl.state.cameraPreset, 'side');
+    ctrl.setCameraPreset('iso');
+    assert.equal(ctrl.state.cameraPreset, 'iso');
+
+    // Spatial 3D toggle
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, false);
+    ctrl.toggleSpatial3D();
+    assert.equal(ctrl.state.spatial3D, true);
 
     // Dual representation canvas switching
     ctrl.setDualMode('quotient');
@@ -729,6 +779,12 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.equal(ctrl.state.dualMode, 'quotient');
     ctrl.applyPreset('empty');
     assert.equal(ctrl.state.dualMode, 'matrix');
+
+    // Verify Relations3DView contract
+    const mockContainer = { clientWidth: 400, clientHeight: 400, appendChild: () => {}, querySelector: () => null };
+    const threeView = new Relations3DView(mockContainer);
+    assert.ok(threeView);
+    assert.equal(threeView.container, mockContainer);
   });
 
   test('Module 3 PermutationsController manages mapping, presets and factorials', async () => {
