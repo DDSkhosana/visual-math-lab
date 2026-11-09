@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 1
  */
 
-import { FunctionMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { FunctionMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { DiscreteMappingView } from './views/DiscreteMappingView.js';
 import { AnalyticPlaneView } from './views/AnalyticPlaneView.js';
 import { CompositionView } from './views/CompositionView.js';
@@ -33,6 +33,7 @@ export class FunctionsController {
       tracerX: 2.0,
       pipelineDirection: 'forward',
       currentPresetId: 'bijection',
+      activeSpecStyle: 1,
       customModel: null,
       formulaAnalysis: null,
       customFormulaStr: 'x^3 - 3*x',
@@ -110,6 +111,23 @@ export class FunctionsController {
     this.updateAll();
 
     if (typeof document !== 'undefined') {
+      const telEl = document.getElementById('telemetry-panel');
+      if (telEl) {
+        this.telemetryPanel = new TelemetryPanel(telEl, {
+          header: document.getElementById('telemetry-header'),
+          toggleButton: document.getElementById('telemetry-toggle-btn'),
+          body: document.getElementById('telemetry-body'),
+        });
+      }
+      const stats3d = document.getElementById('stats-3d');
+      if (stats3d) {
+        this.stats3dPanel = new TelemetryPanel(stats3d, {
+          header: document.getElementById('stats-3d-header'),
+          toggleButton: document.getElementById('toggle-stats-3d'),
+          body: document.getElementById('stats-3d-body'),
+        });
+      }
+
       const toolbarEl = document.getElementById('viewport-toolbar');
       const handleEl = document.getElementById('toolbar-drag-handle');
       if (toolbarEl) {
@@ -121,6 +139,7 @@ export class FunctionsController {
         bindFullscreen(fullscreenBtn, explorer);
       }
       initCollapsibleSections(explorer || document);
+      this.renderSpecStyleWorkbench();
     }
   }
 
@@ -236,10 +255,250 @@ export class FunctionsController {
       });
     });
 
+    // 12 Specification Styles Selector
+    document.querySelectorAll('[data-spec-style]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const style = e.currentTarget.dataset.specStyle;
+        this.setSpecStyle(style);
+      });
+    });
+
     // Reset Button
     document.querySelector('#btn-reset')?.addEventListener('click', () => {
       this.reset();
     });
+  }
+
+  setSpecStyle(styleNum) {
+    this.state.activeSpecStyle = Number(styleNum) || 1;
+    document.querySelectorAll('[data-spec-style]').forEach(btn => {
+      const isActive = Number(btn.dataset.specStyle) === this.state.activeSpecStyle;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+    this.renderSpecStyleWorkbench();
+  }
+
+  renderSpecStyleWorkbench() {
+    const workbench = document.querySelector('#spec-style-workbench');
+    if (!workbench) return;
+    const style = this.state.activeSpecStyle;
+
+    switch (style) {
+      case 1:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 1: Set of Ordered Pairs (Kuratowski)</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">A function is formally a subset of the Cartesian product: <code>f &sube; X &times; Y</code> satisfying totality and uniqueness.</p>
+          <div style="background: #0b1120; padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); font-family: monospace; color: #e2e8f0; margin-bottom: 8px;">
+            f = { ${this.state.pairs.map(([x, y]) => `(${x}, ${y})`).join(', ')} }
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-sky-400" id="wb-btn-load-bijection">Load Standard Bijection</button>
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-amber-400" id="wb-btn-load-injective">Load Injective (Unhit)</button>
+          </div>
+        `;
+        workbench.querySelector('#wb-btn-load-bijection')?.addEventListener('click', () => this.applyPreset('bijection'));
+        workbench.querySelector('#wb-btn-load-injective')?.addEventListener('click', () => this.applyPreset('injective'));
+        break;
+
+      case 2:
+        const rows = this.state.pairs.map(([x, y], idx) => `
+          <tr>
+            <td style="padding: 3px 6px; border: 1px solid rgba(255,255,255,0.1);"><input type="text" class="wb-table-x" data-idx="${idx}" value="${x}" style="width: 40px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; text-align: center; border-radius: 3px;"></td>
+            <td style="padding: 3px 6px; border: 1px solid rgba(255,255,255,0.1); text-align: center; color: #64748b;">&rarr;</td>
+            <td style="padding: 3px 6px; border: 1px solid rgba(255,255,255,0.1);"><input type="text" class="wb-table-y" data-idx="${idx}" value="${y}" style="width: 40px; background: #0f172a; color: #f472b6; border: 1px solid #334155; text-align: center; border-radius: 3px;"></td>
+          </tr>
+        `).join('');
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 2: Table Form (Direct Input-Output Lookup)</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Tabular representation pairing elements. Edit values in the table and click Apply:</p>
+          <table style="border-collapse: collapse; margin-bottom: 8px;">
+            <thead><tr style="color: #94a3b8;"><th style="padding: 2px 6px;">x &isin; X</th><th></th><th style="padding: 2px 6px;">y = f(x)</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-apply-table">Apply Table Changes</button>
+        `;
+        workbench.querySelector('#wb-btn-apply-table')?.addEventListener('click', () => {
+          const xInputs = Array.from(workbench.querySelectorAll('.wb-table-x'));
+          const yInputs = Array.from(workbench.querySelectorAll('.wb-table-y'));
+          const newPairs = [];
+          for (let i = 0; i < xInputs.length; i++) {
+            const xVal = isNaN(Number(xInputs[i].value)) ? xInputs[i].value : Number(xInputs[i].value);
+            const yVal = isNaN(Number(yInputs[i].value)) ? yInputs[i].value : Number(yInputs[i].value);
+            newPairs.push([xVal, yVal]);
+          }
+          this.state.pairs = newPairs;
+          this.updateAll();
+        });
+        break;
+
+      case 3:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 3: Explicit Formula</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Explicit analytical computation rule y = f(x). Select a formula:</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-sky-300" data-f="linear">f(x) = 2x + 1</button>
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-sky-300" data-f="cubic">f(x) = x³</button>
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-sky-300" data-f="exponential">f(x) = eˣ</button>
+            <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-sky-300" data-f="quadratic">f(x) = x²</button>
+          </div>
+        `;
+        workbench.querySelectorAll('[data-f]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            this.setAnalyticPreset(e.currentTarget.dataset.f);
+            this.setDualMode('analytic');
+          });
+        });
+        break;
+
+      case 4:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 4: Piecewise Formula</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Defined by different formulas across partitioned subdomains:</p>
+          <div style="background: #0b1120; padding: 6px 10px; border-radius: 4px; font-family: monospace; color: #e2e8f0; margin-bottom: 8px;">
+            f(x) = { x&sup2; (if x &ge; 0); &minus;x (if x &lt; 0) }
+          </div>
+          <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-load-piecewise">Plot Piecewise Function</button>
+        `;
+        workbench.querySelector('#wb-btn-load-piecewise')?.addEventListener('click', () => {
+          this.setDualMode('analytic');
+          this.loadCustomFormula('x >= 0 ? x^2 : -x', -3, 3);
+        });
+        break;
+
+      case 5:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 5: Implicit Equation F(x, y) = 0</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Circle: x&sup2; + y&sup2; = 9 &rArr; y = &plusmn;&radic;(9 &minus; x&sup2;). Fails uniqueness &exist;!y (2 outputs per x).</p>
+          <button type="button" class="btn text-xs px-2 py-1 bg-slate-800 text-rose-400" id="wb-btn-load-implicit">Demonstrate Vertical Line Test Failure</button>
+        `;
+        workbench.querySelector('#wb-btn-load-implicit')?.addEventListener('click', () => {
+          this.setDualMode('analytic');
+          this.loadCustomFormula('sqrt(Math.max(0, 9 - x^2))', -3, 3);
+        });
+        break;
+
+      case 6:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 6: Inductive / Recurrence Relation</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Base case: f(0) = 1, Step: f(n) = 2 &times; f(n &minus; 1).</p>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+            <span>n:</span>
+            <input type="number" id="wb-rec-n" value="4" min="0" max="6" style="width: 45px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; padding: 2px 4px; border-radius: 3px;">
+            <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-run-rec">Compute Trace</button>
+          </div>
+          <div id="wb-rec-result" style="font-family: monospace; color: #34d399; font-size: 0.75rem;">f(4) = 2 &times; f(3) = 2 &times; 8 = 16</div>
+        `;
+        workbench.querySelector('#wb-btn-run-rec')?.addEventListener('click', () => {
+          const n = parseInt(workbench.querySelector('#wb-rec-n').value) || 0;
+          const val = Math.pow(2, n);
+          workbench.querySelector('#wb-rec-result').textContent = `f(${n}) = 2^${n} = ${val} (Unrolled in ${n} steps)`;
+        });
+        break;
+
+      case 7:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 7: Algorithmic / Program</div>
+          <pre style="background: #0b1120; padding: 4px 8px; border-radius: 4px; color: #a5b4fc; font-size: 0.72rem; margin: 0 0 6px 0;">function collatz(x) { return x % 2 === 0 ? x / 2 : 3 * x + 1; }</pre>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span>x:</span>
+            <input type="number" id="wb-prog-x" value="7" style="width: 45px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; padding: 2px 4px; border-radius: 3px;">
+            <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-run-prog">Run</button>
+            <span id="wb-prog-result" style="font-family: monospace; color: #34d399;">&rarr; 22</span>
+          </div>
+        `;
+        workbench.querySelector('#wb-btn-run-prog')?.addEventListener('click', () => {
+          const x = parseInt(workbench.querySelector('#wb-prog-x').value) || 1;
+          const res = x % 2 === 0 ? x / 2 : 3 * x + 1;
+          workbench.querySelector('#wb-prog-result').textContent = `collatz(${x}) → ${res}`;
+        });
+        break;
+
+      case 8:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 8: &lambda;-Calculus Abstraction</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Pure Church term: (&lambda;x. 2x + 1)</p>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+            <span>Argument:</span>
+            <input type="number" id="wb-lambda-arg" value="5" style="width: 45px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; padding: 2px 4px; border-radius: 3px;">
+            <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-run-lambda">&beta;-Reduce</button>
+          </div>
+          <div id="wb-lambda-result" style="font-family: monospace; color: #e2e8f0; font-size: 0.72rem;">(&lambda;x. 2x + 1) 5 &rarr;β 2(5) + 1 = 11</div>
+        `;
+        workbench.querySelector('#wb-btn-run-lambda')?.addEventListener('click', () => {
+          const arg = parseInt(workbench.querySelector('#wb-lambda-arg').value) || 0;
+          workbench.querySelector('#wb-lambda-result').textContent = `(λx. 2x + 1) ${arg} →β 2(${arg}) + 1 = ${2 * arg + 1}`;
+        });
+        break;
+
+      case 9:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 9: Graphical Plot in &reals;&sup2;</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Geometric curve passing Vertical Line Test (&le;1 output per input).</p>
+          <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-view-plane">View Continuous Cartesian Plane</button>
+        `;
+        workbench.querySelector('#wb-btn-view-plane')?.addEventListener('click', () => {
+          this.setDualMode('analytic');
+          this.setViewMode('split');
+        });
+        break;
+
+      case 10:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 10: Categorical Morphism</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Morphism arrow X &rarr; Y with identity id_X and round-trip composition.</p>
+          <button type="button" class="btn text-xs px-2 py-1 bg-sky-900 text-sky-200" id="wb-btn-view-composition">View Round-Trip Composition Machine</button>
+        `;
+        workbench.querySelector('#wb-btn-view-composition')?.addEventListener('click', () => {
+          this.setDualMode('composition');
+          this.setViewMode('split');
+        });
+        break;
+
+      case 11:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 11: Characteristic Indicator &chi;_A</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">Select elements of subset A &sube; {1, 2, 3, 4, 5}:</p>
+          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+            <label style="cursor: pointer;"><input type="checkbox" class="wb-subset" value="1" checked> 1</label>
+            <label style="cursor: pointer;"><input type="checkbox" class="wb-subset" value="2"> 2</label>
+            <label style="cursor: pointer;"><input type="checkbox" class="wb-subset" value="3" checked> 3</label>
+            <label style="cursor: pointer;"><input type="checkbox" class="wb-subset" value="4"> 4</label>
+            <label style="cursor: pointer;"><input type="checkbox" class="wb-subset" value="5" checked> 5</label>
+          </div>
+          <div id="wb-subset-result" style="font-family: monospace; color: #34d399; font-size: 0.75rem;">&chi;_A = [1, 0, 1, 0, 1]</div>
+        `;
+        workbench.querySelectorAll('.wb-subset').forEach(cb => {
+          cb.addEventListener('change', () => {
+            const checks = Array.from(workbench.querySelectorAll('.wb-subset')).map(c => c.checked ? 1 : 0);
+            workbench.querySelector('#wb-subset-result').textContent = `χ_A = [${checks.join(', ')}]`;
+          });
+        });
+        break;
+
+      case 12:
+        workbench.innerHTML = `
+          <div style="color: #38bdf8; font-weight: 600; margin-bottom: 4px;">Style 12: Limit / Series (Taylor Approximation)</div>
+          <p style="margin: 0 0 6px 0; color: #94a3b8;">eˣ &approx; &sum; xⁿ / n! with N polynomial terms:</p>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+            <span>N: <b id="wb-n-val" style="color: #38bdf8;">3</b></span>
+            <input type="range" id="wb-n-slider" min="1" max="6" value="3" style="flex: 1;">
+          </div>
+          <div id="wb-n-formula" style="font-family: monospace; color: #e2e8f0; font-size: 0.72rem;">f₃(x) = 1 + x + x²/2 + x³/6</div>
+        `;
+        workbench.querySelector('#wb-n-slider')?.addEventListener('input', (e) => {
+          const n = parseInt(e.target.value) || 1;
+          workbench.querySelector('#wb-n-val').textContent = n;
+          const terms = ['1', 'x'];
+          if (n >= 2) terms.push('x²/2');
+          if (n >= 3) terms.push('x³/6');
+          if (n >= 4) terms.push('x⁴/24');
+          if (n >= 5) terms.push('x⁵/120');
+          if (n >= 6) terms.push('x⁶/720');
+          workbench.querySelector('#wb-n-formula').textContent = `f_${n}(x) = ${terms.join(' + ')}`;
+        });
+        break;
+    }
   }
 
   setViewMode(mode) {
@@ -608,152 +867,130 @@ export class FunctionsController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { activeMode, domain, codomain, pairs, showInverse, analyticPreset, customModel, formulaAnalysis } = this.state;
+    const { domain, codomain, pairs, showInverse, analyticPreset, customModel, formulaAnalysis, dualMode, tracerX } = this.state;
 
-    const badgeFunction = document.querySelector('#badge-is-function');
-    const badgeInjective = document.querySelector('#badge-injective');
-    const badgeSurjective = document.querySelector('#badge-surjective');
-    const badgeBijective = document.querySelector('#badge-bijective');
-    const btnInverse = document.querySelector('#btn-toggle-inverse');
-    const telemetryContainer = document.querySelector('#function-telemetry-content');
-
-    if (activeMode === 'analytic') {
-      const model = (analyticPreset === 'custom' && customModel)
-        ? customModel
-        : (FunctionMath.continuousPresets[analyticPreset] || FunctionMath.continuousPresets.linear);
-
-      const analysis = (analyticPreset === 'custom' && formulaAnalysis)
-        ? formulaAnalysis
-        : FunctionMath.analyzeContinuousFormula(model.forward, -4, 4);
-
-      if (badgeFunction) {
-        badgeFunction.className = 'axiom-badge is-valid';
-        badgeFunction.innerHTML = '<span>Function: YES (Continuous)</span>';
-      }
-      if (badgeInjective) {
-        badgeInjective.className = `axiom-badge ${analysis.isInjective ? 'is-valid' : 'is-violated'}`;
-        badgeInjective.innerHTML = `<span>Injective: ${analysis.isInjective ? 'YES (Monotonic)' : 'NO (Extrema/Oscillation)'}</span>`;
-      }
-      if (badgeSurjective) {
-        badgeSurjective.className = 'axiom-badge is-valid';
-        badgeSurjective.innerHTML = `<span>Range: [${analysis.range.minY.toFixed(2)}, ${analysis.range.maxY.toFixed(2)}]</span>`;
-      }
-      if (badgeBijective) {
-        badgeBijective.className = `axiom-badge ${analysis.isInjective ? 'is-valid' : 'is-violated'}`;
-        badgeBijective.innerHTML = `<span>Invertible: ${analysis.isInjective ? 'YES (f⁻¹ exists)' : 'NO (Multivalued reflection)'}</span>`;
-      }
-
-      if (btnInverse) {
-        btnInverse.disabled = !analysis.isInjective;
-        btnInverse.classList.toggle('active', showInverse);
-        btnInverse.innerHTML = showInverse ? '↺ Showing Inverse f⁻¹: Y → X' : 'Invert Mapping (f⁻¹)';
-      }
-
-      if (telemetryContainer) {
-        const rootsStr = analysis.roots && analysis.roots.length > 0
-          ? analysis.roots.map(r => r.toFixed(3)).join(', ')
-          : 'None detected on interval';
-
-        const fixedStr = analysis.fixedPoints && analysis.fixedPoints.length > 0
-          ? analysis.fixedPoints.map(fp => `(${fp.x.toFixed(3)}, ${fp.y.toFixed(3)})`).join(', ')
-          : 'None detected on interval';
-
-        const extremaStr = analysis.extrema && analysis.extrema.length > 0
-          ? analysis.extrema.map(e => `${e.type} at (${e.x.toFixed(3)}, ${e.y.toFixed(3)})`).join('; ')
-          : 'None (monotonic strictly without turning points)';
-
-        telemetryContainer.innerHTML = `
-          <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.6;">
-            <div><strong>Active Formula:</strong> <span style="color: #38bdf8;">${model.forwardFormulaText}</span></div>
-            <div><strong>Numerical Range:</strong> [${analysis.range.minY.toFixed(3)}, ${analysis.range.maxY.toFixed(3)}]</div>
-            <div><strong>Roots (f(x) = 0):</strong> <span style="color: #34d399;">{ ${rootsStr} }</span></div>
-            <div><strong>Fixed Points (f(x) = x on diagonal):</strong> <span style="color: #fbbf24;">{ ${fixedStr} }</span></div>
-            <div><strong>Monotonicity:</strong> ${analysis.monotonicType}</div>
-            <div><strong>Local Extrema:</strong> <span style="color: #c084fc;">${extremaStr}</span></div>
-            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); color: ${analysis.isInjective ? '#34d399' : '#f87171'};">
-              ${analysis.isInjective ? '✓ Strict bijection on interval: reflection across y = x produces a single-valued inverse function f⁻¹.' : '⚠ Not injective: horizontal line test fails; inverse reflection yields multi-valued branches.'}
-            </div>
-          </div>
-        `;
-      }
-      return;
-    }
-
-    // Discrete Mode
+    // 1. Compute discrete analysis
     const analysis = FunctionMath.analyzeRelationAsFunction(domain, codomain, pairs);
     const kernel = FunctionMath.computeKernelEquivalenceRelation(domain, pairs);
 
-    // Update Badges
-    if (badgeFunction) {
-      badgeFunction.className = `axiom-badge ${analysis.isFunction ? 'is-valid' : 'is-violated'}`;
-      badgeFunction.innerHTML = `<span>Function (Well-Defined): ${analysis.isFunction ? 'YES' : 'NO'}</span>`;
+    // 2. Primary 2D Telemetry Panel Updates
+    const elIsFunc = document.querySelector('#tel-is-function');
+    if (elIsFunc) {
+      elIsFunc.textContent = analysis.isFunction ? 'YES (Well-Defined)' : 'NO (Violated)';
+      elIsFunc.className = analysis.isFunction ? 'color-emerald font-bold' : 'color-rose font-bold';
     }
 
-    if (badgeInjective) {
-      badgeInjective.className = `axiom-badge ${analysis.isInjective ? 'is-valid' : 'is-violated'}`;
-      badgeInjective.innerHTML = `<span>Injective (One-to-One): ${analysis.isInjective ? 'YES' : 'NO'}</span>`;
+    const elTotality = document.querySelector('#tel-totality');
+    if (elTotality) {
+      elTotality.textContent = analysis.isTotal ? 'Satisfied (∀x ∈ X)' : `Fails: Missing {${analysis.missingInputs.join(', ')}}`;
+      elTotality.className = analysis.isTotal ? 'color-emerald' : 'color-rose font-bold';
     }
 
-    if (badgeSurjective) {
-      badgeSurjective.className = `axiom-badge ${analysis.isSurjective ? 'is-valid' : 'is-violated'}`;
-      badgeSurjective.innerHTML = `<span>Surjective (Onto): ${analysis.isSurjective ? 'YES' : 'NO'}</span>`;
+    const elUniq = document.querySelector('#tel-uniqueness');
+    if (elUniq) {
+      elUniq.textContent = analysis.isUnique ? 'Satisfied (∃!y ∈ Y)' : 'Fails: Multivalued output';
+      elUniq.className = analysis.isUnique ? 'color-emerald' : 'color-rose font-bold';
     }
 
-    if (badgeBijective) {
-      badgeBijective.className = `axiom-badge ${analysis.isBijective ? 'is-valid' : 'is-violated'}`;
-      badgeBijective.innerHTML = `<span>Bijective (Invertible): ${analysis.isBijective ? 'YES' : 'NO'}</span>`;
+    const elInj = document.querySelector('#tel-injective');
+    if (elInj) {
+      elInj.textContent = analysis.isInjective ? 'YES (One-to-One)' : `NO (${analysis.collisionOutputs.length} collision output(s))`;
+      elInj.className = analysis.isInjective ? 'color-teal font-bold' : 'color-rose font-bold';
+    }
+
+    const elSurj = document.querySelector('#tel-surjective');
+    if (elSurj) {
+      elSurj.textContent = analysis.isSurjective ? 'YES (Onto)' : `NO (Unhit: {${analysis.unhitOutputs.join(', ')}})`;
+      elSurj.className = analysis.isSurjective ? 'color-fuchsia font-bold' : 'color-amber font-bold';
+    }
+
+    const elBij = document.querySelector('#tel-bijective');
+    if (elBij) {
+      elBij.textContent = analysis.isBijective ? 'YES (Invertible f⁻¹)' : 'NO (Non-Invertible)';
+      elBij.className = analysis.isBijective ? 'color-lime font-bold' : 'color-slate font-bold';
+    }
+
+    const elDomCard = document.querySelector('#tel-domain-card');
+    if (elDomCard) elDomCard.textContent = `${domain.length} elements: { ${domain.join(', ')} }`;
+
+    const elCodCard = document.querySelector('#tel-codomain-card');
+    if (elCodCard) elCodCard.textContent = `${codomain.length} elements: { ${codomain.join(', ')} }`;
+
+    const elImgCard = document.querySelector('#tel-image-card');
+    if (elImgCard) elImgCard.textContent = `{ ${analysis.image.join(', ')} }`;
+
+    const elKernel = document.querySelector('#tel-kernel-classes');
+    if (elKernel) {
+      elKernel.textContent = `${kernel.quotientSize} class(es): { ${kernel.classes.map(c => `[${c.elements.join(', ')}]`).join(', ')} }`;
     }
 
     // Toggle Inverse Button state
+    const btnInverse = document.querySelector('#btn-toggle-inverse');
     if (btnInverse) {
       btnInverse.disabled = !analysis.isBijective;
       btnInverse.classList.toggle('active', showInverse);
       btnInverse.innerHTML = showInverse ? '↺ Showing Inverse f⁻¹: Y → X' : 'Invert Mapping (f⁻¹)';
     }
 
-    // Update Textual Telemetry
-    if (telemetryContainer) {
-      const pairsFormatted = pairs.map(([x, y]) => `(${x}, ${y})`).join(', ');
-      const imageFormatted = analysis.image.length > 0 ? `{ ${analysis.image.join(', ')} }` : '∅';
-      const quotientFormatted = kernel.classes.map(c => `[${c.elements.join(', ')}]`).join(', ');
+    // 3. Secondary Dual / 3D Telemetry Panel Updates
+    const model = (analyticPreset === 'custom' && customModel)
+      ? customModel
+      : (FunctionMath.continuousPresets[analyticPreset] || FunctionMath.continuousPresets.linear);
 
-      let reasonHtml = '';
-      if (!analysis.isTotal) {
-        reasonHtml += `<div style="color: #f59e0b;">⚠ Fails Totality: Missing input(s) { ${analysis.missingInputs.join(', ')} }</div>`;
-      }
-      if (!analysis.isUnique) {
-        reasonHtml += `<div style="color: #f87171;">⚠ Fails Uniqueness: Input(s) map to multiple outputs</div>`;
-      }
-      if (analysis.isFunction && !analysis.isInjective) {
-        const colList = analysis.collisionOutputs.map(c => `${c.y} &larr; {${c.inputs.join(', ')}}`).join('; ');
-        reasonHtml += `<div style="color: #f87171;">⚠ Collisions (Non-Injective): ${colList}</div>`;
-      }
-      if (analysis.isFunction && !analysis.isSurjective) {
-        reasonHtml += `<div style="color: #fbbf24;">⚠ Unhit (Non-Surjective Deficit Y \\ im(f)): { ${analysis.unhitOutputs.join(', ')} }</div>`;
-      }
+    const cAnalysis = (analyticPreset === 'custom' && formulaAnalysis)
+      ? formulaAnalysis
+      : FunctionMath.analyzeContinuousFormula(model.forward, -4, 4);
 
-      // Induced Equivalence Relation Deduction (First Isomorphism Theorem)
-      const kernelHtml = `
-        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">
-          <div><strong>Induced Equivalence Relation ker(f) on X:</strong> (x₁ ~ x₂ &hArr; f(x₁) = f(x₂))</div>
-          <div><strong>Quotient Classes X/ker(f):</strong> { ${quotientFormatted} } &nbsp;|&nbsp; <strong>|X/ker(f)|:</strong> ${kernel.quotientSize}</div>
-          <div style="color: #38bdf8;"><strong>First Isomorphism Theorem:</strong> X/ker(f) &cong; im(f) (|X/ker(f)| = ${kernel.quotientSize} = |im(f)| = ${analysis.image.length})</div>
-          ${kernel.isTrivial 
-            ? '<div style="color: #34d399;">✓ Trivial Kernel: Each input forms its own singleton class (f is Injective).</div>'
-            : `<div style="color: #f87171;">⚠ Non-Trivial Kernel: Collision fibers merge ${kernel.nonTrivialClasses.map(c => `{${c.elements.join(', ')}} &rarr; ${c.output}`).join(', ')}</div>`}
-        </div>
-      `;
+    const elDualName = document.querySelector('#val-dual-name');
+    if (elDualName) {
+      elDualName.textContent = dualMode === 'analytic'
+        ? 'Continuous Plane'
+        : (dualMode === 'grid' ? 'Coordinate Grid (X × Y)' : 'Composition Machine');
+    }
 
-      telemetryContainer.innerHTML = `
-        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.6;">
-          <div><strong>Domain X:</strong> { ${domain.join(', ')} } &nbsp;|&nbsp; <strong>|X|:</strong> ${domain.length}</div>
-          <div><strong>Codomain Y:</strong> { ${codomain.join(', ')} } &nbsp;|&nbsp; <strong>|Y|:</strong> ${codomain.length}</div>
-          <div><strong>Graph Pairs f:</strong> { ${pairsFormatted} }</div>
-          <div><strong>Image im(f):</strong> ${imageFormatted}</div>
-          ${reasonHtml}
-          ${kernelHtml}
-        </div>
-      `;
+    const elDualFormula = document.querySelector('#val-dual-formula');
+    if (elDualFormula) {
+      elDualFormula.textContent = model.forwardFormulaText || this.state.customFormulaStr;
+    }
+
+    const pY = model.forward ? model.forward(tracerX) : 0;
+    const elDualP = document.querySelector('#val-dual-p');
+    if (elDualP) elDualP.textContent = `(${tracerX.toFixed(2)}, ${pY.toFixed(2)})`;
+
+    const elDualPinv = document.querySelector('#val-dual-pinv');
+    if (elDualPinv) elDualPinv.textContent = `(${pY.toFixed(2)}, ${tracerX.toFixed(2)})`;
+
+    const pMid = (tracerX + pY) / 2;
+    const elDualPmid = document.querySelector('#val-dual-pmid');
+    if (elDualPmid) elDualPmid.textContent = `(${pMid.toFixed(2)}, ${pMid.toFixed(2)})`;
+
+    const elDualRoots = document.querySelector('#val-dual-roots');
+    if (elDualRoots) {
+      const rootsStr = cAnalysis.roots && cAnalysis.roots.length > 0
+        ? cAnalysis.roots.map(r => r.toFixed(2)).join(', ')
+        : 'None on interval';
+      elDualRoots.textContent = `{ ${rootsStr} }`;
+    }
+
+    const elDualFixed = document.querySelector('#val-dual-fixed');
+    if (elDualFixed) {
+      const fixedStr = cAnalysis.fixedPoints && cAnalysis.fixedPoints.length > 0
+        ? cAnalysis.fixedPoints.map(f => f.x.toFixed(2)).join(', ')
+        : 'None on interval';
+      elDualFixed.textContent = `{ ${fixedStr} }`;
+    }
+
+    const elDualRange = document.querySelector('#val-dual-range');
+    if (elDualRange && cAnalysis.range) {
+      elDualRange.textContent = `[${cAnalysis.range.minY.toFixed(2)}, ${cAnalysis.range.maxY.toFixed(2)}]`;
+    }
+
+    const elDualIdentity = document.querySelector('#val-dual-identity');
+    if (elDualIdentity) {
+      elDualIdentity.textContent = cAnalysis.isInjective
+        ? '(f⁻¹ ∘ f)(x) = x ✓'
+        : 'f⁻¹ multi-valued (not reversible)';
+      elDualIdentity.className = cAnalysis.isInjective ? 'color-lime font-bold' : 'color-rose font-bold';
     }
   }
 }

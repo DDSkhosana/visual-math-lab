@@ -32,6 +32,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/circle-visual.css?v=20260523">
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
@@ -149,6 +150,26 @@
             Digraph: Directed Graph (<span class="color-sky">Vertices A</span>, <span class="color-sky">Edges R &sube; A &times; A</span>, <span class="color-amber">Loops (a, a)</span>)
           </div>
           <div id="digraph-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Primary 2D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">Relation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Relation Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span class="color-yellow">Classification:</span><strong class="color-yellow" id="tel-rel-class">Equivalence Relation</strong></div>
+              <div class="stat-line"><span class="color-sky">Reflexive (&forall;a, a~a):</span><strong class="color-sky" id="tel-rel-refl">YES</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Symmetric (a~b &rArr; b~a):</span><strong class="color-fuchsia" id="tel-rel-symm">YES</strong></div>
+              <div class="stat-line"><span class="color-teal">Antisymmetric:</span><strong class="color-teal" id="tel-rel-antisymm">NO</strong></div>
+              <div class="stat-line"><span class="color-emerald">Transitive (M&sup2; &le; M):</span><strong class="color-emerald" id="tel-rel-trans">YES</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Vertices |A|:</span><span class="color-indigo" id="tel-rel-vcount">5 vertices</span></div>
+              <div class="stat-line"><span class="color-amber">Edges |R|:</span><span class="color-amber" id="tel-rel-ecount">13 directed edges</span></div>
+              <div class="stat-line"><span class="color-lavender">Matrix Density:</span><span class="color-lavender" id="tel-rel-density">52%</span></div>
+            </div>
+          </div>
         </div>
 
         <!-- Draggable Resizer Divider -->
@@ -165,51 +186,23 @@
           <div id="quotient-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
           <!-- Dual View 3: Poset Hasse Diagram -->
           <div id="poset-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
-        </div>
-      </div>
 
-      <!-- Panel 1: Axiomatic Invariants & Structure Classifier -->
-      <div class="ui-panel" id="panel-telemetry">
-        <div class="panel-content">
-          <div class="panel-header" id="telemetry-header">
-            <h1 class="color-sky">Axiomatic Properties</h1>
-            <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Properties Panel">
-                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-              </button>
-              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
-                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
-                <span class="panel-expand-label">Expand All</span>
+          <!-- Secondary Dual / 3D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">Dual Representation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
-          </div>
-          <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Relation Classification</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div style="margin-bottom: 8px;">
-                  <span id="badge-structure-type" class="axiom-badge is-valid" style="font-size: 0.8rem; width: 100%; justify-content: center; box-sizing: border-box;">
-                    Equivalence Relation (Partition)
-                  </span>
-                </div>
-                <div class="axiom-badge-group">
-                  <span id="badge-reflexive" class="axiom-badge is-valid">Reflexive: YES</span>
-                  <span id="badge-symmetric" class="axiom-badge is-valid">Symmetric: YES</span>
-                  <span id="badge-antisymmetric" class="axiom-badge is-violated">Antisymmetric: NO</span>
-                  <span id="badge-transitive" class="axiom-badge is-valid">Transitive: YES</span>
-                  <span id="badge-totality" class="axiom-badge is-violated">Total: NO</span>
-                </div>
-              </div>
-            </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Matrix &amp; Partition Telemetry</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div id="relation-telemetry-content" style="margin-top: 4px;"></div>
-              </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-rel-dual-name">Boolean Matrix (n &times; n)</strong></div>
+              <div class="stat-line"><span class="color-sky">Matrix Trace Tr(M):</span><strong class="color-sky" id="val-rel-trace">5</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Symmetry M = Mᵀ:</span><strong class="color-fuchsia" id="val-rel-symm-check">Identical</strong></div>
+              <div class="stat-line"><span class="color-teal">Equivalence Classes:</span><strong class="color-teal" id="val-rel-quotient-classes">2 disjoint partition blocks</strong></div>
+              <div class="stat-line"><span class="color-amber">Modular Clock:</span><span class="color-amber" id="val-rel-clock">&Zopf;/5&Zopf; ring</span></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Poset Maxima:</span><strong class="color-lime" id="val-rel-maxima">None (Cycles present)</strong></div>
+              <div class="stat-line"><span class="color-indigo">Covering Edges:</span><span class="color-indigo" id="val-rel-cover">Transitive reduction</span></div>
             </div>
           </div>
         </div>

@@ -32,6 +32,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/circle-visual.css?v=20260523">
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
@@ -153,6 +154,25 @@
           </div>
           <!-- Mode 1: Commutative Diagrams & Path Composition -->
           <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Primary 2D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">Category Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Category Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span class="color-yellow">Diagram Status:</span><strong class="color-yellow" id="tel-cat-commutes">Commutes &check;</strong></div>
+              <div class="stat-line"><span class="color-emerald">Discrepancy &Delta;:</span><strong class="color-emerald" id="tel-cat-discrepancy">&Delta; = 0.000</strong></div>
+              <div class="stat-line"><span class="color-sky">Monic (Left-Cancellative):</span><strong class="color-sky" id="tel-cat-monic">YES</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Epic (Right-Cancellative):</span><strong class="color-fuchsia" id="tel-cat-epic">YES</strong></div>
+              <div class="stat-line"><span class="color-lime">Isomorphism:</span><strong class="color-lime" id="tel-cat-iso">YES (&cong;)</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Objects:</span><span class="color-indigo" id="tel-cat-objects">Obj(C) = {A, B, C}</span></div>
+              <div class="stat-line"><span class="color-amber">Composition:</span><span class="color-amber" id="tel-cat-comp">g &compfn; f = h</span></div>
+            </div>
+          </div>
         </div>
 
         <div class="viewport-resizer" id="viewport-resizer"></div>
@@ -171,45 +191,23 @@
 
           <!-- Mode 3: Universal Factorization & Adjunction -->
           <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
-        </div>
-      </div>
 
-      <!-- Panel 1: Categorical Invariants Telemetry -->
-      <div class="ui-panel" id="panel-telemetry">
-        <div class="panel-content">
-          <div class="panel-header" id="telemetry-header">
-            <h1 class="color-sky">Categorical Invariants</h1>
-            <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Invariants Panel">
-                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-              </button>
-              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
-                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
-                <span class="panel-expand-label">Expand All</span>
+          <!-- Secondary Dual / 3D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">Dual Representation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
-          </div>
-          <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Diagram Commutativity &amp; Morphism Types</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div class="axiom-badge-group">
-                  <span id="badge-comm-status" class="axiom-badge is-valid">Diagram: Commutes</span>
-                  <span id="badge-monic-status" class="axiom-badge is-violated">Monic: NO</span>
-                  <span id="badge-epic-status" class="axiom-badge is-violated">Epic: NO</span>
-                  <span id="badge-iso-status" class="axiom-badge is-violated">Isomorphism: NO</span>
-                </div>
-              </div>
-            </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Composition Flow &amp; Discrepancy Vector</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div id="category-telemetry-content" style="margin-top: 4px;"></div>
-              </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-cat-dual-name">Composition Grid (A &times; C)</strong></div>
+              <div class="stat-line"><span class="color-sky">Path 1 (g &compfn; f):</span><strong class="color-sky" id="val-cat-path1">A &rarr; B &rarr; C</strong></div>
+              <div class="stat-line"><span class="color-amber">Path 2 (Direct h):</span><strong class="color-amber" id="val-cat-path2">A &rarr; C</strong></div>
+              <div class="stat-line"><span class="color-teal">Monic Probe Test:</span><strong class="color-teal" id="val-cat-probe-monic">f &compfn; g₁ = f &compfn; g₂ &rArr; g₁ = g₂ &check;</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Epic Probe Test:</span><strong class="color-fuchsia" id="val-cat-probe-epic">h₁ &compfn; f = h₂ &compfn; f &rArr; h₁ = h₂ &check;</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Universal Property:</span><strong class="color-lime" id="val-cat-universal">&exist;! u (Unique Factorization) &check;</strong></div>
+              <div class="stat-line"><span class="color-indigo">Currying Adjunction:</span><span class="color-indigo" id="val-cat-curry">Hom(A &times; B, C) &cong; Hom(A, Cᴮ)</span></div>
             </div>
           </div>
         </div>

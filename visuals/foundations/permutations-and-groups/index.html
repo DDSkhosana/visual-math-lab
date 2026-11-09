@@ -32,6 +32,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/circle-visual.css?v=20260523">
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
@@ -150,6 +151,24 @@
             Coordinate Grid (n &times; n): (<span class="color-sky">X: Input</span>, <span class="color-fuchsia">&sigma;(X): Output</span>) &amp; <span class="color-lime">y = x Fixed Points</span>
           </div>
           <div id="grid-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Primary 2D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">Permutation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Permutation Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span class="color-yellow">Symmetric Group:</span><strong class="color-yellow" id="tel-perm-group">S_5 (|S_5| = 120)</strong></div>
+              <div class="stat-line"><span class="color-sky">Inversions I(&sigma;):</span><strong class="color-sky" id="tel-perm-inversions">4 inversions</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Parity sgn(&sigma;):</span><strong class="color-fuchsia" id="tel-perm-parity">EVEN (+1)</strong></div>
+              <div class="stat-line"><span class="color-emerald">Alternating Group:</span><strong class="color-emerald" id="tel-perm-alternating">&sigma; &isin; A_5 &check;</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-lime">Fixed Points (y = x):</span><strong class="color-lime" id="tel-perm-fixed">{ 1 } (1 fixed)</strong></div>
+              <div class="stat-line"><span class="color-amber">Matrix Permutation:</span><span class="color-amber" id="tel-perm-matrix">Orthogonal P Pᵀ = I</span></div>
+            </div>
+          </div>
         </div>
 
         <div class="viewport-resizer" id="viewport-resizer"></div>
@@ -168,45 +187,22 @@
 
           <!-- Mode 3: S_3 Cayley Table -->
           <div id="cayley-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
-        </div>
-      </div>
 
-      <!-- Panel 1: Cycle Forms & Parity Telemetry -->
-      <div class="ui-panel" id="panel-telemetry">
-        <div class="panel-content">
-          <div class="panel-header" id="telemetry-header">
-            <h1 class="color-sky">Permutation Invariants</h1>
-            <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Invariants Panel">
-                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-              </button>
-              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
-                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
-                <span class="panel-expand-label">Expand All</span>
+          <!-- Secondary Dual / 3D Telemetry Panel -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">Dual Representation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
-          </div>
-          <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Cycle Form &amp; Group Parity</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div class="axiom-badge-group">
-                  <span id="badge-symmetric-group" class="axiom-badge is-valid">Group: S_5</span>
-                  <span id="badge-cycle-form" class="axiom-badge is-valid">Cycles: (1 3 2)(4 5)</span>
-                  <span id="badge-order" class="axiom-badge is-valid">Order: 6</span>
-                  <span id="badge-parity" class="axiom-badge is-violated">Parity: ODD (-1)</span>
-                </div>
-              </div>
-            </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Orbit Stepping &amp; Inversion Stats</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div id="permutation-telemetry-content" style="margin-top: 4px;"></div>
-              </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-perm-dual-name">Cauchy Two-Row &amp; Cycle Orbits</strong></div>
+              <div class="stat-line"><span class="color-sky">Disjoint Cycles:</span><strong class="color-sky" id="val-perm-cycles">(1 3 2)(4 5)</strong></div>
+              <div class="stat-line"><span class="color-yellow">Permutation Order:</span><strong class="color-yellow" id="val-perm-order">ord(&sigma;) = 6 (lcm)</strong></div>
+              <div class="stat-line"><span class="color-violet">Braid Wire Crossings:</span><strong class="color-violet" id="val-perm-crossings">4 intersections</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-teal">Cayley Crosshair:</span><span class="color-teal" id="val-perm-cayley">&tau;₁ &compfn; &tau;₂ &ne; &tau;₂ &compfn; &tau;₁</span></div>
+              <div class="stat-line"><span class="color-lime">Identity Return:</span><strong class="color-lime" id="val-perm-id-return">&sigma;⁶ = id &check;</strong></div>
             </div>
           </div>
         </div>

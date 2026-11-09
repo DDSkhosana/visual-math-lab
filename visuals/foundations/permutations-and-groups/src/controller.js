@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 3
  */
 
-import { PermutationMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { PermutationMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { PermutationGridView } from './views/PermutationGridView.js';
 import { CauchyCycleView } from './views/CauchyCycleView.js';
 import { BraidDiagramView } from './views/BraidDiagramView.js';
@@ -80,6 +80,23 @@ export class PermutationsController {
     this.updateAll();
 
     if (typeof document !== 'undefined') {
+      const telEl = document.getElementById('telemetry-panel');
+      if (telEl) {
+        this.telemetryPanel = new TelemetryPanel(telEl, {
+          header: document.getElementById('telemetry-header'),
+          toggleButton: document.getElementById('telemetry-toggle-btn'),
+          body: document.getElementById('telemetry-body'),
+        });
+      }
+      const stats3d = document.getElementById('stats-3d');
+      if (stats3d) {
+        this.stats3dPanel = new TelemetryPanel(stats3d, {
+          header: document.getElementById('stats-3d-header'),
+          toggleButton: document.getElementById('toggle-stats-3d'),
+          body: document.getElementById('stats-3d-body'),
+        });
+      }
+
       const toolbarEl = document.getElementById('viewport-toolbar');
       const handleEl = document.getElementById('toolbar-drag-handle');
       if (toolbarEl) {
@@ -387,52 +404,56 @@ export class PermutationsController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { n, mapping } = this.state;
+    const { n, mapping, dualMode } = this.state;
     const cycles = PermutationMath.toCycleNotation(mapping);
     const order = PermutationMath.computeOrder(cycles);
     const parity = PermutationMath.computeParityAndSign(mapping);
     const fixedPoints = PermutationMath.computeFixedPoints(mapping);
 
-    // Update Telemetry Badges
-    const badgeCycle = document.querySelector('#badge-cycle-form');
-    const badgeOrder = document.querySelector('#badge-order');
-    const badgeParity = document.querySelector('#badge-parity');
-    const badgeGroup = document.querySelector('#badge-symmetric-group');
+    // 1. Primary 2D Telemetry Panel
+    const elGroup = document.querySelector('#tel-perm-group');
+    if (elGroup) elGroup.textContent = `S_${n} (|S_${n}| = ${this.factorial(n)})`;
 
-    if (badgeCycle) {
-      badgeCycle.textContent = `Cycles: ${PermutationMath.formatCycles(cycles)}`;
-    }
-    if (badgeOrder) {
-      badgeOrder.textContent = `Order: ${order}`;
-    }
-    if (badgeParity) {
-      badgeParity.className = `axiom-badge ${parity.isEven ? 'is-valid' : 'is-violated'}`;
-      badgeParity.textContent = `Parity: ${parity.isEven ? 'EVEN (+1)' : 'ODD (-1)'}`;
-    }
-    if (badgeGroup) {
-      badgeGroup.textContent = `Group: S_${n} (|S_${n}| = ${this.factorial(n)})`;
+    const elInv = document.querySelector('#tel-perm-inversions');
+    if (elInv) elInv.textContent = `${parity.inversions} inversion(s)`;
+
+    const elParity = document.querySelector('#tel-perm-parity');
+    if (elParity) {
+      elParity.textContent = parity.isEven ? 'EVEN (+1)' : 'ODD (-1)';
+      elParity.className = parity.isEven ? 'color-fuchsia font-bold' : 'color-rose font-bold';
     }
 
-    // Textual Telemetry
-    const tel = document.querySelector('#permutation-telemetry-content');
-    if (tel) {
+    const elAlt = document.querySelector('#tel-perm-alternating');
+    if (elAlt) {
+      elAlt.textContent = parity.isEven ? `σ ∈ A_${n} ✓ (kernel of sgn)` : `σ ∉ A_${n} (odd coset)`;
+      elAlt.className = parity.isEven ? 'color-emerald font-bold' : 'color-amber font-bold';
+    }
+
+    const elFixed = document.querySelector('#tel-perm-fixed');
+    if (elFixed) {
       const fixedStr = fixedPoints.length > 0 ? `{ ${fixedPoints.join(', ')} }` : '∅ (Derangement)';
-      const invPairsText = parity.inversionPairs.length > 0 
-        ? parity.inversionPairs.map(([a, b]) => `(${a}, ${b})`).join(', ') 
-        : 'None (Identity)';
-
-      tel.innerHTML = `
-        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.6;">
-          <div><strong>Degree n:</strong> ${n} &nbsp;|&nbsp; <strong>Group Size |S_${n}|:</strong> ${this.factorial(n)}</div>
-          <div><strong>Cauchy Map:</strong> [ ${mapping.join(', ')} ]</div>
-          <div><strong>Disjoint Cycles:</strong> ${PermutationMath.formatCycles(cycles)}</div>
-          <div><strong>Permutation Order:</strong> ${order} (σ^${order} = id)</div>
-          <div><strong>Fixed Points (y = x):</strong> ${fixedStr}</div>
-          <div><strong>Inversions (Rothe count):</strong> ${parity.inversions} &nbsp;|&nbsp; <strong>Pairs:</strong> { ${invPairsText} }</div>
-          <div><strong>Parity &amp; Sign:</strong> ${parity.isEven ? 'EVEN (sgn = +1)' : 'ODD (sgn = -1)'}</div>
-        </div>
-      `;
+      elFixed.textContent = `${fixedStr} (${fixedPoints.length} fixed)`;
     }
+
+    // 2. Secondary Dual / 3D Telemetry Panel
+    const elDualName = document.querySelector('#val-perm-dual-name');
+    if (elDualName) {
+      elDualName.textContent = dualMode === 'cauchy'
+        ? 'Cauchy Matrix & Cycle Orbits'
+        : (dualMode === 'braid' ? 'String Braiding Wire Diagram' : 'S₃ Cayley Group Table');
+    }
+
+    const elCycles = document.querySelector('#val-perm-cycles');
+    if (elCycles) elCycles.textContent = PermutationMath.formatCycles(cycles);
+
+    const elOrder = document.querySelector('#val-perm-order');
+    if (elOrder) elOrder.textContent = `ord(σ) = ${order} (lcm of cycles)`;
+
+    const elCrossings = document.querySelector('#val-perm-crossings');
+    if (elCrossings) elCrossings.textContent = `${parity.inversions} wire crossing(s)`;
+
+    const elReturn = document.querySelector('#val-perm-id-return');
+    if (elReturn) elReturn.textContent = `σ^${order} = id ✓`;
   }
 
   factorial(num) {

@@ -3,7 +3,7 @@
  * Visual Mathematics Lab — Module 2
  */
 
-import { RelationMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { RelationMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { RelationDigraphView } from './views/RelationDigraphView.js';
 import { QuotientClockView } from './views/QuotientClockView.js';
 import { PosetHasseView } from './views/PosetHasseView.js';
@@ -110,6 +110,23 @@ export class RelationsController {
     this.updateAll();
 
     if (typeof document !== 'undefined') {
+      const telEl = document.getElementById('telemetry-panel');
+      if (telEl) {
+        this.telemetryPanel = new TelemetryPanel(telEl, {
+          header: document.getElementById('telemetry-header'),
+          toggleButton: document.getElementById('telemetry-toggle-btn'),
+          body: document.getElementById('telemetry-body'),
+        });
+      }
+      const stats3d = document.getElementById('stats-3d');
+      if (stats3d) {
+        this.stats3dPanel = new TelemetryPanel(stats3d, {
+          header: document.getElementById('stats-3d-header'),
+          toggleButton: document.getElementById('toggle-stats-3d'),
+          body: document.getElementById('stats-3d-body'),
+        });
+      }
+
       const toolbarEl = document.getElementById('viewport-toolbar');
       const handleEl = document.getElementById('toolbar-drag-handle');
       if (toolbarEl) {
@@ -399,87 +416,99 @@ export class RelationsController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const { elements, pairs } = this.state;
+    const { elements, pairs, dualMode } = this.state;
     const analysis = RelationMath.analyzeRelation(elements, pairs);
 
-    // Update Axiom Badges
-    const badgeRefl = document.querySelector('#badge-reflexive');
-    const badgeSymm = document.querySelector('#badge-symmetric');
-    const badgeAnti = document.querySelector('#badge-antisymmetric');
-    const badgeTrans = document.querySelector('#badge-transitive');
-    const badgeTotal = document.querySelector('#badge-totality');
-    const badgeStruct = document.querySelector('#badge-structure-type');
-
-    if (badgeRefl) {
-      badgeRefl.className = `axiom-badge ${analysis.isReflexive ? 'is-valid' : 'is-violated'}`;
-      badgeRefl.textContent = `Reflexive: ${analysis.isReflexive ? 'YES' : 'NO'}`;
-    }
-    if (badgeSymm) {
-      badgeSymm.className = `axiom-badge ${analysis.isSymmetric ? 'is-valid' : 'is-violated'}`;
-      badgeSymm.textContent = `Symmetric: ${analysis.isSymmetric ? 'YES' : 'NO'}`;
-    }
-    if (badgeAnti) {
-      badgeAnti.className = `axiom-badge ${analysis.isAntisymmetric ? 'is-valid' : 'is-violated'}`;
-      badgeAnti.textContent = `Antisymmetric: ${analysis.isAntisymmetric ? 'YES' : 'NO'}`;
-    }
-    if (badgeTrans) {
-      badgeTrans.className = `axiom-badge ${analysis.isTransitive ? 'is-valid' : 'is-violated'}`;
-      badgeTrans.textContent = `Transitive: ${analysis.isTransitive ? 'YES' : 'NO'}`;
-    }
-    if (badgeTotal) {
-      badgeTotal.className = `axiom-badge ${analysis.isTotal ? 'is-valid' : 'is-violated'}`;
-      badgeTotal.textContent = `Total / Comparable: ${analysis.isTotal ? 'YES' : 'NO'}`;
+    // 1. Structure classification
+    let structName = 'Arbitrary Relation';
+    if (analysis.isEquivalence) {
+      structName = 'Equivalence Relation (Partition)';
+    } else if (analysis.isTotalOrder) {
+      structName = 'Total Order (Chain)';
+    } else if (analysis.isPartialOrder) {
+      structName = 'Partial Order (Poset)';
     }
 
-    // Structure Classification Badge
-    if (badgeStruct) {
-      let structName = 'Arbitrary Relation';
-      let structClass = 'is-warning';
-
-      if (analysis.isEquivalence) {
-        structName = 'Equivalence Relation (Partition)';
-        structClass = 'is-valid';
-      } else if (analysis.isTotalOrder) {
-        structName = 'Total Order (Chain)';
-        structClass = 'is-valid';
-      } else if (analysis.isPartialOrder) {
-        structName = 'Partial Order (Poset)';
-        structClass = 'is-valid';
-      }
-
-      badgeStruct.className = `axiom-badge ${structClass}`;
-      badgeStruct.textContent = structName;
+    // 2. Primary 2D Telemetry Panel
+    const elClass = document.querySelector('#tel-rel-class');
+    if (elClass) {
+      elClass.textContent = structName;
+      elClass.className = analysis.isEquivalence || analysis.isPartialOrder ? 'color-lime font-bold' : 'color-yellow font-bold';
     }
 
-    // Telemetry text
-    const tel = document.querySelector('#relation-telemetry-content');
-    if (tel) {
-      const pairsFormatted = pairs.map(([a, b]) => `(${a}, ${b})`).join(', ');
+    const elRefl = document.querySelector('#tel-rel-refl');
+    if (elRefl) {
+      elRefl.textContent = analysis.isReflexive ? 'YES (All (a,a) present)' : 'NO (Missing loops)';
+      elRefl.className = analysis.isReflexive ? 'color-sky font-bold' : 'color-rose font-bold';
+    }
 
-      let diagnostics = '';
-      if (!analysis.isReflexive) {
-        diagnostics += `<div style="color: #f87171;">Missing self-loops: { ${analysis.missingReflexive.map(x => `(${x}, ${x})`).join(', ')} }</div>`;
-      }
-      if (!analysis.isSymmetric && analysis.missingSymmetric.length > 0) {
-        const miss = analysis.missingSymmetric.map(m => `(${m.missing.join(', ')})`).join(', ');
-        diagnostics += `<div style="color: #f87171;">Missing symmetric return edges: { ${miss} }</div>`;
-      }
-      if (!analysis.isAntisymmetric && analysis.violatedAntisymmetric.length > 0) {
-        const viol = analysis.violatedAntisymmetric.map(v => `${v.a} ⇄ ${v.b}`).join(', ');
-        diagnostics += `<div style="color: #f59e0b;">Antisymmetry violated by two-way distinct edges: ${viol}</div>`;
-      }
-      if (!analysis.isTransitive && analysis.missingTransitive.length > 0) {
-        const transMiss = analysis.missingTransitive.map(m => `(${m.a}, ${m.b}) & (${m.b}, ${m.c}) ⟹ missing (${m.a}, ${m.c})`).join('; ');
-        diagnostics += `<div style="color: #fbbf24;">Transitivity shortcuts missing: ${transMiss}</div>`;
-      }
+    const elSymm = document.querySelector('#tel-rel-symm');
+    if (elSymm) {
+      elSymm.textContent = analysis.isSymmetric ? 'YES (M = Mᵀ)' : 'NO (Asymmetric arcs)';
+      elSymm.className = analysis.isSymmetric ? 'color-fuchsia font-bold' : 'color-rose font-bold';
+    }
 
-      tel.innerHTML = `
-        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.6;">
-          <div><strong>Base Set A:</strong> { ${elements.join(', ')} } &nbsp;|&nbsp; <strong>|A|:</strong> ${elements.length}</div>
-          <div><strong>Relation R ⊆ A × A:</strong> { ${pairsFormatted || '∅'} } &nbsp;|&nbsp; <strong>|R|:</strong> ${pairs.length}</div>
-          ${diagnostics}
-        </div>
-      `;
+    const elAnti = document.querySelector('#tel-rel-antisymm');
+    if (elAnti) {
+      elAnti.textContent = analysis.isAntisymmetric ? 'YES (No 2-cycles)' : 'NO (2-way distinct edges)';
+      elAnti.className = analysis.isAntisymmetric ? 'color-teal font-bold' : 'color-slate font-bold';
+    }
+
+    const elTrans = document.querySelector('#tel-rel-trans');
+    if (elTrans) {
+      elTrans.textContent = analysis.isTransitive ? 'YES (M² ≤ M)' : 'NO (Missing shortcuts)';
+      elTrans.className = analysis.isTransitive ? 'color-emerald font-bold' : 'color-rose font-bold';
+    }
+
+    const elV = document.querySelector('#tel-rel-vcount');
+    if (elV) elV.textContent = `${elements.length} vertices: { ${elements.join(', ')} }`;
+
+    const elE = document.querySelector('#tel-rel-ecount');
+    if (elE) elE.textContent = `${pairs.length} directed edges`;
+
+    const maxEdges = Math.max(1, elements.length * elements.length);
+    const densityPct = Math.round((pairs.length / maxEdges) * 100);
+    const elDensity = document.querySelector('#tel-rel-density');
+    if (elDensity) elDensity.textContent = `${densityPct}% (${pairs.length}/${maxEdges})`;
+
+    // 3. Secondary Dual / 3D Telemetry Panel
+    const elDualName = document.querySelector('#val-rel-dual-name');
+    if (elDualName) {
+      elDualName.textContent = dualMode === 'matrix'
+        ? `Boolean Matrix (${elements.length} × ${elements.length})`
+        : (dualMode === 'quotient' ? 'Quotient Dial (ℤ/nℤ)' : 'Poset Hasse Lattice');
+    }
+
+    const reflCount = elements.length - (analysis.missingReflexive ? analysis.missingReflexive.length : 0);
+    const elTrace = document.querySelector('#val-rel-trace');
+    if (elTrace) elTrace.textContent = `${reflCount} / ${elements.length} on diagonal`;
+
+    const elSymmCheck = document.querySelector('#val-rel-symm-check');
+    if (elSymmCheck) {
+      elSymmCheck.textContent = analysis.isSymmetric ? 'M = Mᵀ (Symmetric)' : 'M ≠ Mᵀ';
+      elSymmCheck.className = analysis.isSymmetric ? 'color-emerald font-bold' : 'color-rose font-bold';
+    }
+
+    const elClasses = document.querySelector('#val-rel-quotient-classes');
+    if (elClasses) {
+      elClasses.textContent = analysis.isEquivalence
+        ? 'Partitions into disjoint classes'
+        : 'Non-partition (violates equivalence)';
+    }
+
+    const elClock = document.querySelector('#val-rel-clock');
+    if (elClock) elClock.textContent = `ℤ/${elements.length}ℤ modular dial`;
+
+    const elMaxima = document.querySelector('#val-rel-maxima');
+    if (elMaxima) {
+      elMaxima.textContent = analysis.isPartialOrder
+        ? 'Topological sorting valid'
+        : 'Cycles present (DAG violated)';
+    }
+
+    const elCover = document.querySelector('#val-rel-cover');
+    if (elCover) {
+      elCover.textContent = analysis.isPartialOrder ? 'Transitive reduction active' : 'N/A';
     }
   }
 }

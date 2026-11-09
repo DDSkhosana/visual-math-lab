@@ -32,6 +32,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="../../../css/site.css?v=20260523">
   <link rel="stylesheet" href="../../../css/visual.css?v=20260523">
+  <link rel="stylesheet" href="../../../css/circle-visual.css?v=20260523">
   <link rel="stylesheet" href="../css/foundations.css?v=20260523">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
@@ -144,6 +145,28 @@
           </div>
           <!-- Mode 1: Discrete Bipartite Graph -->
           <div id="discrete-viewport-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Telemetry Stats Panel (Primary 2D) -->
+          <div class="stats-overlay collapsed" id="telemetry-panel">
+            <div class="stats-header" id="telemetry-header">
+              <span class="stats-title">Mapping Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="telemetry-toggle-btn" aria-expanded="false" title="Expand Mapping Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+              </button>
+            </div>
+            <div class="stats-body hidden" id="telemetry-body">
+              <div class="stat-line"><span class="color-yellow">Function Axiom:</span><strong class="color-yellow" id="tel-is-function">YES (Well-Defined)</strong></div>
+              <div class="stat-line"><span class="color-sky">Totality (&forall;x &isin; X):</span><strong class="color-sky" id="tel-totality">Satisfied</strong></div>
+              <div class="stat-line"><span class="color-emerald">Uniqueness (&exist;!y &isin; Y):</span><strong class="color-emerald" id="tel-uniqueness">Satisfied</strong></div>
+              <div class="stat-line"><span class="color-teal">Injective (One-to-One):</span><strong class="color-teal" id="tel-injective">YES</strong></div>
+              <div class="stat-line"><span class="color-fuchsia">Surjective (Onto):</span><strong class="color-fuchsia" id="tel-surjective">YES</strong></div>
+              <div class="stat-line"><span class="color-lime">Bijective (Invertible):</span><strong class="color-lime" id="tel-bijective">YES (f⁻¹ exists)</strong></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-indigo">Domain |X|:</span><span class="color-indigo" id="tel-domain-card">5 elements</span></div>
+              <div class="stat-line"><span class="color-violet">Codomain |Y|:</span><span class="color-violet" id="tel-codomain-card">5 elements</span></div>
+              <div class="stat-line"><span class="color-amber">Image Im(f):</span><span class="color-amber" id="tel-image-card">{a, b, c, d, e}</span></div>
+              <div class="stat-line"><span class="color-lavender">Kernel X / ker(f):</span><span class="color-lavender" id="tel-kernel-classes">5 classes</span></div>
+            </div>
+          </div>
         </div>
 
         <div class="viewport-resizer" id="viewport-resizer"></div>
@@ -162,45 +185,25 @@
 
           <!-- Mode 3: Composition Machine Pipeline -->
           <div id="composition-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
-        </div>
-      </div>
 
-      <!-- Panel 1: Axiomatic Invariants & Telemetry -->
-      <div class="ui-panel" id="panel-telemetry">
-        <div class="panel-content">
-          <div class="panel-header" id="telemetry-header">
-            <h1 class="color-sky">Axiomatic Invariants</h1>
-            <div class="panel-header-actions">
-              <button type="button" id="toggle-telemetry-min" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" aria-expanded="false" title="Expand Invariants Panel">
-                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-              </button>
-              <button type="button" id="toggle-telemetry-expand" class="panel-expand-btn" aria-expanded="false" title="Expand all sections">
-                <span class="panel-expand-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 12 13 17 8"></polyline><polyline points="7 13 12 18 17 13"></polyline></svg></span>
-                <span class="panel-expand-label">Expand All</span>
+          <!-- Telemetry Stats Panel (Dual / 3D Secondary) -->
+          <div class="stats-overlay collapsed" id="stats-3d">
+            <div class="stats-header" id="stats-3d-header">
+              <span class="stats-title">Dual Representation Telemetry</span>
+              <button type="button" class="panel-minimize-btn btn text-xs px-1.5 py-0.5 bg-slate-800" id="toggle-stats-3d" aria-expanded="false" title="Expand Dual Telemetry">
+                <span class="panel-minimize-icon" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
               </button>
             </div>
-          </div>
-          <div class="panel-body hidden">
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Function Axiom Status</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div class="axiom-badge-group">
-                  <span id="badge-is-function" class="axiom-badge is-valid">Function: YES</span>
-                  <span id="badge-injective" class="axiom-badge is-valid">Injective: YES</span>
-                  <span id="badge-surjective" class="axiom-badge is-valid">Surjective: YES</span>
-                  <span id="badge-bijective" class="axiom-badge is-valid">Bijective: YES</span>
-                </div>
-              </div>
-            </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>Cardinality &amp; Kernel Telemetry</span><span class="icon">▶</span>
-              </div>
-              <div class="collapsible-content">
-                <div id="function-telemetry-content" style="margin-top: 4px;"></div>
-              </div>
+            <div class="stats-body hidden" id="stats-3d-body">
+              <div class="stat-line"><span class="color-white">Dual Mode:</span><strong class="color-white" id="val-dual-name">Continuous Plane</strong></div>
+              <div class="stat-line"><span class="color-sky">Model Equation:</span><strong class="color-sky" id="val-dual-formula">f(x) = 2x + 1</strong></div>
+              <div class="stat-line"><span class="color-yellow">Tracer P(x, y):</span><span class="color-yellow" id="val-dual-p">(2.00, 5.00)</span></div>
+              <div class="stat-line"><span class="color-fuchsia">Inverse P'(y, x):</span><span class="color-fuchsia" id="val-dual-pinv">(5.00, 2.00)</span></div>
+              <div class="stat-line"><span class="color-amber">Midpoint on y = x:</span><span class="color-amber" id="val-dual-pmid">(3.50, 3.50)</span></div>
+              <div class="stat-line" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;"><span class="color-teal">Roots f(x) = 0:</span><strong class="color-teal" id="val-dual-roots">{ -0.50 }</strong></div>
+              <div class="stat-line"><span class="color-emerald">Fixed Points f(x) = x:</span><strong class="color-emerald" id="val-dual-fixed">{ -1.00 }</strong></div>
+              <div class="stat-line"><span class="color-indigo">Numerical Range:</span><span class="color-indigo" id="val-dual-range">[-7.00, 9.00]</span></div>
+              <div class="stat-line"><span class="color-lime">Identity Check:</span><strong class="color-lime" id="val-dual-identity">(f⁻¹ &compfn; f)(x) = x &check;</strong></div>
             </div>
           </div>
         </div>
@@ -351,24 +354,31 @@
                 </p>
               </div>
             </div>
-            <div class="collapsible-section collapsed">
-              <div class="collapsible-header" aria-expanded="false">
-                <span>The 12 Representation Styles</span><span class="icon">▶</span>
+            <div class="collapsible-section collapsed" id="section-spec-styles">
+              <div class="collapsible-header" id="header-spec-styles" aria-expanded="false">
+                <span>The 12 Representation Styles (Interactive Explorer)</span><span class="icon">▶</span>
               </div>
               <div class="collapsible-content">
-                <div class="spec-styles-list">
-                  <div class="spec-style-item"><strong>1. Set of Ordered Pairs:</strong> <code>f = {(1, a), (2, b), (3, c)}</code></div>
-                  <div class="spec-style-item"><strong>2. Table Form:</strong> Input column paired directly with output column.</div>
-                  <div class="spec-style-item"><strong>3. Explicit Formula:</strong> <code>f(x) = 2x + 1</code> with specified domain.</div>
-                  <div class="spec-style-item"><strong>4. Piecewise Formula:</strong> Branching definitions on partitioned subdomains.</div>
-                  <div class="spec-style-item"><strong>5. Implicit Equation:</strong> <code>F(x, y) = 0</code> (requires implicit function theorem).</div>
-                  <div class="spec-style-item"><strong>6. Recursive / Inductive:</strong> Base case + induction step (e.g. factorial).</div>
-                  <div class="spec-style-item"><strong>7. Algorithmic / Program:</strong> Deterministic halting Turing computation.</div>
-                  <div class="spec-style-item"><strong>8. Lambda Abstraction:</strong> <code>&lambda;x. x&sup2; + 1</code> in pure lambda calculus.</div>
-                  <div class="spec-style-item"><strong>9. Graphical Curve:</strong> 2D plot satisfying the vertical line test.</div>
-                  <div class="spec-style-item"><strong>10. Categorical Arrow:</strong> Morphism making commutative diagrams commute.</div>
-                  <div class="spec-style-item"><strong>11. Characteristic Indicator:</strong> <code>&chi;_A(x) &isin; {0, 1}</code> encoding subset membership.</div>
-                  <div class="spec-style-item"><strong>12. Limit / Series / Integral:</strong> Convergent sequence of approximating maps.</div>
+                <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-top: 0; margin-bottom: 8px;">
+                  Select any representation style below to load its interactive model, formula, or computation into the visualizer:
+                </p>
+                <div class="preset-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; margin-bottom: 10px;">
+                  <button type="button" class="preset-chip active" data-spec-style="1">1. Ordered Pairs</button>
+                  <button type="button" class="preset-chip" data-spec-style="2">2. Table Form</button>
+                  <button type="button" class="preset-chip" data-spec-style="3">3. Explicit Formula</button>
+                  <button type="button" class="preset-chip" data-spec-style="4">4. Piecewise</button>
+                  <button type="button" class="preset-chip" data-spec-style="5">5. Implicit Curve</button>
+                  <button type="button" class="preset-chip" data-spec-style="6">6. Induction / Rec</button>
+                  <button type="button" class="preset-chip" data-spec-style="7">7. Program / Code</button>
+                  <button type="button" class="preset-chip" data-spec-style="8">8. &lambda;-Calculus</button>
+                  <button type="button" class="preset-chip" data-spec-style="9">9. Graphical Plot</button>
+                  <button type="button" class="preset-chip" data-spec-style="10">10. Category Arrow</button>
+                  <button type="button" class="preset-chip" data-spec-style="11">11. Indicator &chi;_A</button>
+                  <button type="button" class="preset-chip" data-spec-style="12">12. Limit / Series</button>
+                </div>
+                <!-- Dynamic Interactive Workbench -->
+                <div id="spec-style-workbench" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 10px; font-size: 0.8rem; line-height: 1.5;">
+                  <!-- Injected by controller -->
                 </div>
               </div>
             </div>

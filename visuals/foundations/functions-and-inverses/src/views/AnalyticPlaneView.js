@@ -170,6 +170,76 @@ export class AnalyticPlaneView {
 
     // 6. Interactive Point Reflection & Semantic Coordinate Drop-Lines
     this.drawPointReflection(ctx, model, state);
+
+    // 7. Synchronized Discrete Mapping Pairs & Mirrored Points on Cartesian Plane
+    this.drawDiscretePoints(ctx, state);
+  }
+
+  drawDiscretePoints(ctx, state) {
+    if (!state.pairs || state.pairs.length === 0) return;
+    const domain = state.domain || [1, 2, 3, 4, 5];
+    const codomain = state.codomain || ['a', 'b', 'c', 'd', 'e'];
+
+    const toNum = (val, list) => {
+      const n = Number(val);
+      if (!isNaN(n)) return n;
+      const idx = list.indexOf(val);
+      return idx >= 0 ? idx + 1 : 1;
+    };
+
+    ctx.save();
+    state.pairs.forEach(([rawX, rawY]) => {
+      const x = toNum(rawX, domain);
+      const y = toNum(rawY, codomain);
+
+      const pFwd = this.toScreen(x, y);
+      const pInv = this.toScreen(y, x);
+      const pMid = this.toScreen((x + y) / 2, (x + y) / 2);
+
+      // Amber reflection chord connecting (x, y) and (y, x)
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.moveTo(pFwd.x, pFwd.y);
+      ctx.lineTo(pInv.x, pInv.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Midpoint on y = x
+      ctx.beginPath();
+      ctx.fillStyle = '#fbbf24';
+      ctx.arc(pMid.x, pMid.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Forward point (x, y) - Sky Blue
+      ctx.beginPath();
+      ctx.fillStyle = '#38bdf8';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.arc(pFwd.x, pFwd.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Inverse point (y, x) - Fuchsia
+      ctx.beginPath();
+      ctx.fillStyle = '#f472b6';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.arc(pInv.x, pInv.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Label forward point
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(`(${rawX}, ${rawY})`, pFwd.x + 8, pFwd.y - 6);
+
+      // Label inverse point
+      ctx.fillStyle = '#f472b6';
+      ctx.fillText(`f⁻¹(${rawY})=${rawX}`, pInv.x + 8, pInv.y + 14);
+    });
+    ctx.restore();
   }
 
   getModel(state) {

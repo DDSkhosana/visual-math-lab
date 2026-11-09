@@ -4,7 +4,7 @@
  * Visual Mathematics Lab — Module 4: Category Theory & Universal Properties
  */
 
-import { CategoryMath, DraggableToolbar, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
+import { CategoryMath, DraggableToolbar, TelemetryPanel, bindFullscreen, initCollapsibleSections } from '../../js/foundations-core.js';
 import { CommutativeDiagramView } from './views/CommutativeDiagramView.js';
 import { CompositionGridView } from './views/CompositionGridView.js';
 import { MonoEpiProbeView } from './views/MonoEpiProbeView.js';
@@ -129,6 +129,23 @@ export class CategoryTheoryController {
     this.updateAll();
 
     if (typeof document !== 'undefined') {
+      const telEl = document.getElementById('telemetry-panel');
+      if (telEl) {
+        this.telemetryPanel = new TelemetryPanel(telEl, {
+          header: document.getElementById('telemetry-header'),
+          toggleButton: document.getElementById('telemetry-toggle-btn'),
+          body: document.getElementById('telemetry-body'),
+        });
+      }
+      const stats3d = document.getElementById('stats-3d');
+      if (stats3d) {
+        this.stats3dPanel = new TelemetryPanel(stats3d, {
+          header: document.getElementById('stats-3d-header'),
+          toggleButton: document.getElementById('toggle-stats-3d'),
+          body: document.getElementById('stats-3d-body'),
+        });
+      }
+
       const toolbarEl = document.getElementById('viewport-toolbar');
       const handleEl = document.getElementById('toolbar-drag-handle');
       if (toolbarEl) {
@@ -506,43 +523,85 @@ export class CategoryTheoryController {
   updateTelemetry() {
     if (typeof document === 'undefined') return;
 
-    const monicTest = CategoryMath.testMonomorphism(this.state.morphismF, this.state.domainX, this.state.codomainY);
-    const epicTest = CategoryMath.testEpimorphism(this.state.morphismF, this.state.domainX, this.state.codomainY);
-    const fact = CategoryMath.computeQuotientFactorization(this.state.morphismF, this.state.domainX, this.state.codomainY);
+    const { triangleCommutes, dualMode, domainX, codomainY, morphismF } = this.state;
+    const monicTest = CategoryMath.testMonomorphism(morphismF, domainX, codomainY);
+    const epicTest = CategoryMath.testEpimorphism(morphismF, domainX, codomainY);
+    const fact = CategoryMath.computeQuotientFactorization(morphismF, domainX, codomainY);
 
-    const badgeComm = document.querySelector('#badge-comm-status');
-    const badgeMonic = document.querySelector('#badge-monic-status');
-    const badgeEpic = document.querySelector('#badge-epic-status');
-    const badgeIso = document.querySelector('#badge-iso-status');
+    // 1. Primary 2D Telemetry Panel
+    const elComm = document.querySelector('#tel-cat-commutes');
+    if (elComm) {
+      elComm.textContent = triangleCommutes ? 'Commutes (g ∘ f = h) ✓' : 'Non-Commutative (g ∘ f ≠ h)';
+      elComm.className = triangleCommutes ? 'color-emerald font-bold' : 'color-rose font-bold';
+    }
 
-    if (badgeComm) {
-      badgeComm.className = `axiom-badge ${this.state.triangleCommutes ? 'is-valid' : 'is-violated'}`;
-      badgeComm.textContent = `Diagram: ${this.state.triangleCommutes ? 'Commutes (g ∘ f = h)' : 'Non-Commutative'}`;
+    const elDisc = document.querySelector('#tel-cat-discrepancy');
+    if (elDisc) {
+      elDisc.textContent = triangleCommutes ? 'Δ = 0.000 (Exact Coincidence)' : 'Δ > 0 (Discrepancy Vector Non-Zero)';
+      elDisc.className = triangleCommutes ? 'color-emerald' : 'color-rose font-bold';
     }
-    if (badgeMonic) {
-      badgeMonic.className = `axiom-badge ${monicTest.isMonic ? 'is-valid' : 'is-violated'}`;
-      badgeMonic.textContent = `Monic: ${monicTest.isMonic ? 'YES (Injective)' : 'NO'}`;
+
+    const elMonic = document.querySelector('#tel-cat-monic');
+    if (elMonic) {
+      elMonic.textContent = monicTest.isMonic ? 'YES (Injective / Left-Cancellative)' : 'NO';
+      elMonic.className = monicTest.isMonic ? 'color-sky font-bold' : 'color-slate font-bold';
     }
-    if (badgeEpic) {
-      badgeEpic.className = `axiom-badge ${epicTest.isEpic ? 'is-valid' : 'is-violated'}`;
-      badgeEpic.textContent = `Epic: ${epicTest.isEpic ? 'YES (Surjective)' : 'NO'}`;
+
+    const elEpic = document.querySelector('#tel-cat-epic');
+    if (elEpic) {
+      elEpic.textContent = epicTest.isEpic ? 'YES (Surjective / Right-Cancellative)' : 'NO';
+      elEpic.className = epicTest.isEpic ? 'color-fuchsia font-bold' : 'color-slate font-bold';
     }
-    if (badgeIso) {
+
+    const elIso = document.querySelector('#tel-cat-iso');
+    if (elIso) {
       const isIso = monicTest.isMonic && epicTest.isEpic;
-      badgeIso.className = `axiom-badge ${isIso ? 'is-valid' : 'is-violated'}`;
-      badgeIso.textContent = `Isomorphism: ${isIso ? 'YES (≅)' : 'NO'}`;
+      elIso.textContent = isIso ? 'YES (Isomorphism ≅)' : 'NO';
+      elIso.className = isIso ? 'color-lime font-bold' : 'color-slate font-bold';
     }
 
-    const tel = document.querySelector('#category-telemetry-content');
-    if (tel) {
-      tel.innerHTML = `
-        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.6;">
-          <div><strong>Morphism f:</strong> |X| = ${this.state.domainX.length} &rarr; |Y| = ${this.state.codomainY.length}</div>
-          <div><strong>Left-Cancellation:</strong> ${monicTest.isMonic ? 'Holds (all probes cancel)' : monicTest.reason}</div>
-          <div><strong>Right-Cancellation:</strong> ${epicTest.isEpic ? 'Holds (all probes cancel)' : epicTest.reason}</div>
-          <div><strong>Universal Factorization:</strong> X &rarr; X/ker(f) [${fact.quotientClasses.length} classes] ≅ im(f) [${fact.imageElements.length} elements] &rarr; Y</div>
-        </div>
-      `;
+    const elObjs = document.querySelector('#tel-cat-objects');
+    if (elObjs) elObjs.textContent = 'Obj(C) = { A, B, C }';
+
+    const elComp = document.querySelector('#tel-cat-comp');
+    if (elComp) elComp.textContent = triangleCommutes ? 'g ∘ f = h (Commutative Triangle)' : 'g ∘ f ≠ h';
+
+    // 2. Secondary Dual / 3D Telemetry Panel
+    const elDualName = document.querySelector('#val-cat-dual-name');
+    if (elDualName) {
+      elDualName.textContent = dualMode === 'composition'
+        ? 'Composition Grid (A × C)'
+        : (dualMode === 'probe' ? 'Monic & Epic Cancellation Probes' : 'Universal Factorization & Adjunction');
+    }
+
+    const elPath1 = document.querySelector('#val-cat-path1');
+    if (elPath1) elPath1.textContent = 'A → B → C (M_f × M_g)';
+
+    const elPath2 = document.querySelector('#val-cat-path2');
+    if (elPath2) elPath2.textContent = 'A → C (Direct morphism h)';
+
+    const elProbeMonic = document.querySelector('#val-cat-probe-monic');
+    if (elProbeMonic) {
+      elProbeMonic.textContent = monicTest.isMonic
+        ? 'f ∘ g₁ = f ∘ g₂ ⟹ g₁ = g₂ ✓'
+        : 'Witness probe separates inputs';
+    }
+
+    const elProbeEpic = document.querySelector('#val-cat-probe-epic');
+    if (elProbeEpic) {
+      elProbeEpic.textContent = epicTest.isEpic
+        ? 'h₁ ∘ f = h₂ ∘ f ⟹ h₁ = h₂ ✓'
+        : 'Discriminator probe separates outputs';
+    }
+
+    const elUniversal = document.querySelector('#val-cat-universal');
+    if (elUniversal) {
+      elUniversal.textContent = `∃! u : X/ker(f) ≅ im(f) [${fact.quotientClasses.length} classes] ✓`;
+    }
+
+    const elCurry = document.querySelector('#val-cat-curry');
+    if (elCurry) {
+      elCurry.textContent = 'Hom(A × B, C) ≅ Hom(A, Cᴮ)';
     }
   }
 

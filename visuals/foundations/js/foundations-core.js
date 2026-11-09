@@ -1487,6 +1487,7 @@ export class CategoryMath {
 // ============================================================================
 export {
   DraggableToolbar,
+  TelemetryPanel,
   bindFullscreen,
   initCollapsibleSections,
   setPanelMinimizeButtonUI,
