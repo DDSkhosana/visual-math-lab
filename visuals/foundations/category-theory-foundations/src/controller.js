@@ -1,20 +1,47 @@
 /**
  * CategoryTheoryController — State Management & Orchestrator
+ * Canonical Split-Viewport Architecture & Morphism Composition Coordinate Grid
  * Visual Mathematics Lab — Module 4: Category Theory & Universal Properties
  */
 
 import { CategoryMath } from '../../js/foundations-core.js';
 import { CommutativeDiagramView } from './views/CommutativeDiagramView.js';
+import { CompositionGridView } from './views/CompositionGridView.js';
 import { MonoEpiProbeView } from './views/MonoEpiProbeView.js';
 import { FactorizationView } from './views/FactorizationView.js';
 
 export class CategoryTheoryController {
   constructor() {
     this.state = {
-      activeMode: 'commutative', // 'commutative' | 'probe' | 'factorization'
-      diagramType: 'triangle',   // 'triangle' | 'square' | 'product'
+      viewMode: 'split',            // 'split' | '2d' | '3d'
+      splitDirection: 'horizontal', // 'horizontal' | 'vertical'
+      splitRatio: 50,
+      dualMode: 'composition',      // 'composition' | 'factorization' | 'probe'
+
+      activeMode: 'commutative',    // backward compatibility: 'commutative' | 'probe' | 'factorization'
+      diagramType: 'triangle',      // 'triangle' | 'square' | 'product'
       triangleCommutes: true,
       squareCommutes: true,
+
+      // Objects & Triangle Morphisms for Composition Grid & Commutative Diagram
+      objectsA: [1, 2, 3],
+      objectsB: [1, 2, 3],
+      objectsC: [1, 2, 3],
+      triangleF: [
+        [1, 1],
+        [2, 2],
+        [3, 3]
+      ],
+      triangleG: [
+        [1, 1],
+        [2, 2],
+        [3, 3]
+      ],
+      triangleH: [
+        [1, 1],
+        [2, 2],
+        [3, 3]
+      ],
       
       // Target Morphism f: X -> Y for probe & factorization tests
       currentPresetId: 'collapsing-quotient',
@@ -29,6 +56,7 @@ export class CategoryTheoryController {
     };
 
     this.commutativeView = null;
+    this.compositionGridView = null;
     this.probeView = null;
     this.factorizationView = null;
 
@@ -86,6 +114,9 @@ export class CategoryTheoryController {
     if (containers.commutative) {
       this.commutativeView = new CommutativeDiagramView(containers.commutative, this);
     }
+    if (containers.compositionGrid) {
+      this.compositionGridView = new CompositionGridView(containers.compositionGrid, this);
+    }
     if (containers.probe) {
       this.probeView = new MonoEpiProbeView(containers.probe, this);
     }
@@ -94,17 +125,34 @@ export class CategoryTheoryController {
     }
 
     this.bindDomControls();
+    this.enableResizerDrag();
     this.updateAll();
   }
 
   bindDomControls() {
     if (typeof document === 'undefined') return;
 
-    // View Mode Switcher
+    // View Mode Switcher ('split' | '2d' | '3d' or legacy 'commutative' | 'probe' | 'factorization')
     document.querySelectorAll('[data-view-mode]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const mode = e.currentTarget.dataset.viewMode;
         this.setViewMode(mode);
+      });
+    });
+
+    // Split Direction Flip button (#split-dir-btn)
+    const splitDirBtn = document.querySelector('#split-dir-btn');
+    if (splitDirBtn) {
+      splitDirBtn.addEventListener('click', () => {
+        this.toggleSplitDirection();
+      });
+    }
+
+    // Dual Mode Switcher (Composition Grid | Universal Factorization | Monic/Epic Probes)
+    document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const dualMode = e.currentTarget.dataset.dualMode;
+        this.setDualMode(dualMode);
       });
     });
 
@@ -136,32 +184,124 @@ export class CategoryTheoryController {
   }
 
   setViewMode(mode) {
-    this.state.activeMode = mode;
+    if (typeof document === 'undefined') {
+      if (['commutative', 'probe', 'factorization'].includes(mode)) {
+        this.state.activeMode = mode;
+      }
+      return;
+    }
 
-    if (typeof document !== 'undefined') {
-      document.querySelectorAll('[data-view-mode]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.viewMode === mode);
-        btn.setAttribute('aria-pressed', btn.dataset.viewMode === mode);
-      });
+    // Handle legacy view modes
+    if (mode === 'commutative') {
+      this.state.activeMode = 'commutative';
+      mode = 'split';
+    } else if (mode === 'probe') {
+      this.state.activeMode = 'probe';
+      this.setDualMode('probe');
+      return;
+    } else if (mode === 'factorization') {
+      this.state.activeMode = 'factorization';
+      this.setDualMode('factorization');
+      return;
+    }
 
-      const commSec = document.querySelector('#commutative-viewport-container');
-      const probeSec = document.querySelector('#probe-viewport-container');
-      const factSec = document.querySelector('#factorization-viewport-container');
+    this.state.viewMode = mode;
 
-      if (commSec) commSec.style.display = mode === 'commutative' ? 'block' : 'none';
-      if (probeSec) probeSec.style.display = mode === 'probe' ? 'block' : 'none';
-      if (factSec) factSec.style.display = mode === 'factorization' ? 'block' : 'none';
+    document.querySelectorAll('[data-view-mode]').forEach(btn => {
+      const bMode = btn.dataset.viewMode;
+      const isActive = bMode === mode || (mode === 'split' && bMode === 'commutative');
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive);
+    });
 
-      // Show/hide diagram type selector buttons only when in commutative view
-      const diagramSelector = document.querySelector('#diagram-type-group');
-      if (diagramSelector) {
-        diagramSelector.style.display = mode === 'commutative' ? 'inline-flex' : 'none';
+    const mainView = document.querySelector('#main-view');
+    const container2D = document.querySelector('#canvas-2d-container');
+    const resizer = document.querySelector('#viewport-resizer');
+    const container3D = document.querySelector('#canvas-3d-container');
+
+    if (mode === 'split') {
+      if (mainView) {
+        mainView.classList.remove('layout-2d-only', 'layout-3d-only');
+        mainView.classList.add('layout-split');
+      }
+      if (container2D) {
+        container2D.style.display = 'block';
+        container2D.style.flex = `0 0 ${this.state.splitRatio}%`;
+      }
+      if (resizer) resizer.style.display = 'block';
+      if (container3D) {
+        container3D.style.display = 'block';
+        container3D.style.flex = `1 1 0%`;
+      }
+    } else if (mode === '2d') {
+      if (mainView) {
+        mainView.classList.remove('layout-split', 'layout-3d-only');
+        mainView.classList.add('layout-2d-only');
+      }
+      if (container2D) {
+        container2D.style.display = 'block';
+        container2D.style.flex = '1 1 100%';
+      }
+      if (resizer) resizer.style.display = 'none';
+      if (container3D) container3D.style.display = 'none';
+    } else if (mode === '3d') {
+      if (mainView) {
+        mainView.classList.remove('layout-split', 'layout-2d-only');
+        mainView.classList.add('layout-3d-only');
+      }
+      if (container2D) container2D.style.display = 'none';
+      if (resizer) resizer.style.display = 'none';
+      if (container3D) {
+        container3D.style.display = 'block';
+        container3D.style.flex = '1 1 100%';
       }
     }
 
-    if (mode === 'commutative') this.commutativeView?.render();
-    if (mode === 'probe') this.probeView?.render();
-    if (mode === 'factorization') this.factorizationView?.render();
+    this.resizeAllViews();
+  }
+
+  toggleSplitDirection() {
+    this.state.splitDirection = this.state.splitDirection === 'horizontal' ? 'vertical' : 'horizontal';
+    if (typeof document !== 'undefined') {
+      const mainView = document.querySelector('#main-view');
+      if (mainView) {
+        mainView.classList.toggle('horizontal-split', this.state.splitDirection === 'horizontal');
+        mainView.classList.toggle('vertical-split', this.state.splitDirection === 'vertical');
+      }
+    }
+    this.resizeAllViews();
+  }
+
+  setDualMode(dualMode) {
+    this.state.dualMode = dualMode;
+
+    if (dualMode === 'probe') {
+      this.state.activeMode = 'probe';
+    } else if (dualMode === 'factorization') {
+      this.state.activeMode = 'factorization';
+    } else {
+      this.state.activeMode = 'commutative';
+    }
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('[data-dual-mode]').forEach(btn => {
+        const isActive = btn.dataset.dualMode === dualMode;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive);
+      });
+
+      const compGridSec = document.querySelector('#composition-grid-container');
+      const probeSec = document.querySelector('#probe-viewport-container');
+      const factSec = document.querySelector('#factorization-viewport-container');
+
+      if (compGridSec) compGridSec.style.display = dualMode === 'composition' ? 'block' : 'none';
+      if (probeSec) probeSec.style.display = dualMode === 'probe' ? 'block' : 'none';
+      if (factSec) factSec.style.display = dualMode === 'factorization' ? 'block' : 'none';
+    }
+
+    if (dualMode === 'composition') this.compositionGridView?.render();
+    if (dualMode === 'probe') this.probeView?.render();
+    if (dualMode === 'factorization') this.factorizationView?.render();
 
     this.updateTelemetry();
   }
@@ -176,14 +316,76 @@ export class CategoryTheoryController {
         });
       }
       this.commutativeView?.render();
+      this.compositionGridView?.render();
       this.updateTelemetry();
     }
   }
 
-  toggleTriangleCommutativity(commutes) {
-    this.state.triangleCommutes = typeof commutes === 'boolean' ? commutes : !this.state.triangleCommutes;
+  setTriangleMapping(morphism, src, tgt) {
+    if (morphism === 'f') {
+      const idx = this.state.triangleF.findIndex(([s]) => s === src);
+      if (idx >= 0) this.state.triangleF[idx] = [src, tgt];
+      else this.state.triangleF.push([src, tgt]);
+    } else if (morphism === 'g') {
+      const idx = this.state.triangleG.findIndex(([s]) => s === src);
+      if (idx >= 0) this.state.triangleG[idx] = [src, tgt];
+      else this.state.triangleG.push([src, tgt]);
+    } else if (morphism === 'h') {
+      const idx = this.state.triangleH.findIndex(([s]) => s === src);
+      if (idx >= 0) this.state.triangleH[idx] = [src, tgt];
+      else this.state.triangleH.push([src, tgt]);
+    }
+
+    // Recheck commutativity: g ∘ f == h
+    const comp = CategoryMath.comparePathCompositions(
+      this.state.triangleF,
+      this.state.triangleG,
+      this.state.triangleH,
+      this.state.objectsA
+    );
+    this.state.triangleCommutes = comp.commutes;
+
     this.commutativeView?.render();
+    this.compositionGridView?.render();
     this.updateTelemetry();
+  }
+
+  syncTriangleComposition() {
+    this.state.triangleH = CategoryMath.composeMorphisms(this.state.triangleF, this.state.triangleG);
+    this.state.triangleCommutes = true;
+    this.commutativeView?.render();
+    this.compositionGridView?.render();
+    this.updateTelemetry();
+  }
+
+  perturbTriangleDirectMorphism() {
+    // Modify last mapping of h so it differs from g(f(last))
+    const lastA = this.state.objectsA[this.state.objectsA.length - 1];
+    const fMap = new Map(this.state.triangleF);
+    const gMap = new Map(this.state.triangleG);
+    const gfa = gMap.get(fMap.get(lastA)) || 1;
+    
+    // Choose different codomain target
+    const targets = this.state.objectsC;
+    const diffTarget = targets.find(t => t !== gfa) || (gfa === 1 ? 2 : 1);
+
+    const idx = this.state.triangleH.findIndex(([s]) => s === lastA);
+    if (idx >= 0) this.state.triangleH[idx] = [lastA, diffTarget];
+    else this.state.triangleH.push([lastA, diffTarget]);
+
+    this.state.triangleCommutes = false;
+    this.commutativeView?.render();
+    this.compositionGridView?.render();
+    this.updateTelemetry();
+  }
+
+  toggleTriangleCommutativity(commutes) {
+    const shouldCommute = typeof commutes === 'boolean' ? commutes : !this.state.triangleCommutes;
+    if (shouldCommute) {
+      this.syncTriangleComposition();
+    } else {
+      this.perturbTriangleDirectMorphism();
+    }
   }
 
   toggleSquareCommutativity(commutes) {
@@ -220,16 +422,71 @@ export class CategoryTheoryController {
   reset() {
     this.applyPreset('collapsing-quotient');
     this.state.diagramType = 'triangle';
+    this.state.triangleF = [[1, 1], [2, 2], [3, 3]];
+    this.state.triangleG = [[1, 1], [2, 2], [3, 3]];
+    this.state.triangleH = [[1, 1], [2, 2], [3, 3]];
     this.state.triangleCommutes = true;
     this.state.squareCommutes = true;
-    this.setViewMode('commutative');
+    this.setViewMode('split');
+    this.setDualMode('composition');
   }
 
   updateAll() {
     this.commutativeView?.render();
+    this.compositionGridView?.render();
     this.probeView?.render();
     this.factorizationView?.render();
     this.updateTelemetry();
+  }
+
+  resizeAllViews() {
+    this.commutativeView?.render();
+    this.compositionGridView?.resize();
+    this.probeView?.render();
+    this.factorizationView?.render();
+  }
+
+  enableResizerDrag() {
+    if (typeof document === 'undefined') return;
+    const resizer = document.querySelector('#viewport-resizer');
+    const mainView = document.querySelector('#main-view');
+    const container2D = document.querySelector('#canvas-2d-container');
+
+    if (!resizer || !mainView || !container2D) return;
+
+    let isDragging = false;
+
+    resizer.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      resizer.setPointerCapture(e.pointerId);
+      document.body.style.cursor = this.state.splitDirection === 'horizontal' ? 'col-resize' : 'row-resize';
+      e.preventDefault();
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const rect = mainView.getBoundingClientRect();
+      let percent = 50;
+
+      if (this.state.splitDirection === 'horizontal') {
+        percent = ((e.clientX - rect.left) / rect.width) * 100;
+      } else {
+        percent = ((e.clientY - rect.top) / rect.height) * 100;
+      }
+
+      percent = Math.max(20, Math.min(80, percent));
+      this.state.splitRatio = percent;
+      container2D.style.flex = `0 0 ${percent}%`;
+      this.resizeAllViews();
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = '';
+        this.resizeAllViews();
+      }
+    });
   }
 
   updateTelemetry() {

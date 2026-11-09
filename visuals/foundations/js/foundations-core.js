@@ -1390,4 +1390,94 @@ export class CategoryMath {
       adjunctionHolds: allMatch
     };
   }
+
+  /**
+   * Morphism Composition:
+   * Given f: A -> B and g: B -> C as ordered pairs,
+   * computes the composite morphism (g ∘ f): A -> C where (g ∘ f)(a) = g(f(a)).
+   */
+  static composeMorphisms(fPairs, gPairs) {
+    const fMap = new Map(fPairs);
+    const gMap = new Map(gPairs);
+    const composite = [];
+
+    for (const [a, b] of fMap.entries()) {
+      const c = gMap.get(b);
+      composite.push([a, c]);
+    }
+    return composite;
+  }
+
+  /**
+   * Evaluates and compares Path 1 (g ∘ f) vs Path 2 (h) across domain A.
+   */
+  static comparePathCompositions(fPairs, gPairs, hPairs, domainA) {
+    const fMap = new Map(fPairs);
+    const gMap = new Map(gPairs);
+    const hMap = new Map(hPairs);
+
+    const evaluations = [];
+    let commutes = true;
+
+    for (const a of domainA) {
+      const b = fMap.get(a);
+      const gfa = b !== undefined ? gMap.get(b) : undefined;
+      const ha = hMap.get(a);
+      const agrees = (gfa !== undefined && ha !== undefined && gfa === ha);
+      if (!agrees) commutes = false;
+
+      evaluations.push({
+        a,
+        b,
+        gfa,
+        ha,
+        agrees
+      });
+    }
+
+    const discrepancies = evaluations.filter(e => !e.agrees);
+
+    return {
+      commutes,
+      evaluations,
+      discrepancies
+    };
+  }
+
+  /**
+   * Generates a 2D incidence matrix M where M[i][j] = 1 iff domain[i] maps to codomain[j].
+   */
+  static computeMorphismMatrix(pairs, domain, codomain) {
+    const map = new Map(pairs);
+    return domain.map(x => {
+      const target = map.get(x);
+      return codomain.map(y => (target === y ? 1 : 0));
+    });
+  }
+
+  /**
+   * Boolean matrix multiplication for morphism incidence matrices.
+   */
+  static multiplyMorphismMatrices(matA, matB) {
+    const rows = matA.length;
+    const cols = matB[0]?.length || 0;
+    const inner = matB.length;
+    const result = [];
+
+    for (let i = 0; i < rows; i++) {
+      const row = [];
+      for (let j = 0; j < cols; j++) {
+        let sum = 0;
+        for (let k = 0; k < inner; k++) {
+          if (matA[i][k] && matB[k][j]) {
+            sum = 1;
+            break;
+          }
+        }
+        row.push(sum);
+      }
+      result.push(row);
+    }
+    return result;
+  }
 }

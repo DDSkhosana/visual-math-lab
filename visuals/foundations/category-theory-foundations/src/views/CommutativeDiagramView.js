@@ -42,6 +42,12 @@ export class CommutativeDiagramView {
               <marker id="cat-arrow-gold" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
               </marker>
+              <marker id="cat-arrow-red" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+              </marker>
+              <marker id="cat-arrow-green" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+              </marker>
               <filter id="aura-gold">
                 <feGaussianBlur stdDeviation="4" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -86,7 +92,6 @@ export class CommutativeDiagramView {
     const pC = { x: 430, y: 190, name: 'C' };
 
     // Evaluation: f: A->B, g: B->C, h: A->C
-    // By default f(x)=x, g(y)=y, h(x)=y -> commutes!
     const commutes = state.triangleCommutes;
 
     // Status Banner
@@ -102,32 +107,47 @@ export class CommutativeDiagramView {
       badge.className = `axiom-badge ${commutes ? 'is-valid' : 'is-violated'}`;
       badge.textContent = commutes ? 'g ∘ f = h' : 'g ∘ f ≠ h';
     }
+
+    const fStr = state.triangleF ? state.triangleF.map(([s, t]) => `${s}↦${t}`).join(', ') : 'id';
+    const gStr = state.triangleG ? state.triangleG.map(([s, t]) => `${s}↦${t}`).join(', ') : 'id';
+    const hStr = state.triangleH ? state.triangleH.map(([s, t]) => `${s}↦${t}`).join(', ') : 'id';
+
     if (tel) {
       tel.innerHTML = `
-        <div><strong>Path 1:</strong> A &xrightarrow{f} B &xrightarrow{g} C &nbsp;|&nbsp; <strong>(g ∘ f)(x) = g(f(x))</strong></div>
-        <div><strong>Path 2:</strong> A &xrightarrow{h} C &nbsp;|&nbsp; <strong>h(x)</strong></div>
+        <div><strong>Path 1:</strong> A &xrightarrow{f} B &xrightarrow{g} C &nbsp;|&nbsp; <strong>(g ∘ f)(x) = g(f(x))</strong> &nbsp; [f: {${fStr}}, g: {${gStr}}]</div>
+        <div><strong>Path 2:</strong> A &xrightarrow{h} C &nbsp;|&nbsp; <strong>h(x)</strong> &nbsp; [{${hStr}}]</div>
         <div style="margin-top: 4px; color: ${commutes ? '#34d399' : '#f87171'};">
-          ${commutes ? '✓ Every element x ∈ A maps to the same target under both paths.' : '⚠ Mappings disagree on domain elements!'}
+          ${commutes ? '✓ Every element x ∈ A maps to the same target under both paths (coincident in coordinate grid).' : '⚠ Mappings disagree on domain elements! See discrepancy vector in Composition Grid.'}
         </div>
       `;
     }
 
-    const strokeColor = commutes ? '#fbbf24' : '#38bdf8';
-    const marker = commutes ? 'url(#cat-arrow-gold)' : 'url(#cat-arrow)';
+    const path1Color = '#38bdf8';
+    const path1Marker = 'url(#cat-arrow)';
+
+    const path2Color = commutes ? '#10b981' : '#ef4444';
+    const path2Marker = commutes ? 'url(#cat-arrow-green)' : 'url(#cat-arrow-red)';
 
     // Arrows
     let arrowsHtml = `
-      <!-- Arrow f: A -> B -->
-      <line x1="${pA.x + 18}" y1="${pA.y - 12}" x2="${pB.x - 18}" y2="${pB.y + 12}" stroke="${strokeColor}" stroke-width="2.5" style="marker-end: ${marker};" />
-      <text x="${(pA.x + pB.x) / 2 - 14}" y="${(pA.y + pB.y) / 2 - 8}" fill="#38bdf8" font-size="14" font-weight="bold">f</text>
+      <!-- Arrow f: A -> B (Path 1 First Step) -->
+      <line x1="${pA.x + 18}" y1="${pA.y - 12}" x2="${pB.x - 18}" y2="${pB.y + 12}" stroke="${path1Color}" stroke-width="2.5" style="marker-end: ${path1Marker};" />
+      <text x="${(pA.x + pB.x) / 2 - 18}" y="${(pA.y + pB.y) / 2 - 10}" fill="#38bdf8" font-size="14" font-weight="bold">f</text>
+      <text x="${(pA.x + pB.x) / 2 - 18}" y="${(pA.y + pB.y) / 2 + 8}" fill="#94a3b8" font-size="10" font-family="monospace">${fStr}</text>
 
-      <!-- Arrow g: B -> C -->
-      <line x1="${pB.x + 18}" y1="${pB.y + 12}" x2="${pC.x - 18}" y2="${pC.y - 12}" stroke="${strokeColor}" stroke-width="2.5" style="marker-end: ${marker};" />
-      <text x="${(pB.x + pC.x) / 2 + 14}" y="${(pB.y + pC.y) / 2 - 8}" fill="#38bdf8" font-size="14" font-weight="bold">g</text>
+      <!-- Arrow g: B -> C (Path 1 Second Step) -->
+      <line x1="${pB.x + 18}" y1="${pB.y + 12}" x2="${pC.x - 18}" y2="${pC.y - 12}" stroke="${path1Color}" stroke-width="2.5" style="marker-end: ${path1Marker};" />
+      <text x="${(pB.x + pC.x) / 2 + 18}" y="${(pB.y + pC.y) / 2 - 10}" fill="#38bdf8" font-size="14" font-weight="bold">g</text>
+      <text x="${(pB.x + pC.x) / 2 + 18}" y="${(pB.y + pC.y) / 2 + 8}" fill="#94a3b8" font-size="10" font-family="monospace">${gStr}</text>
 
-      <!-- Arrow h: A -> C (bottom horizontal) -->
-      <line x1="${pA.x + 24}" y1="${pA.y}" x2="${pC.x - 24}" y2="${pC.y}" stroke="${strokeColor}" stroke-width="2.5" style="marker-end: ${marker};" />
-      <text x="${(pA.x + pC.x) / 2}" y="${pA.y + 24}" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="bold">h = g ∘ f</text>
+      <!-- Arrow h: A -> C (Path 2 Direct Morphism) -->
+      <line x1="${pA.x + 24}" y1="${pA.y}" x2="${pC.x - 24}" y2="${pC.y}" stroke="${path2Color}" stroke-width="${commutes ? '2.5' : '3'}" stroke-dasharray="${commutes ? 'none' : '6,4'}" style="marker-end: ${path2Marker};" />
+      <text x="${(pA.x + pC.x) / 2}" y="${pA.y + 20}" text-anchor="middle" fill="${path2Color}" font-size="14" font-weight="bold">
+        ${commutes ? 'h = g ∘ f' : 'h ≠ g ∘ f (Discrepancy)'}
+      </text>
+      <text x="${(pA.x + pC.x) / 2}" y="${pA.y + 36}" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">
+        ${hStr}
+      </text>
     `;
 
     // Objects

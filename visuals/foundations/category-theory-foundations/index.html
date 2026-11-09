@@ -41,11 +41,13 @@
 
     const init = () => {
       const commContainer = document.querySelector('#commutative-viewport-container');
+      const compGridContainer = document.querySelector('#composition-grid-container');
       const probeContainer = document.querySelector('#probe-viewport-container');
       const factContainer = document.querySelector('#factorization-viewport-container');
 
       mountCategoryTheoryVisual({
         commutative: commContainer,
+        compositionGrid: compGridContainer,
         probe: probeContainer,
         factorization: factContainer
       });
@@ -93,13 +95,25 @@
         <div class="toolbar-content" id="toolbar-content">
           <!-- Main View Modes -->
           <div class="viewmode-segmented-group" role="group" aria-label="View Mode">
-            <button type="button" class="btn active" data-view-mode="commutative" aria-pressed="true">Commutative Diagrams</button>
-            <button type="button" class="btn" data-view-mode="probe" aria-pressed="false">Monic / Epic Probes</button>
-            <button type="button" class="btn" data-view-mode="factorization" aria-pressed="false">Universal Factorization</button>
+            <button type="button" class="btn active" id="btn-split" data-view-mode="split" aria-pressed="true">Split</button>
+            <button type="button" class="btn" id="btn-2d" data-view-mode="2d" aria-pressed="false">Diagram</button>
+            <button type="button" class="btn" id="btn-3d" data-view-mode="3d" aria-pressed="false">Composition Grid</button>
+          </div>
+
+          <button type="button" class="btn-toolbar" id="split-dir-btn" title="Toggle horizontal or vertical split layout" aria-label="Toggle split layout orientation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="m8 10-2 2 2 2"/><path d="m16 10 2 2-2 2"/></svg>
+            <span>Flip</span>
+          </button>
+
+          <!-- Dual Representation Modes -->
+          <div class="viewmode-segmented-group" id="dual-mode-group" role="group" aria-label="Dual Representation">
+            <button type="button" class="btn active" data-dual-mode="composition" aria-pressed="true">Composition Grid</button>
+            <button type="button" class="btn" data-dual-mode="factorization" aria-pressed="false">Universal Factorization</button>
+            <button type="button" class="btn" data-dual-mode="probe" aria-pressed="false">Monic / Epic Probes</button>
           </div>
 
           <!-- Commutative Diagram Sub-Types -->
-          <div class="viewmode-segmented-group" id="diagram-type-group" role="group" aria-label="Diagram Type" style="margin-left: 8px;">
+          <div class="viewmode-segmented-group" id="diagram-type-group" role="group" aria-label="Diagram Type" style="margin-left: 4px;">
             <button type="button" class="btn active" data-diagram-type="triangle" aria-pressed="true">Triangle (g ∘ f = h)</button>
             <button type="button" class="btn" data-diagram-type="square" aria-pressed="false">Naturality Square</button>
             <button type="button" class="btn" data-diagram-type="product" aria-pressed="false">Universal Product</button>
@@ -118,15 +132,33 @@
       </div>
 
       <!-- Main Visual Viewports -->
-      <div class="view-container visual-viewport" id="main-view" style="background: #090d16;">
-        <!-- Mode 1: Commutative Diagrams & Path Composition -->
-        <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
+      <div class="view-container layout-split horizontal-split" id="main-view" style="background: #090d16;">
+        <!-- Left: Commutative Diagram (Primary) -->
+        <div id="canvas-2d-container">
+          <div class="view-title" id="view-title-diagram">
+            Commutative Diagram: <span class="color-sky">Objects &amp; Morphism Flow</span> &amp; <span class="color-emerald">Equality Invariant</span>
+          </div>
+          <!-- Mode 1: Commutative Diagrams & Path Composition -->
+          <div id="commutative-viewport-container" style="width: 100%; height: 100%;"></div>
+        </div>
 
-        <!-- Mode 2: Monic & Epic Cancellation Probes -->
-        <div id="probe-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <div class="viewport-resizer" id="viewport-resizer"></div>
 
-        <!-- Mode 3: Universal Factorization & Adjunction -->
-        <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        <!-- Right: Dual Representation Viewport (Secondary) -->
+        <div id="canvas-3d-container">
+          <div class="view-title" id="view-title-dual">
+            Dual Representation: <span class="color-sky">Composition Grid (A &times; C)</span> &amp; <span class="color-lavender">Universal Factorization</span>
+          </div>
+
+          <!-- Mode 1: Composition Coordinate Grid -->
+          <div id="composition-grid-container" style="width: 100%; height: 100%;"></div>
+
+          <!-- Mode 2: Monic & Epic Cancellation Probes -->
+          <div id="probe-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+
+          <!-- Mode 3: Universal Factorization & Adjunction -->
+          <div id="factorization-viewport-container" style="display: none; width: 100%; height: 100%;"></div>
+        </div>
       </div>
 
       <!-- Panel 1: Categorical Invariants Telemetry -->

@@ -832,6 +832,92 @@ describe('Foundations Suite — File Integrity & Module 1 Controller Integration
     assert.ok(html.includes('commutative-viewport-container'), 'Must contain commutative viewport');
     assert.ok(html.includes('probe-viewport-container'), 'Must contain probe viewport');
     assert.ok(html.includes('factorization-viewport-container'), 'Must contain factorization viewport');
+    assert.ok(html.includes('composition-grid-container'), 'Must contain composition coordinate grid viewport');
+    assert.ok(html.includes('canvas-2d-container'), 'Must contain primary 2D canvas viewport');
+    assert.ok(html.includes('canvas-3d-container'), 'Must contain secondary dual canvas viewport');
+    assert.ok(html.includes('viewport-resizer'), 'Must contain viewport resizer');
+    assert.ok(html.includes('split-dir-btn'), 'Must contain split direction flip button');
+  });
+
+  test('Module 4 CategoryMath implements morphism composition, boolean matrix products, and path comparison', async () => {
+    const { CategoryMath } = await import('../visuals/foundations/js/foundations-core.js');
+
+    const f = [[1, 2], [2, 3], [3, 1]];
+    const g = [[1, 3], [2, 1], [3, 2]];
+    const comp = CategoryMath.composeMorphisms(f, g);
+
+    // (g ∘ f)(1) = g(f(1)) = g(2) = 1
+    // (g ∘ f)(2) = g(f(2)) = g(3) = 2
+    // (g ∘ f)(3) = g(f(3)) = g(1) = 3
+    assert.deepEqual(comp, [[1, 1], [2, 2], [3, 3]]);
+
+    // When h matches comp, path comparison reports commutativity
+    const hMatching = [[1, 1], [2, 2], [3, 3]];
+    const check1 = CategoryMath.comparePathCompositions(f, g, hMatching, [1, 2, 3]);
+    assert.equal(check1.commutes, true);
+    assert.equal(check1.discrepancies.length, 0);
+
+    // When h differs, path comparison reports non-commutativity with discrepancy details
+    const hViolating = [[1, 1], [2, 2], [3, 2]];
+    const check2 = CategoryMath.comparePathCompositions(f, g, hViolating, [1, 2, 3]);
+    assert.equal(check2.commutes, false);
+    assert.equal(check2.discrepancies.length, 1);
+    assert.equal(check2.discrepancies[0].a, 3);
+    assert.equal(check2.discrepancies[0].gfa, 3);
+    assert.equal(check2.discrepancies[0].ha, 2);
+
+    // Matrix representation & multiplication
+    const domain = [1, 2, 3];
+    const codomain = [1, 2, 3];
+    const matF = CategoryMath.computeMorphismMatrix(f, domain, codomain);
+    const matG = CategoryMath.computeMorphismMatrix(g, domain, codomain);
+    const matProd = CategoryMath.multiplyMorphismMatrices(matF, matG);
+    const matH = CategoryMath.computeMorphismMatrix(hMatching, domain, codomain);
+
+    assert.deepEqual(matProd, matH);
+  });
+
+  test('Module 4 CategoryTheoryController coordinates split layout, composition grid, and interactive morphism edits', async () => {
+    const { CategoryTheoryController } = await import('../visuals/foundations/category-theory-foundations/src/controller.js');
+    const ctrl = new CategoryTheoryController();
+
+    // Default canonical split mode
+    assert.equal(ctrl.state.viewMode, 'split');
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+    assert.equal(ctrl.state.dualMode, 'composition');
+    assert.equal(ctrl.state.triangleCommutes, true);
+
+    // Toggle split orientation
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'vertical');
+    ctrl.toggleSplitDirection();
+    assert.equal(ctrl.state.splitDirection, 'horizontal');
+
+    // Dual representation modes
+    ctrl.setDualMode('factorization');
+    assert.equal(ctrl.state.dualMode, 'factorization');
+    assert.equal(ctrl.state.activeMode, 'factorization');
+
+    ctrl.setDualMode('probe');
+    assert.equal(ctrl.state.dualMode, 'probe');
+    assert.equal(ctrl.state.activeMode, 'probe');
+
+    ctrl.setDualMode('composition');
+    assert.equal(ctrl.state.dualMode, 'composition');
+
+    // Interactive mapping edit in morphism f
+    // Change f(1) from 1 to 2
+    ctrl.setTriangleMapping('f', 1, 2);
+    // Since g(2) = 2 but h(1) = 1, diagram no longer commutes
+    assert.equal(ctrl.state.triangleCommutes, false);
+
+    // Syncing composition restores commutativity: h := g ∘ f
+    ctrl.syncTriangleComposition();
+    assert.equal(ctrl.state.triangleCommutes, true);
+
+    // Perturb direct morphism breaks commutativity
+    ctrl.perturbTriangleDirectMorphism();
+    assert.equal(ctrl.state.triangleCommutes, false);
   });
 });
 
